@@ -1,0 +1,65 @@
+{
+  "name": "mongo",
+  "hostname": "mongo",
+  "certificat_compte": "pki.mongo.cert",
+  "args": [
+    "mongod",
+    "--tlsMode", "requireTLS",
+    "--tlsCertificateKeyFile", "/run/secrets/mongo.key_cert.pem",
+    "--tlsCAFile", "/run/secrets/millegrille.cert.pem"
+  ],
+  "env": [
+    "MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}",
+    "MONGO_INITDB_ROOT_PASSWORD_FILE=/run/secrets/mongo.root.password"
+  ],
+  "mounts": [
+    "mongo-data:/data/db:rw"
+  ],
+  "constraints": [
+    "node.labels.millegrilles.database == true"
+  ],
+  "configs": [
+    {
+      "name": "pki.mongo.cert",
+      "filename": "/run/secrets/mongo.cert.pem"
+    },
+    {
+      "name": "pki.millegrille.cert",
+      "filename": "/run/secrets/millegrille.cert.pem"
+    }
+  ],
+  "secrets": [
+    {
+      "match_config": true,
+      "name": "pki.mongo.key",
+      "filename": "mongo.key_cert.pem"
+    },
+    {
+      "name": "passwd.mongo",
+      "filename": "mongo.root.password"
+    }
+  ],
+  "container_labels": {
+    "ipv6.mapper.network": "mg_ipv6"
+  },
+  "networks": [{
+    "target": "millegrille_net",
+    "aliases": ["mongo"]
+  }],
+  "labels": {
+    "millegrille": "${IDMG}",
+    "combiner_keycert": "true"
+  },
+  "resources": {
+    "cpu_limit": 2000000000,
+    "mem_limit": 1073741824
+  },
+  "restart_policy": {
+    "condition": "any",
+    "delay": 30000000000
+  },
+  "mode": {
+    "mode": "replicated",
+    "replicas": 1
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "name": "maitrecomptes_web",
+  "certificat_compte": "pki.maitrecomptes.cert",
+  "generer": [
+    {
+      "generateur": "motdepasse",
+      "longueur": 32,
+      "secret": "passwd.maitrecomptessession"
+    }
+  ],
+  "env": [
+    "MG_MQ_URL=amqps://mq:5673",
+    "MG_MQ_CERTFILE=/run/secrets/cert.pem",
+    "MG_MQ_KEYFILE=/run/secrets/key.pem",
+    "MG_MQ_CAFILE=/run/secrets/millegrille.cert.pem",
+    "WEB_CERT=/run/secrets/webcert.pem",
+    "WEB_KEY=/run/secrets/webkey.pem",
+    "MG_SESSION_PASSWORD=/run/secrets/passwd.maitrecomptessession.txt",
+    "MG_REDIS_HOST=redis",
+    "MG_REDIS_PORT=6379",
+    "MG_MQ_REDIS_PASSWD=/run/secrets/passwd.redis.txt",
+    "SERVER_TYPE=spdy",
+    "HOST=${HOSTNAME_DOMAINE}",
+    "PORT=443",
+    "DATA_FOLDER=${MOUNTS}/nginx/data"
+  ],
+  "mounts": [
+    "${NGINX_DATA_VOLUME}:${MOUNTS}/nginx/data:rw",
+    "${NGINX_HTML_VOLUME}:/var/opt/millegrilles/nginx/html:ro"
+  ],
+  "constraints": [
+    "node.labels.millegrilles.web == true"
+  ],
+  "configs": [
+    {
+      "name": "pki.maitrecomptes.cert",
+      "filename": "/run/secrets/cert.pem"
+    },
+    {
+      "name": "pki.web.cert",
+      "filename": "/run/secrets/webcert.pem"
+    },
+    {
+      "name": "pki.millegrille.cert",
+      "filename": "/run/secrets/millegrille.cert.pem"
+    }
+  ],
+  "secrets": [
+    {
+      "match_config": true,
+      "name": "pki.maitrecomptes.key",
+      "filename": "key.pem"
+    },
+    {
+      "match_config": true,
+      "name": "pki.web.key",
+      "filename": "webkey.pem"
+    },
+    {
+      "name": "passwd.maitrecomptessession",
+      "filename": "passwd.maitrecomptessession.txt"
+    },
+    {
+      "name": "passwd.redis",
+      "filename": "passwd.redis.txt"
+    }
+  ],
+  "container_labels": {
+    "ipv6.mapper.network": "mg_ipv6"
+  },
+  "networks": [{
+    "target": "millegrille_net",
+    "aliases": ["maitrecomptes"]
+  }],
+  "labels": {
+    "millegrille": "${IDMG}"
+  },
+  "resources": {
+    "cpu_limit": 1000000000,
+    "mem_limit": 209715200
+  },
+  "mode": {
+    "mode": "replicated",
+    "replicas": 1
+  }
+}

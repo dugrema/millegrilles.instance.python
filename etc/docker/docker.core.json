@@ -1,0 +1,63 @@
+{
+  "name": "core",
+  "certificat_compte": "pki.core.cert",
+  "env": [
+    "MG_MQ_HOST=mq",
+    "MG_MQ_PORT=5673",
+    "MG_MONGO_HOST=mongo",
+    "MG_MQ_SSL=on",
+    "MG_MQ_AUTH_CERT=on",
+    "CERTFILE=/run/secrets/cert.pem",
+    "KEYFILE=/run/secrets/key.pem",
+    "CAFILE=/run/secrets/millegrille.cert.pem",
+    "MG_FICHIERS_URL=https://fichiers:443",
+    "MG_REDIS_URL=rediss://client_rust@redis:6379#insecure",
+    "MG_REDIS_PASSWORD_FILE=/run/secrets/passwd.redis.txt",
+    "RUST_LOG=warn",
+    "MG_CERTISSUER_URL=http://certissuer:8380"
+  ],
+  "constraints": [
+    "node.labels.millegrilles.core == true",
+    "node.labels.millegrilles.database == true"
+  ],
+  "configs": [
+    {
+      "name": "pki.core.cert",
+      "filename": "/run/secrets/cert.pem"
+    },
+    {
+      "name": "pki.millegrille.cert",
+      "filename": "/run/secrets/millegrille.cert.pem"
+    }
+  ],
+  "secrets": [
+    {
+      "match_config": true,
+      "name": "pki.core.key",
+      "filename": "key.pem"
+    },
+    {
+      "name": "passwd.redis",
+      "filename": "passwd.redis.txt"
+    }
+  ],
+  "networks": [{
+    "target": "millegrille_net"
+  }],
+  "labels": {
+    "millegrille": "${IDMG}"
+  },
+  "resources": {
+    "cpu_limit": 1000000000,
+    "mem_limit": 200000000
+  },
+  "restart_policy": {
+    "condition": "any",
+    "delay": 10000000000,
+    "max_attempts": 1000
+  },
+  "mode": {
+    "mode": "replicated",
+    "replicas": 1
+  }
+}

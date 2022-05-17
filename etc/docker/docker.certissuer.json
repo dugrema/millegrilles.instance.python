@@ -1,0 +1,41 @@
+{
+  "name": "certissuer",
+  "args": [
+    "-m",
+    "millegrilles.noeuds.CertIssuer",
+    "--verbose"
+  ],
+  "env": [
+    "MG_IDMG=${IDMG}",
+    "MG_NOEUD_ID=${MG_NOEUD_ID}",
+    "PORT=8380",
+    "MG_NOEUD_ID=abcd-1234",
+    "CERT_DUREE=21",
+    "CERT_DUREE_HEURES=0"
+  ],
+  "constraints": [
+    "node.labels.millegrilles.python == true"
+  ],
+  "mounts": [
+    "/var/opt/millegrilles/issuer:/var/opt/millegrilles/issuer:rw"
+  ],
+  "networks": [{
+    "target": "millegrille_net"
+  }],
+  "labels": {
+    "millegrille": "${IDMG}"
+  },
+  "resources": {
+    "cpu_limit": 500000000,
+    "mem_limit": 50000000
+  },
+  "restart_policy": {
+    "condition": "any",
+    "delay": 30000000000,
+    "max_attempts": 100000
+  },
+  "mode": {
+    "mode": "replicated",
+    "replicas": 1
+  }
+}
