@@ -1,0 +1,73 @@
+#!/bin/env bash
+
+configurer_reps() {
+  creer_comptes
+  creer_repertoires
+}
+
+creer_repertoires() {
+  echo "[INFO] Configurer les repertoires de MilleGrilles"
+
+  sudo mkdir -p $PATH_MILLEGRILLES/issuer $PATH_LOGS
+  sudo mkdir -p $PATH_MILLEGRILLES/consignation
+  sudo mkdir -p $PATH_MILLEGRILLES/nginx
+  sudo mkdir -p $PATH_MILLEGRILLES/secrets
+  sudo mkdir -p $PATH_MILLEGRILLES/shared_secrets
+  sudo mkdir -p $PATH_MILLEGRILLES/configuration
+
+  sudo chown root:syslog $PATH_LOGS
+  if [ $? -ne 0 ]; then
+    sudo chown root:adm $PATH_LOGS
+  fi
+
+  set -e
+
+  sudo chmod 2770 $PATH_LOGS
+  sudo chown mginstance:millegrilles $PATH_MILLEGRILLES
+  sudo chmod 750 $PATH_MILLEGRILLES
+
+  sudo chmod 750 $PATH_MILLEGRILLES/issuer
+  sudo chown mgissuer:millegrilles $PATH_MILLEGRILLES/issuer
+
+  sudo chmod 2750 $PATH_MILLEGRILLES/consignation
+  sudo chown mgfichiers:millegrilles $PATH_MILLEGRILLES/consignation
+
+  sudo chmod 2775 $PATH_MILLEGRILLES/nginx
+  sudo chown mgnginx:millegrilles $PATH_MILLEGRILLES/nginx
+
+  sudo chmod 2770 $PATH_MILLEGRILLES/secrets
+  sudo chown mginstance:mgsecrets $PATH_MILLEGRILLES/secrets
+
+  sudo chmod 2710 $PATH_MILLEGRILLES/shared_secrets
+  sudo chown mginstance:millegrilles $PATH_MILLEGRILLES/shared_secrets
+
+  sudo chmod 2750 $PATH_MILLEGRILLES/configuration
+  sudo chown mginstance:millegrilles $PATH_MILLEGRILLES/configuration
+
+  echo "[OK] Deployeur Python et dependances installes"
+}
+
+creer_comptes() {
+  echo "[INFO] Preparer comptes millegrilles"
+
+  echo "[INFO] Creer groupes $GROUP_MILLEGRILLES et $GROUP_MGSECRETS"
+  sudo groupadd -g $GROUP_MILLEGRILLES_GID $GROUP_MILLEGRILLES
+  sudo groupadd -g $GROUP_MGSECRETS_GID $GROUP_MGSECRETS
+
+  for USER_NAME in $MG_USERS; do
+    echo "[INFO] Creer compte usager $USER_NAME"
+    USER_HANDLE=USER_${USER_NAME}
+    USER_UID=USER_${USER_NAME}_UID
+    USER_GROUPS=USER_${USER_NAME}_GROUPS
+    USER_GROUPS_ARRAY=(${!USER_GROUPS})
+
+    echo "useradd ${!USER_HANDLE} uid ${!USER_UID} group ${USER_GROUPS_ARRAY[0]}"
+    sudo useradd -u ${!USER_UID} -g ${USER_GROUPS_ARRAY[0]} -m ${!USER_HANDLE}
+    for GROUP in ${USER_GROUPS_ARRAY[@]}; do
+      sudo adduser ${!USER_HANDLE} $GROUP
+    done
+
+  done
+
+  echo "[OK] Comptes millegrilles prets"
+}

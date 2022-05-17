@@ -1,20 +1,36 @@
-#!/bin/bash
+#!/bin/env bash
 
-PATH_MILLEGRILLES=/var/opt/millegrilles
-PATH_VENV=/var/opt/millegrilles/venv
-MG_PIP_REPOSITORY_URL=https://pip.maceroc.com/
+REP_ETC=./etc
+REP_BIN=./bin
 
-PACKAGE_MESSAGES=dist/millegrilles.messages-2022.3.0.tar.gz
+# Charger les variables, paths, users/groups
+source ${REP_ETC}/config.env
+source ${REP_ETC}/versions.env
+source ${REP_BIN}/install_reps.include
+# source ${REP_BIN}/install_python.include
+source ${REP_BIN}/install_docker.include
 
-echo "Installer packages apt"
-sudo apt install -y python3-pip python3-venv
-
-if [ ! -d "$PATH_VENV" ]; then
-  echo "Creer venv python3 sous $PATH_VENV"
-  python3 -m venv $PATH_VENV
+if [ -n "${DEV}" ]; then
+  echo "Inclure DEV overrides"
+  source ${REP_ETC}/config.dev
 fi
 
-echo "Installer pip requirements.txt"
-pip3 install wheel
+echo
+echo "***** ENV ******"
+printenv
+echo "****************"
+echo
 
-pip3 install "$MG_PIP_REPOSITORY_URL/$PACKAGE_MESSAGES"
+if [ ! -d "${PATH_MILLEGRILLES}" ]; then
+  configurer_reps
+  echo "Installer packages apt pour python3 venv"
+  sudo apt install -y python3-pip python3-venv
+
+  echo "Creer venv python3 sous $PATH_VENV"
+  URL_MG_MESSAGES="${MG_PIP_REPOSITORY_URL}/${PIP_PACKAGE_MESSAGES}"
+  echo "Installer millegrilles messages avec url : ${URL_MG_MESSAGES}"
+  sudo -u mginstance ${REP_BIN}/install_python.sh "${PATH_VENV}" "${URL_MG_MESSAGES}"
+fi
+
+echo
+echo "[INFO] Installation completee, OK"
