@@ -3,7 +3,6 @@ dist
 **/__pycache__
 *egg-info
 .idea
-venv/
-venv3.6/
+venv*/
 version.txt
 base/requirements.txt
