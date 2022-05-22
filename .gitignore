@@ -6,3 +6,4 @@ dist
 venv*/
 version.txt
 base/requirements.txt
+*.tar.gz

@@ -1,0 +1,90 @@
+H3 {
+  font-size: 1.2rem;
+}
+
+.boite-coinsronds {
+  /* border-radius: 25px; */
+  border-top: 2px solid grey;
+  padding: 20px;
+  margin-bottom: 1em;
+}
+
+.boite-authentification {
+  min-height: 15em
+}
+
+.champ-cache {
+  display: none !important;
+}
+
+.form-login > DIV {
+  padding-bottom: 3em
+}
+
+.idmg {
+  font-size: small;
+}
+
+.button-list button {
+  margin-right: 1em;
+}
+
+.qr-code {
+  padding: 1em;
+}
+
+INPUT.motdepasse {
+  width: 14em;
+}
+
+.boutons-installer {
+  margin-top: 2em;
+}
+
+@media screen {
+  .print-only {
+    display: none;
+  }
+}
+
+@media print {
+  .screen-only {
+    display: none;
+  }
+
+  .motdepasse {
+    padding-top: 1em;
+    padding-bottom: 2em;
+  }
+
+  .footer {
+    display: none;
+  }
+  .pagebreak {
+    clear: both;
+    page-break-after: always;
+  }
+
+  .qrcode {
+    padding-bottom: 2em;
+  }
+
+  .bouton {
+    display: none;
+  }
+
+  .pem {
+    page-break-inside: avoid;
+  }
+
+  .cle-pem {
+    padding-top: 5rem;
+    page-break-before: always;
+    page-break-inside: avoid;
+  }
+
+  button {
+    display: none;
+  }
+
+}

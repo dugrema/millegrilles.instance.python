@@ -1,0 +1,64 @@
+{
+  "translation": {
+    "global": {
+      "dateHeure": "{{date, YYYY-MM-DD HH:mm:ss}}",
+      "dateModifiee": "{{date, D MMM}}",
+      "dateAnneeModifiee": "{{date, D MMM YYYY}}",
+      "heureModifiee": "{{date, HH:mm}}",
+      "securite": {
+        "secure": "Sécure",
+        "protege": "Protégé",
+        "prive": "Privé",
+        "public": "Public"
+      },
+      "appliquer": "Appliquer",
+      "sauvegarder": "Sauvegarder",
+      "publier": "Publier",
+      "retour": "Retour",
+      "ajouter": "Ajouter",
+      "supprimer": "Supprimer",
+      "url": "URL",
+      "rafraichir": "Rafraichir",
+      "activer": "Activer",
+      "desactiver": "Desactiver"
+    },
+    "application": {
+      "nom": "MilleGrilles",
+      "advert": "MilleGrilles",
+      "version": "v.{{version}}"
+    },
+    "menu": {
+      "vitrine": "Vitrine",
+      "applications": "Applications",
+      "posteur": "Posteur",
+      "coupdoeil": "Coup D'Oeil",
+      "changerLangue": "English",
+      "nonDisponible": "Veuillez vous authentifier"
+    },
+    "authentification": {
+      "accesProprietaire": "Accès protégé pour le propriétaire avec une clé de sécurité",
+      "accesPrive": "Accès privé pour les usagers de la MilleGrille"
+    },
+    "bouton": {
+      "accesProprietaire": "Accès propriétaire",
+      "annuler": "Annuler",
+      "suivant": "Suivant",
+      "pki": "Pki"
+    },
+    "backup": {
+      "cles": {
+        "titre": "Backup clé racine",
+        "instructions_1": "Faire une copie des clés privées de la MilleGrille.",
+        "instructions_2": "Ces clés sont requises pour permettre une restauration complète de la MilleGrille.",
+        "instructions_3": "Le mot de passe doit être rangé dans un endroit différent de celui des clés. Par exemple, le mot de passe peut être sauvegardé dans un gestionnaire de mots de passe (e.g. SplashID) ou imprimé et rangé dans votre porte-feuille.",
+        "avertissementTitre": "Avertissement",
+        "avertissement_1": "Si une clé et son mot de passe est volé, la MilleGrille doit être détruite aussi vite que possible.",
+        "avertissement_2": "Les clés ne doivent sous aucun prétexte être données à quelqu'un d'autre, surtout si ce n'est pas quelqu'un à qui vous seriez prêt à donner une copie des clés de votre voiture sport.",
+        "motDePasse": "Mot de passe : ",
+        "boutonGenerer": "Générer",
+        "boutonRecupererCleRacine": "Charger clé racine",
+        "boutonGenererCleBackup": "Générer clé de backup"
+      }
+    }
+  }
+}

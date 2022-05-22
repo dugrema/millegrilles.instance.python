@@ -1,0 +1,75 @@
+.flex-wrapper {
+  display: flex;
+  min-height: 100vh;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.footer {
+  width: 100%;
+  margin-top: 3em;
+  padding: 1em;
+  padding-bottom: 0.5em;
+  min-height: 4em;
+  color: White;
+}
+
+.footer H2 {
+  font-size: 1.25rem;
+  font-family: "Tahoma", sans-serif;
+}
+
+.footer div.row {
+  padding-left: 1em;
+  padding-right: 1em;
+}
+
+.footer A, .footer A:visited {
+  color: White;
+  text-decoration: underline;
+}
+
+.millegrille-footer {
+  padding-top: 4em;
+  text-align: center;
+  font-size: 0.75rem;
+  font-family: "Tahoma", sans-serif;
+}
+
+@media screen and (min-width: 768px) {
+  .millegrille-footer {
+    padding-top: 4em;
+  }
+
+  .footer-center {
+    text-align: center;
+  }
+
+  .footer-right {
+    text-align: right;
+  }
+}
+
+@media screen and (max-width: 767px) {
+  .millegrille-footer {
+    padding-top: 0.5em;
+  }
+
+  .footer-right {
+    text-align: center;
+    padding-top: 0.5em;
+  }
+}
+
+.idmg {
+  font-size: smaller;
+}
+
+i.protege {
+  color: green;
+}
+
+.expire {
+  color: red;
+  font-weight: bolder;
+}
