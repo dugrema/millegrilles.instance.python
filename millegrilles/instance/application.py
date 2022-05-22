@@ -1,10 +1,12 @@
 # Main script d'application pour une instance MilleGrilles
 # L'application gere les secrets, certificats et site web de configuration (port 8080).
 import argparse
+import asyncio
 import logging
 import signal
 
-from threading import Thread, Event
+from asyncio import Event
+from asyncio.exceptions import TimeoutError
 
 
 def initialiser_application():
@@ -51,7 +53,8 @@ class ApplicationInstance:
 
     def __init__(self):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        self._stop_event = Event()  # Evenement d'arret global de l'application
+        self.__loop = None
+        self._stop_event = None  # Evenement d'arret global de l'application
 
     def charger_configuration(self, args: argparse.Namespace):
         """
@@ -67,36 +70,49 @@ class ApplicationInstance:
         """
         self.__logger.info("Preparer l'environnement")
 
-    def reload(self):
+    async def reload(self):
         self.__logger.info("Reload configuration")
 
     def exit_gracefully(self, signum=None, frame=None):
         self.__logger.info("Fermer application, signal: %d" % signum)
         self.fermer()
 
-    def entretien(self):
+    async def entretien(self):
         """
         Entretien du systeme. Invoque a intervalle regulier.
         :return:
         """
         self.__logger.debug("Debut cycle d'entretien")
 
+        while not self._stop_event.is_set():
+            # Entretien
+
+            try:
+                # Attente 30 secondes entre entretien
+                await asyncio.wait_for(self._stop_event.wait(), 30)
+            except TimeoutError:
+                pass
+
         self.__logger.debug("Fin cycle d'entretien")
 
     def fermer(self):
-        self._stop_event.set()
+        if self.__loop is not None:
+            self.__loop.call_soon_threadsafe(self._stop_event.set)
 
-    def executer(self):
+    async def executer(self):
         """
         Boucle d'execution principale
         :return:
         """
-        while not self._stop_event.is_set():
+        self.__loop = asyncio.get_event_loop()
+        self._stop_event = Event()
 
-            # Entretien
-            self.entretien()
+        tasks = [
+            asyncio.create_task(self.entretien()),
+        ]
 
-            self._stop_event.wait(30)  # Attente 30 secondes entre entretien
+        # Execution de la loop avec toutes les tasks
+        await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
 
 
 def main():
@@ -109,7 +125,7 @@ def main():
 
     try:
         logger.info("Debut execution app")
-        app.executer()
+        asyncio.run(app.executer())
         logger.info("Fin execution app")
     except KeyboardInterrupt:
         logger.info("Arret execution app via signal (KeyboardInterrupt), fin thread main")

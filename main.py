@@ -1,5 +1,6 @@
 # Main script d'application pour une instance MilleGrilles
 # L'application gere les secrets, certificats et site web de configuration (port 8080).
+import asyncio
 import logging
 from millegrilles.instance.application import initialiser_application
 
@@ -14,7 +15,7 @@ def main():
 
     try:
         logger.info("Debut execution app")
-        app.executer()
+        asyncio.run(app.executer())
         logger.info("Fin execution app")
     except KeyboardInterrupt:
         logger.info("Arret execution app via signal (KeyboardInterrupt), fin thread main")
