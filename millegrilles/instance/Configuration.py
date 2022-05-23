@@ -3,6 +3,7 @@ import os
 from typing import Optional
 
 from millegrilles.instance import Constantes
+from millegrilles.messages import Constantes as ConstantesMessages
 
 CONST_INSTANCE_PARAMS = [
     Constantes.INSTANCE_CONFIG_PATH,
@@ -12,7 +13,10 @@ CONST_INSTANCE_PARAMS = [
 ]
 
 CONST_WEB_PARAMS = [
+    Constantes.ENV_WEB_PORT,
     Constantes.WEB_APP_PATH,
+    Constantes.ENV_WEB_CERT_PEM,
+    Constantes.ENV_WEB_KEY_PEM,
 ]
 
 
@@ -63,6 +67,10 @@ class ConfigurationWeb:
 
     def __init__(self):
         self.path_app_installation = '/var/opt/millegrilles/dist/installation'
+        self.ca_pem_path: Optional[str] = None
+        self.web_cert_pem_path: Optional[str] = None
+        self.web_key_pem_path: Optional[str] = None
+        self.port = 11443
 
     def get_env(self) -> dict:
         """
@@ -88,3 +96,7 @@ class ConfigurationWeb:
             dict_params.update(configuration)
 
         self.path_app_installation = dict_params.get(Constantes.WEB_APP_PATH) or self.path_app_installation
+        self.ca_pem_path = dict_params.get(ConstantesMessages.ENV_CA_PEM) or self.ca_pem_path
+        self.web_cert_pem_path = dict_params.get(Constantes.ENV_WEB_CERT_PEM) or self.web_cert_pem_path
+        self.web_key_pem_path = dict_params.get(Constantes.ENV_WEB_KEY_PEM) or self.web_key_pem_path
+        self.port = int(dict_params.get(Constantes.ENV_WEB_PORT) or self.port)

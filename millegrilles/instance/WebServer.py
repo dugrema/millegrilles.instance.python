@@ -5,6 +5,7 @@ from aiohttp import web
 from asyncio import Event
 from asyncio.exceptions import TimeoutError
 from os import path
+from ssl import SSLContext
 from typing import Optional
 
 from millegrilles.instance.Configuration import ConfigurationWeb
@@ -17,6 +18,7 @@ class WebServer:
         self.__app = web.Application()
         self.__stop_event = stop_event
         self.__configuration = ConfigurationWeb()
+        self.__ssl_context: Optional[SSLContext] = None
 
     async def handle(self, request):
         name = request.match_info.get('name', "Anonymous")
@@ -26,6 +28,7 @@ class WebServer:
     def setup(self, configuration: Optional[dict] = None):
         self._charger_configuration(configuration)
         self._preparer_routes()
+        self._charger_ssl()
 
     def _charger_configuration(self, configuration: Optional[dict] = None):
         self.__configuration.parse_config(configuration)
@@ -41,6 +44,11 @@ class WebServer:
             web.get('/installation', self.installation_index_handler),
             web.static('/installation', self.__configuration.path_app_installation),
         ])
+
+    def _charger_ssl(self):
+        self.__ssl_context = SSLContext()
+        self.__ssl_context.load_cert_chain(self.__configuration.web_cert_pem_path,
+                                           self.__configuration.web_key_pem_path)
 
     async def installation_index_handler(self, request):
         path_app_installation = self.__configuration.path_app_installation
@@ -67,7 +75,7 @@ class WebServer:
 
         runner = web.AppRunner(self.__app)
         await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', 8080)
+        site = web.TCPSite(runner, '0.0.0.0', 11443, ssl_context=self.__ssl_context)
         try:
             await site.start()
             self.__logger.info("Site demarre")
