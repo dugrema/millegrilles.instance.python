@@ -28,7 +28,7 @@ def initialiser_application():
 
     signal.signal(signal.SIGINT, app.exit_gracefully)
     signal.signal(signal.SIGTERM, app.exit_gracefully)
-    signal.signal(signal.SIGHUP, app.reload)
+    signal.signal(signal.SIGHUP, app.reload_configuration)
 
     app.preparer_environnement()
 

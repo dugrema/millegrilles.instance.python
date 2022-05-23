@@ -1,5 +1,7 @@
 from os import path
 
+from millegrilles.certificats.CertificatsWeb import generer_self_signed_rsa, generer_self_signed_ed25519
+
 
 def preparer_certificats_web(path_secrets: str):
 
@@ -16,7 +18,13 @@ def preparer_certificats_web(path_secrets: str):
         return path_cert_web, path_key_web
 
     # Generer certificat self-signed
+    clecertificat_genere = generer_self_signed_rsa('localhost')
 
+    certificat = ''.join(clecertificat_genere.get_pem_certificat())
+    with open(path_cert_web, 'w') as fichier:
+        fichier.write(certificat)
+    with open(path_key_web, 'w') as fichier:
+        fichier.write(clecertificat_genere.get_pem_cle())
 
     return path_cert_web, path_key_web
 
