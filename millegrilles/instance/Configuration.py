@@ -1,3 +1,4 @@
+import argparse
 import os
 
 from typing import Optional
@@ -33,7 +34,6 @@ class ConfigurationInstance:
         self.path_certificat_web: Optional[str] = None
         self.path_cle_web: Optional[str] = None
 
-
     def get_env(self) -> dict:
         """
         Extrait l'information pertinente pour pika de os.environ
@@ -47,9 +47,10 @@ class ConfigurationInstance:
 
         return config
 
-    def parse_config(self, configuration: Optional[dict] = None):
+    def parse_config(self, args: argparse.Namespace, configuration: Optional[dict] = None):
         """
         Conserver l'information de configuration
+        :param args:
         :param configuration:
         :return:
         """
@@ -67,10 +68,10 @@ class ConfigurationWeb:
 
     def __init__(self):
         self.path_app_installation = '/var/opt/millegrilles/dist/installation'
-        self.ca_pem_path: Optional[str] = None
-        self.web_cert_pem_path: Optional[str] = None
-        self.web_key_pem_path: Optional[str] = None
-        self.port = 11443
+        self.ca_pem_path = '/var/opt/millegrilles/secrets/pki.millegrille.cert'
+        self.web_cert_pem_path = '/var/opt/millegrilles/secrets/pki.web.cert'
+        self.web_key_pem_path = '/var/opt/millegrilles/secrets/pki.web.key'
+        self.port = '11443'
 
     def get_env(self) -> dict:
         """

@@ -8,9 +8,11 @@ import signal
 from asyncio import Event
 from asyncio.exceptions import TimeoutError
 from os import path, makedirs, chmod
+from typing import Optional
 
 from millegrilles.instance.Configuration import ConfigurationInstance
 from millegrilles.instance.Certificats import preparer_certificats_web
+from millegrilles.instance.WebServer import WebServer
 
 
 def initialiser_application():
@@ -61,13 +63,15 @@ class ApplicationInstance:
         self._stop_event = None  # Evenement d'arret global de l'application
         self.__configuration = ConfigurationInstance()
 
+        self.__web_server: Optional[WebServer] = None
+
     def charger_configuration(self, args: argparse.Namespace):
         """
         Charge la configuration d'environnement (os.env, /var/opt/millegrilles/instance)
         :return:
         """
         self.__logger.info("Charger la configuration")
-        self.__configuration.parse_config()
+        self.__configuration.parse_config(args)
 
     def preparer_environnement(self):
         """
@@ -81,6 +85,9 @@ class ApplicationInstance:
         makedirs(self.__configuration.path_secrets_partages, 0o710, exist_ok=True)
 
         self.reload_configuration()
+
+        self.__web_server = WebServer(self)
+        self.__web_server.setup()
 
     def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
@@ -126,6 +133,7 @@ class ApplicationInstance:
 
         tasks = [
             asyncio.create_task(self.entretien()),
+            asyncio.create_task(self.__web_server.run(self._stop_event))
         ]
 
         # Execution de la loop avec toutes les tasks

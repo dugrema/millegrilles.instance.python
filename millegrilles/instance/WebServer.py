@@ -13,10 +13,12 @@ from millegrilles.instance.Configuration import ConfigurationWeb
 
 class WebServer:
 
-    def __init__(self, stop_event: Optional[Event] = None):
+    def __init__(self, instance=None):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        self.__instance = instance
+
         self.__app = web.Application()
-        self.__stop_event = stop_event
+        self.__stop_event: Optional[Event] = None
         self.__configuration = ConfigurationWeb()
         self.__ssl_context: Optional[SSLContext] = None
 
@@ -69,13 +71,15 @@ class WebServer:
     async def entretien(self):
         self.__logger.debug('Entretien')
 
-    async def run(self):
-        if self.__stop_event is None:
+    async def run(self, stop_event: Optional[Event] = None):
+        if stop_event is not None:
+            self.__stop_event = stop_event
+        else:
             self.__stop_event = Event()
 
         runner = web.AppRunner(self.__app)
         await runner.setup()
-        site = web.TCPSite(runner, '0.0.0.0', 11443, ssl_context=self.__ssl_context)
+        site = web.TCPSite(runner, '0.0.0.0', self.__configuration.port, ssl_context=self.__ssl_context)
         try:
             await site.start()
             self.__logger.info("Site demarre")
