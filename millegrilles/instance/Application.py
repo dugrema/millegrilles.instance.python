@@ -7,6 +7,10 @@ import signal
 
 from asyncio import Event
 from asyncio.exceptions import TimeoutError
+from os import path, makedirs, chmod
+
+from millegrilles.instance.Configuration import ConfigurationInstance
+from millegrilles.instance.Certificats import preparer_certificats_web
 
 
 def initialiser_application():
@@ -55,13 +59,15 @@ class ApplicationInstance:
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__loop = None
         self._stop_event = None  # Evenement d'arret global de l'application
+        self.__configuration = ConfigurationInstance()
 
     def charger_configuration(self, args: argparse.Namespace):
         """
-        Charge la configuration (os.env, /var/opt/millegrilles/instance)
+        Charge la configuration d'environnement (os.env, /var/opt/millegrilles/instance)
         :return:
         """
         self.__logger.info("Charger la configuration")
+        self.__configuration.parse_config()
 
     def preparer_environnement(self):
         """
@@ -69,9 +75,20 @@ class ApplicationInstance:
         :return:
         """
         self.__logger.info("Preparer l'environnement")
+        makedirs(self.__configuration.path_configuration, 0o750, exist_ok=True)
+        makedirs(self.__configuration.path_nginx_configuration, 0o750, exist_ok=True)
+        makedirs(self.__configuration.path_secrets, 0o700, exist_ok=True)
+        makedirs(self.__configuration.path_secrets_partages, 0o710, exist_ok=True)
 
-    async def reload(self):
-        self.__logger.info("Reload configuration")
+        self.reload_configuration()
+
+    def reload_configuration(self):
+        self.__logger.info("Reload configuration sur disque ou dans docker")
+
+        # Generer les certificats web self-signed au besoin
+        path_cert_web, path_cle_web = preparer_certificats_web(self.__configuration.path_secrets)
+        self.__configuration.path_certificat_web = path_cert_web
+        self.__configuration.path_cle_web = path_cle_web
 
     def exit_gracefully(self, signum=None, frame=None):
         self.__logger.info("Fermer application, signal: %d" % signum)

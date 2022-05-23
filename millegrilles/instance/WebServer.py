@@ -32,16 +32,31 @@ class WebServer:
 
     def _preparer_routes(self):
         self.__app.add_routes([
+            web.get('/installation/api/info', self.handle_api_info),
+            web.get('/installation/api/csr', self.handle_api_csr),
+            web.get('/installation/api/etatCertificatWeb', self.handle_etat_certificat_web),
+
             # Application d'installation static React
-            web.get('/installation', self.index_request),
-            web.get('/installation/', self.index_request),
+            web.get('/installation/', self.installation_index_handler),
+            web.get('/installation', self.installation_index_handler),
             web.static('/installation', self.__configuration.path_app_installation),
         ])
 
-    async def index_request(self, request):
+    async def installation_index_handler(self, request):
         path_app_installation = self.__configuration.path_app_installation
         path_index = path.join(path_app_installation, 'index.html')
         return web.FileResponse(path_index)
+
+    async def handle_api_info(self, request):
+        # action = request.match_info['action']
+        # print("ACTION! %s" % action)
+        return web.HTTPNotImplemented()
+
+    async def handle_api_csr(self, request):
+        return web.HTTPNotImplemented()
+
+    async def handle_etat_certificat_web(self, request):
+        return web.HTTPNotImplemented()
 
     async def entretien(self):
         self.__logger.debug('Entretien')

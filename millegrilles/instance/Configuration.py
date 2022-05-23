@@ -26,6 +26,10 @@ class ConfigurationInstance:
 
         self.docker_actif = False
 
+        self.path_certificat_web: Optional[str] = None
+        self.path_cle_web: Optional[str] = None
+
+
     def get_env(self) -> dict:
         """
         Extrait l'information pertinente pour pika de os.environ
