@@ -12,10 +12,10 @@ from typing import Optional
 from uuid import uuid4
 
 from millegrilles.instance.Configuration import ConfigurationInstance
-from millegrilles.instance.Certificats import preparer_certificats_web
 from millegrilles.instance.DockerState import DockerState
 from millegrilles.instance.DockerHandler import DockerHandler
 from millegrilles.instance.WebServer import WebServer
+from millegrilles.instance.EtatInstance import EtatInstance
 
 
 def initialiser_application():
@@ -33,7 +33,7 @@ def initialiser_application():
 
     signal.signal(signal.SIGINT, app.exit_gracefully)
     signal.signal(signal.SIGTERM, app.exit_gracefully)
-    signal.signal(signal.SIGHUP, app.reload_configuration)
+    # signal.signal(signal.SIGHUP, app.reload_configuration)
 
     app.preparer_environnement()
 
@@ -65,13 +65,10 @@ class ApplicationInstance:
         self.__loop = None
         self._stop_event = None  # Evenement d'arret global de l'application
         self.__configuration = ConfigurationInstance()
+        self.__etat_instance = EtatInstance(self.__configuration)
 
         self.__web_server: Optional[WebServer] = None
         self.__docker_handler: Optional[DockerHandler] = None
-
-        self.__instance_id: Optional[str] = None
-        self.__niveau_securite: Optional[str] = None
-        self.__idmg: Optional[str] = None
 
     def charger_configuration(self, args: argparse.Namespace):
         """
@@ -92,9 +89,9 @@ class ApplicationInstance:
         makedirs(self.__configuration.path_secrets_partages, 0o710, exist_ok=True)
 
         self.preparer_folder_configuration()
-        self.reload_configuration()
+        self.__etat_instance.reload_configuration()
 
-        self.__web_server = WebServer(self)
+        self.__web_server = WebServer(self.__etat_instance)
         self.__web_server.setup()
 
         docker_state = DockerState()
@@ -111,38 +108,6 @@ class ApplicationInstance:
             uuid_instance = str(uuid4())
             with open(path_instance_txt, 'w') as fichier:
                 fichier.write(uuid_instance)
-
-    def reload_configuration(self):
-        self.__logger.info("Reload configuration sur disque ou dans docker")
-
-        # Generer les certificats web self-signed au besoin
-        path_cert_web, path_cle_web = preparer_certificats_web(self.__configuration.path_secrets)
-        self.__configuration.path_certificat_web = path_cert_web
-        self.__configuration.path_cle_web = path_cle_web
-
-        path_instance_txt = path.join(self.__configuration.path_configuration, 'instance_id.txt')
-        with open(path_instance_txt, 'r') as fichier:
-            uuid_instance = fichier.read().strip()
-            self.__logger.info("Instance id : %s", uuid_instance)
-            self.__instance_id = uuid_instance
-
-        try:
-            path_securite_txt = path.join(self.__configuration.path_configuration, 'securite.txt')
-            with open(path_securite_txt, 'r') as fichier:
-                niveau_securite = fichier.read().strip()
-                self.__logger.info("Securite : %s", niveau_securite)
-                self.__niveau_securite = niveau_securite
-        except FileNotFoundError:
-            pass
-
-        try:
-            idmg_txt = path.join(self.__configuration.path_configuration, 'idmg.txt')
-            with open(idmg_txt, 'r') as fichier:
-                idmg_str = fichier.read().strip()
-                self.__logger.info("IDMG : %s", idmg_str)
-                self.__idmg = idmg_str
-        except FileNotFoundError:
-            pass
 
     def exit_gracefully(self, signum=None, frame=None):
         self.__logger.info("Fermer application, signal: %d" % signum)
@@ -185,6 +150,13 @@ class ApplicationInstance:
 
         # Execution de la loop avec toutes les tasks
         await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
+
+    async def sync_configuration_docker(self):
+        """
+        S'assure que tous les configs/secrets docker sont crees
+        :return:
+        """
+        pass
 
 
 def main():

@@ -9,13 +9,14 @@ from ssl import SSLContext
 from typing import Optional
 
 from millegrilles.instance.Configuration import ConfigurationWeb
+from millegrilles.instance.EtatInstance import EtatInstance
 
 
 class WebServer:
 
-    def __init__(self, instance=None):
+    def __init__(self, etat_instance: EtatInstance):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        self.__instance = instance
+        self.__etat_instance = etat_instance
 
         self.__app = web.Application()
         self.__stop_event: Optional[Event] = None
