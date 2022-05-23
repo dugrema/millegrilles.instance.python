@@ -13,7 +13,8 @@ from uuid import uuid4
 
 from millegrilles.instance.Configuration import ConfigurationInstance
 from millegrilles.instance.Certificats import preparer_certificats_web
-from millegrilles.instance.DockerHandler import DockerState
+from millegrilles.instance.DockerState import DockerState
+from millegrilles.instance.DockerHandler import DockerHandler
 from millegrilles.instance.WebServer import WebServer
 
 
@@ -66,7 +67,7 @@ class ApplicationInstance:
         self.__configuration = ConfigurationInstance()
 
         self.__web_server: Optional[WebServer] = None
-        self.__docker_state: Optional[DockerState] = None
+        self.__docker_handler: Optional[DockerHandler] = None
 
         self.__instance_id: Optional[str] = None
         self.__niveau_securite: Optional[str] = None
@@ -96,7 +97,10 @@ class ApplicationInstance:
         self.__web_server = WebServer(self)
         self.__web_server.setup()
 
-        self.__docker_state = DockerState()
+        docker_state = DockerState()
+        if docker_state.docker_actif() is True:
+            self.__logger.info("Docker est actif")
+            self.__docker_handler = DockerHandler(docker_state)
 
     def preparer_folder_configuration(self):
         makedirs(self.__configuration.path_configuration, 0o750, exist_ok=True)
