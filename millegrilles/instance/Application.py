@@ -7,11 +7,13 @@ import signal
 
 from asyncio import Event
 from asyncio.exceptions import TimeoutError
-from os import path, makedirs, chmod
+from os import path, makedirs
 from typing import Optional
+from uuid import uuid4
 
 from millegrilles.instance.Configuration import ConfigurationInstance
 from millegrilles.instance.Certificats import preparer_certificats_web
+from millegrilles.instance.DockerHandler import DockerState
 from millegrilles.instance.WebServer import WebServer
 
 
@@ -64,6 +66,11 @@ class ApplicationInstance:
         self.__configuration = ConfigurationInstance()
 
         self.__web_server: Optional[WebServer] = None
+        self.__docker_state: Optional[DockerState] = None
+
+        self.__instance_id: Optional[str] = None
+        self.__niveau_securite: Optional[str] = None
+        self.__idmg: Optional[str] = None
 
     def charger_configuration(self, args: argparse.Namespace):
         """
@@ -79,15 +86,27 @@ class ApplicationInstance:
         :return:
         """
         self.__logger.info("Preparer l'environnement")
-        makedirs(self.__configuration.path_configuration, 0o750, exist_ok=True)
         makedirs(self.__configuration.path_nginx_configuration, 0o750, exist_ok=True)
         makedirs(self.__configuration.path_secrets, 0o700, exist_ok=True)
         makedirs(self.__configuration.path_secrets_partages, 0o710, exist_ok=True)
 
+        self.preparer_folder_configuration()
         self.reload_configuration()
 
         self.__web_server = WebServer(self)
         self.__web_server.setup()
+
+        self.__docker_state = DockerState()
+
+    def preparer_folder_configuration(self):
+        makedirs(self.__configuration.path_configuration, 0o750, exist_ok=True)
+
+        # Verifier si on a les fichiers de base (instance_id.txt)
+        path_instance_txt = path.join(self.__configuration.path_configuration, 'instance_id.txt')
+        if path.exists(path_instance_txt) is False:
+            uuid_instance = str(uuid4())
+            with open(path_instance_txt, 'w') as fichier:
+                fichier.write(uuid_instance)
 
     def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
@@ -96,6 +115,30 @@ class ApplicationInstance:
         path_cert_web, path_cle_web = preparer_certificats_web(self.__configuration.path_secrets)
         self.__configuration.path_certificat_web = path_cert_web
         self.__configuration.path_cle_web = path_cle_web
+
+        path_instance_txt = path.join(self.__configuration.path_configuration, 'instance_id.txt')
+        with open(path_instance_txt, 'r') as fichier:
+            uuid_instance = fichier.read().strip()
+            self.__logger.info("Instance id : %s", uuid_instance)
+            self.__instance_id = uuid_instance
+
+        try:
+            path_securite_txt = path.join(self.__configuration.path_configuration, 'securite.txt')
+            with open(path_securite_txt, 'r') as fichier:
+                niveau_securite = fichier.read().strip()
+                self.__logger.info("Securite : %s", niveau_securite)
+                self.__niveau_securite = niveau_securite
+        except FileNotFoundError:
+            pass
+
+        try:
+            idmg_txt = path.join(self.__configuration.path_configuration, 'idmg.txt')
+            with open(idmg_txt, 'r') as fichier:
+                idmg_str = fichier.read().strip()
+                self.__logger.info("IDMG : %s", idmg_str)
+                self.__idmg = idmg_str
+        except FileNotFoundError:
+            pass
 
     def exit_gracefully(self, signum=None, frame=None):
         self.__logger.info("Fermer application, signal: %d" % signum)
