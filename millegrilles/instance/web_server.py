@@ -20,8 +20,15 @@ class WebServer:
         return web.Response(text=text)
 
     def preparer_routes(self):
-        self.__app.add_routes([web.get('/', self.handle),
-                               web.get('/{name}', self.handle)])
+        self.__app.add_routes([
+            # Application d'installation static React
+            web.get('/installation', self.index_request),
+            web.get('/installation/', self.index_request),
+            web.static('/installation', '/home/mathieu/PycharmProjects/millegrilles.instance.python/react_build/build'),
+        ])
+
+    async def index_request(self, request):
+        return web.FileResponse('/home/mathieu/PycharmProjects/millegrilles.instance.python/react_build/build/index.html')
 
     async def entretien(self):
         self.__logger.debug('Entretien')
