@@ -47,3 +47,15 @@ class EtatInstance:
             self.__idmg = idmg_str
         except FileNotFoundError:
             pass
+
+    @property
+    def instance_id(self):
+        return self.__instance_id
+
+    @property
+    def niveau_securite(self):
+        return self.__niveau_securite
+
+    @property
+    def idmg(self):
+        return self.__idmg

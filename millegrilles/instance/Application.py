@@ -11,11 +11,11 @@ from os import path, makedirs
 from typing import Optional
 from uuid import uuid4
 
+from millegrilles.docker.DockerHandler import DockerState, DockerHandler
 from millegrilles.instance.Configuration import ConfigurationInstance
-from millegrilles.instance.DockerState import DockerState
-from millegrilles.instance.DockerHandler import DockerHandler
 from millegrilles.instance.WebServer import WebServer
 from millegrilles.instance.EtatInstance import EtatInstance
+from millegrilles.instance.InstanceDocker import EtatDockerInstanceSync
 
 
 def initialiser_application():
@@ -69,6 +69,7 @@ class ApplicationInstance:
 
         self.__web_server: Optional[WebServer] = None
         self.__docker_handler: Optional[DockerHandler] = None
+        self.__docker_etat: Optional[EtatDockerInstanceSync]
 
     def charger_configuration(self, args: argparse.Namespace):
         """
@@ -119,6 +120,7 @@ class ApplicationInstance:
         :return:
         """
         self.__logger.debug("Debut cycle d'entretien")
+        # self.__etat_instance.entretien()
 
         while not self._stop_event.is_set():
             # Entretien
