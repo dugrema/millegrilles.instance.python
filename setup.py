@@ -24,6 +24,8 @@ setup(
     version='%s' % get_version(),
     packages=[
         'millegrilles.instance',
+        'millegrilles.certissuer',
+        'millegrilles.dockermanager',
     ],
     url='https://github.com/dugrema/millegrilles.instance.python',
     license='AFFERO',
