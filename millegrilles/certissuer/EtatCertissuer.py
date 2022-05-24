@@ -1,6 +1,6 @@
 import logging
 
-from os import path, remove
+from os import path, remove, chmod
 from typing import Optional
 
 from millegrilles.certificats.CertificatsMillegrille import generer_csr_intermediaire
@@ -93,8 +93,10 @@ class EtatCertissuer:
             fichier.write(cert_pem)
         with open(path_cle, 'w') as fichier:
             fichier.write(cle_pem)
+        chmod(path_cle, 0o600)
         with open(path_password, 'w') as fichier:
             fichier.write(password)
+        chmod(path_password, 0o600)
 
         # Recharger validateur, certificats
         self.charger_init()
