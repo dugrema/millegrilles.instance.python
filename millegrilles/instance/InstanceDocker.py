@@ -5,7 +5,7 @@ from asyncio import Event, TimeoutError
 from docker.errors import NotFound
 
 from millegrilles.docker.DockerHandler import DockerHandler
-from millegrilles.docker.DockerCommandes import CommandeGetConfiguration
+from millegrilles.docker.DockerCommandes import CommandeAjouterConfiguration, CommandeGetConfiguration
 from millegrilles.instance import Constantes
 from millegrilles.instance.EtatInstance import EtatInstance
 
@@ -41,7 +41,12 @@ class EtatDockerInstanceSync:
             commande_instanceid = CommandeGetConfiguration(Constantes.CONFIG_INSTANCE_ID, aio=True)
             self.__docker_handler.ajouter_commande(commande_instanceid)
             try:
-                config = await commande_instanceid.get_config()
-                self.__logger.debug("Docker instance_id : %s", config)
+                docker_instance_id = await commande_instanceid.get_data()
+                self.__logger.debug("Docker instance_id : %s", docker_instance_id)
+                if docker_instance_id != instance_id:
+                    raise Exception("Erreur configuration, instance_id mismatch")
             except NotFound:
                 self.__logger.debug("Docker instance NotFound")
+                commande_ajouter = CommandeAjouterConfiguration(Constantes.CONFIG_INSTANCE_ID, instance_id, aio=True)
+                self.__docker_handler.ajouter_commande(commande_ajouter)
+                await commande_ajouter.attendre()
