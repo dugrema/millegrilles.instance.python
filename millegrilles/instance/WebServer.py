@@ -1,3 +1,4 @@
+import aiohttp
 import asyncio
 import logging
 
@@ -10,6 +11,7 @@ from typing import Optional
 
 from millegrilles.instance.Configuration import ConfigurationWeb
 from millegrilles.instance.EtatInstance import EtatInstance
+from millegrilles.instance.InstallerInstance import installer_instance
 
 
 class WebServer:
@@ -38,9 +40,13 @@ class WebServer:
 
     def _preparer_routes(self):
         self.__app.add_routes([
+            web.get('/', self.rediriger_root),
+
             web.get('/installation/api/info', self.handle_api_info),
             web.get('/installation/api/csr', self.handle_api_csr),
             web.get('/installation/api/etatCertificatWeb', self.handle_etat_certificat_web),
+
+            web.post('/installation/api/installer', self.handle_installer),
 
             # Application d'installation static React
             web.get('/installation/', self.installation_index_handler),
@@ -53,6 +59,9 @@ class WebServer:
         self.__ssl_context.load_cert_chain(self.__configuration.web_cert_pem_path,
                                            self.__configuration.web_key_pem_path)
 
+    async def rediriger_root(self, request):
+        return web.HTTPTemporaryRedirect(location='/installation')
+
     async def installation_index_handler(self, request):
         path_app_installation = self.__configuration.path_app_installation
         path_index = path.join(path_app_installation, 'index.html')
@@ -61,13 +70,28 @@ class WebServer:
     async def handle_api_info(self, request):
         # action = request.match_info['action']
         # print("ACTION! %s" % action)
-        return web.HTTPNotImplemented()
+        reponse = {
+            'instance_id': self.__etat_instance.instance_id
+        }
+        return web.json_response(data=reponse)
 
     async def handle_api_csr(self, request):
-        return web.HTTPNotImplemented()
+        url_issuer = self.__etat_instance.certissuer_url
+        path_csr = path.join(url_issuer, 'csr')
+        async with aiohttp.ClientSession() as session:
+            async with session.get(path_csr) as resp:
+                text_response = await resp.text()
+                return web.Response(status=resp.status, text=text_response)
 
     async def handle_etat_certificat_web(self, request):
         return web.HTTPNotImplemented()
+
+    async def handle_installer(self, request):
+        try:
+            return await installer_instance(request)
+        except:
+            self.__logger.exception("Erreur installation")
+            return web.Response(status=500)
 
     async def entretien(self):
         self.__logger.debug('Entretien')

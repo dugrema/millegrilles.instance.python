@@ -40,7 +40,7 @@ export class Installation extends React.Component {
 
   componentDidMount() {
     // Lire etat de l'installation de la MilleGrille
-    axios.get('/installation/api/infoMonitor')
+    axios.get('/installation/api/info')
     .then(reponse=>{
       console.debug("Reponse recue\n%O", reponse)
       const dataReponse = reponse.data

@@ -4,11 +4,12 @@ from os import path
 from typing import Optional
 
 from millegrilles.instance.Certificats import preparer_certificats_web
+from millegrilles.instance.Configuration import ConfigurationInstance
 
 
 class EtatInstance:
 
-    def __init__(self, configuration):
+    def __init__(self, configuration: ConfigurationInstance):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__configuration = configuration
 
@@ -59,3 +60,7 @@ class EtatInstance:
     @property
     def idmg(self):
         return self.__idmg
+
+    @property
+    def certissuer_url(self):
+        return self.__configuration.certissuer_url

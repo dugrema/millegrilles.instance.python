@@ -46,7 +46,7 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "https://mg-dev5.maple.maceroc.com",
+  "proxy": "https://mg-dev5.maple.maceroc.com:8443",
   "homepage": "/installation",
   "devDependencies": {
     "@rescripts/cli": "^0.0.16",

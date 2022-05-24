@@ -72,7 +72,7 @@ export class ChargementClePrivee extends React.Component {
   async traiterCsr() {
     let contenuCsr = this.props.csr
     if(!contenuCsr) {
-      const urlCsr = this.props.urlCsr || '/certissuer/csr'
+      const urlCsr = this.props.urlCsr || '/installation/api/csr'
       const csrResponse = await axios.get(urlCsr)
       contenuCsr = csrResponse.data
     }
