@@ -30,17 +30,12 @@ class WebServer:
 
     def _preparer_routes(self):
         self.__app.add_routes([
-            web.get('/info', self.handle_api_info),
             web.get('/csr', self.handle_api_csr),
         ])
 
-    async def handle_api_info(self, request):
-        # action = request.match_info['action']
-        # print("ACTION! %s" % action)
-        return web.HTTPNotImplemented()
-
     async def handle_api_csr(self, request):
-        return web.HTTPNotImplemented()
+        csr_str = self.__etat_certissuer.get_csr()
+        return web.Response(text=csr_str)
 
     async def entretien(self):
         self.__logger.debug('Entretien')

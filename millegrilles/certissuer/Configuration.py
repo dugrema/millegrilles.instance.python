@@ -7,6 +7,7 @@ from millegrilles.instance import Constantes
 
 CONST_INSTANCE_PARAMS = [
     Constantes.CERTISSUER_PATH,
+    Constantes.PARAM_INSTANCE_ID,
 ]
 
 CONST_WEB_PARAMS = [
@@ -18,6 +19,7 @@ class ConfigurationCertissuer:
 
     def __init__(self):
         self.path_certissuer = '/var/opt/millegrilles/certissuer'
+        self.instance_id: Optional[str] = None
 
     def get_env(self) -> dict:
         """
@@ -44,6 +46,7 @@ class ConfigurationCertissuer:
             dict_params.update(configuration)
 
         self.path_certissuer = dict_params.get(Constantes.CERTISSUER_PATH) or self.path_certissuer
+        self.instance_id = dict_params[Constantes.PARAM_INSTANCE_ID]
 
 
 class ConfigurationWeb:

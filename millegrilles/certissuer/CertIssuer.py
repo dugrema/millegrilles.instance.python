@@ -63,7 +63,7 @@ class CertIssuer:
         self._stop_event = None  # Evenement d'arret global de l'application
 
         self.__configuration = ConfigurationCertissuer()
-        self.__etat_certissuer: Optional[EtatCertissuer] = None
+        self.__etat_certissuer: EtatCertissuer = EtatCertissuer(self.__configuration)
         self.__web_server: Optional[WebServer] = None
 
     def charger_configuration(self, args: argparse.Namespace):

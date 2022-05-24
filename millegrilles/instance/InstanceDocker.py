@@ -38,7 +38,7 @@ class EtatDockerInstanceSync:
         instance_id = self.__etat_instance.instance_id
         if instance_id is not None:
             # S'assurer d'avoir une config instance.instance_id
-            commande_instanceid = CommandeGetConfiguration(Constantes.CONFIG_INSTANCE_ID, aio=True)
+            commande_instanceid = CommandeGetConfiguration(Constantes.DOCKER_CONFIG_INSTANCE_ID, aio=True)
             self.__docker_handler.ajouter_commande(commande_instanceid)
             try:
                 docker_instance_id = await commande_instanceid.get_data()
@@ -47,6 +47,6 @@ class EtatDockerInstanceSync:
                     raise Exception("Erreur configuration, instance_id mismatch")
             except NotFound:
                 self.__logger.debug("Docker instance NotFound")
-                commande_ajouter = CommandeAjouterConfiguration(Constantes.CONFIG_INSTANCE_ID, instance_id, aio=True)
+                commande_ajouter = CommandeAjouterConfiguration(Constantes.DOCKER_CONFIG_INSTANCE_ID, instance_id, aio=True)
                 self.__docker_handler.ajouter_commande(commande_ajouter)
                 await commande_ajouter.attendre()
