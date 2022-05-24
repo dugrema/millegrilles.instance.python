@@ -65,9 +65,18 @@ class EtatCertissuer:
 
         path_certissuer = self.__configuration.path_certissuer
 
+        # Valider cert recu avec cle en memoire
         enveloppe_inter = EnveloppeCertificat.from_pem(cert_pem)
+        if len(enveloppe_inter.chaine_pem()) != 1:
+            raise Exception("Certificat intermediaire avec chaine > 1")
+        clecert_inter = CleCertificat.from_pems(cle_pem, cert_pem, password=password)
+        if clecert_inter.cle_correspondent() is False:
+            raise Exception("Le certificat recu ne correspond pas a la cle")
         if enveloppe_inter.is_ca is False:
             raise Exception("Enveloppe intermediaire n'est pas CA")
+
+        # Supprimer CSR en memoire (signature valide)
+        self.__csr = None
 
         if self.__validateur is not None:
             # Valider le certificat intermediaire. Doit correspondre au cert CA de la millegrille.
