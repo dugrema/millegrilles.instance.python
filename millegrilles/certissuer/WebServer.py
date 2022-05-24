@@ -30,12 +30,17 @@ class WebServer:
 
     def _preparer_routes(self):
         self.__app.add_routes([
-            web.get('/csr', self.handle_api_csr),
+            web.get('/csr', self.handle_csr),
+            web.post('/installer', self.handle_installer),
         ])
 
-    async def handle_api_csr(self, request):
+    async def handle_csr(self, request):
         csr_str = self.__etat_certissuer.get_csr()
         return web.Response(text=csr_str)
+
+    async def handle_installer(self, request):
+        info_cert = await request.json()
+        self.__etat_certissuer.sauvegarder_certificat(info_cert)
 
     async def entretien(self):
         self.__logger.debug('Entretien')

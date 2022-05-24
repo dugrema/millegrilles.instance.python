@@ -88,7 +88,7 @@ class WebServer:
 
     async def handle_installer(self, request):
         try:
-            return await installer_instance(request)
+            return await installer_instance(self.__etat_instance, request)
         except:
             self.__logger.exception("Erreur installation")
             return web.Response(status=500)

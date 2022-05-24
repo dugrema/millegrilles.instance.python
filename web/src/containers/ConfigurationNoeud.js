@@ -389,7 +389,9 @@ async function installerNoeudProtege(props, params, callback) {
     // certificatMillegrillePem: this.props.certificatMillegrillePem,
     // certificatPem: infoCertificatNoeudProtege.pem,
     idmg,
-    chainePem: [intermediairePem, certificatMillegrillePem],
+    // chainePem: [intermediairePem, certificatMillegrillePem],
+    certificatMillegrille: certificatMillegrillePem,
+    certificatIntermediaire: intermediairePem,
     securite: '3.protege',
   }
 
