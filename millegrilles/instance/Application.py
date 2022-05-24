@@ -69,7 +69,7 @@ class ApplicationInstance:
 
         self.__web_server: Optional[WebServer] = None
         self.__docker_handler: Optional[DockerHandler] = None
-        self.__docker_etat: Optional[EtatDockerInstanceSync]
+        self.__docker_etat: Optional[EtatDockerInstanceSync] = None
 
     def charger_configuration(self, args: argparse.Namespace):
         """
@@ -95,10 +95,7 @@ class ApplicationInstance:
         self.__web_server = WebServer(self.__etat_instance)
         self.__web_server.setup()
 
-        docker_state = DockerState()
-        if docker_state.docker_actif() is True:
-            self.__logger.info("Docker est actif")
-            self.__docker_handler = DockerHandler(docker_state)
+        self.demarrer_client_docker()  # Demarre si docker est actif
 
     def preparer_folder_configuration(self):
         makedirs(self.__configuration.path_configuration, 0o750, exist_ok=True)
@@ -110,6 +107,14 @@ class ApplicationInstance:
             with open(path_instance_txt, 'w') as fichier:
                 fichier.write(uuid_instance)
 
+    def demarrer_client_docker(self):
+        if self.__docker_handler is None:
+            docker_state = DockerState()
+            if docker_state.docker_actif() is True:
+                self.__docker_handler = DockerHandler(docker_state)
+                self.__docker_handler.start()
+                self.__docker_etat = EtatDockerInstanceSync(self.__etat_instance, self.__docker_handler)
+
     def exit_gracefully(self, signum=None, frame=None):
         self.__logger.info("Fermer application, signal: %d" % signum)
         self.fermer()
@@ -120,9 +125,8 @@ class ApplicationInstance:
         :return:
         """
         self.__logger.debug("Debut cycle d'entretien")
-        # self.__etat_instance.entretien()
 
-        while not self._stop_event.is_set():
+        while self._stop_event.is_set() is False:
             # Entretien
 
             try:
@@ -150,15 +154,11 @@ class ApplicationInstance:
             asyncio.create_task(self.__web_server.run(self._stop_event))
         ]
 
+        if self.__docker_etat is not None:
+            tasks.append(asyncio.create_task(self.__docker_etat.entretien(self._stop_event)))
+
         # Execution de la loop avec toutes les tasks
         await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
-
-    async def sync_configuration_docker(self):
-        """
-        S'assure que tous les configs/secrets docker sont crees
-        :return:
-        """
-        pass
 
 
 def main():
