@@ -39,6 +39,7 @@ class EtatCertissuer:
         path_password = path.join(path_certissuer, 'password.txt')
         try:
             cle_intermediaire = CleCertificat.from_files(path_cle, path_cert, path_password)
+            self.__validateur.valider(cle_intermediaire.enveloppe.chaine_pem())
             if cle_intermediaire.cle_correspondent():
                 self.__cle_intermediaire = cle_intermediaire
             else:
@@ -63,6 +64,10 @@ class EtatCertissuer:
         cert_pem = info_cert['intermediaire']
 
         path_certissuer = self.__configuration.path_certissuer
+
+        enveloppe_inter = EnveloppeCertificat.from_pem(cert_pem)
+        if enveloppe_inter.is_ca is False:
+            raise Exception("Enveloppe intermediaire n'est pas CA")
 
         if self.__validateur is not None:
             # Valider le certificat intermediaire. Doit correspondre au cert CA de la millegrille.
@@ -90,3 +95,6 @@ class EtatCertissuer:
             fichier.write(cle_pem)
         with open(path_password, 'w') as fichier:
             fichier.write(password)
+
+        # Recharger validateur, certificats
+        self.charger_init()
