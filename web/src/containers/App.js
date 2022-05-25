@@ -135,7 +135,8 @@ function AfficherInformationNoeud(props) {
   useEffect(()=>{
     if(pemCertificat) {
       console.debug("Lecture du certificat %O", pemCertificat)
-      const pems = splitPEMCerts(pemCertificat)
+      let pems = pemCertificat
+      if(typeof(pemCertificat) === 'string') pems = splitPEMCerts(pemCertificat)
       const cert = forgePki.certificateFromPem(pems[0])
       const interCert = forgePki.certificateFromPem(pems[1])
       console.debug("Cert : %O, inter : %O", cert, interCert)

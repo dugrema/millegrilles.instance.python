@@ -49,7 +49,7 @@ export class Installation extends React.Component {
         idmg: dataReponse.idmg,
         domaine: dataReponse.domaine,
         securite: dataReponse.securite,
-        noeudId: dataReponse.noeud_id,
+        noeudId: dataReponse.instance_id,
         certificat: dataReponse.certificat,
         ca: dataReponse.ca,
       }
