@@ -32,6 +32,7 @@ async def installer_instance(etat_instance: EtatInstance, request: BaseRequest):
 
 
 async def installer_certificat_intermediaire(url_certissuer: str, contenu: dict) -> dict:
+    securite = contenu['securite']
     certificat_ca = contenu['certificatMillegrille']
     certificat_intermediaire = contenu['certificatIntermediaire']
 
@@ -39,6 +40,7 @@ async def installer_certificat_intermediaire(url_certissuer: str, contenu: dict)
         'ca': certificat_ca,
         'intermediaire': certificat_intermediaire,
         'csr_instance': contenu['csr_instance'],
+        'securite': securite,
     }
 
     path_installer_certissuer = path.join(url_certissuer, 'installer')

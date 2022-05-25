@@ -21,7 +21,7 @@ class WebServer:
 
         self.__configuration = ConfigurationWeb()
         self.__app = web.Application()
-        self.__certificat_handler = CertificatHandler(self.__configuration)
+        self.__certificat_handler = CertificatHandler(self.__configuration, self.__etat_certissuer)
         self.__stop_event: Optional[Event] = None
 
     def setup(self, configuration: Optional[dict] = None):
@@ -46,19 +46,25 @@ class WebServer:
         self.__logger.debug("handle_installer params\n%s" % json.dumps(info_cert, indent=2))
 
         try:
-            self.__etat_certissuer.sauvegarder_certificat(info_cert)
+            await self.__etat_certissuer.sauvegarder_certificat(info_cert)
             self.__logger.debug("Sauvegarde du certificat intermediaire OK")
         except:
             self.__logger.exception("Erreur sauvegarde certificat")
             return web.HTTPForbidden()
 
         # Generer le certificat pour l'application d'instance
-        cert_instance = self.__certificat_handler.generer_certificat_instance(info_cert['csr_instance'])
+        csr_instance = info_cert['csr_instance']
+        securite = info_cert['securite']
+        cert_instance = self.__certificat_handler.generer_certificat_instance(csr_instance, securite)
         self.__logger.debug("Nouveau certificat d'instance\n%s" % cert_instance)
         return web.json_response({'certificat': cert_instance}, status=201)
 
     async def entretien(self):
         self.__logger.debug('Entretien')
+        try:
+            await self.__etat_certissuer.entretien()
+        except:
+            self.__logger.exception("Erreur entretien etat_certissuer")
 
     async def run(self, stop_event: Optional[Event] = None):
         if stop_event is not None:

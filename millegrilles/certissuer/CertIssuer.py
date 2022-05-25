@@ -124,6 +124,8 @@ class CertIssuer:
         self.__loop = asyncio.get_event_loop()
         self._stop_event = Event()
 
+        await self.__etat_certissuer.charger_init()
+
         tasks = [
             asyncio.create_task(self.entretien()),
             asyncio.create_task(self.__web_server.run(self._stop_event))

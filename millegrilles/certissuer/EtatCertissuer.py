@@ -8,7 +8,8 @@ from millegrilles.certificats.Generes import CleCsrGenere
 from millegrilles.certissuer.Configuration import ConfigurationCertissuer
 from millegrilles.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles.messages.CleCertificat import CleCertificat
-from millegrilles.messages.ValidateurCertificats import ValidateurCertificat
+from millegrilles.messages.ValidateurCertificats import ValidateurCertificatCache
+from millegrilles.messages.ValidateurMessage import ValidateurMessage
 
 
 class EtatCertissuer:
@@ -21,16 +22,28 @@ class EtatCertissuer:
         self.__idmg: Optional[str] = None
         self.__ca: Optional[EnveloppeCertificat] = None
         self.__cle_intermediaire: Optional[CleCertificat] = None
-        self.__validateur_certificats: Optional[ValidateurCertificat] = None
+        self.__validateur_certificats: Optional[ValidateurCertificatCache] = None
+        self.__validateur_messages: Optional[ValidateurMessage] = None
 
-        self.charger_init()
+    @property
+    def cle_intermediaire(self):
+        return self.__cle_intermediaire
 
-    def charger_init(self):
+    @property
+    def validateur_certificats(self):
+        return self.__validateur_certificats
+
+    @property
+    def validateur_messages(self):
+        return self.__validateur_messages
+
+    async def charger_init(self):
         path_certissuer = self.__configuration.path_certissuer
         path_ca = path.join(path_certissuer, 'millegrille.pem')
         try:
             self.__ca = EnveloppeCertificat.from_file(path_ca)
-            self.__validateur_certificats = ValidateurCertificat(self.__ca)
+            self.__validateur_certificats = ValidateurCertificatCache(self.__ca)
+            self.__validateur_messages = ValidateurMessage(self.__validateur_certificats)
         except FileNotFoundError:
             pass
 
@@ -39,7 +52,7 @@ class EtatCertissuer:
         path_password = path.join(path_certissuer, 'password.txt')
         try:
             cle_intermediaire = CleCertificat.from_files(path_cle, path_cert, path_password)
-            self.__validateur_certificats.valider(cle_intermediaire.enveloppe.chaine_pem())
+            await self.__validateur_certificats.valider(cle_intermediaire.enveloppe.chaine_pem())
             if cle_intermediaire.cle_correspondent():
                 self.__cle_intermediaire = cle_intermediaire
             else:
@@ -50,6 +63,10 @@ class EtatCertissuer:
         except FileNotFoundError:
             pass
 
+    async def entretien(self):
+        if self.__validateur_certificats is not None:
+            await self.__validateur_certificats.entretien()
+
     def get_csr(self) -> str:
         if self.__csr is None:
             instance_id = self.__configuration.instance_id
@@ -57,7 +74,7 @@ class EtatCertissuer:
 
         return self.__csr.get_pem_csr()
 
-    def sauvegarder_certificat(self, info_cert: dict):
+    async def sauvegarder_certificat(self, info_cert: dict):
         cle_pem = self.__csr.get_pem_cle()
         password = self.__csr.password
         cert_ca = info_cert['ca']
@@ -80,7 +97,7 @@ class EtatCertissuer:
 
         if self.__validateur_certificats is not None:
             # Valider le certificat intermediaire. Doit correspondre au cert CA de la millegrille.
-            self.__validateur_certificats.valider(cert_pem)
+            await self.__validateur_certificats.valider(cert_pem)
         else:
             enveloppe_ca = EnveloppeCertificat.from_pem(cert_ca)
             if enveloppe_ca.is_root_ca is False:
@@ -108,4 +125,4 @@ class EtatCertissuer:
         chmod(path_password, 0o600)
 
         # Recharger validateur, certificats
-        self.charger_init()
+        await self.charger_init()
