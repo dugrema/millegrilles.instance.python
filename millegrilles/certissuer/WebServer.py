@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 
 from aiohttp import web
@@ -9,6 +10,7 @@ from typing import Optional
 
 from millegrilles.certissuer.Configuration import ConfigurationWeb
 from millegrilles.certissuer.EtatCertissuer import EtatCertissuer
+from millegrilles.certissuer.CertificatHandler import CertificatHandler
 
 
 class WebServer:
@@ -19,6 +21,7 @@ class WebServer:
 
         self.__configuration = ConfigurationWeb()
         self.__app = web.Application()
+        self.__certificat_handler = CertificatHandler(self.__configuration)
         self.__stop_event: Optional[Event] = None
 
     def setup(self, configuration: Optional[dict] = None):
@@ -40,7 +43,19 @@ class WebServer:
 
     async def handle_installer(self, request):
         info_cert = await request.json()
-        self.__etat_certissuer.sauvegarder_certificat(info_cert)
+        self.__logger.debug("handle_installer params\n%s" % json.dumps(info_cert, indent=2))
+
+        try:
+            self.__etat_certissuer.sauvegarder_certificat(info_cert)
+            self.__logger.debug("Sauvegarde du certificat intermediaire OK")
+        except:
+            self.__logger.exception("Erreur sauvegarde certificat")
+            return web.HTTPForbidden()
+
+        # Generer le certificat pour l'application d'instance
+        cert_instance = self.__certificat_handler.generer_certificat_instance(info_cert['csr_instance'])
+        self.__logger.debug("Nouveau certificat d'instance\n%s" % cert_instance)
+        return web.json_response({'certificat': cert_instance}, status=201)
 
     async def entretien(self):
         self.__logger.debug('Entretien')

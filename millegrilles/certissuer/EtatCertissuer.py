@@ -21,7 +21,7 @@ class EtatCertissuer:
         self.__idmg: Optional[str] = None
         self.__ca: Optional[EnveloppeCertificat] = None
         self.__cle_intermediaire: Optional[CleCertificat] = None
-        self.__validateur: Optional[ValidateurCertificat] = None
+        self.__validateur_certificats: Optional[ValidateurCertificat] = None
 
         self.charger_init()
 
@@ -30,7 +30,7 @@ class EtatCertissuer:
         path_ca = path.join(path_certissuer, 'millegrille.pem')
         try:
             self.__ca = EnveloppeCertificat.from_file(path_ca)
-            self.__validateur = ValidateurCertificat(self.__ca)
+            self.__validateur_certificats = ValidateurCertificat(self.__ca)
         except FileNotFoundError:
             pass
 
@@ -39,7 +39,7 @@ class EtatCertissuer:
         path_password = path.join(path_certissuer, 'password.txt')
         try:
             cle_intermediaire = CleCertificat.from_files(path_cle, path_cert, path_password)
-            self.__validateur.valider(cle_intermediaire.enveloppe.chaine_pem())
+            self.__validateur_certificats.valider(cle_intermediaire.enveloppe.chaine_pem())
             if cle_intermediaire.cle_correspondent():
                 self.__cle_intermediaire = cle_intermediaire
             else:
@@ -78,9 +78,9 @@ class EtatCertissuer:
         # Supprimer CSR en memoire (signature valide)
         self.__csr = None
 
-        if self.__validateur is not None:
+        if self.__validateur_certificats is not None:
             # Valider le certificat intermediaire. Doit correspondre au cert CA de la millegrille.
-            self.__validateur.valider(cert_pem)
+            self.__validateur_certificats.valider(cert_pem)
         else:
             enveloppe_ca = EnveloppeCertificat.from_pem(cert_ca)
             if enveloppe_ca.is_root_ca is False:
