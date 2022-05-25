@@ -5,6 +5,8 @@ from typing import Optional
 
 from millegrilles.instance.Certificats import preparer_certificats_web
 from millegrilles.instance.Configuration import ConfigurationInstance
+from millegrilles.messages.CleCertificat import CleCertificat
+from millegrilles.messages.EnveloppeCertificat import EnveloppeCertificat
 
 
 class EtatInstance:
@@ -16,6 +18,8 @@ class EtatInstance:
         self.__instance_id: Optional[str] = None
         self.__niveau_securite: Optional[str] = None
         self.__idmg: Optional[str] = None
+        self.__certificat_millegrille: Optional[EnveloppeCertificat] = None
+        self.__clecertificat: Optional[CleCertificat] = None
 
         # Liste de listeners qui sont appeles sur changement de configuration
         self.__config_listeners = list()
@@ -28,29 +32,21 @@ class EtatInstance:
         self.__configuration.path_certificat_web = path_cert_web
         self.__configuration.path_cle_web = path_cle_web
 
-        path_instance_txt = path.join(self.__configuration.path_configuration, 'instance_id.txt')
-        with open(path_instance_txt, 'r') as fichier:
-            uuid_instance = fichier.read().strip()
-        self.__logger.info("Instance id : %s", uuid_instance)
-        self.__instance_id = uuid_instance
+        self.__instance_id = load_fichier_config(self.__configuration.instance_id_path)
+        self.__logger.info("Instance id : %s", self.__instance_id)
 
-        try:
-            path_securite_txt = path.join(self.__configuration.path_configuration, 'securite.txt')
-            with open(path_securite_txt, 'r') as fichier:
-                niveau_securite = fichier.read().strip()
-            self.__logger.info("Securite : %s", niveau_securite)
-            self.__niveau_securite = niveau_securite
-        except FileNotFoundError:
-            pass
+        self.__niveau_securite = load_fichier_config(self.__configuration.instance_securite_path)
+        self.__logger.info("Securite : %s", self.__niveau_securite)
 
-        try:
-            idmg_txt = path.join(self.__configuration.path_configuration, 'idmg.txt')
-            with open(idmg_txt, 'r') as fichier:
-                idmg_str = fichier.read().strip()
-            self.__logger.info("IDMG : %s", idmg_str)
-            self.__idmg = idmg_str
-        except FileNotFoundError:
-            pass
+        self.__idmg = load_fichier_config(self.__configuration.instance_idmg_path)
+        self.__logger.info("IDMG : %s", self.__idmg)
+
+        self.__certificat_millegrille = load_enveloppe_cert(self.__configuration.instance_ca_pem_path)
+        self.__logger.debug("Certificat Millegrille\n%s" % self.__certificat_millegrille)
+
+        self.__clecertificat = load_clecert(self.__configuration.instance_key_pem_path,
+                                            self.__configuration.instance_cert_pem_path)
+        self.__logger.debug("Certificat instance: %s" % self.__clecertificat)
 
         for listener in self.__config_listeners:
             await listener(self)
@@ -77,3 +73,34 @@ class EtatInstance:
     @property
     def configuration(self):
         return self.__configuration
+
+    @property
+    def clecertificat(self):
+        return self.__clecertificat
+
+    @property
+    def certificat_millegrille(self):
+        return self.__certificat_millegrille
+
+
+def load_fichier_config(path_fichier: str) -> Optional[str]:
+    try:
+        with open(path_fichier, 'r') as fichier:
+            value = fichier.read().strip()
+        return value
+    except FileNotFoundError:
+        return None
+
+
+def load_clecert(path_cle: str, path_cert: str) -> Optional[CleCertificat]:
+    try:
+        return CleCertificat.from_files(path_cle, path_cert)
+    except FileNotFoundError:
+        return None
+
+
+def load_enveloppe_cert(path_cert: str) -> Optional[EnveloppeCertificat]:
+    try:
+        return EnveloppeCertificat.from_file(path_cert)
+    except FileNotFoundError:
+        return None

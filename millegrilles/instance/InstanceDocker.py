@@ -21,6 +21,7 @@ class EtatDockerInstanceSync:
 
     async def callback_changement_configuration(self, etat_instance: EtatInstance):
         self.__logger.info("callback_changement_configuration - Reload configuration")
+        await self.verifier_config_instance()
 
     async def entretien(self, stop_event: Event):
         while stop_event.is_set() is False:

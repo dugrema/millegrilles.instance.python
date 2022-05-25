@@ -15,8 +15,9 @@ CONST_INSTANCE_PARAMS = [
     Constantes.PARAM_INSTANCE_CERT_PATH,
     Constantes.PARAM_INSTANCE_KEY_PATH,
     Constantes.PARAM_INSTANCE_IDMG_PATH,
-    Constantes.PARAM_INSTANCE_SECURITE_PATH,
     Constantes.PARAM_INSTANCE_CERTISSUER_URL,
+    Constantes.PARAM_INSTANCE_ID_PATH,
+    Constantes.PARAM_INSTANCE_SECURITE_PATH,
 ]
 
 CONST_WEB_PARAMS = [
@@ -37,6 +38,7 @@ class ConfigurationInstance:
         self.certissuer_url = 'http://localhost:8445'
         self.instance_cert_pem_path = '/var/opt/millegrilles/secrets/pki.instance.cert'
         self.instance_key_pem_path = '/var/opt/millegrilles/secrets/pki.instance.key'
+        self.instance_id_path = '/var/opt/millegrilles/configuration/instance_id.txt'
         self.instance_idmg_path = '/var/opt/millegrilles/configuration/idmg.txt'
         self.instance_ca_pem_path = '/var/opt/millegrilles/configuration/pki.millegrille.cert'
         self.instance_securite_path = '/var/opt/millegrilles/configuration/securite.txt'
@@ -78,6 +80,9 @@ class ConfigurationInstance:
         self.instance_ca_pem_path = dict_params.get(Constantes.PARAM_INSTANCE_CA_PATH) or self.instance_ca_pem_path
         self.instance_cert_pem_path = dict_params.get(Constantes.PARAM_INSTANCE_CERT_PATH) or self.instance_cert_pem_path
         self.instance_key_pem_path = dict_params.get(Constantes.PARAM_INSTANCE_KEY_PATH) or self.instance_key_pem_path
+        self.instance_id_path = dict_params.get(Constantes.PARAM_INSTANCE_ID_PATH) or self.instance_id_path
+        self.instance_idmg_path = dict_params.get(Constantes.PARAM_INSTANCE_IDMG_PATH) or self.instance_idmg_path
+        self.instance_securite_path = dict_params.get(Constantes.PARAM_INSTANCE_SECURITE_PATH) or self.instance_securite_path
 
 
 class ConfigurationWeb:

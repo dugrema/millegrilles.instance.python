@@ -25,11 +25,6 @@ class WebServer:
         self.__configuration = ConfigurationWeb()
         self.__ssl_context: Optional[SSLContext] = None
 
-    async def handle(self, request):
-        name = request.match_info.get('name', "Anonymous")
-        text = "Hello, " + name
-        return web.Response(text=text)
-
     def setup(self, configuration: Optional[dict] = None):
         self._charger_configuration(configuration)
         self._preparer_routes()
@@ -71,8 +66,19 @@ class WebServer:
         # action = request.match_info['action']
         # print("ACTION! %s" % action)
         reponse = {
-            'instance_id': self.__etat_instance.instance_id
+            'instance_id': self.__etat_instance.instance_id,
+            'securite': self.__etat_instance.niveau_securite,
+            'idmg': self.__etat_instance.idmg,
         }
+        try:
+            reponse['ca'] = self.__etat_instance.certificat_millegrille.certificat_pem
+        except AttributeError:
+            pass
+        try:
+            reponse['certificat'] = self.__etat_instance.clecertificat.enveloppe.chaine_pem()
+        except AttributeError:
+            pass
+
         return web.json_response(data=reponse)
 
     async def handle_api_csr(self, request):
