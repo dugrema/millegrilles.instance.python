@@ -64,3 +64,7 @@ class EtatInstance:
     @property
     def certissuer_url(self):
         return self.__configuration.certissuer_url
+
+    @property
+    def configuration(self):
+        return self.__configuration

@@ -8,12 +8,14 @@ from aiohttp import web
 from aiohttp.web_request import BaseRequest
 
 from millegrilles.certificats.Generes import CleCsrGenere
+from millegrilles.instance.Configuration import ConfigurationWeb
 from millegrilles.instance.EtatInstance import EtatInstance
 
 logger = logging.getLogger(__name__)
 
 
 async def installer_instance(etat_instance: EtatInstance, request: BaseRequest):
+    configuration = etat_instance.configuration
     contenu = await request.json()
     logger.debug("installer_instance contenu\n%s" % json.dumps(contenu, indent=2))
 
@@ -26,9 +28,18 @@ async def installer_instance(etat_instance: EtatInstance, request: BaseRequest):
     certificat_instance = reponse['certificat']
 
     # Installer le certificat d'instance
-    raise NotImplemented('todo')
+    certificat_ca = contenu['certificatMillegrille']
+    path_ca = configuration.instance_ca_pem_path
+    path_cert = configuration.instance_cert_pem_path
+    path_key = configuration.instance_key_pem_path
+    with open(path_ca, 'w') as fichier:
+        fichier.write(certificat_ca)
+    with open(path_cert, 'w') as fichier:
+        fichier.write(''.join(certificat_instance))
+    with open(path_key, 'w') as fichier:
+        fichier.write(clecsr.get_pem_cle())
 
-    return web.Response(status=200)
+    return web.Response(status=201)
 
 
 async def installer_certificat_intermediaire(url_certissuer: str, contenu: dict) -> dict:

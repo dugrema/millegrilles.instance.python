@@ -11,6 +11,9 @@ CONST_INSTANCE_PARAMS = [
     Constantes.INSTANCE_NGINX_PATH,
     Constantes.INSTANCE_SECRETS_PATH,
     Constantes.INSTANCE_SECRETS_PARTAGES_PATH,
+    Constantes.PARAM_INSTANCE_CA_PATH,
+    Constantes.PARAM_INSTANCE_CERT_PATH,
+    Constantes.PARAM_INSTANCE_KEY_PATH,
     Constantes.PARAM_INSTANCE_CERTISSUER_URL,
 ]
 
@@ -30,6 +33,9 @@ class ConfigurationInstance:
         self.path_secrets_partages = '/var/opt/millegrilles/secrets_partages'
         self.path_nginx_configuration = '/var/opt/millegrilles/nginx/modules'
         self.certissuer_url = 'http://localhost:8445'
+        self.instance_ca_pem_path = '/var/opt/millegrilles/secrets/pki.ca.cert'
+        self.instance_cert_pem_path = '/var/opt/millegrilles/secrets/pki.instance.cert'
+        self.instance_key_pem_path = '/var/opt/millegrilles/secrets/pki.instance.key'
 
         self.docker_actif = False
 
@@ -65,6 +71,9 @@ class ConfigurationInstance:
         self.path_secrets_partages = dict_params.get(Constantes.INSTANCE_SECRETS_PARTAGES_PATH) or self.path_secrets_partages
         self.path_nginx_configuration = dict_params.get(Constantes.INSTANCE_NGINX_PATH) or self.path_nginx_configuration
         self.certissuer_url = dict_params.get(Constantes.PARAM_INSTANCE_CERTISSUER_URL) or self.certissuer_url
+        self.instance_ca_pem_path = dict_params.get(Constantes.PARAM_INSTANCE_CA_PATH) or self.instance_ca_pem_path
+        self.instance_cert_pem_path = dict_params.get(Constantes.PARAM_INSTANCE_CERT_PATH) or self.instance_cert_pem_path
+        self.instance_key_pem_path = dict_params.get(Constantes.PARAM_INSTANCE_KEY_PATH) or self.instance_key_pem_path
 
 
 class ConfigurationWeb:
