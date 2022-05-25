@@ -8,6 +8,7 @@ from asyncio.exceptions import TimeoutError
 from os import path
 from typing import Optional
 
+from millegrilles.messages import Constantes
 from millegrilles.certissuer.Configuration import ConfigurationWeb
 from millegrilles.certissuer.EtatCertissuer import EtatCertissuer
 from millegrilles.certissuer.CertificatHandler import CertificatHandler
@@ -65,6 +66,24 @@ class WebServer:
         self.__logger.debug("handle_installer params\n%s" % json.dumps(info_cert, indent=2))
 
         # Valider signature de request (doit etre role instance, niveau de securite suffisant pour exchanges)
+        enveloppe = await self.__etat_certissuer.validateur_messages.verifier(info_cert)
+
+        # Le certificat doit avoir le role instance ou core
+        roles_enveloppe = enveloppe.get_roles
+        if 'instance' not in roles_enveloppe and 'core' not in roles_enveloppe:
+            return web.HTTPForbidden()
+
+        # Les niveaux de securite demandes doivent etre supporte par le certificat demandeur
+        securite_enveloppe = enveloppe.get_exchanges
+        try:
+            for ex in info_cert['exchanges']:
+                if ex == Constantes.SECURITE_SECURE:
+                    ex = Constantes.SECURITE_PROTEGE  # Niveau protege permet de creer certificat secure
+                if ex not in securite_enveloppe:
+                    self.__logger.info('Niveau de securite %s demande par un certificat qui ne le supporte pas' % ex)
+                    return web.HTTPForbidden()
+        except KeyError:
+            pass
 
         chaine = self.__certificat_handler.generer_certificat_module(info_cert)
         return web.json_response({'certificat': chaine})

@@ -8,6 +8,7 @@ from millegrilles.instance.Configuration import ConfigurationInstance
 from millegrilles.messages import Constantes
 from millegrilles.messages.CleCertificat import CleCertificat
 from millegrilles.messages.EnveloppeCertificat import EnveloppeCertificat
+from millegrilles.messages.FormatteurMessages import SignateurTransactionSimple, FormatteurMessageMilleGrilles
 
 
 class EtatInstance:
@@ -25,6 +26,7 @@ class EtatInstance:
 
         # Liste de listeners qui sont appeles sur changement de configuration
         self.__config_listeners = list()
+        self.__formatteur_message: Optional[FormatteurMessageMilleGrilles] = None
 
     async def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
@@ -52,6 +54,10 @@ class EtatInstance:
 
         self.__nom_domaine = 'mg-dev5.maple.maceroc.com'
         self.__logger.debug("Nom domaine insance: %s" % self.__nom_domaine)
+
+        if self.__clecertificat is not None:
+            signateur = SignateurTransactionSimple(self.__clecertificat)
+            self.__formatteur_message = FormatteurMessageMilleGrilles(self.__idmg, signateur)
 
         for listener in self.__config_listeners:
             await listener(self)
@@ -93,6 +99,10 @@ class EtatInstance:
     @property
     def certificat_millegrille(self):
         return self.__certificat_millegrille
+
+    @property
+    def formatteur_message(self):
+        return self.__formatteur_message
 
 
 def load_fichier_config(path_fichier: str) -> Optional[str]:

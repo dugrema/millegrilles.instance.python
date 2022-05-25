@@ -186,13 +186,16 @@ async def generer_nouveau_certificat(client_session: ClientSession, etat_instanc
     except KeyError:
         pass
 
-    # Signer avec notre certificat (instance), requis par le certissuer
     configuration['csr'] = csr_str
 
-    logger.debug("Demande de signature de certificat pour %s => %s\n%s" % (nom_module, configuration, csr_str))
+    # Signer avec notre certificat (instance), requis par le certissuer
+    formatteur_message = etat_instance.formatteur_message
+    message_signe, _uuid = formatteur_message.signer_message(configuration)
+
+    logger.debug("Demande de signature de certificat pour %s => %s\n%s" % (nom_module, message_signe, csr_str))
     url_issuer = etat_instance.certissuer_url
     path_csr = path.join(url_issuer, 'signerModule')
-    async with client_session.post(path_csr, json=configuration) as resp:
+    async with client_session.post(path_csr, json=message_signe) as resp:
         resp.raise_for_status()
         reponse = await resp.json()
 
