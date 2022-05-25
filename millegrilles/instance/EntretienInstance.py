@@ -150,6 +150,7 @@ async def generer_certificats_modules(client_session: ClientSession, etat_instan
         path_certificat = path.join(path_secrets, nom_certificat)
         path_cle = path.join(path_secrets, nom_cle)
 
+        sauvegarder = False
         try:
             clecertificat = CleCertificat.from_files(path_cle, path_certificat)
             enveloppe = clecertificat.enveloppe
@@ -158,15 +159,24 @@ async def generer_certificats_modules(client_session: ClientSession, etat_instan
             detail_expiration = enveloppe.calculer_expiration()
             if detail_expiration['expire'] is True or detail_expiration['renouveler'] is True:
                 clecertificat = await generer_nouveau_certificat(client_session, etat_instance, nom_module, value)
+                sauvegarder = True
 
         except FileNotFoundError:
             logger.info("Certificat %s non trouve, on le genere" % nom_module)
             clecertificat = await generer_nouveau_certificat(client_session, etat_instance, nom_module, value)
+            sauvegarder = True
 
         # Verifier si le certificat et la cle sont stocke dans docker
+        if sauvegarder is True:
+            with open(path_cle, 'wb') as fichier:
+                fichier.write(clecertificat.private_key_bytes())
+            with open(path_certificat, 'w') as fichier:
+                cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
+                fichier.write(cert_str)
 
 
-async def generer_nouveau_certificat(client_session: ClientSession, etat_instance: EtatInstance, nom_module: str, configuration: dict):
+async def generer_nouveau_certificat(client_session: ClientSession, etat_instance: EtatInstance, nom_module: str,
+                                     configuration: dict) -> CleCertificat:
     instance_id = etat_instance.instance_id
     idmg = etat_instance.certificat_millegrille.idmg
     clecsr = CleCsrGenere.build(instance_id, idmg)
@@ -201,4 +211,10 @@ async def generer_nouveau_certificat(client_session: ClientSession, etat_instanc
 
     certificat = reponse['certificat']
 
+    # Confirmer correspondance entre certificat et cle
+    clecertificat = CleCertificat.from_pems(clecsr.get_pem_cle(), ''.join(certificat))
+    if clecertificat.cle_correspondent() is False:
+        raise Exception("Erreur cert/cle ne correspondent pas")
+
     logger.debug("Reponse certissuer certificat %s\n%s" % (nom_module, ''.join(certificat)))
+    return clecertificat
