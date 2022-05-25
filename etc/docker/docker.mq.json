@@ -1,6 +1,6 @@
 {
   "name": "mq",
-  "certificat_compte": "pki.mq.cert",
+  "certificat": {"dns": true},
   "env": [
     "MG_KEY=/run/secrets/key.pem",
     "WEB_KEY=/run/secrets/webkey.pem",
