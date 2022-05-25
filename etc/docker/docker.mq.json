@@ -1,41 +1,36 @@
 {
   "name": "mq",
-  "certificat": {"dns": true},
+  "certificat": {"roles": ["mq"], "dns": {"localhost": true, "hostnames": ["mq"], "domain": true}},
+  "password": ["mqadmin"],
   "env": [
     "MG_KEY=/run/secrets/key.pem",
     "WEB_KEY=/run/secrets/webkey.pem",
     "CONFIG_FILE=/opt/rabbitmq/dist/config/rabbitmq_ipv6management.config",
     "NODENAME=rabbit@mq"
   ],
-  "mounts": [
-    "mg-middleware-rabbitmq-data-${IDMG}:/var/lib/rabbitmq:rw"
-  ],
-  "constraints": [
-    "node.labels.millegrilles.mq == true"
-  ],
+  "mounts": ["rabbitmq-data:/var/lib/rabbitmq:rw"],
+  "constraints": ["node.labels.millegrilles.mq == true"],
   "configs": [
     {
-      "name": "pki.millegrille.cert",
+      "name": "pki.millegrille",
       "filename": "/opt/rabbitmq/dist/certs/calist.cert.pem"
     },
     {
-      "name": "pki.mq.cert",
+      "certificate": true,
       "filename": "/opt/rabbitmq/dist/certs/cert.pem"
     },
     {
-      "name": "pki.mq.cert",
+      "certificate": true,
       "filename": "/opt/rabbitmq/dist/certs/webcert.pem"
     }
   ],
   "secrets": [
     {
-      "match_config": true,
-      "name": "pki.mq.key",
+      "key": true,
       "filename": "key.pem"
     },
     {
-      "match_config": true,
-      "name": "pki.mq.key",
+      "key": true,
       "filename": "webkey.pem"
     }
   ],
@@ -63,10 +58,6 @@
   "resources": {
     "cpu_limit": 2000000000,
     "mem_limit": 629145600
-  },
-  "restart_policy": {
-    "condition": "any",
-    "delay": 30000000000
   },
   "mode": {
     "mode": "replicated",

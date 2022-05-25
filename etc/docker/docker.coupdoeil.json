@@ -1,5 +1,5 @@
 {
-  "name": "web_coupdoeil",
+  "name": "coupdoeil",
   "certificat_compte": "pki.coupdoeil.cert",
   "env": [
     "MG_MQ_URL=amqps://mq:5673",

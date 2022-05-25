@@ -1,6 +1,10 @@
+import logging
+
 from os import path
 
-from millegrilles.certificats.CertificatsWeb import generer_self_signed_rsa, generer_self_signed_ed25519
+from millegrilles.certificats.CertificatsWeb import generer_self_signed_rsa
+
+logger = logging.getLogger(__name__)
 
 
 def preparer_certificats_web(path_secrets: str):
@@ -29,44 +33,44 @@ def preparer_certificats_web(path_secrets: str):
     return path_cert_web, path_key_web
 
 
-def generer_certificat_nginx_selfsigned(insecure=False):
-    """
-    Utilise pour genere un certificat self-signed initial pour nginx
-    :return:
-    """
-    generateur = GenerateurCertificatNginxSelfsigned()
-
-    clecert_ed25519 = generateur.generer('Installation')
-    cle_pem_bytes_ed25519 = clecert_ed25519.private_key_bytes
-    cert_pem_ed25519 = clecert_ed25519.public_bytes
-
-    clecert_web = generateur.generer('Installation', rsa=True)
-    cle_pem_web = clecert_web.private_key_bytes
-    cert_pem_web = clecert_web.public_bytes
-
-    # # Certificat interne
-    # self.ajouter_secret('pki.nginx.key', data=cle_pem_bytes_ed25519)
-    # self.ajouter_config('pki.nginx.cert', data=cert_pem_ed25519)
-    #
-    # # Certificat web
-    # self.ajouter_secret('pki.web.key', data=cle_pem_web)
-    # self.ajouter_config('pki.web.cert', data=cert_pem_web)
-
-    key_path = path.join(self.secret_path, 'pki.nginx.key.pem')
-    try:
-        with open(key_path, 'xb') as fichier:
-            fichier.write(cle_pem_bytes_ed25519)
-    except FileExistsError:
-        pass
-
-    key_path = path.join(self.secret_path, 'pki.web.key.pem')
-    try:
-        with open(key_path, 'xb') as fichier:
-            fichier.write(cle_pem_web)
-    except FileExistsError:
-        pass
-
-    return clecert_ed25519
+# def generer_certificat_nginx_selfsigned(insecure=False):
+#     """
+#     Utilise pour genere un certificat self-signed initial pour nginx
+#     :return:
+#     """
+#     generateur = GenerateurCertificatNginxSelfsigned()
+#
+#     clecert_ed25519 = generateur.generer('Installation')
+#     cle_pem_bytes_ed25519 = clecert_ed25519.private_key_bytes
+#     cert_pem_ed25519 = clecert_ed25519.public_bytes
+#
+#     clecert_web = generateur.generer('Installation', rsa=True)
+#     cle_pem_web = clecert_web.private_key_bytes
+#     cert_pem_web = clecert_web.public_bytes
+#
+#     # # Certificat interne
+#     # self.ajouter_secret('pki.nginx.key', data=cle_pem_bytes_ed25519)
+#     # self.ajouter_config('pki.nginx.cert', data=cert_pem_ed25519)
+#     #
+#     # # Certificat web
+#     # self.ajouter_secret('pki.web.key', data=cle_pem_web)
+#     # self.ajouter_config('pki.web.cert', data=cert_pem_web)
+#
+#     key_path = path.join(self.secret_path, 'pki.nginx.key.pem')
+#     try:
+#         with open(key_path, 'xb') as fichier:
+#             fichier.write(cle_pem_bytes_ed25519)
+#     except FileExistsError:
+#         pass
+#
+#     key_path = path.join(self.secret_path, 'pki.web.key.pem')
+#     try:
+#         with open(key_path, 'xb') as fichier:
+#             fichier.write(cle_pem_web)
+#     except FileExistsError:
+#         pass
+#
+#     return clecert_ed25519
 
 
 # class GenerateurCertificatNginxSelfsigned:
