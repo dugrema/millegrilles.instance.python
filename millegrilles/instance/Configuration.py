@@ -14,6 +14,8 @@ CONST_INSTANCE_PARAMS = [
     Constantes.PARAM_INSTANCE_CA_PATH,
     Constantes.PARAM_INSTANCE_CERT_PATH,
     Constantes.PARAM_INSTANCE_KEY_PATH,
+    Constantes.PARAM_INSTANCE_IDMG_PATH,
+    Constantes.PARAM_INSTANCE_SECURITE_PATH,
     Constantes.PARAM_INSTANCE_CERTISSUER_URL,
 ]
 
@@ -33,9 +35,11 @@ class ConfigurationInstance:
         self.path_secrets_partages = '/var/opt/millegrilles/secrets_partages'
         self.path_nginx_configuration = '/var/opt/millegrilles/nginx/modules'
         self.certissuer_url = 'http://localhost:8445'
-        self.instance_ca_pem_path = '/var/opt/millegrilles/secrets/pki.ca.cert'
         self.instance_cert_pem_path = '/var/opt/millegrilles/secrets/pki.instance.cert'
         self.instance_key_pem_path = '/var/opt/millegrilles/secrets/pki.instance.key'
+        self.instance_idmg_path = '/var/opt/millegrilles/configuration/idmg.txt'
+        self.instance_ca_pem_path = '/var/opt/millegrilles/configuration/pki.millegrille.cert'
+        self.instance_securite_path = '/var/opt/millegrilles/configuration/securite.txt'
 
         self.docker_actif = False
 

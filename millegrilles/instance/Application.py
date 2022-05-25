@@ -18,7 +18,7 @@ from millegrilles.instance.EtatInstance import EtatInstance
 from millegrilles.instance.InstanceDocker import EtatDockerInstanceSync
 
 
-def initialiser_application():
+async def initialiser_application():
     logging.basicConfig()
 
     app = ApplicationInstance()
@@ -35,7 +35,7 @@ def initialiser_application():
     signal.signal(signal.SIGTERM, app.exit_gracefully)
     # signal.signal(signal.SIGHUP, app.reload_configuration)
 
-    app.preparer_environnement()
+    await app.preparer_environnement()
 
     return app
 
@@ -79,7 +79,7 @@ class ApplicationInstance:
         self.__logger.info("Charger la configuration")
         self.__configuration.parse_config(args)
 
-    def preparer_environnement(self):
+    async def preparer_environnement(self):
         """
         Examine environnement, preparer au besoin (folders, docker, ports, etc)
         :return:
@@ -90,7 +90,7 @@ class ApplicationInstance:
         makedirs(self.__configuration.path_secrets_partages, 0o710, exist_ok=True)
 
         self.preparer_folder_configuration()
-        self.__etat_instance.reload_configuration()
+        await self.__etat_instance.reload_configuration()
 
         self.__web_server = WebServer(self.__etat_instance)
         self.__web_server.setup()
@@ -166,7 +166,7 @@ def main():
     Methode d'execution de l'application
     :return:
     """
-    app = initialiser_application()
+    app = asyncio.run(initialiser_application())
     logger = logging.getLogger(__name__)
 
     try:

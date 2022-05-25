@@ -17,7 +17,10 @@ class EtatInstance:
         self.__niveau_securite: Optional[str] = None
         self.__idmg: Optional[str] = None
 
-    def reload_configuration(self):
+        # Liste de listeners qui sont appeles sur changement de configuration
+        self.__config_listeners = list()
+
+    async def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
 
         # Generer les certificats web self-signed au besoin
@@ -48,6 +51,12 @@ class EtatInstance:
             self.__idmg = idmg_str
         except FileNotFoundError:
             pass
+
+        for listener in self.__config_listeners:
+            await listener(self)
+
+    def ajouter_listener(self, callback_async):
+        self.__config_listeners.append(callback_async)
 
     @property
     def instance_id(self):
