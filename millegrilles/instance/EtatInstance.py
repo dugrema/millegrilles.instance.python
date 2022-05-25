@@ -5,6 +5,7 @@ from typing import Optional
 
 from millegrilles.instance.Certificats import preparer_certificats_web
 from millegrilles.instance.Configuration import ConfigurationInstance
+from millegrilles.messages import Constantes
 from millegrilles.messages.CleCertificat import CleCertificat
 from millegrilles.messages.EnveloppeCertificat import EnveloppeCertificat
 
@@ -53,6 +54,9 @@ class EtatInstance:
 
     def ajouter_listener(self, callback_async):
         self.__config_listeners.append(callback_async)
+
+    def etat(self):
+        pass
 
     @property
     def instance_id(self):

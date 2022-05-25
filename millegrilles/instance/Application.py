@@ -11,11 +11,13 @@ from os import path, makedirs
 from typing import Optional
 from uuid import uuid4
 
+from millegrilles.messages import Constantes
 from millegrilles.docker.DockerHandler import DockerState, DockerHandler
 from millegrilles.instance.Configuration import ConfigurationInstance
 from millegrilles.instance.WebServer import WebServer
 from millegrilles.instance.EtatInstance import EtatInstance
 from millegrilles.instance.InstanceDocker import EtatDockerInstanceSync
+from millegrilles.instance.EntretienInstance import get_module_execution
 
 
 async def initialiser_application():
@@ -64,12 +66,16 @@ class ApplicationInstance:
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__loop = None
         self._stop_event = None  # Evenement d'arret global de l'application
+        self.__entretien_event = None
         self.__configuration = ConfigurationInstance()
         self.__etat_instance = EtatInstance(self.__configuration)
 
         self.__web_server: Optional[WebServer] = None
         self.__docker_handler: Optional[DockerHandler] = None
         self.__docker_etat: Optional[EtatDockerInstanceSync] = None
+
+        # Coroutine a executer pour l'entretien, depend du type d'instance (None = installation)
+        self.__module_entretien = None
 
     def charger_configuration(self, args: argparse.Namespace):
         """
@@ -85,11 +91,15 @@ class ApplicationInstance:
         :return:
         """
         self.__logger.info("Preparer l'environnement")
+        self.__entretien_event = Event()
+        self._stop_event = Event()
+
         makedirs(self.__configuration.path_nginx_configuration, 0o750, exist_ok=True)
         makedirs(self.__configuration.path_secrets, 0o700, exist_ok=True)
         makedirs(self.__configuration.path_secrets_partages, 0o710, exist_ok=True)
 
         self.preparer_folder_configuration()
+        self.__etat_instance.ajouter_listener(self.changer_etat_execution)
         await self.__etat_instance.reload_configuration()
 
         self.__web_server = WebServer(self.__etat_instance)
@@ -115,6 +125,23 @@ class ApplicationInstance:
                 self.__docker_handler.start()
                 self.__docker_etat = EtatDockerInstanceSync(self.__etat_instance, self.__docker_handler)
 
+    async def changer_etat_execution(self, etat_instance: EtatInstance):
+        """
+        Determine le type d'execution en cours (instance public, prive, protege, mode installation, etc)
+        :param etat_instance:
+        :return:
+        """
+        if self.__module_entretien is not None:
+            # Interrompre module d'execution en cours
+            await self.__module_entretien.fermer()
+            self.__module_entretien = None
+
+        self.__module_entretien = get_module_execution(etat_instance)
+        if self.__module_entretien is not None:
+            # Preparer le nouveau module d'entretien. Hook est dans self.entretien() pour run
+            await self.__module_entretien.setup(etat_instance, self.__docker_etat)
+            self.__entretien_event.set()  # Redemarre le module d'entretien
+
     def exit_gracefully(self, signum=None, frame=None):
         self.__logger.info("Fermer application, signal: %d" % signum)
         self.fermer()
@@ -128,10 +155,13 @@ class ApplicationInstance:
 
         while self._stop_event.is_set() is False:
             # Entretien
-
+            if self.__module_entretien is not None:
+                # Execution du module d'entretien de l'instance
+                await self.__module_entretien.run()
             try:
-                # Attente 30 secondes entre entretien
-                await asyncio.wait_for(self._stop_event.wait(), 30)
+                # Attendre setup d'un module d'entretien
+                await self.__entretien_event.wait()
+                self.__entretien_event.clear()
             except TimeoutError:
                 pass
 
@@ -160,25 +190,30 @@ class ApplicationInstance:
         # Execution de la loop avec toutes les tasks
         await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
 
+async def demarrer():
+    logger = logging.getLogger(__name__)
+
+    logger.info("Setup app")
+    app = await initialiser_application()
+
+    try:
+        logger.info("Debut execution app")
+        await app.executer()
+    except KeyboardInterrupt:
+        logger.info("Arret execution app via signal (KeyboardInterrupt), fin thread main")
+    except:
+        logger.exception("Exception durant execution app, fin thread main")
+    finally:
+        logger.info("Fin execution app")
+        app.fermer()  # S'assurer de mettre le flag de stop_event
+
 
 def main():
     """
     Methode d'execution de l'application
     :return:
     """
-    app = asyncio.run(initialiser_application())
-    logger = logging.getLogger(__name__)
-
-    try:
-        logger.info("Debut execution app")
-        asyncio.run(app.executer())
-        logger.info("Fin execution app")
-    except KeyboardInterrupt:
-        logger.info("Arret execution app via signal (KeyboardInterrupt), fin thread main")
-    except:
-        logger.exception("Exception durant execution app, fin thread main")
-    finally:
-        app.fermer()  # S'assurer de mettre le flag de stop_event
+    asyncio.run(demarrer())
 
 
 if __name__ == '__main__':
