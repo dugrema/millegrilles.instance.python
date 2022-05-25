@@ -43,16 +43,30 @@ class EtatDockerInstanceSync:
     async def verifier_config_instance(self):
         instance_id = self.__etat_instance.instance_id
         if instance_id is not None:
-            # S'assurer d'avoir une config instance.instance_id
-            commande_instanceid = CommandeGetConfiguration(Constantes.DOCKER_CONFIG_INSTANCE_ID, aio=True)
-            self.__docker_handler.ajouter_commande(commande_instanceid)
-            try:
-                docker_instance_id = await commande_instanceid.get_data()
-                self.__logger.debug("Docker instance_id : %s", docker_instance_id)
-                if docker_instance_id != instance_id:
-                    raise Exception("Erreur configuration, instance_id mismatch")
-            except NotFound:
-                self.__logger.debug("Docker instance NotFound")
-                commande_ajouter = CommandeAjouterConfiguration(Constantes.DOCKER_CONFIG_INSTANCE_ID, instance_id, aio=True)
-                self.__docker_handler.ajouter_commande(commande_ajouter)
-                await commande_ajouter.attendre()
+            await self.sauvegarder_config(Constantes.DOCKER_CONFIG_INSTANCE_ID, instance_id, comparer=True)
+
+        niveau_securite = self.__etat_instance.niveau_securite
+        if niveau_securite is not None:
+            await self.sauvegarder_config(Constantes.DOCKER_CONFIG_INSTANCE_SECURITE, niveau_securite, comparer=True)
+
+        idmg = self.__etat_instance.idmg
+        if idmg is not None:
+            await self.sauvegarder_config(Constantes.DOCKER_CONFIG_INSTANCE_IDMG, idmg, comparer=True)
+
+        certificat_millegrille = self.__etat_instance.certificat_millegrille
+        if certificat_millegrille is not None:
+            await self.sauvegarder_config(Constantes.DOCKER_CONFIG_PKI_MILLEGRILLE, certificat_millegrille.certificat_pem)
+
+    async def sauvegarder_config(self, label: str, valeur: str, comparer=False):
+        commande = CommandeGetConfiguration(label, aio=True)
+        self.__docker_handler.ajouter_commande(commande)
+        try:
+            valeur_docker = await commande.get_data()
+            self.__logger.debug("Docker %s : %s" % (label, valeur_docker))
+            if comparer is True and valeur_docker != valeur:
+                raise Exception("Erreur configuration, %s mismatch" % label)
+        except NotFound:
+            self.__logger.debug("Docker instance NotFound")
+            commande_ajouter = CommandeAjouterConfiguration(label, valeur, aio=True)
+            self.__docker_handler.ajouter_commande(commande_ajouter)
+            await commande_ajouter.attendre()
