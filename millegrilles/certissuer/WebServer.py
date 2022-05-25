@@ -35,6 +35,7 @@ class WebServer:
         self.__app.add_routes([
             web.get('/csr', self.handle_csr),
             web.post('/installer', self.handle_installer),
+            web.post('/signerModule', self.handle_signer_module),
         ])
 
     async def handle_csr(self, request):
@@ -58,6 +59,15 @@ class WebServer:
         cert_instance = self.__certificat_handler.generer_certificat_instance(csr_instance, securite)
         self.__logger.debug("Nouveau certificat d'instance\n%s" % cert_instance)
         return web.json_response({'certificat': cert_instance}, status=201)
+
+    async def handle_signer_module(self, request):
+        info_cert = await request.json()
+        self.__logger.debug("handle_installer params\n%s" % json.dumps(info_cert, indent=2))
+
+        # Valider signature de request (doit etre role instance, niveau de securite suffisant pour exchanges)
+
+        chaine = self.__certificat_handler.generer_certificat_module(info_cert)
+        return web.json_response({'certificat': chaine})
 
     async def entretien(self):
         self.__logger.debug('Entretien')

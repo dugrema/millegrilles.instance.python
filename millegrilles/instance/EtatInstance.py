@@ -21,6 +21,7 @@ class EtatInstance:
         self.__idmg: Optional[str] = None
         self.__certificat_millegrille: Optional[EnveloppeCertificat] = None
         self.__clecertificat: Optional[CleCertificat] = None
+        self.__nom_domaine: Optional[str] = None
 
         # Liste de listeners qui sont appeles sur changement de configuration
         self.__config_listeners = list()
@@ -49,6 +50,9 @@ class EtatInstance:
                                             self.__configuration.instance_cert_pem_path)
         self.__logger.debug("Certificat instance: %s" % self.__clecertificat)
 
+        self.__nom_domaine = 'mg-dev5.maple.maceroc.com'
+        self.__logger.debug("Nom domaine insance: %s" % self.__nom_domaine)
+
         for listener in self.__config_listeners:
             await listener(self)
 
@@ -73,6 +77,10 @@ class EtatInstance:
     @property
     def certissuer_url(self):
         return self.__configuration.certissuer_url
+
+    @property
+    def nom_domaine(self):
+        return self.__nom_domaine
 
     @property
     def configuration(self):

@@ -1,4 +1,5 @@
 # Module d'entretien de l'instance protegee
+import aiohttp
 import asyncio
 import datetime
 import json
@@ -7,11 +8,14 @@ import logging
 from os import path
 from typing import Optional
 
+from aiohttp import web, ClientSession
 from asyncio import Event, TimeoutError
 
 from millegrilles.messages import Constantes
 from millegrilles.instance.EtatInstance import EtatInstance
 from millegrilles.instance.InstanceDocker import EtatDockerInstanceSync
+from millegrilles.messages.CleCertificat import CleCertificat
+from millegrilles.certificats.Generes import CleCsrGenere
 
 logger = logging.getLogger(__name__)
 
@@ -46,6 +50,8 @@ class InstanceProtegee:
         self.__etat_docker: Optional[EtatDockerInstanceSync] = None
 
         self.__tache_certificats = TacheEntretien(datetime.timedelta(minutes=30), self.entretien_certificats)
+
+        self.__client_session = aiohttp.ClientSession()
 
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
         self.__logger.info("Setup InstanceProtegee")
@@ -90,7 +96,7 @@ class InstanceProtegee:
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")
         configuration = await self.get_configuration_certificats()
-        await generer_certificats_modules(self.__etat_instance, self.__etat_docker, configuration)
+        await generer_certificats_modules(self.__client_session, self.__etat_instance, self.__etat_docker, configuration)
         self.__logger.debug("entretien_certificats fin")
 
 
@@ -132,9 +138,64 @@ async def charger_configuration_docker(path_configuration: str, fichiers: list) 
     return configuration
 
 
-async def generer_certificats_modules(etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync,
+async def generer_certificats_modules(client_session: ClientSession, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync,
                                       configuration: dict):
     # S'assurer que tous les certificats sont presents et courants dans le repertoire secrets
     path_secrets = etat_instance.configuration.path_secrets
-    for key, value in configuration.items():
-        logger.debug("generer_certificats_modules() Verification certificat %s" % key)
+    for nom_module, value in configuration.items():
+        logger.debug("generer_certificats_modules() Verification certificat %s" % nom_module)
+
+        nom_certificat = 'pki.%s.cert' % nom_module
+        nom_cle = 'pki.%s.cle' % nom_module
+        path_certificat = path.join(path_secrets, nom_certificat)
+        path_cle = path.join(path_secrets, nom_cle)
+
+        try:
+            clecertificat = CleCertificat.from_files(path_cle, path_certificat)
+            enveloppe = clecertificat.enveloppe
+
+            # Ok, verifier si le certificat doit etre renouvele
+            detail_expiration = enveloppe.calculer_expiration()
+            if detail_expiration['expire'] is True or detail_expiration['renouveler'] is True:
+                clecertificat = await generer_nouveau_certificat(client_session, etat_instance, nom_module, value)
+
+        except FileNotFoundError:
+            logger.info("Certificat %s non trouve, on le genere" % nom_module)
+            clecertificat = await generer_nouveau_certificat(client_session, etat_instance, nom_module, value)
+
+        # Verifier si le certificat et la cle sont stocke dans docker
+
+
+async def generer_nouveau_certificat(client_session: ClientSession, etat_instance: EtatInstance, nom_module: str, configuration: dict):
+    instance_id = etat_instance.instance_id
+    idmg = etat_instance.certificat_millegrille.idmg
+    clecsr = CleCsrGenere.build(instance_id, idmg)
+    csr_str = clecsr.get_pem_csr()
+
+    # Preparer configuration dns au besoin
+    configuration = configuration.copy()
+    try:
+        dns = configuration['dns'].copy()
+        if dns.get('domain') is True:
+            nom_domaine = etat_instance.nom_domaine
+            hostnames = [nom_domaine]
+            if dns.get('hostnames') is not None:
+                hostnames.extend(dns['hostnames'])
+            dns['hostnames'] = hostnames
+            configuration['dns'] = dns
+    except KeyError:
+        pass
+
+    # Signer avec notre certificat (instance), requis par le certissuer
+    configuration['csr'] = csr_str
+
+    logger.debug("Demande de signature de certificat pour %s => %s\n%s" % (nom_module, configuration, csr_str))
+    url_issuer = etat_instance.certissuer_url
+    path_csr = path.join(url_issuer, 'signerModule')
+    async with client_session.post(path_csr, json=configuration) as resp:
+        resp.raise_for_status()
+        reponse = await resp.json()
+
+    certificat = reponse['certificat']
+
+    logger.debug("Reponse certissuer certificat %s\n%s" % (nom_module, ''.join(certificat)))
