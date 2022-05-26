@@ -274,7 +274,7 @@ async def generer_certificats_modules(client_session: ClientSession, etat_instan
                 cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
                 fichier.write(cert_str)
 
-        await etat_docker.assurer_clecertificat(nom_module, clecertificat)
+        await etat_docker.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
 
 
 async def generer_nouveau_certificat(client_session: ClientSession, etat_instance: EtatInstance, nom_module: str,

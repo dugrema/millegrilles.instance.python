@@ -74,7 +74,7 @@ class EtatDockerInstanceSync:
             self.__docker_handler.ajouter_commande(commande_ajouter)
             await commande_ajouter.attendre()
 
-    async def assurer_clecertificat(self, nom_module: str, clecertificat: CleCertificat):
+    async def assurer_clecertificat(self, nom_module: str, clecertificat: CleCertificat, combiner=False):
         """
         Commande pour s'assurer qu'un certificat et une cle sont insere dans docker.
         :param label:
@@ -87,6 +87,8 @@ class EtatDockerInstanceSync:
         label_cle = 'pki.%s.key.%s' % (nom_module, date_debut)
         pem_certificat = '\n'.join(enveloppe.chaine_pem())
         pem_cle = clecertificat.private_key_bytes().decode('utf-8')
+        if combiner is True:
+            pem_cle = '\n'.join([pem_cle, pem_certificat])
 
         labels = {
             'certificat': 'true',
@@ -204,6 +206,7 @@ class EtatDockerInstanceSync:
         params = params.copy()
         params['__nom_application'] = nom_service
         params['__certificat_info'] = {'label_prefix': 'pki.%s' % nom_service}
+        params['__password_info'] = {'label_prefix': 'passwd.%s' % nom_service}
 
         parser = ConfigurationService(configuration, params)
         parser.parse()
@@ -215,7 +218,7 @@ class EtatDockerInstanceSync:
         try:
             for constraint in constraints:
                 nom_constraint = constraint.split('=')[0]
-                nom_constraint = nom_constraint.replace('node.labels.', '')
+                nom_constraint = nom_constraint.replace('node.labels.', '').strip()
                 list_labels.append(nom_constraint)
             commande_ajouter_labels = DockerCommandes.CommandeEnsureNodeLabels(list_labels, aio=True)
             self.__docker_handler.ajouter_commande(commande_ajouter_labels)

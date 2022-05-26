@@ -1,5 +1,6 @@
 {
   "name": "mongo",
+  "image": "mongo:4.4",
   "hostname": "mongo",
   "certificat": {"roles": ["mongo"], "dns": {"localhost": true, "hostnames": ["mongo"], "domain": true}, "combiner_keycert": true},
   "passwords": ["mongo"],
@@ -9,23 +10,18 @@
     "--tlsCertificateKeyFile", "/run/secrets/mongo.key_cert.pem",
     "--tlsCAFile", "/run/secrets/millegrille.cert.pem"
   ],
-  "env": [
-    "MONGO_INITDB_ROOT_USERNAME=admin",
-    "MONGO_INITDB_ROOT_PASSWORD_FILE=/run/secrets/mongo.root.password"
-  ],
-  "mounts": [
-    "mongo-data:/data/db:rw"
-  ],
-  "constraints": [
-    "node.labels.millegrilles.database == true"
-  ],
+  "env": {
+    "MONGO_INITDB_ROOT_USERNAME": "admin",
+    "MONGO_INITDB_ROOT_PASSWORD_FILE": "/run/secrets/mongo.root.password"
+  },
+  "mounts": [{"source": "mongo-data", "target":  "/data/db", "type": "volume"}],
+  "constraints": ["node.labels.millegrilles.database == true"],
   "configs": [
     {
-      "name": "pki.mongo.cert",
+      "certificate": true,
       "filename": "/run/secrets/mongo.cert.pem"
-    },
-    {
-      "name": "pki.millegrille.cert",
+    },{
+      "name": "pki.millegrille",
       "filename": "/run/secrets/millegrille.cert.pem"
     }
   ],
