@@ -1,11 +1,13 @@
 # Module d'entretien de l'instance protegee
 import aiohttp
 import asyncio
+import base64
 import datetime
 import json
 import logging
+import secrets
 
-from os import path
+from os import path, stat
 from typing import Optional
 
 from aiohttp import web, ClientSession
@@ -50,6 +52,7 @@ class InstanceProtegee:
         self.__etat_docker: Optional[EtatDockerInstanceSync] = None
 
         self.__tache_certificats = TacheEntretien(datetime.timedelta(minutes=30), self.entretien_certificats)
+        self.__tache_passwords = TacheEntretien(datetime.timedelta(minutes=360), self.entretien_passwords)
 
         self.__client_session = aiohttp.ClientSession()
 
@@ -68,6 +71,7 @@ class InstanceProtegee:
             self.__logger.debug("run() debut execution cycle")
 
             await self.__tache_certificats.run()
+            await self.__tache_passwords.run()
 
             try:
                 self.__logger.debug("run() fin execution cycle")
@@ -93,12 +97,34 @@ class InstanceProtegee:
 
         return config_certificats
 
+    async def get_configuration_passwords(self) -> list:
+        path_configuration = self.__etat_instance.configuration.path_configuration
+        path_configuration_docker = path.join(path_configuration, 'docker')
+        configurations = await charger_configuration_docker(path_configuration_docker, CONFIG_MODULES_PROTEGES)
+
+        # map configuration certificat
+        liste_noms_passwords = list()
+        for c in configurations:
+            try:
+                p = c['passwords']
+                liste_noms_passwords.extend(p)
+            except KeyError:
+                pass
+
+        return liste_noms_passwords
+
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")
         configuration = await self.get_configuration_certificats()
         await generer_certificats_modules(self.__client_session, self.__etat_instance, self.__etat_docker,
                                           configuration)
         self.__logger.debug("entretien_certificats fin")
+
+    async def entretien_passwords(self):
+        self.__logger.debug("entretien_passwords debut")
+        liste_noms_passwords = await self.get_configuration_passwords()
+        await generer_passwords(self.__etat_instance, self.__etat_docker, liste_noms_passwords)
+        self.__logger.debug("entretien_passwords fin")
 
 
 class TacheEntretien:
@@ -221,3 +247,48 @@ async def generer_nouveau_certificat(client_session: ClientSession, etat_instanc
 
     logger.debug("Reponse certissuer certificat %s\n%s" % (nom_module, ''.join(certificat)))
     return clecertificat
+
+
+async def generer_passwords(etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync,
+                            liste_noms_passwords: list):
+    """
+    Generer les passwords manquants.
+    :param etat_instance:
+    :param etat_docker:
+    :param liste_noms_passwords:
+    :return:
+    """
+    path_secrets = etat_instance.configuration.path_secrets
+    configurations = await etat_docker.get_configurations_datees()
+    secrets_dict = configurations['secrets']
+
+    for nom_password in liste_noms_passwords:
+        prefixe = 'passwd.%s' % nom_password
+        path_password = path.join(path_secrets, prefixe + '.txt')
+
+        try:
+            with open(path_password, 'r') as fichier:
+                password = fichier.read().strip()
+            info_fichier = stat(path_password)
+            date_password = info_fichier.st_mtime
+        except FileNotFoundError:
+            # Fichier non trouve, on doit le creer
+            password = base64.b64encode(secrets.token_bytes(24)).decode('utf-8').replace('=', '')
+            with open(path_password, 'w') as fichier:
+                fichier.write(password)
+            info_fichier = stat(path_password)
+            date_password = info_fichier.st_mtime
+
+        logger.debug("Date password : %s" % date_password)
+        date_password = datetime.datetime.utcfromtimestamp(date_password)
+        date_password_str = date_password.strftime('%Y%m%d%H%M%S')
+
+        label_passord = '%s.%s' % (prefixe, date_password_str)
+        try:
+            secrets_dict[label_passord]
+            continue  # Mot de passe existe
+        except KeyError:
+            pass  # Le mot de passe n'existe pas
+
+        # Ajouter mot de passe
+        await etat_docker.ajouter_password(nom_password, date_password_str, password)

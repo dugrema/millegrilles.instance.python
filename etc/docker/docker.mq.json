@@ -2,7 +2,7 @@
   "name": "mq",
   "image": "docker.maceroc.com/mg_rabbitmq:3.9-management_1",
   "certificat": {"roles": ["mq"], "dns": {"localhost": true, "hostnames": ["mq"], "domain": true}},
-  "password": ["mqadmin"],
+  "passwords": ["mqadmin"],
   "env": {
     "MG_KEY": "/run/secrets/key.pem",
     "WEB_KEY": "/run/secrets/webkey.pem",

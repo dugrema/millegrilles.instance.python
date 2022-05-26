@@ -5,7 +5,8 @@ from asyncio import Event, TimeoutError
 from docker.errors import APIError, NotFound
 
 from millegrilles.docker.DockerHandler import DockerHandler
-from millegrilles.docker.DockerCommandes import CommandeAjouterConfiguration, CommandeGetConfiguration, CommandeAjouterSecret
+from millegrilles.docker.DockerCommandes import CommandeAjouterConfiguration, CommandeGetConfiguration, \
+    CommandeAjouterSecret, CommandeGetConfigurationsDatees
 from millegrilles.instance import Constantes
 from millegrilles.instance.EtatInstance import EtatInstance
 from millegrilles.messages.CleCertificat import CleCertificat
@@ -117,3 +118,33 @@ class EtatDockerInstanceSync:
 
         if ajoute:
             self.__logger.debug("Nouveau certificat, reconfigurer module %s" % nom_module)
+
+    async def get_configurations_datees(self):
+        commande = CommandeGetConfigurationsDatees(aio=True)
+        self.__docker_handler.ajouter_commande(commande)
+        return await commande.get_resultat()
+
+    async def ajouter_password(self, nom_module: str, date: str, value: str):
+        prefixe = 'passwd.%s' % nom_module
+        label_password = 'passwd.%s.%s' % (nom_module, date)
+
+        labels = {
+            'password': 'true',
+            'label_prefix': prefixe,
+            'date': date,
+        }
+        commande_ajouter_cle = CommandeAjouterSecret(label_password, value, labels=labels, aio=True)
+
+        self.__docker_handler.ajouter_commande(commande_ajouter_cle)
+        ajoute = False
+        try:
+            await commande_ajouter_cle.attendre()
+            ajoute = True
+        except APIError as apie:
+            if apie.status_code == 409:
+                pass  # Secret existe deja
+            else:
+                raise apie
+
+        if ajoute:
+            self.__logger.debug("Nouveau password, reconfigurer module %s" % nom_module)
