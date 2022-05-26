@@ -8,7 +8,7 @@ from millegrilles.docker.DockerHandler import DockerHandler, DockerState
 from millegrilles.docker.DockerCommandes import CommandeListerServices, CommandeListerContainers, \
     CommandeAjouterConfiguration, CommandeSupprimerConfiguration, CommandeGetConfiguration, \
     CommandeAjouterSecret, CommandeSupprimerSecret, CommandeGetConfigurationsDatees, CommandeListerConfigs, \
-    CommandeListerSecrets, CommandeGetImage
+    CommandeListerSecrets, CommandeGetImage, CommandeEnsureNodeLabels
 
 logger = logging.getLogger(__name__)
 
@@ -78,11 +78,15 @@ async def test_async():
     # handler.ajouter_commande(action_supprimer_secret)
     # resultat = await action_supprimer_secret.get_resultat()
     # logger.debug("Resultat supprimer secret : %s" % resultat)
+    #
+    # action_get_image = CommandeGetImage('docker.maceroc.com/mg_rabbitmq:3.9-management_1', pull=True, aio=True)
+    # handler.ajouter_commande(action_get_image)
+    # resultat = await action_get_image.get_resultat()
+    # logger.debug("Resultat get image : %s" % resultat)
 
-    action_get_image = CommandeGetImage('docker.maceroc.com/mg_rabbitmq:3.9-management_1', pull=True, aio=True)
-    handler.ajouter_commande(action_get_image)
-    resultat = await action_get_image.get_resultat()
-    logger.debug("Resultat get image : %s" % resultat)
+    action_ensure_nodelabels = CommandeEnsureNodeLabels(['millegrilles.test'], aio=True)
+    handler.ajouter_commande(action_ensure_nodelabels)
+    await action_ensure_nodelabels.attendre()
 
     try:
         await asyncio.wait_for(wait_event.wait(), 60)
