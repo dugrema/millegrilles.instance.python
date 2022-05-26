@@ -6,10 +6,13 @@ from docker.errors import APIError, NotFound
 
 from millegrilles.docker.DockerHandler import DockerHandler
 from millegrilles.docker.DockerCommandes import CommandeAjouterConfiguration, CommandeGetConfiguration, \
-    CommandeAjouterSecret, CommandeGetConfigurationsDatees
+    CommandeAjouterSecret, CommandeGetConfigurationsDatees, CommandeListerServices, CommandeListerConfigs, \
+    CommandeListerSecrets
+
 from millegrilles.instance import Constantes
 from millegrilles.instance.EtatInstance import EtatInstance
 from millegrilles.messages.CleCertificat import CleCertificat
+from millegrilles.docker.ParseConfiguration import ConfigurationService
 
 
 class EtatDockerInstanceSync:
@@ -148,3 +151,59 @@ class EtatDockerInstanceSync:
 
         if ajoute:
             self.__logger.debug("Nouveau password, reconfigurer module %s" % nom_module)
+
+    async def entretien_services(self, services: dict):
+        commande_liste_services = CommandeListerServices(aio=True)
+        self.__docker_handler.ajouter_commande(commande_liste_services)
+        liste_services_docker = await commande_liste_services.get_liste()
+
+        # Determiner s'il y a des services manquants
+        nom_services_a_installer = set(services.keys())
+        for s in liste_services_docker:
+            name = s.name
+            nom_services_a_installer.remove(name)
+
+        if len(nom_services_a_installer) > 0:
+            self.__logger.debug("Services manquants dans docker : %s" % nom_services_a_installer)
+
+            # Charger configurations
+            action_configurations = CommandeListerConfigs(aio=True)
+            self.__docker_handler.ajouter_commande(action_configurations)
+            docker_configs = await action_configurations.get_resultat()
+
+            action_secrets = CommandeListerSecrets(aio=True)
+            self.__docker_handler.ajouter_commande(action_secrets)
+            docker_secrets = await action_secrets.get_resultat()
+
+            action_datees = CommandeGetConfigurationsDatees(aio=True)
+            self.__docker_handler.ajouter_commande(action_datees)
+            config_datees = await action_datees.get_resultat()
+
+            params = {
+                'HOSTNAME': self.__etat_instance.nom_domaine,
+                'IDMG': self.__etat_instance.idmg,
+                '__secrets': docker_secrets,
+                '__configs': docker_configs,
+                '__docker_config_datee': config_datees['correspondance'],
+                # '__nom_application': nom_service,
+                # '__certificat_info': {
+                #     'label_prefix': 'pki.mq',
+                # },
+            }
+
+            for nom_service in nom_services_a_installer:
+                config_service = services[nom_service]
+                await self.installer_service(nom_service, config_service, params)
+
+    async def installer_service(self, nom_service: str, configuration: dict, params: dict):
+
+        # Copier params, ajouter info service
+        params = params.copy()
+        params['__nom_application'] = nom_service
+        params['__certificat_info'] = {'label_prefix': 'pki.%s' % nom_service}
+
+        parser = ConfigurationService(configuration, params)
+        parser.parse()
+        config_parsed = parser.generer_docker_config()
+
+        pass

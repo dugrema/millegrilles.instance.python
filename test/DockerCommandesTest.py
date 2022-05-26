@@ -8,7 +8,7 @@ from millegrilles.docker.DockerHandler import DockerHandler, DockerState
 from millegrilles.docker.DockerCommandes import CommandeListerServices, CommandeListerContainers, \
     CommandeAjouterConfiguration, CommandeSupprimerConfiguration, CommandeGetConfiguration, \
     CommandeAjouterSecret, CommandeSupprimerSecret, CommandeGetConfigurationsDatees, CommandeListerConfigs, \
-    CommandeListerSecrets
+    CommandeListerSecrets, CommandeGetImage
 
 logger = logging.getLogger(__name__)
 
@@ -44,43 +44,48 @@ async def test_async():
     handler = DockerHandler(state)
     handler.start()
 
-    action_services = CommandeListerServices(aio=True)
-    handler.ajouter_commande(action_services)
-    resultat = await action_services.get_liste()
-    logger.debug("Resultat services async : %s" % resultat)
+    # action_services = CommandeListerServices(aio=True)
+    # handler.ajouter_commande(action_services)
+    # resultat = await action_services.get_liste()
+    # logger.debug("Resultat services async : %s" % resultat)
+    #
+    # action_containers = CommandeListerContainers(aio=True)
+    # handler.ajouter_commande(action_containers)
+    # resultat = await action_containers.get_liste()
+    # logger.debug("Resultat containers async : %s" % resultat)
+    #
+    # action_creer_configuration = CommandeAjouterConfiguration('test.config', 'mon test', {'label': 'moui!'}, aio=True)
+    # handler.ajouter_commande(action_creer_configuration)
+    # config = await action_creer_configuration.get_resultat()
+    # logger.debug("Resultat creer configuration : %s" % config.id)
+    #
+    # action_get_configuration = CommandeGetConfiguration('test.config', aio=True)
+    # handler.ajouter_commande(action_get_configuration)
+    # data_config = await action_get_configuration.get_data()
+    # logger.debug("Resultat get configuration : %s" % data_config)
+    #
+    # action_supprimer_configuration = CommandeSupprimerConfiguration('test.config', aio=True)
+    # handler.ajouter_commande(action_supprimer_configuration)
+    # resultat = await action_supprimer_configuration.get_resultat()
+    # logger.debug("Resultat supprimer configuration : %s" % resultat)
+    #
+    # action_creer_secret = CommandeAjouterSecret('test.secret', 'mon test', {'label': 'moui!'}, aio=True)
+    # handler.ajouter_commande(action_creer_secret)
+    # config = await action_creer_secret.get_resultat()
+    # logger.debug("Resultat creer secret : %s" % config.id)
+    #
+    # action_supprimer_secret = CommandeSupprimerSecret('test.secret', aio=True)
+    # handler.ajouter_commande(action_supprimer_secret)
+    # resultat = await action_supprimer_secret.get_resultat()
+    # logger.debug("Resultat supprimer secret : %s" % resultat)
 
-    action_containers = CommandeListerContainers(aio=True)
-    handler.ajouter_commande(action_containers)
-    resultat = await action_containers.get_liste()
-    logger.debug("Resultat containers async : %s" % resultat)
-
-    action_creer_configuration = CommandeAjouterConfiguration('test.config', 'mon test', {'label': 'moui!'}, aio=True)
-    handler.ajouter_commande(action_creer_configuration)
-    config = await action_creer_configuration.get_resultat()
-    logger.debug("Resultat creer configuration : %s" % config.id)
-
-    action_get_configuration = CommandeGetConfiguration('test.config', aio=True)
-    handler.ajouter_commande(action_get_configuration)
-    data_config = await action_get_configuration.get_data()
-    logger.debug("Resultat get configuration : %s" % data_config)
-
-    action_supprimer_configuration = CommandeSupprimerConfiguration('test.config', aio=True)
-    handler.ajouter_commande(action_supprimer_configuration)
-    resultat = await action_supprimer_configuration.get_resultat()
-    logger.debug("Resultat supprimer configuration : %s" % resultat)
-
-    action_creer_secret = CommandeAjouterSecret('test.secret', 'mon test', {'label': 'moui!'}, aio=True)
-    handler.ajouter_commande(action_creer_secret)
-    config = await action_creer_secret.get_resultat()
-    logger.debug("Resultat creer secret : %s" % config.id)
-
-    action_supprimer_secret = CommandeSupprimerSecret('test.secret', aio=True)
-    handler.ajouter_commande(action_supprimer_secret)
-    resultat = await action_supprimer_secret.get_resultat()
-    logger.debug("Resultat supprimer secret : %s" % resultat)
+    action_get_image = CommandeGetImage('docker.maceroc.com/mg_rabbitmq:3.9-management_1', pull=True, aio=True)
+    handler.ajouter_commande(action_get_image)
+    resultat = await action_get_image.get_resultat()
+    logger.debug("Resultat get image : %s" % resultat)
 
     try:
-        await asyncio.wait_for(wait_event.wait(), 5)
+        await asyncio.wait_for(wait_event.wait(), 60)
     except TimeoutError:
         pass
 
@@ -116,8 +121,8 @@ async def test_config():
 
 def main():
     # test_sync()
-    # asyncio.run(test_async())
-    asyncio.run(test_config())
+    asyncio.run(test_async())
+    # asyncio.run(test_config())
 
 
 if __name__ == '__main__':

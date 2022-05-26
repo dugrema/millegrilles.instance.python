@@ -53,7 +53,7 @@ class InstanceProtegee:
 
         self.__tache_certificats = TacheEntretien(datetime.timedelta(minutes=30), self.entretien_certificats)
         self.__tache_passwords = TacheEntretien(datetime.timedelta(minutes=360), self.entretien_passwords)
-        self.__tache_services = TacheEntretien(datetime.timedelta(minutes=60), self.entretien_services)
+        self.__tache_services = TacheEntretien(datetime.timedelta(seconds=30), self.entretien_services)
 
         self.__client_session = aiohttp.ClientSession()
 
@@ -106,6 +106,22 @@ class InstanceProtegee:
             except TimeoutError:
                 pass
         self.__logger.info("Fin run()")
+
+    async def get_configuration_services(self) -> dict:
+        path_configuration = self.__etat_instance.configuration.path_configuration
+        path_configuration_docker = path.join(path_configuration, 'docker')
+        configurations = await charger_configuration_docker(path_configuration_docker, CONFIG_MODULES_PROTEGES)
+
+        # map configuration certificat
+        services = dict()
+        for c in configurations:
+            try:
+                nom = c['name']
+                services[nom] = c
+            except KeyError:
+                pass
+
+        return services
 
     async def get_configuration_certificats(self) -> dict:
         path_configuration = self.__etat_instance.configuration.path_configuration
@@ -160,7 +176,8 @@ class InstanceProtegee:
         await asyncio.wait_for(self.__event_setup_initial_certificats.wait(), 50)
         await asyncio.wait_for(self.__event_setup_initial_passwords.wait(), 10)
         self.__logger.debug("entretien_services debut")
-
+        services = await self.get_configuration_services()
+        await self.__etat_docker.entretien_services(services)
         self.__logger.debug("entretien_services fin")
 
 
