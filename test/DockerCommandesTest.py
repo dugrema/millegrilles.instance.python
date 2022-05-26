@@ -4,11 +4,10 @@ import logging
 from asyncio import Event as EventAsyncio, TimeoutError
 from threading import Event
 
-from millegrilles.instance.DockerState import DockerState
-from millegrilles.instance.DockerHandler import DockerHandler
-from millegrilles.instance.DockerCommandes import CommandeListerServices, CommandeListerContainers, \
+from millegrilles.docker.DockerHandler import DockerHandler, DockerState
+from millegrilles.docker.DockerCommandes import CommandeListerServices, CommandeListerContainers, \
     CommandeAjouterConfiguration, CommandeSupprimerConfiguration, CommandeGetConfiguration, \
-    CommandeAjouterSecret, CommandeSupprimerSecret
+    CommandeAjouterSecret, CommandeSupprimerSecret, CommandeGetConfigurationsDatees
 
 logger = logging.getLogger(__name__)
 
@@ -85,9 +84,29 @@ async def test_async():
         pass
 
 
+async def test_config():
+
+    wait_event = EventAsyncio()
+
+    state = DockerState()
+    handler = DockerHandler(state)
+    handler.start()
+
+    action_services = CommandeGetConfigurationsDatees(aio=True)
+    handler.ajouter_commande(action_services)
+    resultat = await action_services.get_resultat()
+    logger.debug("Resultat services async : %s" % resultat)
+
+    try:
+        await asyncio.wait_for(wait_event.wait(), 5)
+    except TimeoutError:
+        pass
+
+
 def main():
     # test_sync()
-    asyncio.run(test_async())
+    # asyncio.run(test_async())
+    asyncio.run(test_config())
 
 
 if __name__ == '__main__':

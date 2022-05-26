@@ -86,7 +86,13 @@ class EtatDockerInstanceSync:
         pem_certificat = '\n'.join(enveloppe.chaine_pem())
         pem_cle = clecertificat.private_key_bytes().decode('utf-8')
 
-        commande_ajouter_cert = CommandeAjouterConfiguration(label_certificat, pem_certificat, aio=True)
+        labels = {
+            'certificat': 'true',
+            'label_prefix': 'pki.%s' % nom_module,
+            'date': date_debut,
+        }
+
+        commande_ajouter_cert = CommandeAjouterConfiguration(label_certificat, pem_certificat, labels=labels, aio=True)
         self.__docker_handler.ajouter_commande(commande_ajouter_cert)
         ajoute = False
         try:
@@ -98,7 +104,7 @@ class EtatDockerInstanceSync:
             else:
                 raise apie
 
-        commande_ajouter_cle = CommandeAjouterSecret(label_cle, pem_cle, aio=True)
+        commande_ajouter_cle = CommandeAjouterSecret(label_cle, pem_cle, labels=labels, aio=True)
         self.__docker_handler.ajouter_commande(commande_ajouter_cle)
         try:
             await commande_ajouter_cle.attendre()
