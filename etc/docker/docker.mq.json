@@ -9,7 +9,7 @@
     "CONFIG_FILE": "/opt/rabbitmq/dist/config/rabbitmq_ipv6management.config",
     "NODENAME": "rabbit@mq"
   },
-  "mounts": ["rabbitmq-data:/var/lib/rabbitmq:rw"],
+  "mounts": [{"source": "rabbitmq-data", "target":  "/var/lib/rabbitmq", "type": "volume"}],
   "constraints": ["node.labels.millegrilles.mq == true"],
   "configs": [
     {
