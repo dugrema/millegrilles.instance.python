@@ -3,10 +3,13 @@ import asyncio
 import logging
 import ssl
 
+from os import path
 from typing import Optional
 
 from aiohttp.client_exceptions import ClientConnectorError
 from asyncio import Event, TimeoutError
+
+from millegrilles.messages import Constantes
 
 
 class EntretienRabbitMq:
@@ -22,17 +25,14 @@ class EntretienRabbitMq:
         self.__sslcontext = ssl.create_default_context(cafile=ca_path)
 
         self.__entretien_initial_complete = False
+        self.__url_mq = 'https://127.0.0.1:8443'
 
     async def entretien(self):
         self.__logger.debug("entretien debut")
 
         try:
             if self.__session is None:
-                if self.__etat_instance.configuration.instance_password_mq_path is not None:
-                    with open(self.__etat_instance.configuration.instance_password_mq_path, 'r') as fichier:
-                        password_mq = fichier.read().strip()
-                    basic_auth = aiohttp.BasicAuth('admin', password_mq)
-                    self.__session = aiohttp.ClientSession(auth=basic_auth)
+                await self.creer_session()
 
             if self.__session is not None:
                 try:
@@ -58,6 +58,13 @@ class EntretienRabbitMq:
 
         self.__logger.debug("entretien fin")
 
+    async def creer_session(self):
+        if self.__etat_instance.configuration.instance_password_mq_path is not None:
+            with open(self.__etat_instance.configuration.instance_password_mq_path, 'r') as fichier:
+                password_mq = fichier.read().strip()
+            basic_auth = aiohttp.BasicAuth('admin', password_mq)
+            self.__session = aiohttp.ClientSession(auth=basic_auth)
+
     async def configurer_admin(self):
         with open(self.__etat_instance.configuration.instance_password_mq_path, 'r') as fichier:
             password_mq = fichier.read().strip()
@@ -73,11 +80,38 @@ class EntretienRabbitMq:
                 self.__logger.debug("Reponse creation admin : %s" % response)
 
     async def entretien_initial(self):
+        # S'assurer que guest est supprime
         async with self.__session.delete('https://127.0.0.1:8443/api/users/guest', ssl=self.__sslcontext) as response:
             self.__logger.debug("Reponse suppression guest : %s" % response)
+
+        idmg = self.__etat_instance.idmg
+        async with self.__session.put('https://127.0.0.1:8443/api/vhosts/%s' % idmg, ssl=self.__sslcontext) as response:
+            self.__logger.debug("Reponse creation vhost %s : %s" % (idmg, response))
+            response.raise_for_status()
+
+        await self.ajouter_exchange(Constantes.SECURITE_SECURE)
+        await self.ajouter_exchange(Constantes.SECURITE_PROTEGE)
+        await self.ajouter_exchange(Constantes.SECURITE_PRIVE)
+        await self.ajouter_exchange(Constantes.SECURITE_PUBLIC)
 
         self.__entretien_initial_complete = True
 
     async def ajouter_compte(self):
         raise NotImplementedError('todo')
+
+    async def ajouter_exchange(self, niveau_securite: str):
+        idmg = self.__etat_instance.idmg
+
+        params_exchange = {
+            "type": "topic",
+            "auto_delete": False,
+            "durable": True,
+            "internal": False
+        }
+
+        path_exchange = path.join(self.__url_mq, 'api/exchanges', idmg, niveau_securite)
+
+        async with self.__session.put(path_exchange, ssl=self.__sslcontext, json=params_exchange) as response:
+            self.__logger.debug("Reponse creation vhost %s : %s" % (idmg, response))
+            response.raise_for_status()
 
