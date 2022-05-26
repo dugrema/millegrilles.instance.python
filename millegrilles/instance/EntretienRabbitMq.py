@@ -36,7 +36,8 @@ class EntretienRabbitMq:
 
             if self.__session is not None:
                 try:
-                    async with self.__session.get('https://127.0.0.1:8443/api/health/checks/alarms', ssl=self.__sslcontext) as reponse:
+                    path_alarm = path.join(self.__url_mq, 'api/health/checks/alarms')
+                    async with self.__session.get(path_alarm, ssl=self.__sslcontext) as reponse:
                         pass
                     self.__logger.debug("Reponse MQ : %s" % reponse)
 
@@ -76,16 +77,19 @@ class EntretienRabbitMq:
                 'password': password_mq,
             }
 
-            async with session.put('https://127.0.0.1:8443/api/users/admin', json=data, ssl=self.__sslcontext) as response:
+            path_admin = path.join(self.__url_mq, 'api/users/admin')
+            async with session.put(path_admin, json=data, ssl=self.__sslcontext) as response:
                 self.__logger.debug("Reponse creation admin : %s" % response)
 
     async def entretien_initial(self):
         # S'assurer que guest est supprime
-        async with self.__session.delete('https://127.0.0.1:8443/api/users/guest', ssl=self.__sslcontext) as response:
+        path_guest = path.join(self.__url_mq, 'api/users/guest')
+        async with self.__session.delete(path_guest, ssl=self.__sslcontext) as response:
             self.__logger.debug("Reponse suppression guest : %s" % response)
 
         idmg = self.__etat_instance.idmg
-        async with self.__session.put('https://127.0.0.1:8443/api/vhosts/%s' % idmg, ssl=self.__sslcontext) as response:
+        path_vhosts = path.join(self.__url_mq, 'api/vhosts', idmg)
+        async with self.__session.put(path_vhosts, ssl=self.__sslcontext) as response:
             self.__logger.debug("Reponse creation vhost %s : %s" % (idmg, response))
             response.raise_for_status()
 
