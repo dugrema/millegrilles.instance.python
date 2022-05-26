@@ -191,6 +191,7 @@ class ApplicationInstance:
         # Execution de la loop avec toutes les tasks
         await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
 
+
 async def demarrer():
     logger = logging.getLogger(__name__)
 

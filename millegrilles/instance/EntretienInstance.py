@@ -53,8 +53,13 @@ class InstanceProtegee:
 
         self.__tache_certificats = TacheEntretien(datetime.timedelta(minutes=30), self.entretien_certificats)
         self.__tache_passwords = TacheEntretien(datetime.timedelta(minutes=360), self.entretien_passwords)
+        self.__tache_services = TacheEntretien(datetime.timedelta(minutes=60), self.entretien_services)
 
         self.__client_session = aiohttp.ClientSession()
+
+        self.__event_entretien: Optional[Event] = None
+        self.__event_setup_initial_certificats: Optional[Event] = None
+        self.__event_setup_initial_passwords: Optional[Event] = None
 
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
         self.__logger.info("Setup InstanceProtegee")
@@ -62,8 +67,28 @@ class InstanceProtegee:
         self.__etat_instance = etat_instance
         self.__etat_docker = etat_docker
 
+        self.__event_entretien = Event()
+        self.__event_setup_initial_certificats = Event()
+        self.__event_setup_initial_passwords = Event()
+
+        # Ajouter listener de changement de configuration. Demarre l'execution des taches d'entretien/installation.
+        self.__etat_instance.ajouter_listener(self.declencher_run)
+
     async def fermer(self):
         self.__event_stop.set()
+
+    async def declencher_run(self, etat_instance: Optional[EtatInstance]):
+        """
+        Declence immediatement l'execution de l'entretien. Utile lors de changement de configuration.
+        :return:
+        """
+        self.__event_setup_initial_certificats.clear()
+        self.__event_setup_initial_passwords.clear()
+        self.__tache_certificats.reset()
+        self.__tache_passwords.reset()
+
+        # Declencher l'entretien
+        self.__event_entretien.set()
 
     async def run(self):
         self.__logger.info("run()")
@@ -72,10 +97,12 @@ class InstanceProtegee:
 
             await self.__tache_certificats.run()
             await self.__tache_passwords.run()
+            await self.__tache_services.run()
 
             try:
                 self.__logger.debug("run() fin execution cycle")
-                await asyncio.wait_for(self.__event_stop.wait(), 30)
+                await asyncio.wait_for(self.__event_entretien.wait(), 30)
+                self.__event_entretien.clear()
             except TimeoutError:
                 pass
         self.__logger.info("Fin run()")
@@ -119,12 +146,22 @@ class InstanceProtegee:
         await generer_certificats_modules(self.__client_session, self.__etat_instance, self.__etat_docker,
                                           configuration)
         self.__logger.debug("entretien_certificats fin")
+        self.__event_setup_initial_certificats.set()
 
     async def entretien_passwords(self):
         self.__logger.debug("entretien_passwords debut")
         liste_noms_passwords = await self.get_configuration_passwords()
         await generer_passwords(self.__etat_instance, self.__etat_docker, liste_noms_passwords)
         self.__logger.debug("entretien_passwords fin")
+        self.__event_setup_initial_passwords.set()
+
+    async def entretien_services(self):
+        self.__logger.debug("entretien_services attente certificats et passwords")
+        await asyncio.wait_for(self.__event_setup_initial_certificats.wait(), 50)
+        await asyncio.wait_for(self.__event_setup_initial_passwords.wait(), 10)
+        self.__logger.debug("entretien_services debut")
+
+        self.__logger.debug("entretien_services fin")
 
 
 class TacheEntretien:
@@ -134,6 +171,13 @@ class TacheEntretien:
         self.__intervalle = intervalle
         self.__callback = callback
         self.__dernier_entretien: Optional[datetime.datetime] = None
+
+    def reset(self):
+        """
+        Force une execution a la prochaine occasion
+        :return:
+        """
+        self.__dernier_entretien = None
 
     async def run(self):
         if self.__dernier_entretien is None:
