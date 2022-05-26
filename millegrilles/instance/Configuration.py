@@ -18,6 +18,7 @@ CONST_INSTANCE_PARAMS = [
     Constantes.PARAM_INSTANCE_CERTISSUER_URL,
     Constantes.PARAM_INSTANCE_ID_PATH,
     Constantes.PARAM_INSTANCE_SECURITE_PATH,
+    Constantes.PARAM_INSTANCE_PASSWD_MQ_PATH,
 ]
 
 CONST_WEB_PARAMS = [
@@ -42,6 +43,7 @@ class ConfigurationInstance:
         self.instance_idmg_path = '/var/opt/millegrilles/configuration/idmg.txt'
         self.instance_ca_pem_path = '/var/opt/millegrilles/configuration/pki.millegrille.cert'
         self.instance_securite_path = '/var/opt/millegrilles/configuration/securite.txt'
+        self.instance_password_mq_path = '/var/opt/millegrilles/secrets/passwd.mqadmin.txt'
 
         self.docker_actif = False
 
@@ -83,6 +85,7 @@ class ConfigurationInstance:
         self.instance_id_path = dict_params.get(Constantes.PARAM_INSTANCE_ID_PATH) or self.instance_id_path
         self.instance_idmg_path = dict_params.get(Constantes.PARAM_INSTANCE_IDMG_PATH) or self.instance_idmg_path
         self.instance_securite_path = dict_params.get(Constantes.PARAM_INSTANCE_SECURITE_PATH) or self.instance_securite_path
+        self.instance_password_mq_path = dict_params.get(Constantes.PARAM_INSTANCE_PASSWD_MQ_PATH) or self.instance_password_mq_path
 
 
 class ConfigurationWeb:

@@ -166,7 +166,10 @@ class EtatDockerInstanceSync:
         nom_services_a_installer = set(services.keys())
         for s in liste_services_docker:
             name = s.name
-            nom_services_a_installer.remove(name)
+            try:
+                nom_services_a_installer.remove(name)
+            except KeyError:
+                pass
 
         if len(nom_services_a_installer) > 0:
             self.__logger.debug("Services manquants dans docker : %s" % nom_services_a_installer)

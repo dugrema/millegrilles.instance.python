@@ -23,6 +23,7 @@ class EtatInstance:
         self.__certificat_millegrille: Optional[EnveloppeCertificat] = None
         self.__clecertificat: Optional[CleCertificat] = None
         self.__nom_domaine: Optional[str] = None
+        self.__password_mq: Optional[str] = None
 
         # Liste de listeners qui sont appeles sur changement de configuration
         self.__config_listeners = list()

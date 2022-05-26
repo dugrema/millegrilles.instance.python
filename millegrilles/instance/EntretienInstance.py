@@ -18,6 +18,7 @@ from millegrilles.instance.EtatInstance import EtatInstance
 from millegrilles.instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles.messages.CleCertificat import CleCertificat
 from millegrilles.certificats.Generes import CleCsrGenere
+from millegrilles.instance.EntretienRabbitMq import EntretienRabbitMq
 
 logger = logging.getLogger(__name__)
 
@@ -55,12 +56,14 @@ class InstanceProtegee:
         self.__tache_certificats = TacheEntretien(datetime.timedelta(minutes=30), self.entretien_certificats)
         self.__tache_passwords = TacheEntretien(datetime.timedelta(minutes=360), self.entretien_passwords)
         self.__tache_services = TacheEntretien(datetime.timedelta(seconds=30), self.entretien_services)
+        self.__tache_mq = TacheEntretien(datetime.timedelta(seconds=30), self.entretien_mq)
 
         self.__client_session = aiohttp.ClientSession()
 
         self.__event_entretien: Optional[Event] = None
         self.__event_setup_initial_certificats: Optional[Event] = None
         self.__event_setup_initial_passwords: Optional[Event] = None
+        self.__entretien_rabbitmq: Optional[EntretienRabbitMq] = None
 
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
         self.__logger.info("Setup InstanceProtegee")
@@ -71,6 +74,8 @@ class InstanceProtegee:
         self.__event_entretien = Event()
         self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
+
+        self.__entretien_rabbitmq = EntretienRabbitMq(self.__etat_instance)
 
         # Ajouter listener de changement de configuration. Demarre l'execution des taches d'entretien/installation.
         self.__etat_instance.ajouter_listener(self.declencher_run)
@@ -100,6 +105,7 @@ class InstanceProtegee:
             await self.__tache_certificats.run()
             await self.__tache_passwords.run()
             await self.__tache_services.run()
+            await self.__tache_mq.run()
 
             try:
                 self.__logger.debug("run() fin execution cycle")
@@ -186,6 +192,10 @@ class InstanceProtegee:
         services = await self.get_configuration_services()
         await self.__etat_docker.entretien_services(services)
         self.__logger.debug("entretien_services fin")
+
+    async def entretien_mq(self):
+        if self.__entretien_rabbitmq:
+            await self.__entretien_rabbitmq.entretien()
 
 
 class TacheEntretien:
