@@ -244,6 +244,7 @@ async def generer_certificats_modules(client_session: ClientSession, etat_instan
         nom_cle = 'pki.%s.cle' % nom_module
         path_certificat = path.join(path_secrets, nom_certificat)
         path_cle = path.join(path_secrets, nom_cle)
+        combiner_keycert = value.get('combiner_keycert') or False
 
         sauvegarder = False
         try:
@@ -263,8 +264,12 @@ async def generer_certificats_modules(client_session: ClientSession, etat_instan
 
         # Verifier si le certificat et la cle sont stocke dans docker
         if sauvegarder is True:
+
+            cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
             with open(path_cle, 'wb') as fichier:
                 fichier.write(clecertificat.private_key_bytes())
+                if combiner_keycert is True:
+                    fichier.write(cert_str.encode('utf-8'))
             with open(path_certificat, 'w') as fichier:
                 cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
                 fichier.write(cert_str)

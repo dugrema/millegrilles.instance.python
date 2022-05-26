@@ -1,7 +1,8 @@
 {
   "name": "mongo",
   "hostname": "mongo",
-  "certificat_compte": "pki.mongo.cert",
+  "certificat": {"roles": ["mongo"], "dns": {"localhost": true, "hostnames": ["mongo"], "domain": true}, "combiner_keycert": true},
+  "passwords": ["mongo"],
   "args": [
     "mongod",
     "--tlsMode", "requireTLS",
@@ -9,7 +10,7 @@
     "--tlsCAFile", "/run/secrets/millegrille.cert.pem"
   ],
   "env": [
-    "MONGO_INITDB_ROOT_USERNAME=${MONGO_INITDB_ROOT_USERNAME}",
+    "MONGO_INITDB_ROOT_USERNAME=admin",
     "MONGO_INITDB_ROOT_PASSWORD_FILE=/run/secrets/mongo.root.password"
   ],
   "mounts": [
@@ -30,25 +31,20 @@
   ],
   "secrets": [
     {
-      "match_config": true,
-      "name": "pki.mongo.key",
+      "key": true,
       "filename": "mongo.key_cert.pem"
     },
     {
-      "name": "passwd.mongo",
+      "password": true,
       "filename": "mongo.root.password"
     }
   ],
-  "container_labels": {
-    "ipv6.mapper.network": "mg_ipv6"
-  },
   "networks": [{
     "target": "millegrille_net",
     "aliases": ["mongo"]
   }],
   "labels": {
-    "millegrille": "${IDMG}",
-    "combiner_keycert": "true"
+    "millegrille": "${IDMG}"
   },
   "resources": {
     "cpu_limit": 2000000000,
