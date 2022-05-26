@@ -51,6 +51,7 @@ class InstanceProtegee:
         self.__etat_instance: Optional[EtatInstance] = None
         self.__etat_docker: Optional[EtatDockerInstanceSync] = None
 
+        self.__tache_initialisation = TacheEntretien(datetime.timedelta(days=1), self.docker_initialisation)
         self.__tache_certificats = TacheEntretien(datetime.timedelta(minutes=30), self.entretien_certificats)
         self.__tache_passwords = TacheEntretien(datetime.timedelta(minutes=360), self.entretien_passwords)
         self.__tache_services = TacheEntretien(datetime.timedelta(seconds=30), self.entretien_services)
@@ -95,6 +96,7 @@ class InstanceProtegee:
         while self.__event_stop.is_set() is False:
             self.__logger.debug("run() debut execution cycle")
 
+            await self.__tache_initialisation.run()
             await self.__tache_certificats.run()
             await self.__tache_passwords.run()
             await self.__tache_services.run()
@@ -155,6 +157,11 @@ class InstanceProtegee:
                 pass
 
         return liste_noms_passwords
+
+    async def docker_initialisation(self):
+        self.__logger.debug("docker_initialisation debut")
+        await self.__etat_docker.initialiser_docker()
+        self.__logger.debug("docker_initialisation fin")
 
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")

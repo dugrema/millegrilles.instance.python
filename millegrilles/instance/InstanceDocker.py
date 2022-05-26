@@ -5,9 +5,7 @@ from asyncio import Event, TimeoutError
 from docker.errors import APIError, NotFound
 
 from millegrilles.docker.DockerHandler import DockerHandler
-from millegrilles.docker.DockerCommandes import CommandeAjouterConfiguration, CommandeGetConfiguration, \
-    CommandeAjouterSecret, CommandeGetConfigurationsDatees, CommandeListerServices, CommandeListerConfigs, \
-    CommandeListerSecrets
+from millegrilles.docker import DockerCommandes
 
 from millegrilles.instance import Constantes
 from millegrilles.instance.EtatInstance import EtatInstance
@@ -63,7 +61,7 @@ class EtatDockerInstanceSync:
             await self.sauvegarder_config(Constantes.DOCKER_CONFIG_PKI_MILLEGRILLE, certificat_millegrille.certificat_pem)
 
     async def sauvegarder_config(self, label: str, valeur: str, comparer=False):
-        commande = CommandeGetConfiguration(label, aio=True)
+        commande = DockerCommandes.CommandeGetConfiguration(label, aio=True)
         self.__docker_handler.ajouter_commande(commande)
         try:
             valeur_docker = await commande.get_data()
@@ -72,7 +70,7 @@ class EtatDockerInstanceSync:
                 raise Exception("Erreur configuration, %s mismatch" % label)
         except NotFound:
             self.__logger.debug("Docker instance NotFound")
-            commande_ajouter = CommandeAjouterConfiguration(label, valeur, aio=True)
+            commande_ajouter = DockerCommandes.CommandeAjouterConfiguration(label, valeur, aio=True)
             self.__docker_handler.ajouter_commande(commande_ajouter)
             await commande_ajouter.attendre()
 
@@ -96,7 +94,7 @@ class EtatDockerInstanceSync:
             'date': date_debut,
         }
 
-        commande_ajouter_cert = CommandeAjouterConfiguration(label_certificat, pem_certificat, labels=labels, aio=True)
+        commande_ajouter_cert = DockerCommandes.CommandeAjouterConfiguration(label_certificat, pem_certificat, labels=labels, aio=True)
         self.__docker_handler.ajouter_commande(commande_ajouter_cert)
         ajoute = False
         try:
@@ -108,7 +106,7 @@ class EtatDockerInstanceSync:
             else:
                 raise apie
 
-        commande_ajouter_cle = CommandeAjouterSecret(label_cle, pem_cle, labels=labels, aio=True)
+        commande_ajouter_cle = DockerCommandes.CommandeAjouterSecret(label_cle, pem_cle, labels=labels, aio=True)
         self.__docker_handler.ajouter_commande(commande_ajouter_cle)
         try:
             await commande_ajouter_cle.attendre()
@@ -123,7 +121,7 @@ class EtatDockerInstanceSync:
             self.__logger.debug("Nouveau certificat, reconfigurer module %s" % nom_module)
 
     async def get_configurations_datees(self):
-        commande = CommandeGetConfigurationsDatees(aio=True)
+        commande = DockerCommandes.CommandeGetConfigurationsDatees(aio=True)
         self.__docker_handler.ajouter_commande(commande)
         return await commande.get_resultat()
 
@@ -136,7 +134,7 @@ class EtatDockerInstanceSync:
             'label_prefix': prefixe,
             'date': date,
         }
-        commande_ajouter_cle = CommandeAjouterSecret(label_password, value, labels=labels, aio=True)
+        commande_ajouter_cle = DockerCommandes.CommandeAjouterSecret(label_password, value, labels=labels, aio=True)
 
         self.__docker_handler.ajouter_commande(commande_ajouter_cle)
         ajoute = False
@@ -152,8 +150,13 @@ class EtatDockerInstanceSync:
         if ajoute:
             self.__logger.debug("Nouveau password, reconfigurer module %s" % nom_module)
 
+    async def initialiser_docker(self):
+        commande_initialiser_network = DockerCommandes.CommandeCreerNetworkOverlay('millegrille_net', aio=True)
+        self.__docker_handler.ajouter_commande(commande_initialiser_network)
+        await commande_initialiser_network.attendre()
+
     async def entretien_services(self, services: dict):
-        commande_liste_services = CommandeListerServices(aio=True)
+        commande_liste_services = DockerCommandes.CommandeListerServices(aio=True)
         self.__docker_handler.ajouter_commande(commande_liste_services)
         liste_services_docker = await commande_liste_services.get_liste()
 
@@ -167,15 +170,15 @@ class EtatDockerInstanceSync:
             self.__logger.debug("Services manquants dans docker : %s" % nom_services_a_installer)
 
             # Charger configurations
-            action_configurations = CommandeListerConfigs(aio=True)
+            action_configurations = DockerCommandes.CommandeListerConfigs(aio=True)
             self.__docker_handler.ajouter_commande(action_configurations)
             docker_configs = await action_configurations.get_resultat()
 
-            action_secrets = CommandeListerSecrets(aio=True)
+            action_secrets = DockerCommandes.CommandeListerSecrets(aio=True)
             self.__docker_handler.ajouter_commande(action_secrets)
             docker_secrets = await action_secrets.get_resultat()
 
-            action_datees = CommandeGetConfigurationsDatees(aio=True)
+            action_datees = DockerCommandes.CommandeGetConfigurationsDatees(aio=True)
             self.__docker_handler.ajouter_commande(action_datees)
             config_datees = await action_datees.get_resultat()
 
@@ -205,5 +208,30 @@ class EtatDockerInstanceSync:
         parser = ConfigurationService(configuration, params)
         parser.parse()
         config_parsed = parser.generer_docker_config()
+
+        # Creer node-labels pour les constraints
+        constraints = parser.constraints
+        list_labels = list()
+        try:
+            for constraint in constraints:
+                nom_constraint = constraint.split('=')[0]
+                nom_constraint = nom_constraint.replace('node.labels.', '')
+                list_labels.append(nom_constraint)
+            commande_ajouter_labels = DockerCommandes.CommandeEnsureNodeLabels(list_labels, aio=True)
+            self.__docker_handler.ajouter_commande(commande_ajouter_labels)
+            await commande_ajouter_labels.attendre()
+        except TypeError:
+            pass  # Aucune constraint
+
+        # S'assurer d'avoir l'image
+        image = parser.image
+        commande_image = DockerCommandes.CommandeGetImage(image, pull=True, aio=True)
+        self.__docker_handler.ajouter_commande(commande_image)
+        image_info = await commande_image.get_resultat()
+
+        image_tag = image_info['tags'][0]
+        commande_creer_service = DockerCommandes.CommandeCreerService(image_tag, config_parsed, aio=True)
+        self.__docker_handler.ajouter_commande(commande_creer_service)
+        resultat = await commande_creer_service.get_resultat()
 
         pass
