@@ -7,7 +7,8 @@ from threading import Event
 from millegrilles.docker.DockerHandler import DockerHandler, DockerState
 from millegrilles.docker.DockerCommandes import CommandeListerServices, CommandeListerContainers, \
     CommandeAjouterConfiguration, CommandeSupprimerConfiguration, CommandeGetConfiguration, \
-    CommandeAjouterSecret, CommandeSupprimerSecret, CommandeGetConfigurationsDatees
+    CommandeAjouterSecret, CommandeSupprimerSecret, CommandeGetConfigurationsDatees, CommandeListerConfigs, \
+    CommandeListerSecrets
 
 logger = logging.getLogger(__name__)
 
@@ -92,10 +93,20 @@ async def test_config():
     handler = DockerHandler(state)
     handler.start()
 
-    action_services = CommandeGetConfigurationsDatees(aio=True)
-    handler.ajouter_commande(action_services)
-    resultat = await action_services.get_resultat()
-    logger.debug("Resultat services async : %s" % resultat)
+    action_configurations = CommandeListerConfigs(aio=True)
+    handler.ajouter_commande(action_configurations)
+    resultat = await action_configurations.get_resultat()
+    logger.debug("Resultat configurations (id only) : %s" % resultat)
+
+    action_secrets = CommandeListerSecrets(aio=True)
+    handler.ajouter_commande(action_secrets)
+    resultat = await action_secrets.get_resultat()
+    logger.debug("Resultat secrets (id only) : %s" % resultat)
+
+    action_datees = CommandeGetConfigurationsDatees(aio=True)
+    handler.ajouter_commande(action_datees)
+    resultat = await action_datees.get_resultat()
+    logger.debug("Resultat configurations datees : %s" % resultat)
 
     try:
         await asyncio.wait_for(wait_event.wait(), 5)
