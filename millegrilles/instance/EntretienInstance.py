@@ -96,7 +96,8 @@ class InstanceProtegee:
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")
         configuration = await self.get_configuration_certificats()
-        await generer_certificats_modules(self.__client_session, self.__etat_instance, self.__etat_docker, configuration)
+        await generer_certificats_modules(self.__client_session, self.__etat_instance, self.__etat_docker,
+                                          configuration)
         self.__logger.debug("entretien_certificats fin")
 
 
@@ -138,8 +139,8 @@ async def charger_configuration_docker(path_configuration: str, fichiers: list) 
     return configuration
 
 
-async def generer_certificats_modules(client_session: ClientSession, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync,
-                                      configuration: dict):
+async def generer_certificats_modules(client_session: ClientSession, etat_instance: EtatInstance,
+                                      etat_docker: EtatDockerInstanceSync, configuration: dict):
     # S'assurer que tous les certificats sont presents et courants dans le repertoire secrets
     path_secrets = etat_instance.configuration.path_secrets
     for nom_module, value in configuration.items():
@@ -173,6 +174,8 @@ async def generer_certificats_modules(client_session: ClientSession, etat_instan
             with open(path_certificat, 'w') as fichier:
                 cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
                 fichier.write(cert_str)
+
+        await etat_docker.assurer_clecertificat(nom_module, clecertificat)
 
 
 async def generer_nouveau_certificat(client_session: ClientSession, etat_instance: EtatInstance, nom_module: str,

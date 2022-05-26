@@ -5,9 +5,10 @@ from asyncio import Event, TimeoutError
 from docker.errors import NotFound
 
 from millegrilles.docker.DockerHandler import DockerHandler
-from millegrilles.docker.DockerCommandes import CommandeAjouterConfiguration, CommandeGetConfiguration
+from millegrilles.docker.DockerCommandes import CommandeAjouterConfiguration, CommandeGetConfiguration, CommandeAjouterSecret
 from millegrilles.instance import Constantes
 from millegrilles.instance.EtatInstance import EtatInstance
+from millegrilles.messages.CleCertificat import CleCertificat
 
 
 class EtatDockerInstanceSync:
@@ -70,3 +71,37 @@ class EtatDockerInstanceSync:
             commande_ajouter = CommandeAjouterConfiguration(label, valeur, aio=True)
             self.__docker_handler.ajouter_commande(commande_ajouter)
             await commande_ajouter.attendre()
+
+    async def assurer_clecertificat(self, nom_module: str, clecertificat: CleCertificat):
+        """
+        Commande pour s'assurer qu'un certificat et une cle sont insere dans docker.
+        :param label:
+        :param clecert:
+        :return:
+        """
+        enveloppe = clecertificat.enveloppe
+        date_debut = enveloppe.not_valid_before.strftime('%Y%m%d%H%M%S')
+        label_certificat = 'pki.%s.cert.%s' % (nom_module, date_debut)
+        label_cle = 'pki.%s.key.%s' % (nom_module, date_debut)
+        pem_certificat = '\n'.join(enveloppe.chaine_pem())
+        pem_cle = clecertificat.private_key_bytes().decode('utf-8')
+
+        commande_ajouter_cert = CommandeAjouterConfiguration(label_certificat, pem_certificat, aio=True)
+        self.__docker_handler.ajouter_commande(commande_ajouter_cert)
+        ajoute = False
+        try:
+            await commande_ajouter_cert.attendre()
+            ajoute = True
+        except Exception as e:
+            self.__logger.debug("Cle existe deja %s" % label_certificat)
+
+        commande_ajouter_cle = CommandeAjouterSecret(label_cle, pem_cle, aio=True)
+        self.__docker_handler.ajouter_commande(commande_ajouter_cle)
+        try:
+            await commande_ajouter_cle.attendre()
+            ajoute = True
+        except Exception as e:
+            self.__logger.debug("Cle existe deja %s" % label_certificat)
+
+        if ajoute:
+            self.__logger.debug("Nouveau certificat, reconfigurer module %s" % nom_module)

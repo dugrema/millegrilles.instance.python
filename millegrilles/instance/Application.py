@@ -100,12 +100,13 @@ class ApplicationInstance:
 
         self.preparer_folder_configuration()
         self.__etat_instance.ajouter_listener(self.changer_etat_execution)
-        await self.__etat_instance.reload_configuration()
 
         self.__web_server = WebServer(self.__etat_instance)
         self.__web_server.setup()
 
-        self.demarrer_client_docker()  # Demarre si docker est actif
+        await self.demarrer_client_docker()  # Demarre si docker est actif
+
+        await self.__etat_instance.reload_configuration()
 
     def preparer_folder_configuration(self):
         makedirs(self.__configuration.path_configuration, 0o750, exist_ok=True)
@@ -117,7 +118,7 @@ class ApplicationInstance:
             with open(path_instance_txt, 'w') as fichier:
                 fichier.write(uuid_instance)
 
-    def demarrer_client_docker(self):
+    async def demarrer_client_docker(self):
         if self.__docker_handler is None:
             docker_state = DockerState()
             if docker_state.docker_actif() is True:
