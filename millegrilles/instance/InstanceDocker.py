@@ -2,7 +2,7 @@ import asyncio
 import logging
 
 from asyncio import Event, TimeoutError
-from docker.errors import NotFound
+from docker.errors import APIError, NotFound
 
 from millegrilles.docker.DockerHandler import DockerHandler
 from millegrilles.docker.DockerCommandes import CommandeAjouterConfiguration, CommandeGetConfiguration, CommandeAjouterSecret
@@ -92,16 +92,22 @@ class EtatDockerInstanceSync:
         try:
             await commande_ajouter_cert.attendre()
             ajoute = True
-        except Exception as e:
-            self.__logger.debug("Cle existe deja %s" % label_certificat)
+        except APIError as apie:
+            if apie.status_code == 409:
+                pass  # Config existe deja
+            else:
+                raise apie
 
         commande_ajouter_cle = CommandeAjouterSecret(label_cle, pem_cle, aio=True)
         self.__docker_handler.ajouter_commande(commande_ajouter_cle)
         try:
             await commande_ajouter_cle.attendre()
             ajoute = True
-        except Exception as e:
-            self.__logger.debug("Cle existe deja %s" % label_certificat)
+        except APIError as apie:
+            if apie.status_code == 409:
+                pass  # Secret existe deja
+            else:
+                raise apie
 
         if ajoute:
             self.__logger.debug("Nouveau certificat, reconfigurer module %s" % nom_module)
