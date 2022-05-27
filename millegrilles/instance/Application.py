@@ -99,6 +99,8 @@ class ApplicationInstance:
         makedirs(self.__configuration.path_secrets_partages, 0o710, exist_ok=True)
 
         self.preparer_folder_configuration()
+        await self.__etat_instance.reload_configuration()  # Genere les certificats sur premier acces
+
         self.__etat_instance.ajouter_listener(self.changer_etat_execution)
 
         self.__web_server = WebServer(self.__etat_instance)
