@@ -36,7 +36,7 @@ class ConfigurationInstance:
         self.path_secrets = '/var/opt/millegrilles/secrets'
         self.path_secrets_partages = '/var/opt/millegrilles/secrets_partages'
         self.path_nginx_configuration = '/var/opt/millegrilles/nginx/modules'
-        self.certissuer_url = 'http://localhost:8445'
+        self.certissuer_url = 'http://localhost:2080'
         self.instance_cert_pem_path = '/var/opt/millegrilles/secrets/pki.instance.cert'
         self.instance_key_pem_path = '/var/opt/millegrilles/secrets/pki.instance.key'
         self.instance_id_path = '/var/opt/millegrilles/configuration/instance_id.txt'

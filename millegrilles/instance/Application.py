@@ -154,21 +154,24 @@ class ApplicationInstance:
         Entretien du systeme. Invoque a intervalle regulier.
         :return:
         """
-        self.__logger.debug("Debut cycle d'entretien")
+        self.__logger.debug("Debut coroutine d'entretien")
 
         while self._stop_event.is_set() is False:
+            self.__logger.debug("Debut cycle d'entretien")
+
             # Entretien
             if self.__module_entretien is not None:
                 # Execution du module d'entretien de l'instance
                 await self.__module_entretien.run()
             try:
                 # Attendre setup d'un module d'entretien
+                self.__logger.debug("Fin cycle d'entretien")
                 await self.__entretien_event.wait()
                 self.__entretien_event.clear()
             except TimeoutError:
                 pass
 
-        self.__logger.debug("Fin cycle d'entretien")
+        self.__logger.debug("Fin coroutine d'entretien")
 
     def fermer(self):
         if self.__loop is not None:
