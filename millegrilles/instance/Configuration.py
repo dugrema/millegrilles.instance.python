@@ -95,7 +95,7 @@ class ConfigurationWeb:
         self.ca_pem_path = '/var/opt/millegrilles/secrets/pki.millegrille.cert'
         self.web_cert_pem_path = '/var/opt/millegrilles/secrets/pki.web.cert'
         self.web_key_pem_path = '/var/opt/millegrilles/secrets/pki.web.key'
-        self.port = '8443'
+        self.port = 8443
 
     def get_env(self) -> dict:
         """

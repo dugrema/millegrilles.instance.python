@@ -5,12 +5,24 @@
   "passwords": ["redis"],
   "mounts": [{"source": "mg-redis", "target":  "/data", "type": "volume"}],
   "configs": [
-    {"certificate": true, "filename": "/run/secrets/cert.pem"},
+    {
+      "name": "pki.redis",
+      "current": "cert",
+      "filename": "/run/secrets/cert.pem"
+    },
     {"name": "pki.millegrille", "filename": "/run/secrets/millegrille.cert.pem"}
   ],
   "secrets": [
-    {"key": true, "filename": "key.pem"},
-    {"password": true, "filename": "passwd.redis.txt"}
+    {
+      "name": "pki.redis",
+      "current": "key",
+      "filename": "key.pem"
+    },
+    {
+      "name": "passwd.redis",
+      "current": "password",
+      "filename": "passwd.redis.txt"
+    }
   ],
   "constraints": ["node.labels.millegrilles.redis == true"],
   "networks": [{"target": "millegrille_net", "aliases": ["redis"]}],
@@ -18,10 +30,6 @@
   "resources": {
     "cpu_limit": 750000000,
     "mem_limit": 100000000
-  },
-  "restart_policy": {
-    "condition": "any",
-    "delay": 30000000000
   },
   "mode": {
     "mode": "replicated",

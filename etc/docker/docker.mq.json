@@ -17,21 +17,25 @@
       "filename": "/opt/rabbitmq/dist/certs/calist.cert.pem"
     },
     {
-      "certificate": true,
+      "name": "pki.mq",
+      "current": "cert",
       "filename": "/opt/rabbitmq/dist/certs/cert.pem"
     },
     {
-      "certificate": true,
+      "name": "pki.mq",
+      "current": "cert",
       "filename": "/opt/rabbitmq/dist/certs/webcert.pem"
     }
   ],
   "secrets": [
     {
-      "key": true,
+      "name": "pki.mq",
+      "current": "key",
       "filename": "key.pem"
     },
     {
-      "key": true,
+      "name": "pki.mq",
+      "current": "key",
       "filename": "webkey.pem"
     }
   ],
