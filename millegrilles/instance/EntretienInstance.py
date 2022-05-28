@@ -7,7 +7,7 @@ import json
 import logging
 import secrets
 
-from os import path, stat
+from os import path, stat, makedirs, listdir
 from typing import Optional
 
 from aiohttp import web, ClientSession
@@ -55,6 +55,7 @@ class InstanceProtegee:
         self.__etat_docker: Optional[EtatDockerInstanceSync] = None
 
         self.__taches_entretien = [
+            TacheEntretien(datetime.timedelta(seconds=30), self.entretien_catalogues),
             TacheEntretien(datetime.timedelta(days=1), self.docker_initialisation),
             TacheEntretien(datetime.timedelta(minutes=30), self.entretien_certificats),
             TacheEntretien(datetime.timedelta(minutes=360), self.entretien_passwords),
@@ -70,6 +71,8 @@ class InstanceProtegee:
         self.__event_setup_initial_passwords: Optional[Event] = None
         self.__entretien_nginx: Optional[EntretienNginx] = None
         self.__entretien_rabbitmq: Optional[EntretienRabbitMq] = None
+
+        self.__setup_catalogues_complete = False
 
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
         self.__logger.info("Setup InstanceProtegee")
@@ -89,6 +92,26 @@ class InstanceProtegee:
 
     async def fermer(self):
         self.__event_stop.set()
+
+    async def entretien_catalogues(self):
+        if self.__setup_catalogues_complete is False:
+            self.setup_catalogues()
+
+    def setup_catalogues(self):
+        path_configuration = self.__etat_instance.configuration.path_configuration
+        path_docker_catalogues = path.join(path_configuration, 'docker')
+        makedirs(path_docker_catalogues, 0o750, exist_ok=True)
+
+        repertoire_src_catalogues = path.abspath('../../etc/docker')
+        for fichier in listdir(repertoire_src_catalogues):
+            path_fichier_src = path.join(repertoire_src_catalogues, fichier)
+            path_fichier_dest = path.join(path_docker_catalogues, fichier)
+            if path.exists(path_fichier_dest) is False:
+                with open(path_fichier_src, 'r') as fichier_src:
+                    with open(path_fichier_dest, 'w') as fichier_dest:
+                        fichier_dest.write(fichier_src.read())
+
+        self.__setup_catalogues_complete = True
 
     async def declencher_run(self, etat_instance: Optional[EtatInstance]):
         """
