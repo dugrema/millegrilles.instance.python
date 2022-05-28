@@ -1,9 +1,9 @@
 
-from millegrilles.certificats.CertificatsConfiguration import signer_configuration
-from millegrilles.certificats.CertificatsInstance import signer_instance_protege
+from millegrilles_messages.certificats.CertificatsConfiguration import signer_configuration
+from millegrilles_messages.certificats.CertificatsInstance import signer_instance_protege
 from millegrilles.certissuer.Configuration import ConfigurationWeb
 from millegrilles.certissuer.EtatCertissuer import EtatCertissuer
-from millegrilles.messages import Constantes
+from millegrilles_messages.messages import Constantes
 
 
 class CertificatHandler:

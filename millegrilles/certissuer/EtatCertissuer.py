@@ -3,13 +3,13 @@ import logging
 from os import path, remove, chmod
 from typing import Optional
 
-from millegrilles.certificats.CertificatsMillegrille import generer_csr_intermediaire
-from millegrilles.certificats.Generes import CleCsrGenere
 from millegrilles.certissuer.Configuration import ConfigurationCertissuer
-from millegrilles.messages.EnveloppeCertificat import EnveloppeCertificat
-from millegrilles.messages.CleCertificat import CleCertificat
-from millegrilles.messages.ValidateurCertificats import ValidateurCertificatCache
-from millegrilles.messages.ValidateurMessage import ValidateurMessage
+from millegrilles_messages.certificats.CertificatsMillegrille import generer_csr_intermediaire
+from millegrilles_messages.certificats.Generes import CleCsrGenere
+from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
+from millegrilles_messages.messages.CleCertificat import CleCertificat
+from millegrilles_messages.messages.ValidateurCertificats import ValidateurCertificatCache
+from millegrilles_messages.messages.ValidateurMessage import ValidateurMessage
 
 
 class EtatCertissuer:

@@ -11,7 +11,7 @@ from os import path, makedirs
 from typing import Optional
 from uuid import uuid4
 
-from millegrilles.docker.DockerHandler import DockerState, DockerHandler
+from millegrilles_messages.docker.DockerHandler import DockerState, DockerHandler
 from millegrilles.instance.Configuration import ConfigurationInstance
 from millegrilles.instance.WebServer import WebServer
 from millegrilles.instance.EtatInstance import EtatInstance

@@ -4,7 +4,7 @@ import os
 from typing import Optional
 
 from millegrilles.instance import Constantes
-from millegrilles.messages import Constantes as ConstantesMessages
+from millegrilles_messages.messages import Constantes as ConstantesMessages
 
 CONST_INSTANCE_PARAMS = [
     Constantes.INSTANCE_CONFIG_PATH,

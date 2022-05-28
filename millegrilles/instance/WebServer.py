@@ -9,7 +9,7 @@ from os import path
 from ssl import SSLContext
 from typing import Optional
 
-from millegrilles.messages import Constantes
+from millegrilles_messages.messages import Constantes
 from millegrilles.instance.Configuration import ConfigurationWeb
 from millegrilles.instance.EtatInstance import EtatInstance
 from millegrilles.instance.InstallerInstance import installer_instance

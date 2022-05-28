@@ -2,8 +2,8 @@ import logging
 
 from os import path
 
-from millegrilles.certificats.CertificatsWeb import generer_self_signed_rsa
-from millegrilles.messages.CleCertificat import CleCertificat
+from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa
+from millegrilles_messages.messages.CleCertificat import CleCertificat
 
 logger = logging.getLogger(__name__)
 

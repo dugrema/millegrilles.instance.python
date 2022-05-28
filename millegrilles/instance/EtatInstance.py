@@ -1,14 +1,12 @@
 import logging
 
-from os import path
 from typing import Optional
 
 from millegrilles.instance.Certificats import preparer_certificats_web
 from millegrilles.instance.Configuration import ConfigurationInstance
-from millegrilles.messages import Constantes
-from millegrilles.messages.CleCertificat import CleCertificat
-from millegrilles.messages.EnveloppeCertificat import EnveloppeCertificat
-from millegrilles.messages.FormatteurMessages import SignateurTransactionSimple, FormatteurMessageMilleGrilles
+from millegrilles_messages.messages.CleCertificat import CleCertificat
+from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
+from millegrilles_messages.messages.FormatteurMessages import SignateurTransactionSimple, FormatteurMessageMilleGrilles
 
 
 class EtatInstance:

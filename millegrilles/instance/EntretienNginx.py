@@ -7,7 +7,7 @@ import ssl
 from aiohttp.client_exceptions import ClientConnectorError
 from os import path, makedirs, stat
 from typing import Optional
-from millegrilles.messages import Constantes
+from millegrilles_messages.messages import Constantes
 
 
 class EntretienNginx:

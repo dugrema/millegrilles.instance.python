@@ -13,12 +13,12 @@ from typing import Optional
 from aiohttp import web, ClientSession
 from asyncio import Event, TimeoutError
 
-from millegrilles.docker.Entretien import TacheEntretien
-from millegrilles.messages import Constantes
+from millegrilles_messages.docker.Entretien import TacheEntretien
+from millegrilles_messages.messages import Constantes
 from millegrilles.instance.EtatInstance import EtatInstance
 from millegrilles.instance.InstanceDocker import EtatDockerInstanceSync
-from millegrilles.messages.CleCertificat import CleCertificat
-from millegrilles.certificats.Generes import CleCsrGenere
+from millegrilles_messages.messages.CleCertificat import CleCertificat
+from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles.instance.EntretienNginx import EntretienNginx
 from millegrilles.instance.EntretienRabbitMq import EntretienRabbitMq
 
@@ -41,6 +41,7 @@ CONFIG_MODULES_PROTEGES = [
     'docker.redis.json',
     'docker.mq.json',
     'docker.mongo.json',
+    'docker.midcompte.json',
     'docker.core.json',
     # 'docker.coupdoeil.json',
 ]

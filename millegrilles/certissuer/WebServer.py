@@ -5,10 +5,9 @@ import logging
 from aiohttp import web
 from asyncio import Event
 from asyncio.exceptions import TimeoutError
-from os import path
 from typing import Optional
 
-from millegrilles.messages import Constantes
+from millegrilles_messages.messages import Constantes
 from millegrilles.certissuer.Configuration import ConfigurationWeb
 from millegrilles.certissuer.EtatCertissuer import EtatCertissuer
 from millegrilles.certissuer.CertificatHandler import CertificatHandler

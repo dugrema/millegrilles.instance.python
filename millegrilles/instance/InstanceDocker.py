@@ -6,13 +6,13 @@ from asyncio import Event, TimeoutError
 from docker.errors import APIError, NotFound
 from os import path
 
-from millegrilles.docker.DockerHandler import DockerHandler
-from millegrilles.docker import DockerCommandes
+from millegrilles_messages.docker.DockerHandler import DockerHandler
+from millegrilles_messages.docker import DockerCommandes
 
 from millegrilles.instance import Constantes
 from millegrilles.instance.EtatInstance import EtatInstance
-from millegrilles.messages.CleCertificat import CleCertificat
-from millegrilles.docker.ParseConfiguration import ConfigurationService
+from millegrilles_messages.messages.CleCertificat import CleCertificat
+from millegrilles_messages.docker.ParseConfiguration import ConfigurationService
 
 
 class EtatDockerInstanceSync:
