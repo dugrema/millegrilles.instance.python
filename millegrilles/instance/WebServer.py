@@ -9,6 +9,7 @@ from os import path
 from ssl import SSLContext
 from typing import Optional
 
+from millegrilles.messages import Constantes
 from millegrilles.instance.Configuration import ConfigurationWeb
 from millegrilles.instance.EtatInstance import EtatInstance
 from millegrilles.instance.InstallerInstance import installer_instance
@@ -24,6 +25,8 @@ class WebServer:
         self.__stop_event: Optional[Event] = None
         self.__configuration = ConfigurationWeb()
         self.__ssl_context: Optional[SSLContext] = None
+
+        self.__site_web_443 = None
 
     def setup(self, configuration: Optional[dict] = None):
         self._charger_configuration(configuration)
@@ -94,7 +97,12 @@ class WebServer:
 
     async def handle_installer(self, request):
         try:
-            return await installer_instance(self.__etat_instance, request)
+            resultat = await installer_instance(self.__etat_instance, request)
+            if self.__site_web_443 is not None:
+                self.__logger.info("Desactiver server instance sur port 443 pour demarrer nginx")
+                await self.__site_web_443.shutdown()
+                self.__site_web_443 = None
+            return resultat
         except:
             self.__logger.exception("Erreur installation")
             return web.Response(status=500)
@@ -111,8 +119,19 @@ class WebServer:
         runner = web.AppRunner(self.__app)
         await runner.setup()
         port = self.__configuration.port
+        # Configuration pour site sur port 443 (utilise si nginx n'est pas configure)
+        niveau_securite_initial = self.__etat_instance.niveau_securite
+        if niveau_securite_initial != Constantes.SECURITE_PROTEGE:
+            self.__site_web_443 = web.AppRunner(self.__app)
+            await self.__site_web_443.setup()
         site = web.TCPSite(runner, '0.0.0.0', port, ssl_context=self.__ssl_context)
         try:
+            if self.__site_web_443 is not None:
+                try:
+                    site_443 = web.TCPSite(self.__site_web_443, '0.0.0.0', 443, ssl_context=self.__ssl_context)
+                    await site_443.start()
+                except OSError:
+                    self.__logger.info("Port 443 non disponible (probablement nginx - OK)")
             await site.start()
             self.__logger.info("Site demarre")
 

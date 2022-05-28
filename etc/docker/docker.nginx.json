@@ -32,7 +32,7 @@
   ],
   "secrets": [
     {
-      "name": "pki.mq",
+      "name": "pki.web",
       "current": "key",
       "filename": "webkey.pem"
     },

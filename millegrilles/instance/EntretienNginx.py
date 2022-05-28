@@ -7,6 +7,7 @@ import ssl
 from aiohttp.client_exceptions import ClientConnectorError
 from os import path, makedirs, stat
 from typing import Optional
+from millegrilles.messages import Constantes
 
 
 class EntretienNginx:
@@ -65,9 +66,12 @@ class EntretienNginx:
 
     async def preparer_nginx(self):
         self.__logger.info("Preparer nginx")
-        self.verifier_repertoire_configuration()
+        configuration_modifiee = self.verifier_repertoire_configuration()
         self.__entretien_initial_complete = True
-        self.__logger.info("Configuration nginx prete")
+        self.__logger.info("Configuration nginx prete (configuration modifiee? %s)" % configuration_modifiee)
+
+        if configuration_modifiee is True:
+            await self.__etat_instance.reload_configuration()
 
     def verifier_repertoire_configuration(self):
         path_nginx = self.__etat_instance.configuration.path_nginx
@@ -75,15 +79,44 @@ class EntretienNginx:
         makedirs(path_nginx_html, 0o750, exist_ok=True)
 
         # Verifier existance de la configuration de modules nginx
-        self.generer_configuration_nginx()
+        configuration_modifiee = self.generer_configuration_nginx()
 
-    def generer_configuration_nginx(self):
+        return configuration_modifiee
+
+    def generer_configuration_nginx(self) -> bool:
         path_nginx = self.__etat_instance.configuration.path_nginx
         path_nginx_modules = path.join(path_nginx, 'modules')
         makedirs(path_nginx_modules, 0o750, exist_ok=True)
 
+        # params = {
+        #     'nodename': nodename,
+        #     'hostname': hostname,
+        #     'monitor_url': monitor_url,
+        #     'certissuer_url': certissuer_url,
+        #     'MQ_HOST': mq_host,
+        # }
+
+        params = {
+            'nodename': 'mg-dev5',
+            'hostname': 'mg-dev5',
+            'instance_url': 'https://mg-dev5:2443',
+            'certissuer_url': 'http://mg-dev5:2080',
+            'MQ_HOST': 'mq',
+        }
+
+        configuration_modifiee = False
+        niveau_securite = self.__etat_instance.niveau_securite
+
         # Faire liste des fichiers de configuration
-        repertoire_src_nginx = path.abspath('../../etc/nginx/nginx_protege')
+        if niveau_securite == Constantes.SECURITE_PROTEGE:
+            repertoire_src_nginx = path.abspath('../../etc/nginx/nginx_protege')
+        elif niveau_securite == Constantes.SECURITE_PRIVE:
+            repertoire_src_nginx = path.abspath('../../etc/nginx/nginx_prive')
+        elif niveau_securite == Constantes.SECURITE_PUBLIC:
+            repertoire_src_nginx = path.abspath('../../etc/nginx/nginx_public')
+        else:
+            raise Exception("Niveau securite non supporte avec nginx : '%s'", niveau_securite)
+
         for fichier in os.listdir(repertoire_src_nginx):
             # Verifier si le fichier existe dans la destination
             path_destination = path.join(path_nginx_modules, fichier)
@@ -92,10 +125,10 @@ class EntretienNginx:
                 path_source = path.join(repertoire_src_nginx, fichier)
                 with open(path_source, 'r') as fichier:
                     contenu = fichier.read()
-                params = {}
                 contenu = contenu.format(**params)
 
                 with open(path_destination, 'w') as fichier:
                     fichier.write(contenu)
+                configuration_modifiee = True
 
-        pass
+        return configuration_modifiee

@@ -3,6 +3,7 @@ import logging
 from os import path
 
 from millegrilles.certificats.CertificatsWeb import generer_self_signed_rsa
+from millegrilles.messages.CleCertificat import CleCertificat
 
 logger = logging.getLogger(__name__)
 
@@ -16,15 +17,21 @@ def preparer_certificats_web(path_secrets: str):
         return path_cert_web, path_key_web
 
     # Verifier si le certificat self-signed existe
-    path_cert_web = path.join(path_secrets, 'pki.webss.cert')
-    path_key_web = path.join(path_secrets, 'pki.webss.cle')
-    if path.exists(path_cert_web) and path.exists(path_key_web):
-        return path_cert_web, path_key_web
+    path_cert_webss = path.join(path_secrets, 'pki.webss.cert')
+    path_key_webss = path.join(path_secrets, 'pki.webss.cle')
+    if path.exists(path_cert_webss) and path.exists(path_key_webss):
+        clecertificat_genere = CleCertificat.from_files(path_key_webss, path_cert_webss)
+        certificat = ''.join(clecertificat_genere.get_pem_certificat())
+    else:
+        # Generer certificat self-signed
+        clecertificat_genere = generer_self_signed_rsa('localhost')
 
-    # Generer certificat self-signed
-    clecertificat_genere = generer_self_signed_rsa('localhost')
+        certificat = ''.join(clecertificat_genere.get_pem_certificat())
+        with open(path_cert_webss, 'w') as fichier:
+            fichier.write(certificat)
+        with open(path_key_webss, 'w') as fichier:
+            fichier.write(clecertificat_genere.get_pem_cle())
 
-    certificat = ''.join(clecertificat_genere.get_pem_certificat())
     with open(path_cert_web, 'w') as fichier:
         fichier.write(certificat)
     with open(path_key_web, 'w') as fichier:
