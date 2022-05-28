@@ -1,0 +1,52 @@
+location /fichiers {{
+  slice 5m;
+  proxy_cache       cache_fichiers;
+  proxy_cache_lock  on;
+  proxy_cache_background_update on;
+  proxy_cache_use_stale error timeout updating
+                        http_500 http_502 http_503 http_504;
+
+  proxy_cache_key   $uri$is_args$args$slice_range;
+  proxy_set_header  Range $slice_range;
+  proxy_cache_valid 200 201 206 30d;
+  proxy_cache_valid 401 403 404 500 502 503 504 1m;
+
+  proxy_headers_hash_bucket_size 64;
+
+  # client_max_body_size 5M;
+
+  include /etc/nginx/conf.d/modules/fichiers.proxypass;
+
+  # Mapping certificat client pour connexion consignation fichiers
+  proxy_ssl_certificate         /run/secrets/nginx.cert.pem;
+  proxy_ssl_certificate_key     /run/secrets/nginx.key.pem;
+  proxy_ssl_trusted_certificate /usr/share/nginx/files/certs/millegrille.cert.pem;
+
+  proxy_ssl_verify       on;
+  proxy_ssl_verify_depth 1;
+
+  # include /etc/nginx/conf.d/component_cors.include;
+
+  # include /etc/nginx/conf.d/auth_public.include;
+  include /etc/nginx/conf.d/component_fichiers.include;
+}}
+
+# Configuration de transfert de fichiers entre systemes (verif client SSL seulement)
+location /fichiers_transfert {{
+  include /etc/nginx/conf.d/modules/fichiers.proxypass;
+
+  # Mapping certificat client pour connexion consignation fichiers
+  proxy_ssl_certificate         /run/secrets/nginx.cert.pem;
+  proxy_ssl_certificate_key     /run/secrets/nginx.key.pem;
+  proxy_ssl_trusted_certificate /usr/share/nginx/files/certs/millegrille.cert.pem;
+  proxy_ssl_verify              on;
+  proxy_ssl_verify_depth        1;
+
+  # client_max_body_size 5M;
+
+  # include /etc/nginx/conf.d/component_base.include;  # Active validation SSL client nginx, passe resultat dans headers
+  # include /etc/nginx/conf.d/component_cors.include;
+
+  # Active validation SSL client nginx, passe resultat dans headers
+  include /etc/nginx/conf.d/component_fichiers.include;
+}}

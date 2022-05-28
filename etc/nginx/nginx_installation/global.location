@@ -1,0 +1,3 @@
+location = / {{
+  return 307 https://$http_host/installation;
+}}

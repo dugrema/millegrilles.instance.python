@@ -11,13 +11,13 @@ def preparer_certificats_web(path_secrets: str):
 
     # Verifier si le certificat web existe (utiliser de preference)
     path_cert_web = path.join(path_secrets, 'pki.web.cert')
-    path_key_web = path.join(path_secrets, 'pki.web.key')
+    path_key_web = path.join(path_secrets, 'pki.web.cle')
     if path.exists(path_cert_web) and path.exists(path_key_web):
         return path_cert_web, path_key_web
 
     # Verifier si le certificat self-signed existe
     path_cert_web = path.join(path_secrets, 'pki.webss.cert')
-    path_key_web = path.join(path_secrets, 'pki.webss.key')
+    path_key_web = path.join(path_secrets, 'pki.webss.cle')
     if path.exists(path_cert_web) and path.exists(path_key_web):
         return path_cert_web, path_key_web
 

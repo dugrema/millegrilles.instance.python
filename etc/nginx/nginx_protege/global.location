@@ -1,0 +1,17 @@
+location = / {{
+  return 307 https://$http_host/millegrilles;
+}}
+
+location /certs {{
+  root /usr/share/nginx/files;
+  include /etc/nginx/conf.d/component_cors.include;
+}}
+
+location /fiche.json {{
+  root /usr/share/nginx/html;
+  include /etc/nginx/conf.d/component_cors.include;
+
+  gzip on;
+  gzip_static on;
+  gzip_types application/json;
+}}

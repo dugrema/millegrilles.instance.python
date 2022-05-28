@@ -1,0 +1,2 @@
+set $upstream_millegrilles https://maitrecomptes:443;
+proxy_pass $upstream_millegrilles;

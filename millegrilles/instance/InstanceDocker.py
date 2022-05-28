@@ -1,8 +1,10 @@
 import asyncio
 import logging
 
+
 from asyncio import Event, TimeoutError
 from docker.errors import APIError, NotFound
+from os import path
 
 from millegrilles.docker.DockerHandler import DockerHandler
 from millegrilles.docker import DockerCommandes
@@ -60,6 +62,8 @@ class EtatDockerInstanceSync:
         if certificat_millegrille is not None:
             await self.sauvegarder_config(Constantes.DOCKER_CONFIG_PKI_MILLEGRILLE, certificat_millegrille.certificat_pem)
 
+        await self.verifier_certificat_web()
+
     async def sauvegarder_config(self, label: str, valeur: str, comparer=False):
         commande = DockerCommandes.CommandeGetConfiguration(label, aio=True)
         self.__docker_handler.ajouter_commande(commande)
@@ -73,6 +77,23 @@ class EtatDockerInstanceSync:
             commande_ajouter = DockerCommandes.CommandeAjouterConfiguration(label, valeur, aio=True)
             self.__docker_handler.ajouter_commande(commande_ajouter)
             await commande_ajouter.attendre()
+
+    async def verifier_certificat_web(self):
+        """
+        Verifie et met a jour le certificat web au besoin
+        :return:
+        """
+        self.__logger.debug("verifier_certificat_web()")
+
+        path_secrets = self.__etat_instance.configuration.path_secrets
+
+        nom_certificat = 'pki.web.cert'
+        nom_cle = 'pki.web.cle'
+        path_certificat = path.join(path_secrets, nom_certificat)
+        path_cle = path.join(path_secrets, nom_cle)
+
+        clecert_web = CleCertificat.from_files(path_cle, path_certificat)
+        await self.assurer_clecertificat('web', clecert_web)
 
     async def assurer_clecertificat(self, nom_module: str, clecertificat: CleCertificat, combiner=False):
         """

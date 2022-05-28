@@ -36,7 +36,7 @@ def get_module_execution(etat_instance: EtatInstance):
 CONFIG_MODULES_PROTEGES = [
     # 'docker.certissuer.json',
     # 'docker.acme.json',
-    # 'docker.nginx.json',
+    'docker.nginx.json',
     'docker.redis.json',
     'docker.mq.json',
     'docker.mongo.json',
