@@ -231,6 +231,8 @@ class EtatDockerInstanceSync:
         params['__nom_application'] = nom_service
         params['__certificat_info'] = {'label_prefix': 'pki.%s' % nom_service}
         params['__password_info'] = {'label_prefix': 'passwd.%s' % nom_service}
+        params['__instance_id'] = self.__etat_instance.instance_id
+        params['__idmg'] = self.__etat_instance.idmg
 
         parser = ConfigurationService(configuration, params)
         parser.parse()

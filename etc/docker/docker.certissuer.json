@@ -2,15 +2,10 @@
   "name": "certissuer",
   "image": "docker.maceroc.com/millegrilles_midcompte_python:2022.3.0",
   "args": ["-m", "millegrilles_certissuer", "--verbose"],
-  "env": [
-    "INSTANCE_ID=${INSTANCE_ID}"
-  ],
   "constraints": [
     "node.labels.millegrilles.certissuer == true"
   ],
-  "mounts": [
-    "/var/opt/millegrilles/issuer:/var/opt/millegrilles/issuer:rw"
-  ],
+  "mounts": [{"source": "/var/opt/millegrilles/certissuer", "target":  "/var/opt/millegrilles/issuer", "type": "bind"}],
   "networks": [{
     "target": "millegrille_net"
   }],

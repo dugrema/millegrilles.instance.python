@@ -26,9 +26,11 @@ async def initialiser_application():
 
     args = parse()
     if args.verbose:
-        logging.getLogger('millegrilles').setLevel(logging.DEBUG)
+        logging.getLogger('millegrilles_messages').setLevel(logging.DEBUG)
+        logging.getLogger('millegrilles_instance').setLevel(logging.DEBUG)
     else:
-        logging.getLogger('millegrilles').setLevel(logging.WARN)
+        logging.getLogger('millegrilles_messages').setLevel(logging.WARN)
+        logging.getLogger('millegrilles_instance').setLevel(logging.WARN)
 
     app.charger_configuration(args)
 
