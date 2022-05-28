@@ -35,7 +35,7 @@ class ConfigurationInstance:
         self.path_configuration = '/var/opt/millegrilles/configuration'
         self.path_secrets = '/var/opt/millegrilles/secrets'
         self.path_secrets_partages = '/var/opt/millegrilles/secrets_partages'
-        self.path_nginx_configuration = '/var/opt/millegrilles/nginx/modules'
+        self.path_nginx = '/var/opt/millegrilles/nginx'
         self.certissuer_url = 'http://localhost:2080'
         self.instance_cert_pem_path = '/var/opt/millegrilles/secrets/pki.instance.cert'
         self.instance_key_pem_path = '/var/opt/millegrilles/secrets/pki.instance.key'
@@ -77,7 +77,7 @@ class ConfigurationInstance:
         self.path_configuration = dict_params.get(Constantes.INSTANCE_CONFIG_PATH) or self.path_configuration
         self.path_secrets = dict_params.get(Constantes.INSTANCE_SECRETS_PATH) or self.path_secrets
         self.path_secrets_partages = dict_params.get(Constantes.INSTANCE_SECRETS_PARTAGES_PATH) or self.path_secrets_partages
-        self.path_nginx_configuration = dict_params.get(Constantes.INSTANCE_NGINX_PATH) or self.path_nginx_configuration
+        self.path_nginx = dict_params.get(Constantes.INSTANCE_NGINX_PATH) or self.path_nginx
         self.certissuer_url = dict_params.get(Constantes.PARAM_INSTANCE_CERTISSUER_URL) or self.certissuer_url
         self.instance_ca_pem_path = dict_params.get(Constantes.PARAM_INSTANCE_CA_PATH) or self.instance_ca_pem_path
         self.instance_cert_pem_path = dict_params.get(Constantes.PARAM_INSTANCE_CERT_PATH) or self.instance_cert_pem_path

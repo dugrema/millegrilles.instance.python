@@ -11,7 +11,6 @@ from os import path, makedirs
 from typing import Optional
 from uuid import uuid4
 
-from millegrilles.messages import Constantes
 from millegrilles.docker.DockerHandler import DockerState, DockerHandler
 from millegrilles.instance.Configuration import ConfigurationInstance
 from millegrilles.instance.WebServer import WebServer
@@ -94,7 +93,6 @@ class ApplicationInstance:
         self.__entretien_event = Event()
         self._stop_event = Event()
 
-        makedirs(self.__configuration.path_nginx_configuration, 0o750, exist_ok=True)
         makedirs(self.__configuration.path_secrets, 0o700, exist_ok=True)
         makedirs(self.__configuration.path_secrets_partages, 0o710, exist_ok=True)
 
