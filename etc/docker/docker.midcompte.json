@@ -1,7 +1,7 @@
 {
   "name": "midcompte",
   "image": "docker.maceroc.com/millegrilles_midcompte_python:2022.3.0",
-  "certificat": {"roles": ["midcompte"], "dns": {"localhost": true, "hostnames": ["midcompte"], "domain": true}},
+  "certificat": {"roles": ["midcompte"], "dns": {"localhost": true, "hostnames": ["midcompte"], "domain": true}, "combiner_keycert": true},
   "constraints": ["node.labels.millegrilles.midcompte == true"],
   "configs": [
     {
@@ -19,6 +19,16 @@
       "name": "pki.midcompte",
       "current": "key",
       "filename": "pki.midcompte.key"
+    },
+    {
+      "name": "passwd.mongo",
+      "current": "password",
+      "filename": "passwd.mongo.txt"
+    },
+    {
+      "name": "passwd.mqadmin",
+      "current": "password",
+      "filename": "passwd.mqadmin.txt"
     }
   ],
   "endpoint_spec": {
