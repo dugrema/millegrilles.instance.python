@@ -10,9 +10,9 @@ from ssl import SSLContext
 from typing import Optional
 
 from millegrilles_messages.messages import Constantes
-from millegrilles.instance.Configuration import ConfigurationWeb
-from millegrilles.instance.EtatInstance import EtatInstance
-from millegrilles.instance.InstallerInstance import installer_instance
+from millegrilles_instance.Configuration import ConfigurationWeb
+from millegrilles_instance.EtatInstance import EtatInstance
+from millegrilles_instance.InstallerInstance import installer_instance
 
 
 class WebServer:

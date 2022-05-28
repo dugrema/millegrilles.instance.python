@@ -9,8 +9,8 @@ from os import path
 from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.docker import DockerCommandes
 
-from millegrilles.instance import Constantes
-from millegrilles.instance.EtatInstance import EtatInstance
+from millegrilles_instance import Constantes
+from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.docker.ParseConfiguration import ConfigurationService
 

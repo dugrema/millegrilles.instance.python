@@ -1,4 +1,4 @@
-from setuptools import setup
+from setuptools import setup, find_packages
 import subprocess
 
 
@@ -20,13 +20,9 @@ def get_version():
 
 
 setup(
-    name='millegrilles.instance',
+    name='millegrilles_instance',
     version='%s' % get_version(),
-    packages=[
-        'millegrilles.instance',
-        'millegrilles.certissuer',
-        'millegrilles.dockermanager',
-    ],
+    packages=find_packages(),
     url='https://github.com/dugrema/millegrilles.instance.python',
     license='AFFERO',
     author='Mathieu Dugre',

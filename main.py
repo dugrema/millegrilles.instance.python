@@ -2,7 +2,7 @@
 # L'application gere les secrets, certificats et site web de configuration (port 8080).
 import asyncio
 import logging
-from millegrilles.instance.Application import initialiser_application
+from millegrilles_instance import initialiser_application
 
 
 def main():

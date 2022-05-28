@@ -109,11 +109,11 @@ class EntretienNginx:
 
         # Faire liste des fichiers de configuration
         if niveau_securite == Constantes.SECURITE_PROTEGE:
-            repertoire_src_nginx = path.abspath('../../etc/nginx/nginx_protege')
+            repertoire_src_nginx = path.abspath('../etc/nginx/nginx_protege')
         elif niveau_securite == Constantes.SECURITE_PRIVE:
-            repertoire_src_nginx = path.abspath('../../etc/nginx/nginx_prive')
+            repertoire_src_nginx = path.abspath('../etc/nginx/nginx_prive')
         elif niveau_securite == Constantes.SECURITE_PUBLIC:
-            repertoire_src_nginx = path.abspath('../../etc/nginx/nginx_public')
+            repertoire_src_nginx = path.abspath('../etc/nginx/nginx_public')
         else:
             raise Exception("Niveau securite non supporte avec nginx : '%s'", niveau_securite)
 

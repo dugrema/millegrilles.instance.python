@@ -2,8 +2,8 @@ import logging
 
 from typing import Optional
 
-from millegrilles.instance.Certificats import preparer_certificats_web
-from millegrilles.instance.Configuration import ConfigurationInstance
+from millegrilles_instance.Certificats import preparer_certificats_web
+from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.FormatteurMessages import SignateurTransactionSimple, FormatteurMessageMilleGrilles

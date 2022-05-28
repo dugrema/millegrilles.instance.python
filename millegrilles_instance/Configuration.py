@@ -3,7 +3,7 @@ import os
 
 from typing import Optional
 
-from millegrilles.instance import Constantes
+from millegrilles_instance import Constantes
 from millegrilles_messages.messages import Constantes as ConstantesMessages
 
 CONST_INSTANCE_PARAMS = [

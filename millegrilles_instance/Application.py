@@ -12,11 +12,11 @@ from typing import Optional
 from uuid import uuid4
 
 from millegrilles_messages.docker.DockerHandler import DockerState, DockerHandler
-from millegrilles.instance.Configuration import ConfigurationInstance
-from millegrilles.instance.WebServer import WebServer
-from millegrilles.instance.EtatInstance import EtatInstance
-from millegrilles.instance.InstanceDocker import EtatDockerInstanceSync
-from millegrilles.instance.EntretienInstance import get_module_execution
+from millegrilles_instance.Configuration import ConfigurationInstance
+from millegrilles_instance.WebServer import WebServer
+from millegrilles_instance.EtatInstance import EtatInstance
+from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
+from millegrilles_instance.EntretienInstance import get_module_execution
 
 
 async def initialiser_application():

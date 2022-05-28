@@ -10,17 +10,17 @@ import secrets
 from os import path, stat, makedirs, listdir
 from typing import Optional
 
-from aiohttp import web, ClientSession
+from aiohttp import ClientSession
 from asyncio import Event, TimeoutError
 
 from millegrilles_messages.docker.Entretien import TacheEntretien
 from millegrilles_messages.messages import Constantes
-from millegrilles.instance.EtatInstance import EtatInstance
-from millegrilles.instance.InstanceDocker import EtatDockerInstanceSync
+from millegrilles_instance.EtatInstance import EtatInstance
+from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.certificats.Generes import CleCsrGenere
-from millegrilles.instance.EntretienNginx import EntretienNginx
-from millegrilles.instance.EntretienRabbitMq import EntretienRabbitMq
+from millegrilles_instance.EntretienNginx import EntretienNginx
+from millegrilles_instance.EntretienRabbitMq import EntretienRabbitMq
 
 logger = logging.getLogger(__name__)
 
@@ -103,7 +103,7 @@ class InstanceProtegee:
         path_docker_catalogues = path.join(path_configuration, 'docker')
         makedirs(path_docker_catalogues, 0o750, exist_ok=True)
 
-        repertoire_src_catalogues = path.abspath('../../etc/docker')
+        repertoire_src_catalogues = path.abspath('../etc/docker')
         for fichier in listdir(repertoire_src_catalogues):
             path_fichier_src = path.join(repertoire_src_catalogues, fichier)
             path_fichier_dest = path.join(path_docker_catalogues, fichier)

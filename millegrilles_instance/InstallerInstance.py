@@ -8,7 +8,7 @@ from aiohttp import web
 from aiohttp.web_request import BaseRequest
 
 from millegrilles_messages.certificats.Generes import CleCsrGenere
-from millegrilles.instance.EtatInstance import EtatInstance
+from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 
 logger = logging.getLogger(__name__)
