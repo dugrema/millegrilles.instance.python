@@ -86,7 +86,7 @@ class InstanceAbstract:
         await etat_docker.initialiser_docker()
 
     async def fermer(self):
-        self.__logger.info("Fermerture InstanceProtegee")
+        self.__logger.info("Fermerture InstanceInstallation")
         self._etat_instance.retirer_listener(self.declencher_run)
         self._event_stop.set()
 
@@ -245,12 +245,14 @@ class InstanceProtegee(InstanceAbstract):
 
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
         self.__logger.info("Setup InstanceProtegee")
+        self._etat_instance = etat_instance
+        self._etat_docker = etat_docker
 
         self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
 
-        self.__entretien_nginx = EntretienNginx(self._etat_instance)
-        self.__entretien_rabbitmq = EntretienRabbitMq(self._etat_instance)
+        self.__entretien_nginx = EntretienNginx(etat_instance)
+        self.__entretien_rabbitmq = EntretienRabbitMq(etat_instance)
 
         await super().setup(etat_instance, etat_docker)
 

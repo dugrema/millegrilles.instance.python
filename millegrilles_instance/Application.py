@@ -143,7 +143,7 @@ class ApplicationInstance:
         self.__module_entretien = get_module_execution(etat_instance)
         if self.__module_entretien is not None:
             # Preparer le nouveau module d'entretien. Hook est dans self.entretien() pour run
-            await self.__module_entretien.setup(etat_instance, self.__docker_etat)
+            await self.__module_entretien.setup(self.__etat_instance, self.__docker_etat)
             self.__entretien_event.set()  # Redemarre le module d'entretien
 
     def exit_gracefully(self, signum=None, frame=None):

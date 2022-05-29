@@ -211,17 +211,30 @@ class EtatDockerInstanceSync:
             except KeyError:
                 pass
             else:
-                # Verifier si le service est actif
-                tasks = s.tasks(filters={'desired-state': 'running'})
+                attrs = s.attrs
+                replicas = 0
+                try:
+                    spec = attrs['Spec']
+                    mode = spec['Mode']
+                    replicated = mode['Replicated']
+                    replicas = replicated['Replicas']
+                except KeyError:
+                    self.__logger.debug("Service %s configure sans replicas, on l'ignore" % name)
+
                 service_state_ok = False
-                for task in tasks:
-                    try:
-                        status = task['Status']
-                        state = status['State']
-                        if state in ['running', 'preparing']:
-                            service_state_ok = True
-                    except KeyError:
-                        pass
+                if replicas > 0:
+                    # Verifier si le service est actif
+                    tasks = s.tasks(filters={'desired-state': 'running'})
+                    for task in tasks:
+                        try:
+                            status = task['Status']
+                            state = status['State']
+                            if state in ['running', 'preparing']:
+                                service_state_ok = True
+                        except KeyError:
+                            pass
+                else:
+                    service_state_ok = True
 
                 if service_state_ok is False:
                     self.__logger.info("Service %s arrete, on le redemarre" % name)
