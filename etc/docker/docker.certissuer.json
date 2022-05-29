@@ -12,6 +12,16 @@
   "labels": {
     "millegrille": "${IDMG}"
   },
+  "endpoint_spec": {
+    "mode": "vip",
+    "ports": [
+      {
+        "published_port": 2080,
+        "target_port": 2080,
+        "protocol": "tcp"
+      }
+    ]
+  },
   "resources": {
     "cpu_limit": 500000000,
     "mem_limit": 50000000
