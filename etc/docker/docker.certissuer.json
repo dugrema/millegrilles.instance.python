@@ -5,7 +5,7 @@
   "constraints": [
     "node.labels.millegrilles.certissuer == true"
   ],
-  "mounts": [{"source": "/var/opt/millegrilles/certissuer", "target":  "/var/opt/millegrilles/issuer", "type": "bind"}],
+  "mounts": [{"source": "/var/opt/millegrilles/certissuer", "target":  "/var/opt/millegrilles/certissuer", "type": "bind"}],
   "networks": [{
     "target": "millegrille_net"
   }],
