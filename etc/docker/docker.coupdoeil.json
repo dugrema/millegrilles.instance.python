@@ -53,7 +53,7 @@
     "millegrille": "${IDMG}",
     "application": "coupdoeil",
     "securite": "3.protege",
-    "url": "https://${HOSTNAME_DOMAINE}/coupdoeil"
+    "url": "https://${HOSTNAME}/coupdoeil"
   },
   "resources": {
     "cpu_limit": 1000000000,
