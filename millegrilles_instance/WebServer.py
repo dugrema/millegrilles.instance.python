@@ -100,6 +100,7 @@ class WebServer:
                 self.__logger.info("Desactiver server instance sur port 443 pour demarrer nginx")
 
                 self.__logger.warning("Installation, redemarrer (peut pas arreter port 443 pour nginx)")
+                self.__etat_instance.set_redemarrer(True)
                 self.__stop_event.set()
                 await self.__etat_instance.stop()
 

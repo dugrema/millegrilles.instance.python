@@ -198,6 +198,13 @@ class ApplicationInstance:
         # Execution de la loop avec toutes les tasks
         await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
 
+    @property
+    def redemarrer(self):
+        if self.__etat_instance is None:
+            return False
+        else:
+            return self.__etat_instance.redemarrer
+
 
 async def demarrer():
     logger = logging.getLogger(__name__)
@@ -208,10 +215,13 @@ async def demarrer():
     try:
         logger.info("Debut execution app")
         await app.executer()
+        return app.redemarrer
     except KeyboardInterrupt:
         logger.info("Arret execution app via signal (KeyboardInterrupt), fin thread main")
+        return False
     except:
         logger.exception("Exception durant execution app, fin thread main")
+        return False
     finally:
         logger.info("Fin execution app")
         app.fermer()  # S'assurer de mettre le flag de stop_event
@@ -222,7 +232,9 @@ def main():
     Methode d'execution de l'application
     :return:
     """
-    asyncio.run(demarrer())
+    redemarrer = True
+    while redemarrer is True:
+        redemarrer = asyncio.run(demarrer())
 
 
 if __name__ == '__main__':

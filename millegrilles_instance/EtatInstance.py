@@ -32,6 +32,7 @@ class EtatInstance:
         self.__formatteur_message: Optional[FormatteurMessageMilleGrilles] = None
 
         self.__stop_event: Optional[Event] = None
+        self.__redemarrer = False
 
     async def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
@@ -125,6 +126,13 @@ class EtatInstance:
     @property
     def formatteur_message(self):
         return self.__formatteur_message
+
+    def set_redemarrer(self, redemarrer):
+        self.__redemarrer = redemarrer
+
+    @property
+    def redemarrer(self):
+        return self.__redemarrer
 
     def set_stop_event(self, stop_event: Event):
         self.__stop_event = stop_event
