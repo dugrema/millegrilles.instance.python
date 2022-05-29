@@ -24,6 +24,8 @@ from millegrilles_instance.EntretienRabbitMq import EntretienRabbitMq
 
 logger = logging.getLogger(__name__)
 
+TachesEntretienType = list[TacheEntretien]
+
 
 def get_module_execution(etat_instance: EtatInstance):
     securite = etat_instance.niveau_securite
@@ -41,7 +43,7 @@ def get_module_execution(etat_instance: EtatInstance):
 CONFIG_MODULES_INSTALLATION = [
     'docker.certissuer.json',
     'docker.acme.json',
-    'docker.nginx.json',
+    # 'docker.nginx.json',
 ]
 
 
@@ -66,9 +68,15 @@ class InstanceAbstract:
         self._etat_instance: Optional[EtatInstance] = None
         self._etat_docker: Optional[EtatDockerInstanceSync] = None
 
+        self._event_entretien: Optional[Event] = None
+        self._taches_entretien = TachesEntretienType()
+
+        self.__setup_catalogues_complete = False
+
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
         self.__logger.info("Setup InstanceInstallation")
         self._event_stop = Event()
+        self._event_entretien = Event()
         self._etat_instance = etat_instance
         self._etat_docker = etat_docker
 
@@ -87,7 +95,30 @@ class InstanceAbstract:
         Declence immediatement l'execution de l'entretien. Utile lors de changement de configuration.
         :return:
         """
-        raise NotImplementedError()
+        for tache in self._taches_entretien:
+            tache.reset()
+
+        # Declencher l'entretien
+        self._event_entretien.set()
+
+    async def run(self):
+        self.__logger.info("run()")
+        while self._event_stop.is_set() is False:
+            self.__logger.debug("run() debut execution cycle")
+
+            for tache in self._taches_entretien:
+                try:
+                    await tache.run()
+                except:
+                    self.__logger.exception("Erreur execution tache entretien")
+
+            try:
+                self.__logger.debug("run() fin execution cycle")
+                await asyncio.wait_for(self._event_entretien.wait(), 30)
+                self._event_entretien.clear()
+            except TimeoutError:
+                pass
+        self.__logger.info("Fin run()")
 
     def get_config_modules(self) -> list:
         raise NotImplementedError()
@@ -152,6 +183,11 @@ class InstanceAbstract:
         await self._etat_docker.entretien_services(services)
         self.__logger.debug("entretien_services fin")
 
+    async def entretien_catalogues(self):
+        if self.__setup_catalogues_complete is False:
+            setup_catalogues(self._etat_instance)
+            self.__setup_catalogues_complete = True
+
 
 class InstanceInstallation(InstanceAbstract):
 
@@ -162,35 +198,23 @@ class InstanceInstallation(InstanceAbstract):
         self._etat_instance: Optional[EtatInstance] = None
         self._etat_docker: Optional[EtatDockerInstanceSync] = None
 
-        self.__event_entretien: Optional[Event] = None
+        self._taches_entretien.append(TacheEntretien(datetime.timedelta(seconds=30), self.entretien_repertoires_installation))
+        self._taches_entretien.append(TacheEntretien(datetime.timedelta(seconds=30), self.entretien_catalogues))
+        self._taches_entretien.append(TacheEntretien(datetime.timedelta(seconds=30), self.entretien_services))
 
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
         self.__logger.info("Setup InstanceInstallation")
-        self.__event_entretien = Event()
         await super().setup(etat_instance, etat_docker)
-
-    async def declencher_run(self, etat_instance: Optional[EtatInstance]):
-        """
-        Declence immediatement l'execution de l'entretien. Utile lors de changement de configuration.
-        :return:
-        """
-        pass
-
-    async def run(self):
-        self.__logger.info("run()")
-        while self._event_stop.is_set() is False:
-            self.__logger.debug("run() debut execution cycle")
-
-            try:
-                self.__logger.debug("run() fin execution cycle")
-                await asyncio.wait_for(self.__event_entretien.wait(), 30)
-                self.__event_entretien.clear()
-            except TimeoutError:
-                pass
-        self.__logger.info("Fin run()")
 
     def get_config_modules(self) -> list:
         return CONFIG_MODULES_INSTALLATION
+
+    async def entretien_repertoires_installation(self):
+        path_nginx = self._etat_instance.configuration.path_nginx
+        path_nginx_html = path.join(path_nginx, 'html')
+        makedirs(path_nginx_html, 0o750, exist_ok=True)
+        path_certissuer = self._etat_instance.configuration.path_certissuer
+        makedirs(path_certissuer, 0o700, exist_ok=True)
 
 
 class InstanceProtegee(InstanceAbstract):
@@ -199,7 +223,7 @@ class InstanceProtegee(InstanceAbstract):
         super().__init__()
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
 
-        self.__taches_entretien = [
+        taches_entretien = [
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_catalogues),
             TacheEntretien(datetime.timedelta(days=1), self.docker_initialisation),
             TacheEntretien(datetime.timedelta(minutes=30), self.entretien_certificats),
@@ -208,10 +232,10 @@ class InstanceProtegee(InstanceAbstract):
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_nginx),
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_mq),
         ]
+        self._taches_entretien.extend(taches_entretien)
 
         self.__client_session = aiohttp.ClientSession()
 
-        self.__event_entretien: Optional[Event] = None
         self.__event_setup_initial_certificats: Optional[Event] = None
         self.__event_setup_initial_passwords: Optional[Event] = None
         self.__entretien_nginx: Optional[EntretienNginx] = None
@@ -222,7 +246,6 @@ class InstanceProtegee(InstanceAbstract):
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
         self.__logger.info("Setup InstanceProtegee")
 
-        self.__event_entretien = Event()
         self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
 
@@ -231,26 +254,6 @@ class InstanceProtegee(InstanceAbstract):
 
         await super().setup(etat_instance, etat_docker)
 
-    async def entretien_catalogues(self):
-        if self.__setup_catalogues_complete is False:
-            self.setup_catalogues()
-
-    def setup_catalogues(self):
-        path_configuration = self._etat_instance.configuration.path_configuration
-        path_docker_catalogues = path.join(path_configuration, 'docker')
-        makedirs(path_docker_catalogues, 0o750, exist_ok=True)
-
-        repertoire_src_catalogues = path.abspath('../etc/docker')
-        for fichier in listdir(repertoire_src_catalogues):
-            path_fichier_src = path.join(repertoire_src_catalogues, fichier)
-            path_fichier_dest = path.join(path_docker_catalogues, fichier)
-            if path.exists(path_fichier_dest) is False:
-                with open(path_fichier_src, 'r') as fichier_src:
-                    with open(path_fichier_dest, 'w') as fichier_dest:
-                        fichier_dest.write(fichier_src.read())
-
-        self.__setup_catalogues_complete = True
-
     async def declencher_run(self, etat_instance: Optional[EtatInstance]):
         """
         Declence immediatement l'execution de l'entretien. Utile lors de changement de configuration.
@@ -258,30 +261,7 @@ class InstanceProtegee(InstanceAbstract):
         """
         self.__event_setup_initial_certificats.clear()
         self.__event_setup_initial_passwords.clear()
-        for tache in self.__taches_entretien:
-            tache.reset()
-
-        # Declencher l'entretien
-        self.__event_entretien.set()
-
-    async def run(self):
-        self.__logger.info("run()")
-        while self._event_stop.is_set() is False:
-            self.__logger.debug("run() debut execution cycle")
-
-            for tache in self.__taches_entretien:
-                try:
-                    await tache.run()
-                except:
-                    self.__logger.exception("Erreur execution tache entretien")
-
-            try:
-                self.__logger.debug("run() fin execution cycle")
-                await asyncio.wait_for(self.__event_entretien.wait(), 30)
-                self.__event_entretien.clear()
-            except TimeoutError:
-                pass
-        self.__logger.info("Fin run()")
+        await super().declencher_run(etat_instance)
 
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")
@@ -463,3 +443,18 @@ async def generer_passwords(etat_instance: EtatInstance, etat_docker: EtatDocker
 
         # Ajouter mot de passe
         await etat_docker.ajouter_password(nom_password, date_password_str, password)
+
+
+def setup_catalogues(etat_instance: EtatInstance):
+    path_configuration = etat_instance.configuration.path_configuration
+    path_docker_catalogues = path.join(path_configuration, 'docker')
+    makedirs(path_docker_catalogues, 0o750, exist_ok=True)
+
+    repertoire_src_catalogues = path.abspath('../etc/docker')
+    for fichier in listdir(repertoire_src_catalogues):
+        path_fichier_src = path.join(repertoire_src_catalogues, fichier)
+        path_fichier_dest = path.join(path_docker_catalogues, fichier)
+        if path.exists(path_fichier_dest) is False:
+            with open(path_fichier_src, 'r') as fichier_src:
+                with open(path_fichier_dest, 'w') as fichier_dest:
+                    fichier_dest.write(fichier_src.read())

@@ -210,6 +210,25 @@ class EtatDockerInstanceSync:
                 nom_services_a_installer.remove(name)
             except KeyError:
                 pass
+            else:
+                # Verifier si le service est actif
+                tasks = s.tasks(filters={'desired-state': 'running'})
+                service_state_ok = False
+                for task in tasks:
+                    try:
+                        status = task['Status']
+                        state = status['State']
+                        if state in ['running', 'preparing']:
+                            service_state_ok = True
+                    except KeyError:
+                        pass
+
+                if service_state_ok is False:
+                    self.__logger.info("Service %s arrete, on le redemarre" % name)
+                    s.update(force_update=True)
+                    action_configurations = DockerCommandes.CommandeRedemarrerService(nom_service=name, aio=True)
+                    self.__docker_handler.ajouter_commande(action_configurations)
+                    await action_configurations.attendre()
 
         if len(nom_services_a_installer) > 0:
             self.__logger.debug("Services manquants dans docker : %s" % nom_services_a_installer)
@@ -251,7 +270,8 @@ class EtatDockerInstanceSync:
         params['__certificat_info'] = {'label_prefix': 'pki.%s' % nom_service}
         params['__password_info'] = {'label_prefix': 'passwd.%s' % nom_service}
         params['__instance_id'] = self.__etat_instance.instance_id
-        params['__idmg'] = self.__etat_instance.idmg
+        if self.__etat_instance.idmg is not None:
+            params['__idmg'] = self.__etat_instance.idmg
 
         parser = ConfigurationService(configuration, params)
         parser.parse()
