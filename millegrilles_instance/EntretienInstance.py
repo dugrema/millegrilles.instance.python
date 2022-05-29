@@ -30,8 +30,19 @@ def get_module_execution(etat_instance: EtatInstance):
 
     if securite == Constantes.SECURITE_PROTEGE:
         return InstanceProtegee()
+    elif etat_instance.docker_present is True:
+        # Si docker est actif, on demarre les services de base (certissuer, acme, nginx) pour
+        # supporter l'instance protegee
+        return InstanceInstallation()
 
     return None
+
+
+CONFIG_MODULES_INSTALLATION = [
+    'docker.certissuer.json',
+    'docker.acme.json',
+    'docker.nginx.json',
+]
 
 
 CONFIG_MODULES_PROTEGES = [
@@ -47,13 +58,146 @@ CONFIG_MODULES_PROTEGES = [
 ]
 
 
-class InstanceProtegee:
+class InstanceAbstract:
 
     def __init__(self):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        self.__event_stop: Optional[Event] = None
-        self.__etat_instance: Optional[EtatInstance] = None
-        self.__etat_docker: Optional[EtatDockerInstanceSync] = None
+        self._event_stop: Optional[Event] = None
+        self._etat_instance: Optional[EtatInstance] = None
+        self._etat_docker: Optional[EtatDockerInstanceSync] = None
+
+    async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
+        self.__logger.info("Setup InstanceInstallation")
+        self._event_stop = Event()
+        self._etat_instance = etat_instance
+        self._etat_docker = etat_docker
+
+        # Ajouter listener de changement de configuration. Demarre l'execution des taches d'entretien/installation.
+        self._etat_instance.ajouter_listener(self.declencher_run)
+
+        await etat_docker.initialiser_docker()
+
+    async def fermer(self):
+        self.__logger.info("Fermerture InstanceProtegee")
+        self._etat_instance.retirer_listener(self.declencher_run)
+        self._event_stop.set()
+
+    async def declencher_run(self, etat_instance: Optional[EtatInstance]):
+        """
+        Declence immediatement l'execution de l'entretien. Utile lors de changement de configuration.
+        :return:
+        """
+        raise NotImplementedError()
+
+    def get_config_modules(self) -> list:
+        raise NotImplementedError()
+
+    async def get_configuration_services(self) -> dict:
+        path_configuration = self._etat_instance.configuration.path_configuration
+        path_configuration_docker = path.join(path_configuration, 'docker')
+        configurations = await charger_configuration_docker(path_configuration_docker, self.get_config_modules())
+
+        # map configuration certificat
+        services = dict()
+        for c in configurations:
+            try:
+                nom = c['name']
+                services[nom] = c
+            except KeyError:
+                pass
+
+        return services
+
+    async def get_configuration_certificats(self) -> dict:
+        path_configuration = self._etat_instance.configuration.path_configuration
+        path_configuration_docker = path.join(path_configuration, 'docker')
+        configurations = await charger_configuration_docker(path_configuration_docker, CONFIG_MODULES_PROTEGES)
+
+        # map configuration certificat
+        config_certificats = dict()
+        for c in configurations:
+            try:
+                certificat = c['certificat']
+                nom = c['name']
+                config_certificats[nom] = certificat
+            except KeyError:
+                pass
+
+        return config_certificats
+
+    async def get_configuration_passwords(self) -> list:
+        path_configuration = self._etat_instance.configuration.path_configuration
+        path_configuration_docker = path.join(path_configuration, 'docker')
+        configurations = await charger_configuration_docker(path_configuration_docker, CONFIG_MODULES_PROTEGES)
+
+        # map configuration certificat
+        liste_noms_passwords = list()
+        for c in configurations:
+            try:
+                p = c['passwords']
+                liste_noms_passwords.extend(p)
+            except KeyError:
+                pass
+
+        return liste_noms_passwords
+
+    async def docker_initialisation(self):
+        self.__logger.debug("docker_initialisation debut")
+        await self._etat_docker.initialiser_docker()
+        self.__logger.debug("docker_initialisation fin")
+
+    async def entretien_services(self):
+        self.__logger.debug("entretien_services debut")
+        services = await self.get_configuration_services()
+        await self._etat_docker.entretien_services(services)
+        self.__logger.debug("entretien_services fin")
+
+
+class InstanceInstallation(InstanceAbstract):
+
+    def __init__(self):
+        super().__init__()
+        self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        self._event_stop: Optional[Event] = None
+        self._etat_instance: Optional[EtatInstance] = None
+        self._etat_docker: Optional[EtatDockerInstanceSync] = None
+
+        self.__event_entretien: Optional[Event] = None
+
+    async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
+        self.__logger.info("Setup InstanceInstallation")
+        self.__event_entretien = Event()
+        await super().setup(etat_instance, etat_docker)
+
+    async def declencher_run(self, etat_instance: Optional[EtatInstance]):
+        """
+        Declence immediatement l'execution de l'entretien. Utile lors de changement de configuration.
+        :return:
+        """
+        pass
+
+    async def run(self):
+        self.__logger.info("run()")
+        while self._event_stop.is_set() is False:
+            self.__logger.debug("run() debut execution cycle")
+
+            try:
+                self.__logger.debug("run() fin execution cycle")
+                await asyncio.wait_for(self.__event_entretien.wait(), 30)
+                self.__event_entretien.clear()
+            except TimeoutError:
+                pass
+        self.__logger.info("Fin run()")
+
+    def get_config_modules(self) -> list:
+        return CONFIG_MODULES_INSTALLATION
+
+
+class InstanceProtegee(InstanceAbstract):
+
+    def __init__(self):
+        super().__init__()
+        self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
 
         self.__taches_entretien = [
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_catalogues),
@@ -77,29 +221,22 @@ class InstanceProtegee:
 
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
         self.__logger.info("Setup InstanceProtegee")
-        self.__event_stop = Event()
-        self.__etat_instance = etat_instance
-        self.__etat_docker = etat_docker
 
         self.__event_entretien = Event()
         self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
 
-        self.__entretien_nginx = EntretienNginx(self.__etat_instance)
-        self.__entretien_rabbitmq = EntretienRabbitMq(self.__etat_instance)
+        self.__entretien_nginx = EntretienNginx(self._etat_instance)
+        self.__entretien_rabbitmq = EntretienRabbitMq(self._etat_instance)
 
-        # Ajouter listener de changement de configuration. Demarre l'execution des taches d'entretien/installation.
-        self.__etat_instance.ajouter_listener(self.declencher_run)
-
-    async def fermer(self):
-        self.__event_stop.set()
+        await super().setup(etat_instance, etat_docker)
 
     async def entretien_catalogues(self):
         if self.__setup_catalogues_complete is False:
             self.setup_catalogues()
 
     def setup_catalogues(self):
-        path_configuration = self.__etat_instance.configuration.path_configuration
+        path_configuration = self._etat_instance.configuration.path_configuration
         path_docker_catalogues = path.join(path_configuration, 'docker')
         makedirs(path_docker_catalogues, 0o750, exist_ok=True)
 
@@ -129,7 +266,7 @@ class InstanceProtegee:
 
     async def run(self):
         self.__logger.info("run()")
-        while self.__event_stop.is_set() is False:
+        while self._event_stop.is_set() is False:
             self.__logger.debug("run() debut execution cycle")
 
             for tache in self.__taches_entretien:
@@ -146,64 +283,10 @@ class InstanceProtegee:
                 pass
         self.__logger.info("Fin run()")
 
-    async def get_configuration_services(self) -> dict:
-        path_configuration = self.__etat_instance.configuration.path_configuration
-        path_configuration_docker = path.join(path_configuration, 'docker')
-        configurations = await charger_configuration_docker(path_configuration_docker, CONFIG_MODULES_PROTEGES)
-
-        # map configuration certificat
-        services = dict()
-        for c in configurations:
-            try:
-                nom = c['name']
-                services[nom] = c
-            except KeyError:
-                pass
-
-        return services
-
-    async def get_configuration_certificats(self) -> dict:
-        path_configuration = self.__etat_instance.configuration.path_configuration
-        path_configuration_docker = path.join(path_configuration, 'docker')
-        configurations = await charger_configuration_docker(path_configuration_docker, CONFIG_MODULES_PROTEGES)
-
-        # map configuration certificat
-        config_certificats = dict()
-        for c in configurations:
-            try:
-                certificat = c['certificat']
-                nom = c['name']
-                config_certificats[nom] = certificat
-            except KeyError:
-                pass
-
-        return config_certificats
-
-    async def get_configuration_passwords(self) -> list:
-        path_configuration = self.__etat_instance.configuration.path_configuration
-        path_configuration_docker = path.join(path_configuration, 'docker')
-        configurations = await charger_configuration_docker(path_configuration_docker, CONFIG_MODULES_PROTEGES)
-
-        # map configuration certificat
-        liste_noms_passwords = list()
-        for c in configurations:
-            try:
-                p = c['passwords']
-                liste_noms_passwords.extend(p)
-            except KeyError:
-                pass
-
-        return liste_noms_passwords
-
-    async def docker_initialisation(self):
-        self.__logger.debug("docker_initialisation debut")
-        await self.__etat_docker.initialiser_docker()
-        self.__logger.debug("docker_initialisation fin")
-
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")
         configuration = await self.get_configuration_certificats()
-        await generer_certificats_modules(self.__client_session, self.__etat_instance, self.__etat_docker,
+        await generer_certificats_modules(self.__client_session, self._etat_instance, self._etat_docker,
                                           configuration)
         self.__logger.debug("entretien_certificats fin")
         self.__event_setup_initial_certificats.set()
@@ -211,7 +294,7 @@ class InstanceProtegee:
     async def entretien_passwords(self):
         self.__logger.debug("entretien_passwords debut")
         liste_noms_passwords = await self.get_configuration_passwords()
-        await generer_passwords(self.__etat_instance, self.__etat_docker, liste_noms_passwords)
+        await generer_passwords(self._etat_instance, self._etat_docker, liste_noms_passwords)
         self.__logger.debug("entretien_passwords fin")
         self.__event_setup_initial_passwords.set()
 
@@ -219,10 +302,8 @@ class InstanceProtegee:
         self.__logger.debug("entretien_services attente certificats et passwords")
         await asyncio.wait_for(self.__event_setup_initial_certificats.wait(), 50)
         await asyncio.wait_for(self.__event_setup_initial_passwords.wait(), 10)
-        self.__logger.debug("entretien_services debut")
-        services = await self.get_configuration_services()
-        await self.__etat_docker.entretien_services(services)
-        self.__logger.debug("entretien_services fin")
+
+        await super().entretien_services()
 
     async def entretien_nginx(self):
         if self.__entretien_nginx:
@@ -231,6 +312,9 @@ class InstanceProtegee:
     async def entretien_mq(self):
         if self.__entretien_rabbitmq:
             await self.__entretien_rabbitmq.entretien()
+
+    def get_config_modules(self) -> list:
+        return CONFIG_MODULES_PROTEGES
 
 
 async def charger_configuration_docker(path_configuration: str, fichiers: list) -> list:

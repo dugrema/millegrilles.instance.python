@@ -24,16 +24,23 @@ class EtatDockerInstanceSync:
 
         self.__etat_instance.ajouter_listener(self.callback_changement_configuration)
 
+        self.__docker_initialise = False
+
     async def callback_changement_configuration(self, etat_instance: EtatInstance):
         self.__logger.info("callback_changement_configuration - Reload configuration")
         await self.verifier_config_instance()
 
     async def entretien(self, stop_event: Event):
         while stop_event.is_set() is False:
-            self.__logger.debug("Debut Entretien EtatDockerInstanceSync")
-            await self.verifier_config_instance()
-            await self.verifier_date_certificats()
-            self.__logger.debug("Fin Entretien EtatDockerInstanceSync")
+
+            if self.__docker_initialise is False:
+                await self.initialiser_docker()
+
+            if self.__docker_initialise is True:
+                self.__logger.debug("Debut Entretien EtatDockerInstanceSync")
+                await self.verifier_config_instance()
+                await self.verifier_date_certificats()
+                self.__logger.debug("Fin Entretien EtatDockerInstanceSync")
 
             try:
                 await asyncio.wait_for(stop_event.wait(), 60)
@@ -174,9 +181,21 @@ class EtatDockerInstanceSync:
             self.__logger.debug("Nouveau password, reconfigurer module %s" % nom_module)
 
     async def initialiser_docker(self):
+        commande_initialiser_swarm = DockerCommandes.CommandeCreerSwarm(aio=True)
+        self.__docker_handler.ajouter_commande(commande_initialiser_swarm)
+        try:
+            await commande_initialiser_swarm.attendre()
+        except APIError as e:
+            if e.status_code == 503:
+                pass  # OK, deja initialise
+            else:
+                raise e
+
         commande_initialiser_network = DockerCommandes.CommandeCreerNetworkOverlay('millegrille_net', aio=True)
         self.__docker_handler.ajouter_commande(commande_initialiser_network)
         await commande_initialiser_network.attendre()
+
+        self.__docker_initialise = True
 
     async def entretien_services(self, services: dict):
         commande_liste_services = DockerCommandes.CommandeListerServices(aio=True)

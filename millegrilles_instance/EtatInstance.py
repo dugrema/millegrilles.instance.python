@@ -23,6 +23,9 @@ class EtatInstance:
         self.__nom_domaine: Optional[str] = None
         self.__password_mq: Optional[str] = None
 
+        self.__docker_present = False
+        self.__docker_actif = False
+
         # Liste de listeners qui sont appeles sur changement de configuration
         self.__config_listeners = list()
         self.__formatteur_message: Optional[FormatteurMessageMilleGrilles] = None
@@ -64,8 +67,25 @@ class EtatInstance:
     def ajouter_listener(self, callback_async):
         self.__config_listeners.append(callback_async)
 
+    def retirer_listener(self, callback_async):
+        self.__config_listeners.remove(callback_async)
+
     def etat(self):
         pass
+
+    def set_docker_present(self, etat: bool):
+        self.__docker_present = etat
+
+    @property
+    def docker_present(self):
+        return self.__docker_present
+
+    def set_docker_actif(self, etat: bool):
+        self.__docker_actif = etat
+
+    @property
+    def docker_actif(self):
+        return self.__docker_actif
 
     @property
     def instance_id(self):

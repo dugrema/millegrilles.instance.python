@@ -123,7 +123,8 @@ class ApplicationInstance:
     async def demarrer_client_docker(self):
         if self.__docker_handler is None:
             docker_state = DockerState()
-            if docker_state.docker_actif() is True:
+            self.__etat_instance.set_docker_present(docker_state.docker_present())
+            if docker_state.docker_present() is True:
                 self.__docker_handler = DockerHandler(docker_state)
                 self.__docker_handler.start()
                 self.__docker_etat = EtatDockerInstanceSync(self.__etat_instance, self.__docker_handler)
