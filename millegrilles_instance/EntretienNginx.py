@@ -12,9 +12,10 @@ from millegrilles_messages.messages import Constantes
 
 class EntretienNginx:
 
-    def __init__(self, etat_instance):
+    def __init__(self, etat_instance, etat_docker):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__etat_instance = etat_instance
+        self.__etat_docker = etat_docker
 
         self.__passwd_mq: Optional[str] = None
         self.__session: Optional[aiohttp.ClientSession] = None
@@ -101,6 +102,7 @@ class EntretienNginx:
             'hostname': 'mg-dev5',
             'instance_url': 'https://mg-dev5:2443',
             'certissuer_url': 'http://mg-dev5:2080',
+            'midcompte_url': 'https://midcompte:2444',
             'MQ_HOST': 'mq',
         }
 

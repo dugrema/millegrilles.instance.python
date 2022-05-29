@@ -251,7 +251,7 @@ class InstanceProtegee(InstanceAbstract):
         self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
 
-        self.__entretien_nginx = EntretienNginx(etat_instance)
+        self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
         self.__entretien_rabbitmq = EntretienRabbitMq(etat_instance)
 
         await super().setup(etat_instance, etat_docker)
@@ -263,6 +263,9 @@ class InstanceProtegee(InstanceAbstract):
         """
         self.__event_setup_initial_certificats.clear()
         self.__event_setup_initial_passwords.clear()
+
+        await self._etat_docker.redemarrer_nginx()
+
         await super().declencher_run(etat_instance)
 
     async def entretien_certificats(self):
