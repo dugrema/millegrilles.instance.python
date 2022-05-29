@@ -45,6 +45,7 @@ class ConfigurationInstance:
         self.instance_ca_pem_path = '/var/opt/millegrilles/configuration/pki.millegrille.cert'
         self.instance_securite_path = '/var/opt/millegrilles/configuration/securite.txt'
         self.instance_password_mq_path = '/var/opt/millegrilles/secrets/passwd.mqadmin.txt'
+        self.redis_key_path = '/var/opt/millegrilles/secrets/passwd.redis.txt'
 
         self.docker_actif = False
 

@@ -15,12 +15,15 @@ from asyncio import Event, TimeoutError
 
 from millegrilles_messages.docker.Entretien import TacheEntretien
 from millegrilles_messages.messages import Constantes
-from millegrilles_instance.EtatInstance import EtatInstance
-from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.certificats.Generes import CleCsrGenere
+from millegrilles_messages.messages.MessagesThread import MessagesThread
+from millegrilles_messages.messages.MessagesModule import RessourcesConsommation
+from millegrilles_instance.EtatInstance import EtatInstance
+from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance.EntretienNginx import EntretienNginx
 from millegrilles_instance.EntretienRabbitMq import EntretienRabbitMq
+from millegrilles_instance.RabbitMQDao import RabbitMQDao
 
 logger = logging.getLogger(__name__)
 
@@ -189,6 +192,24 @@ class InstanceAbstract:
             setup_catalogues(self._etat_instance)
             self.__setup_catalogues_complete = True
 
+    async def start_mq(self):
+        stop_event = self._event_stop
+
+        # reply_res = RessourcesConsommation(callback_reply_q)
+        # q1 = RessourcesConsommation(callback_q_1, 'CoreBackup/tada')
+        # q1.ajouter_rk('3.protege', 'commande.CoreBackup.m1')
+        # q1.ajouter_rk('2.prive', 'commande.CoreBackup.m2')
+
+        messages_thread = MessagesThread(stop_event)
+        # messages_thread.set_reply_ressources(reply_res)
+        # messages_thread.ajouter_consumer(q1)
+
+        # Demarrer traitement messages
+        await messages_thread.start_async()
+        fut_run = messages_thread.run_async()
+
+        return fut_run
+
 
 class InstanceInstallation(InstanceAbstract):
 
@@ -242,6 +263,8 @@ class InstanceProtegee(InstanceAbstract):
         self.__entretien_nginx: Optional[EntretienNginx] = None
         self.__entretien_rabbitmq: Optional[EntretienRabbitMq] = None
 
+        self.__rabbitmq_dao: Optional[RabbitMQDao] = None
+
         self.__setup_catalogues_complete = False
 
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
@@ -257,6 +280,8 @@ class InstanceProtegee(InstanceAbstract):
 
         await super().setup(etat_instance, etat_docker)
 
+        self.__rabbitmq_dao = RabbitMQDao(self._event_stop, self._etat_instance)
+
     async def declencher_run(self, etat_instance: Optional[EtatInstance]):
         """
         Declence immediatement l'execution de l'entretien. Utile lors de changement de configuration.
@@ -268,6 +293,28 @@ class InstanceProtegee(InstanceAbstract):
         await self._etat_docker.redemarrer_nginx()
 
         await super().declencher_run(etat_instance)
+
+    async def run(self):
+        self.__logger.info("run()")
+
+        tasks = [
+            asyncio.create_task(super().run()),
+            asyncio.create_task(self.__rabbitmq_dao.run())
+        ]
+
+        # Execution de la loop avec toutes les tasks
+        await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
+
+    async def thread_mq(self):
+        self.__logger.info("Debut thread_mq")
+        while self._event_stop.is_set() is False:
+            # Tenter de connecter a MQ
+            
+
+            self.__logger.info("Attendre pour redemarrer connexion MQ")
+            await asyncio.wait_for(self._event_stop.wait(), 30)
+
+        self.__logger.info("Fin thread_mq")
 
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")
