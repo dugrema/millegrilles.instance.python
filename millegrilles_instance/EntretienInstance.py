@@ -56,7 +56,7 @@ CONFIG_MODULES_PROTEGES = [
     'docker.mongo.json',
     'docker.midcompte.json',
     'docker.core.json',
-    # 'docker.coupdoeil.json',
+    'docker.coupdoeil.json',
 ]
 
 

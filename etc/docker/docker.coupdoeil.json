@@ -1,47 +1,50 @@
 {
   "name": "coupdoeil",
-  "certificat_compte": "pki.coupdoeil.cert",
-  "env": [
-    "MG_MQ_URL=amqps://mq:5673",
-    "MG_REDIS_HOST=redis",
-    "MG_REDIS_PORT=6379",
-    "MG_MQ_CERTFILE=/run/secrets/cert.pem",
-    "MG_MQ_KEYFILE=/run/secrets/key.pem",
-    "MG_MQ_CAFILE=/run/secrets/millegrille.cert.pem",
-    "WEB_CERT=/run/secrets/cert.pem",
-    "WEB_KEY=/run/secrets/key.pem",
-    "SERVER_TYPE=spdy",
-    "HOST=${HOSTNAME_DOMAINE}",
-    "PORT=443",
-    "MG_CONSIGNATION_HTTP=https://fichiers"
-  ],
+  "image": "docker.maceroc.com/millegrilles_web_coupdoeil:2022.3.0",
+  "certificat": {
+    "roles": ["coupdoeil"],
+    "exchanges": ["3.protege", "2.prive", "1.public"],
+    "dns": {"localhost": true, "hostnames": ["coupdoeil"], "domain": true}
+  },
+  "env": {
+    "MG_MQ_URL": "amqps://mq:5673",
+    "MG_REDIS_HOST": "redis",
+    "MG_REDIS_PORT": "6379",
+    "MG_MQ_CERTFILE": "/run/secrets/cert.pem",
+    "MG_MQ_KEYFILE": "/run/secrets/key.pem",
+    "MG_MQ_CAFILE": "/run/secrets/millegrille.cert.pem",
+    "WEB_CERT": "/run/secrets/cert.pem",
+    "WEB_KEY": "/run/secrets/key.pem",
+    "SERVER_TYPE": "spdy",
+    "HOST": "${HOSTNAME}",
+    "PORT": "443"
+  },
   "constraints": [
     "node.labels.millegrilles.coupdoeil == true"
   ],
   "configs": [
     {
-      "name": "pki.coupdoeil.cert",
+      "name": "pki.coupdoeil",
+      "current": "cert",
       "filename": "/run/secrets/cert.pem"
     },
     {
-      "name": "pki.millegrille.cert",
+      "name": "pki.millegrille",
       "filename": "/run/secrets/millegrille.cert.pem"
     }
   ],
   "secrets": [
     {
-      "match_config": true,
-      "name": "pki.coupdoeil.key",
+      "name": "pki.coupdoeil",
+      "current": "key",
       "filename": "key.pem"
     },
     {
       "name": "passwd.redis",
+      "current": "password",
       "filename": "passwd.redis.txt"
     }
   ],
-  "container_labels": {
-    "ipv6.mapper.network": "mg_ipv6"
-  },
   "networks": [{
     "target": "millegrille_net",
     "aliases": ["coupdoeil"]
@@ -55,6 +58,11 @@
   "resources": {
     "cpu_limit": 1000000000,
     "mem_limit": 209715200
+  },
+  "restart_policy": {
+    "condition": "on-failure",
+    "delay": 5000000000,
+    "max_attempts": 1
   },
   "mode": {
     "mode": "replicated",
