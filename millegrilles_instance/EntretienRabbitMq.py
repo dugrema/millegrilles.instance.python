@@ -27,24 +27,25 @@ class EntretienRabbitMq:
         self.__logger.debug("entretien debut")
 
         try:
-            if self.__session is None:
-                await self.creer_session()
-
-            if self.__session is not None:
-                try:
-                    path_alarm = path.join(self.__url_mq, 'api/health/checks/alarms')
-                    async with self.__session.get(path_alarm, ssl=self.__sslcontext) as reponse:
-                        pass
-                    self.__logger.debug("Reponse MQ : %s" % reponse)
-
-                    if reponse.status == 200:
-                        pass  # OK
-                    elif reponse.status == 401:
-                        self.__logger.warning("Erreur MQ https, access denied (admin setup incomplet)")
-                    elif reponse.status == 503:
-                        self.__logger.warning("Erreur MQ https, healthcheck echec")
-                except ClientConnectorError:
-                    self.__logger.exception("MQ n'est pas accessible")
+            pass
+            # if self.__session is None:
+            #     await self.creer_session()
+            #
+            # if self.__session is not None:
+            #     try:
+            #         path_alarm = path.join(self.__url_mq, 'api/health/checks/alarms')
+            #         async with self.__session.get(path_alarm, ssl=self.__sslcontext) as reponse:
+            #             pass
+            #         self.__logger.debug("Reponse MQ : %s" % reponse)
+            #
+            #         if reponse.status == 200:
+            #             pass  # OK
+            #         elif reponse.status == 401:
+            #             self.__logger.warning("Erreur MQ https, access denied (admin setup incomplet)")
+            #         elif reponse.status == 503:
+            #             self.__logger.warning("Erreur MQ https, healthcheck echec")
+            #     except ClientConnectorError:
+            #         self.__logger.exception("MQ n'est pas accessible")
 
         except Exception as e:
             self.__logger.exception("Erreur verification RabbitMQ https")

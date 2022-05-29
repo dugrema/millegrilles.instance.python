@@ -79,7 +79,12 @@
     "cpu_limit": 1000000000,
     "mem_limit": 209715200
   },
-  "mode": {
+  "restart_policy": {
+    "condition": "on-failure",
+    "delay": 5000000000,
+    "max_attempts": 1
+  },
+ "mode": {
     "mode": "replicated",
     "replicas": 1
   }

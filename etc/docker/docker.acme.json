@@ -1,11 +1,10 @@
 {
   "name": "acme",
-  "args": [
-    "daemon"
-  ],
+  "image": "docker.maceroc.com/mg_acme:3095_3",
+  "args": ["daemon"],
   "mounts": [
-    "acmesh-data:/acme.sh:rw",
-    "${NGINX_HTML_VOLUME}:/usr/share/nginx/html:rw"
+    {"source": "acmesh-data", "target":  "/acme.sh", "type": "volume"},
+    {"source": "/var/opt/millegrilles/nginx/html", "target":  "/usr/share/nginx/html", "type": "bind"}
   ],
   "constraints": [
     "node.labels.millegrilles.nginx == true"
@@ -15,8 +14,9 @@
     "mem_limit": 10000000
   },
   "restart_policy": {
-    "condition": "any",
-    "delay": 5000000000
+    "condition": "on-failure",
+    "delay": 5000000000,
+    "max_attempts": 1
   },
   "mode": {
     "mode": "replicated",
