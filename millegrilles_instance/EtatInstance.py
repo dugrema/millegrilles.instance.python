@@ -1,5 +1,6 @@
 import logging
 
+from asyncio import Event
 from typing import Optional
 
 from millegrilles_instance.Certificats import preparer_certificats_web
@@ -29,6 +30,8 @@ class EtatInstance:
         # Liste de listeners qui sont appeles sur changement de configuration
         self.__config_listeners = list()
         self.__formatteur_message: Optional[FormatteurMessageMilleGrilles] = None
+
+        self.__stop_event: Optional[Event] = None
 
     async def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
@@ -122,6 +125,15 @@ class EtatInstance:
     @property
     def formatteur_message(self):
         return self.__formatteur_message
+
+    def set_stop_event(self, stop_event: Event):
+        self.__stop_event = stop_event
+
+    async def stop(self):
+        if self.__stop_event is not None:
+            self.__stop_event.set()
+        else:
+            raise Exception("Stop event non disponible")
 
 
 def load_fichier_config(path_fichier: str) -> Optional[str]:

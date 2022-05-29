@@ -4,7 +4,7 @@ import logging
 
 from aiohttp import web
 from asyncio import Event
-from asyncio.exceptions import TimeoutError
+from asyncio.exceptions import TimeoutError, CancelledError
 from os import path
 from ssl import SSLContext
 from typing import Optional
@@ -26,12 +26,14 @@ class WebServer:
         self.__configuration = ConfigurationWeb()
         self.__ssl_context: Optional[SSLContext] = None
 
-        self.__site_web_443 = None
+        self.__webrunner: Optional[WebRunner] = None
+        self.__webrunner_443: Optional[WebRunner] = None
 
     def setup(self, configuration: Optional[dict] = None):
         self._charger_configuration(configuration)
         self._preparer_routes()
-        self._charger_ssl()
+
+        self.__webrunner = WebRunner(self.__etat_instance, self.__configuration, self.__app)
 
     def _charger_configuration(self, configuration: Optional[dict] = None):
         self.__configuration.parse_config(configuration)
@@ -51,11 +53,6 @@ class WebServer:
             web.get('/installation', self.installation_index_handler),
             web.static('/installation', self.__configuration.path_app_installation),
         ])
-
-    def _charger_ssl(self):
-        self.__ssl_context = SSLContext()
-        self.__ssl_context.load_cert_chain(self.__configuration.web_cert_pem_path,
-                                           self.__configuration.web_key_pem_path)
 
     async def rediriger_root(self, request):
         return web.HTTPTemporaryRedirect(location='/installation')
@@ -98,10 +95,20 @@ class WebServer:
     async def handle_installer(self, request):
         try:
             resultat = await installer_instance(self.__etat_instance, request)
-            if self.__site_web_443 is not None:
+
+            if self.__webrunner_443 is not None:
                 self.__logger.info("Desactiver server instance sur port 443 pour demarrer nginx")
-                await self.__site_web_443.shutdown()
-                self.__site_web_443 = None
+
+                self.__logger.warning("Installation, redemarrer (peut pas arreter port 443 pour nginx)")
+                self.__stop_event.set()
+                await self.__etat_instance.stop()
+
+                # try:
+                #     await self.__webrunner_443.stop()
+                # except CancelledError:
+                #     self.__logger.warning("webrunner port 443 cancelle")
+                # self.__webrunner_443 = None
+
             return resultat
         except:
             self.__logger.exception("Erreur installation")
@@ -116,23 +123,18 @@ class WebServer:
         else:
             self.__stop_event = Event()
 
-        runner = web.AppRunner(self.__app)
-        await runner.setup()
-        port = self.__configuration.port
         # Configuration pour site sur port 443 (utilise si nginx n'est pas configure)
         niveau_securite_initial = self.__etat_instance.niveau_securite
         if niveau_securite_initial != Constantes.SECURITE_PROTEGE:
-            self.__site_web_443 = web.AppRunner(self.__app)
-            await self.__site_web_443.setup()
-        site = web.TCPSite(runner, '0.0.0.0', port, ssl_context=self.__ssl_context)
+            self.__webrunner_443 = WebRunner(self.__etat_instance, self.__configuration, self.__app, port=443)
+
         try:
-            if self.__site_web_443 is not None:
+            if self.__webrunner_443 is not None:
                 try:
-                    site_443 = web.TCPSite(self.__site_web_443, '0.0.0.0', 443, ssl_context=self.__ssl_context)
-                    await site_443.start()
+                    await self.__webrunner_443.start()
                 except OSError:
                     self.__logger.info("Port 443 non disponible (probablement nginx - OK)")
-            await site.start()
+            await self.__webrunner.start()
             self.__logger.info("Site demarre")
 
             while not self.__stop_event.is_set():
@@ -141,9 +143,50 @@ class WebServer:
                     await asyncio.wait_for(self.__stop_event.wait(), 30)
                 except TimeoutError:
                     pass
+
         finally:
             self.__logger.info("Site arrete")
-            await runner.cleanup()
+            # await self.__webrunner.stop()
+
+
+class WebRunner:
+
+    def __init__(self, etat_instance: EtatInstance, configuration: ConfigurationWeb, app, port: Optional[int] = None):
+        self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        self._etat_instance = etat_instance
+        self._configuration = configuration
+        self._runner = web.AppRunner(app)
+
+        if port is not None:
+            self._port = port
+        else:
+            self._port = self._configuration.port
+
+        self.__site: Optional[web.TCPSite] = None
+
+    async def start(self):
+        await self._runner.setup()
+        ssl_context = self.charger_ssl()
+        self.__site = web.TCPSite(self._runner, '0.0.0.0', self._port, ssl_context=ssl_context)
+        await self.__site.start()
+
+    async def stop(self):
+        raise NotImplementedError()
+        # try:
+        #     await self.__site.stop()
+        # except CancelledError:
+        #     self.__logger.warning('site.stop() %s cancelled' % self._port)
+
+        # try:
+        #     await asyncio.wait_for(self._runner.cleanup(), 1)
+        # except CancelledError:
+        #     self.__logger.warning('runner.cleanup() %s cancelled' % self._port)
+
+    def charger_ssl(self):
+        ssl_context = SSLContext()
+        configuration = self._configuration
+        ssl_context.load_cert_chain(configuration.web_cert_pem_path, configuration.web_key_pem_path)
+        return ssl_context
 
 
 def main():

@@ -185,6 +185,7 @@ class ApplicationInstance:
         """
         self.__loop = asyncio.get_event_loop()
         self._stop_event = Event()
+        self.__etat_instance.set_stop_event(self._stop_event)
 
         tasks = [
             asyncio.create_task(self.entretien()),

@@ -321,4 +321,11 @@ class EtatDockerInstanceSync:
         self.__logger.info("Redemarrer nginx pour charger configuration maj")
         commande = DockerCommandes.CommandeRedemarrerService('nginx', aio=True)
         self.__docker_handler.ajouter_commande(commande)
-        await commande.attendre()
+        try:
+            await commande.attendre()
+        except APIError as e:
+            if e.status_code == 404:
+                pass  # Nginx n'est pas encore installe
+            else:
+                raise e
+
