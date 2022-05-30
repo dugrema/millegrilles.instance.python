@@ -20,7 +20,7 @@
     "MG_REDIS_URL": "rediss://client_rust@redis:6379#insecure",
     "MG_REDIS_PASSWORD_FILE": "/run/secrets/passwd.redis.txt",
     "RUST_LOG": "warn",
-    "MG_CERTISSUER_URL": "http://certissuer:8380"
+    "MG_CERTISSUER_URL": "http://certissuer:2080"
   },
   "constraints": [
     "node.labels.millegrilles.core == true",
