@@ -29,5 +29,10 @@ CERTISSUER_PATH = 'CERTISSUER_PATH'
 
 # Commandes supportees par l'instance (MQ)
 COMMANDE_TRANSMETTRE_CATALOGUES = 'transmettreCatalogues'
+COMMANDE_APPLICATION_INSTALLER = 'installerApplication'
+COMMANDE_APPLICATION_SUPPRIMER = 'supprimerApplication'
+COMMANDE_APPLICATION_ARRETER = 'arreterApplication'
+COMMANDE_APPLICATION_DEMARRER = 'demarrerApplication'
+
 
 EVENEMENT_PRESENCE_INSTANCE = 'presence'

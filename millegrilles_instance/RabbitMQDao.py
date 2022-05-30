@@ -12,6 +12,7 @@ from millegrilles_messages.messages.MessagesThread import MessagesThread
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance.Commandes import CommandHandler
 from millegrilles_messages.messages.MessagesModule import MessageWrapper
+from millegrilles_instance.EntretienApplications import GestionnaireApplications
 
 
 class MqThread:
@@ -45,8 +46,18 @@ class MqThread:
         self.__messages_thread = messages_thread
 
     def creer_ressources_consommation(self, messages_thread: MessagesThread):
+        instance_id = self.__etat_instance.instance_id
+        niveau_securite = self.__etat_instance.niveau_securite
         reply_res = RessourcesConsommation(self.callback_reply_q)
-        reply_res.ajouter_rk('3.protege', 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
+        reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
+        reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
+            instance_id, ConstantesInstance.COMMANDE_APPLICATION_INSTALLER))
+        reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
+            instance_id, ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER))
+        reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
+            instance_id, ConstantesInstance.COMMANDE_APPLICATION_DEMARRER))
+        reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
+            instance_id, ConstantesInstance.COMMANDE_APPLICATION_ARRETER))
 
         # q1 = RessourcesConsommation(callback_q_1, 'CoreBackup/tada')
 
@@ -95,14 +106,15 @@ class MqThread:
 class RabbitMQDao:
 
     def __init__(self, event_stop: Event, entretien_instance, etat_instance: EtatInstance,
-                 etat_docker: EtatDockerInstanceSync):
+                 etat_docker: EtatDockerInstanceSync, gestionnaire_applications: GestionnaireApplications):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__event_stop = event_stop
         self.__entretien_instance = entretien_instance
         self.__etat_instance = etat_instance
         self.__etat_docker = etat_docker
 
-        self.__command_handler = CommandHandler(entretien_instance, etat_instance, etat_docker)
+        self.__command_handler = CommandHandler(entretien_instance, etat_instance, etat_docker,
+                                                gestionnaire_applications)
 
         self.__mq_host: Optional[str] = None
         self.__producer: Optional[MessageProducerFormatteur] = None

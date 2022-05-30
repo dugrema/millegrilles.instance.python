@@ -18,7 +18,6 @@ from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages.MessagesThread import MessagesThread
-from millegrilles_messages.messages.MessagesModule import RessourcesConsommation
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
@@ -28,6 +27,7 @@ from millegrilles_instance.RabbitMQDao import RabbitMQDao
 from millegrilles_instance.EntretienCatalogues import EntretienCatalogues
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 from millegrilles_instance.CommandesDocker import CommandeListeTopologie
+from millegrilles_instance.EntretienApplications import GestionnaireApplications
 
 logger = logging.getLogger(__name__)
 
@@ -75,6 +75,7 @@ class InstanceAbstract:
         self._event_stop: Optional[Event] = None
         self._etat_instance: Optional[EtatInstance] = None
         self._etat_docker: Optional[EtatDockerInstanceSync] = None
+        self._gestionnaire_applications: Optional[GestionnaireApplications] = None
 
         self._event_entretien: Optional[Event] = None
         self._taches_entretien = TachesEntretienType()
@@ -90,6 +91,8 @@ class InstanceAbstract:
 
         # Ajouter listener de changement de configuration. Demarre l'execution des taches d'entretien/installation.
         self._etat_instance.ajouter_listener(self.declencher_run)
+
+        self._gestionnaire_applications = GestionnaireApplications(etat_instance, etat_docker)
 
         await etat_docker.initialiser_docker()
 
@@ -196,6 +199,10 @@ class InstanceAbstract:
             setup_catalogues(self._etat_instance)
             self.__setup_catalogues_complete = True
 
+    async def entretien_applications(self):
+        if self._gestionnaire_applications is not None:
+            await self._gestionnaire_applications.entretien()
+
     async def start_mq(self):
         stop_event = self._event_stop
 
@@ -274,6 +281,7 @@ class InstanceProtegee(InstanceAbstract):
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_nginx),
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_mq),
             TacheEntretien(datetime.timedelta(seconds=120), self.entretien_topologie),
+            TacheEntretien(datetime.timedelta(seconds=30), self.entretien_applications),
         ]
         self._taches_entretien.extend(taches_entretien)
 
@@ -303,7 +311,8 @@ class InstanceProtegee(InstanceAbstract):
 
         await super().setup(etat_instance, etat_docker)
 
-        self.__rabbitmq_dao = RabbitMQDao(self._event_stop, self, self._etat_instance, self._etat_docker)
+        self.__rabbitmq_dao = RabbitMQDao(self._event_stop, self, self._etat_instance, self._etat_docker,
+                                          self._gestionnaire_applications)
 
     async def declencher_run(self, etat_instance: Optional[EtatInstance]):
         """
