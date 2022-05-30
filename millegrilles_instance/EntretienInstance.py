@@ -550,4 +550,50 @@ def setup_catalogues(etat_instance: EtatInstance):
 
 
 def parse_topologie_docker(info: dict) -> dict:
-    pass
+
+    info_docker = info.copy()
+
+    # try:
+    #     configuration_acme = json.loads(gestionnaire_docker.charger_config('acme.configuration'))
+    #     dict_infomillegrille['domaine'] = configuration_acme['domain']
+    # except IndexError:
+    #     pass
+    #
+    # try:
+    #     securite = gestionnaire_docker.charger_config(ConstantesServiceMonitor.DOCKER_LIBVAL_CONFIG_SECURITE).decode(
+    #         'utf-8').strip()
+    #     dict_infomillegrille['securite'] = securite
+    # except IndexError:
+    #     pass
+    #
+    # try:
+    #     hostname_onion = gestionnaire_docker.get_nginx_onionize_hostname()
+    #     dict_infomillegrille['onion'] = hostname_onion
+    # except:
+    #     pass
+    #
+    # # Verifier si on a le certificat de monitor - indique que le noeud est installe
+    # try:
+    #     monitor_cert = gestionnaire_docker.charger_config_recente('pki.monitor.cert')
+    #     monitor_cert = b64decode(monitor_cert['config'].attrs['Spec']['Data']).decode('utf-8')
+    #     dict_infomillegrille['certificat'] = monitor_cert
+    #     ca_cert = gestionnaire_docker.charger_config_recente('pki.millegrille.cert')
+    #     ca_cert = b64decode(ca_cert['config'].attrs['Spec']['Data']).decode('utf-8')
+    #     dict_infomillegrille['ca'] = ca_cert
+    # except (IndexError, AttributeError):
+    #     self.__logger.info("Certificat de monitor n'existe pas")
+    #
+    # if inclure_services:
+    #     dict_infomillegrille['services'] = gestionnaire_docker.get_liste_services()
+    #     dict_infomillegrille['containers'] = gestionnaire_docker.get_liste_containers()
+    #
+    # # Charger la liste des applications configurees (config app.cfg.*)
+    # apps = gestionnaire_docker.charger_configs('app.cfg.')
+    # config_apps = list()
+    # for app in apps:
+    #     app_config = json.loads(app['configuration'].decode('utf-8'))
+    #     config_apps.append({'nom': app_config['nom'], 'version': app_config['version']})
+    #
+    # dict_infomillegrille['applications_configurees'] = config_apps
+
+    return info_docker

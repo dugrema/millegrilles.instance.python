@@ -62,6 +62,6 @@ class CommandHandler:
             commande = {"catalogue": app_transaction}
             await producer.executer_commande(commande, domaine=Constantes.DOMAINE_CORE_CATALOGUES,
                                              action='catalogueApplication', exchange=Constantes.SECURITE_PROTEGE,
-                                             nowait=False)
+                                             nowait=True)
 
         return {'ok': True}
