@@ -283,7 +283,7 @@ class InstanceProtegee(InstanceAbstract):
 
         await super().setup(etat_instance, etat_docker)
 
-        self.__rabbitmq_dao = RabbitMQDao(self._event_stop, self._etat_instance)
+        self.__rabbitmq_dao = RabbitMQDao(self._event_stop, self, self._etat_instance, self._etat_docker)
 
     async def declencher_run(self, etat_instance: Optional[EtatInstance]):
         """

@@ -9,14 +9,18 @@ from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesModule import RessourcesConsommation
 from millegrilles_messages.messages.MessagesThread import MessagesThread
+from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
+from millegrilles_instance.Commandes import CommandHandler
+from millegrilles_messages.messages.MessagesModule import MessageWrapper
 
 
 class MqThread:
 
-    def __init__(self, event_stop: Event, etat_instance: EtatInstance):
+    def __init__(self, event_stop: Event, etat_instance: EtatInstance, command_handler: CommandHandler):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__event_stop = event_stop
         self.__etat_instance = etat_instance
+        self.__command_handler = command_handler
 
         self.__mq_host: Optional[str] = None
         self.__messages_thread: Optional[MessagesThread] = None
@@ -71,21 +75,33 @@ class MqThread:
 
         self.__logger.info("Fin thread MessagesThread")
 
-    async def callback_reply_q(self, message, module_messages):
+    async def callback_reply_q(self, message: MessageWrapper, module_messages):
         self.__logger.debug("RabbitMQ nessage recu : %s" % message)
+        reponse = await self.__command_handler.executer_commande(message)
+
+        if reponse is not None:
+            reply_to = message.reply_to
+            correlation_id = message.correlation_id
+            producer = self.__messages_thread.get_producer()
+            await producer.repondre(reponse, reply_to, correlation_id)
 
 
 class RabbitMQDao:
 
-    def __init__(self, event_stop: Event, etat_instance: EtatInstance):
+    def __init__(self, event_stop: Event, entretien_instance, etat_instance: EtatInstance,
+                 etat_docker: EtatDockerInstanceSync):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__event_stop = event_stop
+        self.__entretien_instance = entretien_instance
         self.__etat_instance = etat_instance
+        self.__etat_docker = etat_docker
+
+        self.__command_handler = CommandHandler(entretien_instance, etat_instance, etat_docker)
 
         self.__mq_host: Optional[str] = None
 
     async def creer_thread(self):
-        return MqThread(self.__event_stop, self.__etat_instance)
+        return MqThread(self.__event_stop, self.__etat_instance, self.__command_handler)
 
     async def run(self):
 
