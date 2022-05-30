@@ -24,6 +24,7 @@ from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance.EntretienNginx import EntretienNginx
 from millegrilles_instance.EntretienRabbitMq import EntretienRabbitMq
 from millegrilles_instance.RabbitMQDao import RabbitMQDao
+from millegrilles_instance.EntretienCatalogues import EntretienCatalogues
 
 logger = logging.getLogger(__name__)
 
@@ -246,7 +247,7 @@ class InstanceProtegee(InstanceAbstract):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
 
         taches_entretien = [
-            TacheEntretien(datetime.timedelta(seconds=30), self.entretien_catalogues),
+            TacheEntretien(datetime.timedelta(minutes=60), self.entretien_catalogues),
             TacheEntretien(datetime.timedelta(days=1), self.docker_initialisation),
             TacheEntretien(datetime.timedelta(minutes=30), self.entretien_certificats),
             TacheEntretien(datetime.timedelta(minutes=360), self.entretien_passwords),
@@ -262,6 +263,7 @@ class InstanceProtegee(InstanceAbstract):
         self.__event_setup_initial_passwords: Optional[Event] = None
         self.__entretien_nginx: Optional[EntretienNginx] = None
         self.__entretien_rabbitmq: Optional[EntretienRabbitMq] = None
+        self.__entretien_catalogues: Optional[EntretienCatalogues] = None
 
         self.__rabbitmq_dao: Optional[RabbitMQDao] = None
 
@@ -277,6 +279,7 @@ class InstanceProtegee(InstanceAbstract):
 
         self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
         self.__entretien_rabbitmq = EntretienRabbitMq(etat_instance)
+        self.__entretien_catalogues = EntretienCatalogues(etat_instance)
 
         await super().setup(etat_instance, etat_docker)
 
@@ -315,6 +318,11 @@ class InstanceProtegee(InstanceAbstract):
             await asyncio.wait_for(self._event_stop.wait(), 30)
 
         self.__logger.info("Fin thread_mq")
+
+    async def entretien_catalogues(self):
+        # Tache de copier des fichiers .xz inclus localement pour coupdoeil
+        await self.__entretien_catalogues.entretien()
+        await super().entretien_catalogues()
 
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")
