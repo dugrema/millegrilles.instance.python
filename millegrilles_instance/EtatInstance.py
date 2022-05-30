@@ -3,6 +3,7 @@ import logging
 from asyncio import Event
 from typing import Optional
 
+from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Certificats import preparer_certificats_web
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_messages.IpUtils import get_ip, get_hostname
@@ -136,6 +137,13 @@ class EtatInstance:
     @property
     def hostname(self):
         return self.__hostname
+
+    @property
+    def mq_hostname(self):
+        if self.__niveau_securite == Constantes.SECURITE_PROTEGE:
+            return self.__hostname
+        else:
+            raise NotImplementedError('todo')
 
     @property
     def formatteur_message(self):

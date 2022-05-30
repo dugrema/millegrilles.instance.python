@@ -120,7 +120,8 @@ class RabbitMQDao:
 
             try:
                 # Toujours tenter de creer le compte sur MQ - la detection n'est pas au point a l'interne
-                await self.creer_compte_mq()
+                resultat_creer_compte = await self.creer_compte_mq()
+                self.__logger.info("Resultat creer compte MQ : %s" % resultat_creer_compte)
 
                 # coroutine principale d'execution MQ
                 mq_thread = await self.creer_thread()
@@ -152,7 +153,7 @@ class RabbitMQDao:
         # Le monitor peut etre trouve via quelques hostnames :
         #  nginx : de l'interne, est le proxy web qui est mappe vers le monitor
         #  mq_host : de l'exterieur, est le serveur mq qui est sur le meme swarm docker que nginx
-        hosts = ['nginx', self.__mq_host]
+        hosts = ['nginx', self.__mq_host, self.__etat_instance.mq_hostname]
         port = 444  # 443
         path = 'administration/ajouterCompte'
 
