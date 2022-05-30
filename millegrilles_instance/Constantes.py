@@ -29,3 +29,5 @@ CERTISSUER_PATH = 'CERTISSUER_PATH'
 
 # Commandes supportees par l'instance (MQ)
 COMMANDE_TRANSMETTRE_CATALOGUES = 'transmettreCatalogues'
+
+EVENEMENT_PRESENCE_INSTANCE = 'presence'

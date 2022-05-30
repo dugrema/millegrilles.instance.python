@@ -5,6 +5,7 @@ from typing import Optional
 
 from millegrilles_instance.Certificats import preparer_certificats_web
 from millegrilles_instance.Configuration import ConfigurationInstance
+from millegrilles_messages.IpUtils import get_ip, get_hostname
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.FormatteurMessages import SignateurTransactionSimple, FormatteurMessageMilleGrilles
@@ -16,6 +17,8 @@ class EtatInstance:
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__configuration = configuration
 
+        self.__ip_address: Optional[str] = None
+        self.__hostname: Optional[str] = None
         self.__instance_id: Optional[str] = None
         self.__niveau_securite: Optional[str] = None
         self.__idmg: Optional[str] = None
@@ -36,6 +39,9 @@ class EtatInstance:
 
     async def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
+
+        self.__ip_address = get_ip()
+        self.__hostname = get_hostname(fqdn=True)
 
         # Generer les certificats web self-signed au besoin
         path_cert_web, path_cle_web = preparer_certificats_web(self.__configuration.path_secrets)
@@ -122,6 +128,14 @@ class EtatInstance:
     @property
     def certificat_millegrille(self):
         return self.__certificat_millegrille
+
+    @property
+    def ip_address(self):
+        return self.__ip_address
+
+    @property
+    def hostname(self):
+        return self.__hostname
 
     @property
     def formatteur_message(self):

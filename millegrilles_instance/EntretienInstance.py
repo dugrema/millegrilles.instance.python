@@ -20,11 +20,14 @@ from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages.MessagesThread import MessagesThread
 from millegrilles_messages.messages.MessagesModule import RessourcesConsommation
 from millegrilles_instance.EtatInstance import EtatInstance
+from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance.EntretienNginx import EntretienNginx
 from millegrilles_instance.EntretienRabbitMq import EntretienRabbitMq
 from millegrilles_instance.RabbitMQDao import RabbitMQDao
 from millegrilles_instance.EntretienCatalogues import EntretienCatalogues
+from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
+from millegrilles_instance.CommandesDocker import CommandeListeTopologie
 
 logger = logging.getLogger(__name__)
 
@@ -211,6 +214,22 @@ class InstanceAbstract:
 
         return fut_run
 
+    async def emettre_presence(self, producer: MessageProducerFormatteur, info: Optional[dict] = None):
+        self.__logger.info("Emettre presence")
+        if info is not None:
+            info_updatee = info.copy()
+        else:
+            info_updatee = dict()
+
+        info_updatee['fqdn_detecte'] = self._etat_instance.hostname
+        info_updatee['ip_detectee'] = self._etat_instance.ip_address
+        info_updatee['instance_id'] = self._etat_instance.instance_id
+        info_updatee['securite'] = self._etat_instance.niveau_securite
+
+        await producer.emettre_evenement(info_updatee, Constantes.DOMAINE_INSTANCE,
+                                         ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
+                                         exchanges=Constantes.SECURITE_PROTEGE)
+
 
 class InstanceInstallation(InstanceAbstract):
 
@@ -254,6 +273,7 @@ class InstanceProtegee(InstanceAbstract):
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_services),
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_nginx),
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_mq),
+            TacheEntretien(datetime.timedelta(seconds=120), self.entretien_topologie),
         ]
         self._taches_entretien.extend(taches_entretien)
 
@@ -308,17 +328,6 @@ class InstanceProtegee(InstanceAbstract):
         # Execution de la loop avec toutes les tasks
         await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
 
-    async def thread_mq(self):
-        self.__logger.info("Debut thread_mq")
-        while self._event_stop.is_set() is False:
-            # Tenter de connecter a MQ
-            
-
-            self.__logger.info("Attendre pour redemarrer connexion MQ")
-            await asyncio.wait_for(self._event_stop.wait(), 30)
-
-        self.__logger.info("Fin thread_mq")
-
     async def entretien_catalogues(self):
         # Tache de copier des fichiers .xz inclus localement pour coupdoeil
         await self.__entretien_catalogues.entretien()
@@ -354,8 +363,27 @@ class InstanceProtegee(InstanceAbstract):
         if self.__entretien_rabbitmq:
             await self.__entretien_rabbitmq.entretien()
 
+    async def entretien_topologie(self):
+        """
+        Emet information sur instance, applications installees vers MQ.
+        :return:
+        """
+        producer = self.__rabbitmq_dao.get_producer()
+        if producer is None:
+            self.__logger.debug("entretien_topologie Producer MQ non disponible")
+            return
+
+        commande = CommandeListeTopologie()
+        self._etat_docker.ajouter_commande(commande)
+        info_instance = parse_topologie_docker(await commande.get_info())
+
+        await self.emettre_presence(producer, info_instance)
+
     def get_config_modules(self) -> list:
         return CONFIG_MODULES_PROTEGES
+
+    async def get_liste_applications(self):
+        pass
 
 
 async def charger_configuration_docker(path_configuration: str, fichiers: list) -> list:
@@ -519,3 +547,7 @@ def setup_catalogues(etat_instance: EtatInstance):
             with open(path_fichier_src, 'r') as fichier_src:
                 with open(path_fichier_dest, 'w') as fichier_dest:
                     fichier_dest.write(fichier_src.read())
+
+
+def parse_topologie_docker(info: dict) -> dict:
+    pass

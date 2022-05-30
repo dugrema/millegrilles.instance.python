@@ -7,7 +7,7 @@ from typing import Optional
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_messages.messages import Constantes
-from millegrilles_messages.messages.MessagesModule import RessourcesConsommation
+from millegrilles_messages.messages.MessagesModule import RessourcesConsommation, MessageProducerFormatteur
 from millegrilles_messages.messages.MessagesThread import MessagesThread
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance.Commandes import CommandHandler
@@ -55,8 +55,6 @@ class MqThread:
 
     async def run(self):
 
-        await self.configurer()
-
         while not self.__event_stop.is_set():
             self.__logger.info("Debut thread asyncio MessagesThread")
 
@@ -86,6 +84,13 @@ class MqThread:
             producer = self.__messages_thread.get_producer()
             await producer.repondre(reponse, reply_to, correlation_id)
 
+    def get_producer(self) -> Optional[MessageProducerFormatteur]:
+        try:
+            return self.__messages_thread.get_producer()
+        except AttributeError:
+            # Thread inactive
+            return None
+
 
 class RabbitMQDao:
 
@@ -100,9 +105,13 @@ class RabbitMQDao:
         self.__command_handler = CommandHandler(entretien_instance, etat_instance, etat_docker)
 
         self.__mq_host: Optional[str] = None
+        self.__producer: Optional[MessageProducerFormatteur] = None
 
     async def creer_thread(self):
         return MqThread(self.__event_stop, self.__etat_instance, self.__command_handler)
+
+    def get_producer(self) -> Optional[MessageProducerFormatteur]:
+        return self.__producer
 
     async def run(self):
 
@@ -115,9 +124,14 @@ class RabbitMQDao:
 
                 # coroutine principale d'execution MQ
                 mq_thread = await self.creer_thread()
+                await mq_thread.configurer()
+                self.__producer = mq_thread.get_producer()
+
                 await mq_thread.run()
             except Exception as e:
                 self.__logger.exception("Erreur connexion MQ")
+            finally:
+                self.__producer = None
 
             # Attendre pour redemarrer execution module
             self.__logger.info("Fin thread asyncio MessagesThread, attendre 30 secondes pour redemarrer")

@@ -13,6 +13,7 @@ from millegrilles_instance import Constantes
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.docker.ParseConfiguration import ConfigurationService
+from millegrilles_messages.docker.DockerHandler import CommandeDocker
 
 
 class EtatDockerInstanceSync:
@@ -329,3 +330,5 @@ class EtatDockerInstanceSync:
             else:
                 raise e
 
+    def ajouter_commande(self, commande: CommandeDocker):
+        self.__docker_handler.ajouter_commande(commande)
