@@ -14,7 +14,8 @@ class GestionnaireApplications:
     async def entretien(self):
         self.__logger.debug("entretien")
 
-    async def installer_application(self):
+    async def installer_application(self, nom_application: str, configuration: dict):
+
         raise NotImplementedError('todo')
 
     async def demarrer_application(self):

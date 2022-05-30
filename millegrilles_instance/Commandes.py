@@ -57,7 +57,9 @@ class CommandHandler:
                         return await self.transmettre_catalogue(producer)
 
             elif delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
-                if action == ConstantesInstance.COMMANDE_APPLICATION_INSTALLER:
+                if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
+                    return await self.transmettre_catalogue(producer)
+                elif action == ConstantesInstance.COMMANDE_APPLICATION_INSTALLER:
                     reponse = await self.installer_application(message)
                 elif action == ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER:
                     reponse = await self.supprimer_application(message)
@@ -93,7 +95,11 @@ class CommandHandler:
         return {'ok': True}
 
     async def installer_application(self, message: MessageWrapper):
-        await self._gestionnaire_applications.installer_application()
+        contenu = message.parsed
+        nom_application = contenu['nom_application']
+        configuration = contenu['configuration']
+        await self._gestionnaire_applications.installer_application(nom_application, configuration)
+        return {'ok': True}
 
     async def supprimer_application(self, message: MessageWrapper):
         await self._gestionnaire_applications.supprimer_application()
