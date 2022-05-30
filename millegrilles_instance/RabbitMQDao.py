@@ -11,7 +11,7 @@ from millegrilles_messages.messages.MessagesModule import RessourcesConsommation
 from millegrilles_messages.messages.MessagesThread import MessagesThread
 
 
-class RabbitMQDao:
+class MqThread:
 
     def __init__(self, event_stop: Event, etat_instance: EtatInstance):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
@@ -42,13 +42,12 @@ class RabbitMQDao:
 
     def creer_ressources_consommation(self, messages_thread: MessagesThread):
         reply_res = RessourcesConsommation(self.callback_reply_q)
-        # reply_res.ajouter_rk('3.protege', 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
+        reply_res.ajouter_rk('3.protege', 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
 
         # q1 = RessourcesConsommation(callback_q_1, 'CoreBackup/tada')
 
         messages_thread.set_reply_ressources(reply_res)
         # messages_thread.ajouter_consumer(q1)
-
 
     async def run(self):
 
@@ -58,11 +57,48 @@ class RabbitMQDao:
             self.__logger.info("Debut thread asyncio MessagesThread")
 
             try:
+                # coroutine principale d'execution MQ
+                await self.__messages_thread.run_async()
+            except Exception as e:
+                self.__logger.exception("Erreur connexion MQ")
+
+            # Attendre pour redemarrer execution module
+            self.__logger.info("Fin thread asyncio MessagesThread, attendre 30 secondes pour redemarrer")
+            try:
+                await asyncio.wait_for(self.__event_stop.wait(), 30)
+            except TimeoutError:
+                pass
+
+        self.__logger.info("Fin thread MessagesThread")
+
+    async def callback_reply_q(self, message, module_messages):
+        self.__logger.debug("RabbitMQ nessage recu : %s" % message)
+
+
+class RabbitMQDao:
+
+    def __init__(self, event_stop: Event, etat_instance: EtatInstance):
+        self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        self.__event_stop = event_stop
+        self.__etat_instance = etat_instance
+
+        self.__mq_host: Optional[str] = None
+
+    async def creer_thread(self):
+        return MqThread(self.__event_stop, self.__etat_instance)
+
+    async def run(self):
+
+        while not self.__event_stop.is_set():
+            self.__logger.info("Debut thread asyncio MessagesThread")
+
+            try:
                 # Toujours tenter de creer le compte sur MQ - la detection n'est pas au point a l'interne
                 await self.creer_compte_mq()
 
                 # coroutine principale d'execution MQ
-                await self.__messages_thread.run_async()
+                mq_thread = await self.creer_thread()
+                await mq_thread.run()
             except Exception as e:
                 self.__logger.exception("Erreur connexion MQ")
 
@@ -119,5 +155,3 @@ class RabbitMQDao:
 
         return False
 
-    async def callback_reply_q(self, message, module_messages):
-        self.__logger.debug("RabbitMQ nessage recu : %s" % message)
