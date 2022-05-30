@@ -5,6 +5,7 @@ from asyncio import Event
 from typing import Optional
 
 from millegrilles_instance.EtatInstance import EtatInstance
+from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesModule import RessourcesConsommation
 from millegrilles_messages.messages.MessagesThread import MessagesThread
@@ -32,19 +33,22 @@ class RabbitMQDao:
             Constantes.ENV_REDIS_HOSTNAME: self.__mq_host,
         }
 
-        reply_res = RessourcesConsommation(self.callback_reply_q)
-        # q1 = RessourcesConsommation(callback_q_1, 'CoreBackup/tada')
-        # q1.ajouter_rk('3.protege', 'commande.CoreBackup.m1')
-        # q1.ajouter_rk('2.prive', 'commande.CoreBackup.m2')
-
-        # messages_thread.ajouter_consumer(q1)
-
         messages_thread = MessagesThread(self.__event_stop)
         messages_thread.set_env_configuration(env_configuration)
-        messages_thread.set_reply_ressources(reply_res)
+        self.creer_ressources_consommation(messages_thread)
         await messages_thread.start_async()  # Preparer le reste de l'environnement
 
         self.__messages_thread = messages_thread
+
+    def creer_ressources_consommation(self, messages_thread: MessagesThread):
+        reply_res = RessourcesConsommation(self.callback_reply_q)
+        # reply_res.ajouter_rk('3.protege', 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
+
+        # q1 = RessourcesConsommation(callback_q_1, 'CoreBackup/tada')
+
+        messages_thread.set_reply_ressources(reply_res)
+        # messages_thread.ajouter_consumer(q1)
+
 
     async def run(self):
 
@@ -115,5 +119,5 @@ class RabbitMQDao:
 
         return False
 
-    def callback_reply_q(self, message, module_messages):
-        self.__logger.info("Message recu : %s" % message)
+    async def callback_reply_q(self, message, module_messages):
+        self.__logger.debug("RabbitMQ nessage recu : %s" % message)
