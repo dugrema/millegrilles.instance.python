@@ -77,7 +77,8 @@ class MqThread:
 
     async def callback_reply_q(self, message: MessageWrapper, module_messages):
         self.__logger.debug("RabbitMQ nessage recu : %s" % message)
-        reponse = await self.__command_handler.executer_commande(message)
+        producer = self.__messages_thread.get_producer()
+        reponse = await self.__command_handler.executer_commande(producer, message)
 
         if reponse is not None:
             reply_to = message.reply_to
