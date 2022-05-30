@@ -1,13 +1,13 @@
 import asyncio
-import aiohttp
 import logging
 
 from asyncio import Event
 from typing import Optional
 
-from millegrilles_messages.messages.MessagesThread import MessagesThread
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_messages.messages import Constantes
+from millegrilles_messages.messages.MessagesModule import RessourcesConsommation
+from millegrilles_messages.messages.MessagesThread import MessagesThread
 
 
 class RabbitMQDao:
@@ -18,14 +18,9 @@ class RabbitMQDao:
         self.__etat_instance = etat_instance
 
         self.__mq_host: Optional[str] = None
+        self.__messages_thread: Optional[MessagesThread] = None
 
-    async def run(self):
-
-        # reply_res = RessourcesConsommation(callback_reply_q)
-        # q1 = RessourcesConsommation(callback_q_1, 'CoreBackup/tada')
-        # q1.ajouter_rk('3.protege', 'commande.CoreBackup.m1')
-        # q1.ajouter_rk('2.prive', 'commande.CoreBackup.m2')
-
+    async def configurer(self):
         self.__mq_host = '127.0.0.1'
 
         env_configuration = {
@@ -37,29 +32,35 @@ class RabbitMQDao:
             Constantes.ENV_REDIS_HOSTNAME: self.__mq_host,
         }
 
-        messages_thread = MessagesThread(self.__event_stop)
-        messages_thread.set_env_configuration(env_configuration)
+        reply_res = RessourcesConsommation(self.callback_reply_q)
+        # q1 = RessourcesConsommation(callback_q_1, 'CoreBackup/tada')
+        # q1.ajouter_rk('3.protege', 'commande.CoreBackup.m1')
+        # q1.ajouter_rk('2.prive', 'commande.CoreBackup.m2')
 
-        # messages_thread.set_reply_ressources(reply_res)
         # messages_thread.ajouter_consumer(q1)
 
-        # Demarrer traitement messages
-        await messages_thread.start_async()
+        messages_thread = MessagesThread(self.__event_stop)
+        messages_thread.set_env_configuration(env_configuration)
+        messages_thread.set_reply_ressources(reply_res)
+        await messages_thread.start_async()  # Preparer le reste de l'environnement
+
+        self.__messages_thread = messages_thread
+
+    async def run(self):
+
+        await self.configurer()
 
         while not self.__event_stop.is_set():
             self.__logger.info("Debut thread asyncio MessagesThread")
 
-            # Run loop asyncio
-            # asyncio.run(self.__messages_module.run_async())
-            await self.creer_compte_mq()
             try:
-                await messages_thread.run_async()
+                # Toujours tenter de creer le compte sur MQ - la detection n'est pas au point a l'interne
+                await self.creer_compte_mq()
+
+                # coroutine principale d'execution MQ
+                await self.__messages_thread.run_async()
             except Exception as e:
                 self.__logger.exception("Erreur connexion MQ")
-                try:
-                    await self.creer_compte_mq()
-                except:
-                    self.__logger.warning("Erreur creation compte MQ")
 
             # Attendre pour redemarrer execution module
             self.__logger.info("Fin thread asyncio MessagesThread, attendre 30 secondes pour redemarrer")
@@ -113,3 +114,6 @@ class RabbitMQDao:
             self.__logger.warning("requests non disponible, on ne peut pas tenter d'ajouter le compte MQ")
 
         return False
+
+    def callback_reply_q(self, message, module_messages):
+        self.__logger.info("Message recu : %s" % message)
