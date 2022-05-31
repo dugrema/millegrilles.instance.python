@@ -246,34 +246,35 @@ class EtatDockerInstanceSync:
         if len(nom_services_a_installer) > 0:
             self.__logger.debug("Services manquants dans docker : %s" % nom_services_a_installer)
 
-            # Charger configurations
-            action_configurations = DockerCommandes.CommandeListerConfigs(aio=True)
-            self.__docker_handler.ajouter_commande(action_configurations)
-            docker_configs = await action_configurations.get_resultat()
-
-            action_secrets = DockerCommandes.CommandeListerSecrets(aio=True)
-            self.__docker_handler.ajouter_commande(action_secrets)
-            docker_secrets = await action_secrets.get_resultat()
-
-            action_datees = DockerCommandes.CommandeGetConfigurationsDatees(aio=True)
-            self.__docker_handler.ajouter_commande(action_datees)
-            config_datees = await action_datees.get_resultat()
-
-            params = {
-                'HOSTNAME': self.__etat_instance.nom_domaine,
-                'IDMG': self.__etat_instance.idmg,
-                '__secrets': docker_secrets,
-                '__configs': docker_configs,
-                '__docker_config_datee': config_datees['correspondance'],
-                # '__nom_application': nom_service,
-                # '__certificat_info': {
-                #     'label_prefix': 'pki.mq',
-                # },
-            }
+            params = await self.get_params_env_service()
 
             for nom_service in nom_services_a_installer:
                 config_service = services[nom_service]
                 await self.installer_service(nom_service, config_service, params)
+
+    async def get_params_env_service(self) -> dict:
+        # Charger configurations
+        action_configurations = DockerCommandes.CommandeListerConfigs(aio=True)
+        self.__docker_handler.ajouter_commande(action_configurations)
+        docker_configs = await action_configurations.get_resultat()
+
+        action_secrets = DockerCommandes.CommandeListerSecrets(aio=True)
+        self.__docker_handler.ajouter_commande(action_secrets)
+        docker_secrets = await action_secrets.get_resultat()
+
+        action_datees = DockerCommandes.CommandeGetConfigurationsDatees(aio=True)
+        self.__docker_handler.ajouter_commande(action_datees)
+        config_datees = await action_datees.get_resultat()
+
+        params = {
+            'HOSTNAME': self.__etat_instance.nom_domaine,
+            'IDMG': self.__etat_instance.idmg,
+            '__secrets': docker_secrets,
+            '__configs': docker_configs,
+            '__docker_config_datee': config_datees['correspondance'],
+        }
+
+        return params
 
     async def installer_service(self, nom_service: str, configuration: dict, params: dict):
 
@@ -381,6 +382,9 @@ class EtatDockerInstanceSync:
 
         # Deployer services
         for dep in dependances:
-            pass
+            nom_module = dep['name']
+            params = await self.get_params_env_service()
+            params['__nom_application'] = nom_application
+            await self.installer_service(nom_module, configuration, params)
 
         return {'ok': True}
