@@ -216,21 +216,21 @@ class InstanceAbstract:
 
         return fut_run
 
-    async def emettre_presence(self, producer: MessageProducerFormatteur, info: Optional[dict] = None):
-        self.__logger.info("Emettre presence")
-        if info is not None:
-            info_updatee = info.copy()
-        else:
-            info_updatee = dict()
-
-        info_updatee['fqdn_detecte'] = self._etat_instance.hostname
-        info_updatee['ip_detectee'] = self._etat_instance.ip_address
-        info_updatee['instance_id'] = self._etat_instance.instance_id
-        info_updatee['securite'] = self._etat_instance.niveau_securite
-
-        await producer.emettre_evenement(info_updatee, Constantes.DOMAINE_INSTANCE,
-                                         ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
-                                         exchanges=Constantes.SECURITE_PROTEGE)
+    # async def emettre_presence(self, producer: MessageProducerFormatteur, info: Optional[dict] = None):
+    #     self.__logger.info("Emettre presence")
+    #     if info is not None:
+    #         info_updatee = info.copy()
+    #     else:
+    #         info_updatee = dict()
+    #
+    #     info_updatee['fqdn_detecte'] = self._etat_instance.hostname
+    #     info_updatee['ip_detectee'] = self._etat_instance.ip_address
+    #     info_updatee['instance_id'] = self._etat_instance.instance_id
+    #     info_updatee['securite'] = self._etat_instance.niveau_securite
+    #
+    #     await producer.emettre_evenement(info_updatee, Constantes.DOMAINE_INSTANCE,
+    #                                      ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
+    #                                      exchanges=Constantes.SECURITE_PROTEGE)
 
 
 class InstanceInstallation(InstanceAbstract):
@@ -377,15 +377,17 @@ class InstanceProtegee(InstanceAbstract):
             self.__logger.debug("entretien_topologie Producer MQ non disponible")
             return
 
-        commande = CommandeListeTopologie()
-        self._etat_docker.ajouter_commande(commande)
-        info_instance = parse_topologie_docker(await commande.get_info())
+        await self._etat_docker.emettre_presence(producer)
 
-        # Faire la liste des applications installees
-        liste_applications = await self._gestionnaire_applications.get_liste_configurations()
-        info_instance['applications_configurees'] = liste_applications
-
-        await self.emettre_presence(producer, info_instance)
+        # commande = CommandeListeTopologie()
+        # self._etat_docker.ajouter_commande(commande)
+        # info_instance = parse_topologie_docker(await commande.get_info())
+        #
+        # # Faire la liste des applications installees
+        # liste_applications = await self._gestionnaire_applications.get_liste_configurations()
+        # info_instance['applications_configurees'] = liste_applications
+        #
+        # await self.emettre_presence(producer, info_instance)
 
     def get_config_modules(self) -> list:
         return CONFIG_MODULES_PROTEGES
@@ -561,53 +563,3 @@ def setup_catalogues(etat_instance: EtatInstance):
             with open(path_fichier_src, 'r') as fichier_src:
                 with open(path_fichier_dest, 'w') as fichier_dest:
                     fichier_dest.write(fichier_src.read())
-
-
-def parse_topologie_docker(info: dict) -> dict:
-
-    info_docker = info.copy()
-
-    # try:
-    #     configuration_acme = json.loads(gestionnaire_docker.charger_config('acme.configuration'))
-    #     dict_infomillegrille['domaine'] = configuration_acme['domain']
-    # except IndexError:
-    #     pass
-    #
-    # try:
-    #     securite = gestionnaire_docker.charger_config(ConstantesServiceMonitor.DOCKER_LIBVAL_CONFIG_SECURITE).decode(
-    #         'utf-8').strip()
-    #     dict_infomillegrille['securite'] = securite
-    # except IndexError:
-    #     pass
-    #
-    # try:
-    #     hostname_onion = gestionnaire_docker.get_nginx_onionize_hostname()
-    #     dict_infomillegrille['onion'] = hostname_onion
-    # except:
-    #     pass
-    #
-    # # Verifier si on a le certificat de monitor - indique que le noeud est installe
-    # try:
-    #     monitor_cert = gestionnaire_docker.charger_config_recente('pki.monitor.cert')
-    #     monitor_cert = b64decode(monitor_cert['config'].attrs['Spec']['Data']).decode('utf-8')
-    #     dict_infomillegrille['certificat'] = monitor_cert
-    #     ca_cert = gestionnaire_docker.charger_config_recente('pki.millegrille.cert')
-    #     ca_cert = b64decode(ca_cert['config'].attrs['Spec']['Data']).decode('utf-8')
-    #     dict_infomillegrille['ca'] = ca_cert
-    # except (IndexError, AttributeError):
-    #     self.__logger.info("Certificat de monitor n'existe pas")
-    #
-    # if inclure_services:
-    #     dict_infomillegrille['services'] = gestionnaire_docker.get_liste_services()
-    #     dict_infomillegrille['containers'] = gestionnaire_docker.get_liste_containers()
-    #
-    # # Charger la liste des applications configurees (config app.cfg.*)
-    # apps = gestionnaire_docker.charger_configs('app.cfg.')
-    # config_apps = list()
-    # for app in apps:
-    #     app_config = json.loads(app['configuration'].decode('utf-8'))
-    #     config_apps.append({'nom': app_config['nom'], 'version': app_config['version']})
-    #
-    # dict_infomillegrille['applications_configurees'] = config_apps
-
-    return info_docker

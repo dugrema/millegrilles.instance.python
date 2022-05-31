@@ -1,18 +1,23 @@
 import asyncio
+import json
 import logging
 
 
 from asyncio import Event, TimeoutError
 from docker.errors import APIError, NotFound
-from os import path
+from os import path, listdir
+from typing import Optional
 
 from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.docker import DockerCommandes
 
-from millegrilles_instance import Constantes
+from millegrilles_instance import Constantes as ConstantesInstance
+from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.docker.ParseConfiguration import ConfigurationService
 from millegrilles_messages.docker.DockerHandler import CommandeDocker
+from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
+from millegrilles_instance.CommandesDocker import CommandeListeTopologie
 
 
 class EtatDockerInstanceSync:
@@ -49,25 +54,50 @@ class EtatDockerInstanceSync:
 
         self.__logger.info("Thread Entretien InstanceDocker terminee")
 
+    async def emettre_presence(self, producer: MessageProducerFormatteur, info: Optional[dict] = None):
+        self.__logger.info("Emettre presence")
+        if info is not None:
+            info_updatee = info.copy()
+        else:
+            info_updatee = dict()
+
+        commande = CommandeListeTopologie()
+        self.ajouter_commande(commande)
+        info_instance = await commande.get_info()
+        info_updatee.update(info_instance)
+
+        info_updatee['fqdn_detecte'] = self.__etat_instance.hostname
+        info_updatee['ip_detectee'] = self.__etat_instance.ip_address
+        info_updatee['instance_id'] = self.__etat_instance.instance_id
+        info_updatee['securite'] = self.__etat_instance.niveau_securite
+
+        # Faire la liste des applications installees
+        liste_applications = await self.get_liste_configurations()
+        info_updatee['applications_configurees'] = liste_applications
+
+        await producer.emettre_evenement(info_updatee, Constantes.DOMAINE_INSTANCE,
+                                         ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
+                                         exchanges=Constantes.SECURITE_PROTEGE)
+
     async def verifier_date_certificats(self):
         pass
 
     async def verifier_config_instance(self):
         instance_id = self.__etat_instance.instance_id
         if instance_id is not None:
-            await self.sauvegarder_config(Constantes.DOCKER_CONFIG_INSTANCE_ID, instance_id, comparer=True)
+            await self.sauvegarder_config(ConstantesInstance.DOCKER_CONFIG_INSTANCE_ID, instance_id, comparer=True)
 
         niveau_securite = self.__etat_instance.niveau_securite
         if niveau_securite is not None:
-            await self.sauvegarder_config(Constantes.DOCKER_CONFIG_INSTANCE_SECURITE, niveau_securite, comparer=True)
+            await self.sauvegarder_config(ConstantesInstance.DOCKER_CONFIG_INSTANCE_SECURITE, niveau_securite, comparer=True)
 
         idmg = self.__etat_instance.idmg
         if idmg is not None:
-            await self.sauvegarder_config(Constantes.DOCKER_CONFIG_INSTANCE_IDMG, idmg, comparer=True)
+            await self.sauvegarder_config(ConstantesInstance.DOCKER_CONFIG_INSTANCE_IDMG, idmg, comparer=True)
 
         certificat_millegrille = self.__etat_instance.certificat_millegrille
         if certificat_millegrille is not None:
-            await self.sauvegarder_config(Constantes.DOCKER_CONFIG_PKI_MILLEGRILLE, certificat_millegrille.certificat_pem)
+            await self.sauvegarder_config(ConstantesInstance.DOCKER_CONFIG_PKI_MILLEGRILLE, certificat_millegrille.certificat_pem)
 
         await self.verifier_certificat_web()
 
@@ -416,3 +446,21 @@ class EtatDockerInstanceSync:
         self.__docker_handler.ajouter_commande(commande_image)
         resultat = await commande_image.get_resultat()
         return {'ok': resultat}
+
+    async def get_liste_configurations(self) -> list:
+        """
+        Charge l'information de configuration de toutes les applications connues.
+        :return:
+        """
+        info_configuration = list()
+        path_docker_apps = self.__etat_instance.configuration.path_docker_apps
+        for fichier_config in listdir(path_docker_apps):
+            if not fichier_config.startswith('app.'):
+                continue  # Skip, ce n'est pas une application
+            with open(path.join(path_docker_apps, fichier_config), 'rb') as fichier:
+                contenu = json.load(fichier)
+            nom = contenu['nom']
+            version = contenu['version']
+            info_configuration.append({'nom': nom, 'version': version})
+
+        return info_configuration

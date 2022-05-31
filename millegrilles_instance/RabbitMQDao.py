@@ -120,6 +120,9 @@ class RabbitMQDao:
         self.__mq_host: Optional[str] = None
         self.__producer: Optional[MessageProducerFormatteur] = None
 
+        # Cross-wiring
+        gestionnaire_applications.set_rabbitmq_dao(self)
+
     async def creer_thread(self):
         return MqThread(self.__event_stop, self.__etat_instance, self.__command_handler)
 
