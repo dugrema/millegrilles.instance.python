@@ -71,6 +71,10 @@ class CommandHandler:
                         reponse = await self.demarrer_application(message)
                     elif action == ConstantesInstance.COMMANDE_APPLICATION_ARRETER:
                         reponse = await self.arreter_application(message)
+                    elif action == ConstantesInstance.COMMANDE_APPLICATION_REQUETE_CONFIG:
+                        reponse = await self.get_application_configuration(message)
+                    elif action == ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER:
+                        reponse = await self.configurer_application(message)
 
             if reponse is None:
                 reponse = {'ok': False, 'err': 'Commande inconnue ou acces refuse'}
@@ -124,3 +128,16 @@ class CommandHandler:
         parsed = message.parsed
         self._entretien_instance.sauvegarder_nginx_data('fiche.json', parsed, path_html=True)
         return {'ok': True}
+
+    async def get_application_configuration(self, message: MessageWrapper):
+        path_catalogues = self._etat_instance.configuration.path_docker_apps
+        parsed = message.parsed
+        nom_application = parsed['nom_application']
+        path_fichier = path.join(path_catalogues, 'app.%s.json' % nom_application)
+        with open(path_fichier, 'rb') as fichier:
+            configuration_dict = json.load(fichier)
+
+        return {'nom_application': nom_application, 'configuration': configuration_dict}
+
+    async def configurer_application(self, message: MessageWrapper):
+        pass

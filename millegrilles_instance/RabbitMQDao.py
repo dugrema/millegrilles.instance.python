@@ -58,6 +58,10 @@ class MqThread:
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_DEMARRER))
         reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_ARRETER))
+        reply_res.ajouter_rk(niveau_securite, 'requete.instance.%s.%s' % (
+            instance_id, ConstantesInstance.COMMANDE_APPLICATION_REQUETE_CONFIG))
+        reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
+            instance_id, ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER))
         reply_res.ajouter_rk(Constantes.SECURITE_PUBLIC, 'evenement.CoreTopologie.%s' % ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE)
 
         # q1 = RessourcesConsommation(callback_q_1, 'CoreBackup/tada')
