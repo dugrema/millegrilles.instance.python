@@ -24,6 +24,12 @@ class EntretienNginx:
         ca_path = etat_instance.configuration.instance_ca_pem_path
         self.__sslcontext = ssl.create_default_context(cafile=ca_path)
 
+        try:
+            self.__sslcontext.load_cert_chain(etat_instance.configuration.instance_cert_pem_path,
+                                              etat_instance.configuration.instance_key_pem_path)
+        except FileNotFoundError:
+            pass
+
         self.__entretien_initial_complete = False
         self.__url_nginx = 'https://127.0.0.1:443'
         self.__url_nginx_sslclient = 'https://127.0.0.1:444'
