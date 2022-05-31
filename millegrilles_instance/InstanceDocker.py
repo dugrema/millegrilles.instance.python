@@ -5,7 +5,7 @@ import logging
 
 from asyncio import Event, TimeoutError
 from docker.errors import APIError, NotFound
-from os import path, listdir
+from os import path, listdir, unlink
 from typing import Optional
 
 from millegrilles_messages.docker.DockerHandler import DockerHandler
@@ -445,6 +445,26 @@ class EtatDockerInstanceSync:
         commande_image = DockerCommandes.CommandeArreterService(nom_application, aio=True)
         self.__docker_handler.ajouter_commande(commande_image)
         resultat = await commande_image.get_resultat()
+        return {'ok': resultat}
+
+    async def supprimer_application(self, nom_application: str):
+        commande_image = DockerCommandes.CommandeSupprimerService(nom_application, aio=True)
+        self.__docker_handler.ajouter_commande(commande_image)
+        try:
+            resultat = await commande_image.get_resultat()
+        except APIError as apie:
+            if apie.status_code == 404:
+                resultat = True  # Ok, deja supprime
+            else:
+                raise apie
+
+        path_docker_apps = self.__etat_instance.configuration.path_docker_apps
+        fichier_config = path.join(path_docker_apps, 'app.%s.json' % nom_application)
+        try:
+            unlink(fichier_config)
+        except FileNotFoundError:
+            pass
+
         return {'ok': resultat}
 
     async def get_liste_configurations(self) -> list:

@@ -54,7 +54,10 @@ class GestionnaireApplications:
         return resultat
 
     async def supprimer_application(self, nom_application: str):
-        raise NotImplementedError('todo')
+        resultat = await self.__etat_docker.supprimer_application(nom_application)
+        producer = self.__rabbitmq_dao.get_producer()
+        await self.__etat_docker.emettre_presence(producer)
+        return resultat
 
     # async def get_liste_configurations(self) -> list:
     #     """
