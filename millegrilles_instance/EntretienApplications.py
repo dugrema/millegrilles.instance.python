@@ -29,10 +29,10 @@ class GestionnaireApplications:
         return await self.__etat_docker.installer_application(configuration)
 
     async def demarrer_application(self, nom_application: str):
-        raise NotImplementedError('todo')
+        return await self.__etat_docker.demarrer_application(nom_application)
 
     async def arreter_application(self, nom_application: str):
-        raise NotImplementedError('todo')
+        return await self.__etat_docker.arreter_application(nom_application)
 
     async def supprimer_application(self, nom_application: str):
         raise NotImplementedError('todo')

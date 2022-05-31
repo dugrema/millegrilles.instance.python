@@ -404,3 +404,15 @@ class EtatDockerInstanceSync:
             await self.redemarrer_nginx()
 
         return {'ok': True}
+
+    async def demarrer_application(self, nom_application: str):
+        commande_image = DockerCommandes.CommandeDemarrerService(nom_application, replicas=1, aio=True)
+        self.__docker_handler.ajouter_commande(commande_image)
+        resultat = await commande_image.get_resultat()
+        return {'ok': resultat}
+
+    async def arreter_application(self, nom_application: str):
+        commande_image = DockerCommandes.CommandeArreterService(nom_application, aio=True)
+        self.__docker_handler.ajouter_commande(commande_image)
+        resultat = await commande_image.get_resultat()
+        return {'ok': resultat}

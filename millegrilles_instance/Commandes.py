@@ -55,22 +55,22 @@ class CommandHandler:
                 if Constantes.ROLE_CORE in roles:
                     if action == ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE:
                         return await self.sauvegarder_fiche_publique(message)
-            if exchange == Constantes.SECURITE_PROTEGE and Constantes.SECURITE_PROTEGE in exchanges:
+            elif exchange == Constantes.SECURITE_PROTEGE and Constantes.SECURITE_PROTEGE in exchanges:
                 if Constantes.ROLE_CORE in roles:
                     if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
                         return await self.transmettre_catalogue(producer)
-
-            elif delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
-                if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
-                    return await self.transmettre_catalogue(producer)
-                elif action == ConstantesInstance.COMMANDE_APPLICATION_INSTALLER:
-                    reponse = await self.installer_application(message)
-                elif action == ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER:
-                    reponse = await self.supprimer_application(message)
-                elif action == ConstantesInstance.COMMANDE_APPLICATION_DEMARRER:
-                    reponse = await self.demarrer_application(message)
-                elif action == ConstantesInstance.COMMANDE_APPLICATION_ARRETER:
-                    reponse = await self.arreter_application(message)
+            elif exchange == Constantes.SECURITE_PROTEGE:
+                if delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
+                    if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
+                        return await self.transmettre_catalogue(producer)
+                    elif action == ConstantesInstance.COMMANDE_APPLICATION_INSTALLER:
+                        reponse = await self.installer_application(message)
+                    elif action == ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER:
+                        reponse = await self.supprimer_application(message)
+                    elif action == ConstantesInstance.COMMANDE_APPLICATION_DEMARRER:
+                        reponse = await self.demarrer_application(message)
+                    elif action == ConstantesInstance.COMMANDE_APPLICATION_ARRETER:
+                        reponse = await self.arreter_application(message)
 
             if reponse is None:
                 reponse = {'ok': False, 'err': 'Commande inconnue ou acces refuse'}
