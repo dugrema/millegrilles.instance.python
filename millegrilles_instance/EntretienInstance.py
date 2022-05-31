@@ -386,6 +386,9 @@ class InstanceProtegee(InstanceAbstract):
     def get_config_modules(self) -> list:
         return CONFIG_MODULES_PROTEGES
 
+    def ajouter_fichier_configuration(self, nom_fichier: str, contenu: str):
+        self.__entretien_nginx.ajouter_fichier_configuration(nom_fichier, contenu)
+
     def sauvegarder_nginx_data(self, nom_fichier: str, contenu: Union[bytes, str, dict], path_html=False):
         self.__entretien_nginx.sauvegarder_fichier_data(nom_fichier, contenu, path_html)
 

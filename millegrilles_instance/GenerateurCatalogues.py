@@ -62,20 +62,19 @@ class Generateur:
             # Verifier si on doit creer une archive tar pour cette application
             # Tous les fichiers sauf docker.json sont inclus et sauvegarde sous une archive tar.xz
             # dans l'entree de catalogue
-            fichier_app = [f for f in listdir(rep) if f not in ['docker.json']]
-            if len(fichier_app) > 0:
-                with tarfile.open(path_config_temp, 'w:xz') as fichier:
-                    # Faire liste de tous les fichiers de configuration de l'application
-                    # (exclure docker.json - genere separement)
-                    for filename in fichier_app:
-                        file_path = path.join(rep, filename)
-                        fichier.add(file_path, arcname=filename)
+            # fichier_app = [f for f in listdir(rep) if f not in ['docker.json']]
+            try:
+                conf_files = config['nginx']['conf']
+                dict_conf_files = dict()
+                for conf_file in conf_files:
+                    path_conf = path.join(rep, conf_file)
+                    with open(path_conf, 'r') as fichier:
+                        contenu = fichier.read()
+                    dict_conf_files[conf_file] = contenu
 
-                # Lire fichier .tar, convertir en base64
-                with open(path_config_temp, 'rb') as fichier:
-                    contenu_tar_b64 = b64encode(fichier.read())
-
-                config['scripts'] = contenu_tar_b64.decode('utf-8')
+                config['nginx']['conf'] = dict_conf_files
+            except KeyError:
+                pass
 
             # Preparer archive .json.xz avec le fichier de configuration signe et les scripts
             config = self.signer(config, 'CoreCatalogues', 'catalogueApplication')

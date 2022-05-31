@@ -36,6 +36,8 @@ class EntretienNginx:
 
         self.__repertoire_configuration_pret = False
 
+        etat_instance.set_entretien_nginx(self)
+
     async def creer_session(self):
         if self.__etat_instance.configuration.instance_password_mq_path is not None:
             with open(self.__etat_instance.configuration.instance_password_mq_path, 'r') as fichier:
@@ -108,14 +110,14 @@ class EntretienNginx:
         #     'MQ_HOST': mq_host,
         # }
 
-        params = {
-            'nodename': 'mg-dev5',
-            'hostname': 'mg-dev5',
-            'instance_url': 'https://mg-dev5:2443',
-            'certissuer_url': 'http://mg-dev5:2080',
-            'midcompte_url': 'https://midcompte:2444',
-            'MQ_HOST': 'mq',
-        }
+        # params = {
+        #     'nodename': 'mg-dev5',
+        #     'hostname': 'mg-dev5',
+        #     'instance_url': 'https://mg-dev5:2443',
+        #     'certissuer_url': 'http://mg-dev5:2080',
+        #     'midcompte_url': 'https://midcompte:2444',
+        #     'MQ_HOST': 'mq',
+        # }
 
         configuration_modifiee = False
         niveau_securite = self.__etat_instance.niveau_securite
@@ -136,15 +138,33 @@ class EntretienNginx:
             if path.exists(path_destination) is False:
                 self.__logger.info("Generer fichier configuration nginx %s" % fichier)
                 path_source = path.join(repertoire_src_nginx, fichier)
-                with open(path_source, 'r') as fichier:
-                    contenu = fichier.read()
-                contenu = contenu.format(**params)
-
-                with open(path_destination, 'w') as fichier:
-                    fichier.write(contenu)
+                with open(path_source, 'r') as fichier_input:
+                    contenu = fichier_input.read()
+                # contenu = contenu.format(**params)
+                self.ajouter_fichier_configuration(fichier, contenu)
+                # with open(path_destination, 'w') as fichier:
+                #     fichier.write(contenu)
                 configuration_modifiee = True
 
         return configuration_modifiee
+
+    def ajouter_fichier_configuration(self, nom_fichier: str, contenu: str):
+        path_nginx = self.__etat_instance.configuration.path_nginx
+        path_nginx_modules = path.join(path_nginx, 'modules')
+        params = {
+            'nodename': self.__etat_instance.hostname,
+            'hostname': self.__etat_instance.hostname,
+            'instance_url': 'https://%s:2443' % self.__etat_instance.hostname,
+            'certissuer_url': 'http://%s:2080' % self.__etat_instance.hostname,
+            'midcompte_url': 'https://midcompte:2444',
+            'MQ_HOST': self.__etat_instance.mq_hostname,
+        }
+
+        path_destination = path.join(path_nginx_modules, nom_fichier)
+        contenu = contenu.format(**params)
+
+        with open(path_destination, 'w') as fichier_output:
+            fichier_output.write(contenu)
 
     def sauvegarder_fichier_data(self, path_fichier: str, contenu: Union[str, bytes, dict], path_html=False):
         path_nginx = self.__etat_instance.configuration.path_nginx

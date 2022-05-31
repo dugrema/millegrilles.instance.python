@@ -380,11 +380,27 @@ class EtatDockerInstanceSync:
             except KeyError:
                 pass
 
+        redemarrer_nginx = False
+        if nginx is not None:
+            self.__logger.debug("Conserver information nginx")
+
+            # await self.redemarrer_nginx()
+            try:
+                conf_dict = nginx['conf']
+                for nom_fichier, contenu in conf_dict.items():
+                    self.__etat_instance.entretien_nginx.ajouter_fichier_configuration(nom_fichier, contenu)
+                redemarrer_nginx = True
+            except KeyError:
+                pass
+
         # Deployer services
         for dep in dependances:
             nom_module = dep['name']
             params = await self.get_params_env_service()
             params['__nom_application'] = nom_application
-            await self.installer_service(nom_module, configuration, params)
+            await self.installer_service(nom_module, dep, params)
+
+        if redemarrer_nginx is True:
+            await self.redemarrer_nginx()
 
         return {'ok': True}

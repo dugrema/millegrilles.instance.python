@@ -1,88 +1,90 @@
 {
   "nom": "mongoexpress",
-  "version": "2022.3.2",
+  "version": "2022.3.7",
   "securite": "3.protege",
   "dependances": [
     {
+      "name": "mongoexpress",
       "image": "docker.maceroc.com/mg_mongo_express:0.54_0",
       "certificat": {"roles": ["mongoexpress"], "dns": {"hostnames": ["mongoexpress"]}},
       "passwords": ["mongoexpress"],
-      "config": {
-        "name": "mongoexpress",
-        "env": {
-          "ME_CONFIG_BASICAUTH_USERNAME": "mongo",
-          "ME_CONFIG_MONGODB_ADMINUSERNAME": "${MONGO_INITDB_ROOT_USERNAME}",
-          "MONGODB_ADMINPASSWORD_FILE": "/run/secrets/mongo.password.txt",
-          "ME_CONFIG_BASICAUTH_PASSWORD_FILE": "/run/secrets/web.password.txt",
-          "VCAP_APP_PORT": "443",
-          "ME_CONFIG_SITE_SSL_ENABLED": "'true'",
-          "ME_CONFIG_SITE_SSL_CRT_PATH": "/run/secrets/web.cert.pem",
-          "ME_CONFIG_SITE_SSL_KEY_PATH": "/run/secrets/web.key.pem",
-          "ME_CONFIG_MONGODB_SERVER": "mongo",
-          "ME_CONFIG_MONGODB_SSL": "true",
-          "ME_CONFIG_MONGODB_KEY": "/run/secrets/key.pem",
-          "ME_CONFIG_MONGODB_CERT": "/run/secrets/cert.pem",
-          "ME_CONFIG_MONGODB_CACERT": "/run/secrets/millegrille.cert.pem",
-          "ME_CONFIG_MONGODB_SSLVALIDATE": "'true'"
+      "env": {
+        "ME_CONFIG_BASICAUTH_USERNAME": "mongo",
+        "ME_CONFIG_MONGODB_ADMINUSERNAME": "admin",
+        "MONGODB_ADMINPASSWORD_FILE": "/run/secrets/mongo.password.txt",
+        "ME_CONFIG_BASICAUTH_PASSWORD_FILE": "/run/secrets/web.password.txt",
+        "VCAP_APP_PORT": "443",
+        "ME_CONFIG_SITE_SSL_ENABLED": "'true'",
+        "ME_CONFIG_SITE_SSL_CRT_PATH": "/run/secrets/web.cert.pem",
+        "ME_CONFIG_SITE_SSL_KEY_PATH": "/run/secrets/web.key.pem",
+        "ME_CONFIG_MONGODB_SERVER": "mongo",
+        "ME_CONFIG_MONGODB_SSL": "true",
+        "ME_CONFIG_MONGODB_KEY": "/run/secrets/key.pem",
+        "ME_CONFIG_MONGODB_CERT": "/run/secrets/cert.pem",
+        "ME_CONFIG_MONGODB_CACERT": "/run/secrets/millegrille.cert.pem",
+        "ME_CONFIG_MONGODB_SSLVALIDATE": "'true'"
+      },
+      "constraints": ["node.labels.millegrilles.mongoexpress == true"],
+      "configs": [
+        {
+          "name": "pki.mongoexpress",
+          "current": "cert",
+          "filename": "/run/secrets/cert.pem"
         },
-        "constraints": ["node.labels.millegrilles.mongoexpress == true"],
-        "configs": [
-          {
-            "certificate": true,
-            "name": "pki.mongoexpress",
-            "filename": "/run/secrets/cert.pem"
-          },
-          {
-            "name": "pki.web",
-            "current": "cert",
-            "filename": "/run/secrets/webcert.pem"
-          },
-          {
-            "name": "pki.millegrille",
-            "filename": "/run/secrets/millegrille.cert.pem"
-          }
-        ],
-        "secrets": [
-          {
-            "certificate": true,
-            "name": "pki.mongoexpress",
-            "filename": "key.pem"
-          },
-          {
-            "name": "pki.web",
-            "current": "key",
-            "filename": "webkey.pem"
-          },
-          {
-            "name": "passwd.mongo",
-            "current": "password",
-            "filename": "mongo.password.txt"
-          },
-          {
-            "name": "passwd.mongoexpress",
-            "current": "password",
-            "filename": "web.password.txt"
-          }
-        ],
-        "networks": [{"target": "millegrille_net", "aliases": ["mongoexpress"]}],
-        "resources": {
-          "cpu_limit": 500000000,
-          "mem_limit": 73741824
+        {
+          "name": "pki.web",
+          "current": "cert",
+          "filename": "/run/secrets/web.cert.pem"
         },
-        "restart_policy": {
-          "condition": "on-failure",
-          "delay": 60000000000,
-          "max_attempts": 2
-        },
-        "mode": {
-          "mode": "replicated",
-          "replicas": 1
-        },
-        "labels": {
-          "url": "https://${HOSTNAME}:1444",
-          "securite": "3.protege"
+        {
+          "name": "pki.millegrille",
+          "filename": "/run/secrets/millegrille.cert.pem"
         }
+      ],
+      "secrets": [
+        {
+          "name": "pki.mongoexpress",
+          "current": "key",
+          "filename": "key.pem"
+        },
+        {
+          "name": "pki.web",
+          "current": "key",
+          "filename": "web.key.pem"
+        },
+        {
+          "name": "passwd.mongo",
+          "current": "password",
+          "filename": "mongo.password.txt"
+        },
+        {
+          "name": "passwd.mongoexpress",
+          "current": "password",
+          "filename": "web.password.txt"
+        }
+      ],
+      "networks": [{"target": "millegrille_net", "aliases": ["mongoexpress"]}],
+      "resources": {
+        "cpu_limit": 500000000,
+        "mem_limit": 73741824
+      },
+      "restart_policy": {
+        "condition": "on-failure",
+        "delay": 60000000000,
+        "max_attempts": 2
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      },
+      "labels": {
+        "url": "https://${HOSTNAME}:1444",
+        "securite": "3.protege"
       }
     }
-  ]
+  ],
+  "nginx": {
+    "conf": ["mongoexpress.server"],
+    "ports": [1443, 1444]
+  }
 }

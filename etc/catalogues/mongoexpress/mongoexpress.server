@@ -1,0 +1,32 @@
+# HTTPS server
+# Serveur https par defaut
+# resolver 127.0.0.11;
+
+server {{
+    listen 1443 ssl http2;
+    listen [::]:1443 ssl http2 ipv6only=on default_server;
+
+    server_name _;  # Default server
+
+    # Inclure les conf - charge certificats ssl
+    include /etc/nginx/conf.d/modules/*.conf;
+
+    location / {{
+      proxy_pass https://mq:8443;
+    }}
+}}
+
+server {{
+    listen 1444 ssl http2;
+    listen [::]:1444 ssl http2 ipv6only=on default_server;
+
+    server_name _;  # Default server
+
+    # Inclure les conf - charge certificats ssl
+    include /etc/nginx/conf.d/modules/*.conf;
+
+    location / {{
+      set $upstream_mongoexpress https://mongoexpress:443;
+      proxy_pass $upstream_mongoexpress;
+    }}
+}}

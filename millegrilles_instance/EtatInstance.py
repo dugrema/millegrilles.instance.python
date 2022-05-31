@@ -11,7 +11,7 @@ from millegrilles_messages.IpUtils import get_ip, get_hostname
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.FormatteurMessages import SignateurTransactionSimple, FormatteurMessageMilleGrilles
-
+from millegrilles_instance.EntretienNginx import EntretienNginx
 
 class EtatInstance:
 
@@ -32,6 +32,8 @@ class EtatInstance:
 
         self.__docker_present = False
         self.__docker_actif = False
+
+        self.__entretien_nginx: Optional[EntretienNginx] = None
 
         # Liste de listeners qui sont appeles sur changement de configuration
         self.__config_listeners = list()
@@ -153,6 +155,13 @@ class EtatInstance:
 
     def set_redemarrer(self, redemarrer):
         self.__redemarrer = redemarrer
+
+    def set_entretien_nginx(self, entretien_nginx):
+        self.__entretien_nginx = entretien_nginx
+
+    @property
+    def entretien_nginx(self):
+        return self.__entretien_nginx
 
     @property
     def redemarrer(self):
