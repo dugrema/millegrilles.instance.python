@@ -46,6 +46,9 @@ class EntretienCatalogues:
         repertoire_src_catalogues = path.abspath('../etc/catalogues')
 
         for fichier in os.listdir(repertoire_src_catalogues):
+            if path.isdir(fichier):
+                continue  # Skip repertoire
+
             # Verifier si le fichier existe dans la destination
             path_destination = path.join(path_catalogues, fichier)
             if path.exists(path_destination) is False:

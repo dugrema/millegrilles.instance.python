@@ -1,97 +1,117 @@
 {
-  "nom": "mongoexpress",
-  "version": "2022.3.0",
-  "securite": "3.protege",
-  "dependances": [
+  '_certificat': [
+    '-----BEGIN CERTIFICATE-----\nMIIClDCCAkagAwIBAgIUQH2VWFO8JP7S7q8zKxalRtTO3pwwBQYDK2VwMHIxLTAr\nBgNVBAMTJDQ5YmQ3MzU3LWI0ODEtNGEyYy05NTY4LTRmMzgxNTIxZjM3OTFBMD8G\nA1UEChM4emVZbmNScUVxWjZlVEVtVVo4d2hKRnVIRzc5NmVTdkNUV0U0TTQzMml6\nWHJwMjJiQXR3R203SmYwHhcNMjIwNTMwMTg1MTE5WhcNMjIwNjMwMTg1MTM5WjCB\ngTEtMCsGA1UEAwwkNDliZDczNTctYjQ4MS00YTJjLTk1NjgtNGYzODE1MjFmMzc5\nMQ0wCwYDVQQLDARjb3JlMUEwPwYDVQQKDDh6ZVluY1JxRXFaNmVURW1VWjh3aEpG\ndUhHNzk2ZVN2Q1RXRTRNNDMyaXpYcnAyMmJBdHdHbTdKZjAqMAUGAytlcAMhAJ2j\nlBD8lMQ5IG5uHR40cCQ2r9ef67HVnXp3YEuj/fy1o4HdMIHaMCsGBCoDBAAEIzQu\nc2VjdXJlLDMucHJvdGVnZSwyLnByaXZlLDEucHVibGljMAwGBCoDBAEEBGNvcmUw\nTAYEKgMEAgREQ29yZUJhY2t1cCxDb3JlQ2F0YWxvZ3VlcyxDb3JlTWFpdHJlRGVz\nQ29tcHRlcyxDb3JlUGtpLENvcmVUb3BvbG9naWUwDwYDVR0RBAgwBoIEY29yZTAf\nBgNVHSMEGDAWgBRGjCMtvcJM2Wn8/d0r72UgtJ4IKTAdBgNVHQ4EFgQUYa9P/U2o\nvKnk+TMIVw4c+WN1UjkwBQYDK2VwA0EAYv+OAbVVA0v9Lk7gwSi1+iIUOQTiwUGv\nt+1LwDUfugDldTqqaY0wXkviRUBPxdBrcUL/++ie6LMrHiECjZsEDA==\n-----END CERTIFICATE-----\n',
+    '-----BEGIN CERTIFICATE-----\nMIIBozCCAVWgAwIBAgIKAiV3WGZWIkaZZDAFBgMrZXAwFjEUMBIGA1UEAxMLTWls\nbGVHcmlsbGUwHhcNMjIwNTMwMTg1MTI5WhcNMjMxMjA5MTg1MTI5WjByMS0wKwYD\nVQQDEyQ0OWJkNzM1Ny1iNDgxLTRhMmMtOTU2OC00ZjM4MTUyMWYzNzkxQTA/BgNV\nBAoTOHplWW5jUnFFcVo2ZVRFbVVaOHdoSkZ1SEc3OTZlU3ZDVFdFNE00MzJpelhy\ncDIyYkF0d0dtN0pmMCowBQYDK2VwAyEA4rsH1zafRi33/V+UftV8UuGGqqqIS/f6\n91kjzFITLJWjYzBhMBIGA1UdEwEB/wQIMAYBAf8CAQAwCwYDVR0PBAQDAgEGMB0G\nA1UdDgQWBBRGjCMtvcJM2Wn8/d0r72UgtJ4IKTAfBgNVHSMEGDAWgBTTiP/MFw4D\nDwXqQ/J2LLYPRUkkETAFBgMrZXADQQC9TM4RACUjFECAr05gWgoCUYsZ8V6QoXiA\nq0xrM1gltvqIvbWrd6dmLzi+056z0K3LB6l8El4FRpr45yKvPmcA\n-----END CERTIFICATE-----\n'
+  ],
+  '_signature': 'mAiTBrnaAaXnrTzu10YFJF0hGby2+D57TIrA1Toxu2pi+WRKUXJS2vApgZZ8QWtQ5cxHv/mjE5RiA4FrBUMOwegI',
+  'dependances': [
     {
-      "image": "docker.maceroc.com/mg_mongo_express:0.54_0",
-      "certificat": {"roles": ["mongoexpress"], "dns": {"hostnames": ["mongoexpress"]}},
-      "passwords": ["mongoexpress"],
-      "config": {
-        "name": "mongoexpress",
-        "env": {
-          "ME_CONFIG_BASICAUTH_USERNAME": "mongo",
-          "ME_CONFIG_MONGODB_ADMINUSERNAME": "${MONGO_INITDB_ROOT_USERNAME}",
-          "MONGODB_ADMINPASSWORD_FILE": "/run/secrets/mongo.password.txt",
-          "ME_CONFIG_BASICAUTH_PASSWORD_FILE": "/run/secrets/web.password.txt",
-          "VCAP_APP_PORT": "443",
-          "ME_CONFIG_SITE_SSL_ENABLED": "'true'",
-          "ME_CONFIG_SITE_SSL_CRT_PATH": "/run/secrets/web.cert.pem",
-          "ME_CONFIG_SITE_SSL_KEY_PATH": "/run/secrets/web.key.pem",
-          "ME_CONFIG_MONGODB_SERVER": "mongo",
-          "ME_CONFIG_MONGODB_SSL": "true",
-          "ME_CONFIG_MONGODB_KEY": "/run/secrets/key.pem",
-          "ME_CONFIG_MONGODB_CERT": "/run/secrets/cert.pem",
-          "ME_CONFIG_MONGODB_CACERT": "/run/secrets/millegrille.cert.pem",
-          "ME_CONFIG_MONGODB_SSLVALIDATE": "'true'"
+      'certificat': {
+        'dns': {
+          'hostnames': [
+            'mongoexpress'
+          ]
         },
-        "constraints": [
-          "node.labels.millegrilles.database == true"
-        ],
-        "configs": [
+        'roles': [
+          'mongoexpress'
+        ]
+      },
+      'config': {
+        'configs': [
           {
-            "certificate": true,
-            "name": "pki.mongoexpress",
-            "filename": "/run/secrets/cert.pem"
+            'certificate': True,
+            'filename': '/run/secrets/cert.pem',
+            'name': 'pki.mongoexpress'
           },
           {
-            "name": "pki.web",
-            "current": "cert",
-            "filename": "/run/secrets/webcert.pem"
+            'current': 'cert',
+            'filename': '/run/secrets/webcert.pem',
+            'name': 'pki.web'
           },
           {
-            "name": "pki.millegrille",
-            "filename": "/run/secrets/millegrille.cert.pem"
+            'filename': '/run/secrets/millegrille.cert.pem',
+            'name': 'pki.millegrille'
           }
         ],
-        "secrets": [
+        'constraints': [
+          'node.labels.millegrilles.mongoexpress == true'
+        ],
+        'env': {
+          'ME_CONFIG_BASICAUTH_PASSWORD_FILE': '/run/secrets/web.password.txt',
+          'ME_CONFIG_BASICAUTH_USERNAME': 'mongo',
+          'ME_CONFIG_MONGODB_ADMINUSERNAME': '${MONGO_INITDB_ROOT_USERNAME}',
+          'ME_CONFIG_MONGODB_CACERT': '/run/secrets/millegrille.cert.pem',
+          'ME_CONFIG_MONGODB_CERT': '/run/secrets/cert.pem',
+          'ME_CONFIG_MONGODB_KEY': '/run/secrets/key.pem',
+          'ME_CONFIG_MONGODB_SERVER': 'mongo',
+          'ME_CONFIG_MONGODB_SSL': 'true',
+          'ME_CONFIG_MONGODB_SSLVALIDATE': "'true'",
+          'ME_CONFIG_SITE_SSL_CRT_PATH': '/run/secrets/web.cert.pem',
+          'ME_CONFIG_SITE_SSL_ENABLED': "'true'",
+          'ME_CONFIG_SITE_SSL_KEY_PATH': '/run/secrets/web.key.pem',
+          'MONGODB_ADMINPASSWORD_FILE': '/run/secrets/mongo.password.txt',
+          'VCAP_APP_PORT': '443'
+        },
+        'mode': {
+          'mode': 'replicated',
+          'replicas': 1
+        },
+        'name': 'mongoexpress',
+        'networks': [
           {
-            "certificate": true,
-            "name": "pki.mongoexpress",
-            "filename": "key.pem"
-          },
-          {
-            "name": "pki.web",
-            "current": "key",
-            "filename": "webkey.pem"
-          },
-          {
-            "name": "passwd.mongo",
-            "current": "password",
-            "filename": "mongo.password.txt"
-          },
-          {
-            "name": "passwd.mongoexpress",
-            "current": "password",
-            "filename": "web.password.txt"
+            'aliases': [
+              'mongoexpress'
+            ],
+            'target': 'millegrille_net'
           }
         ],
-        "networks": [{"target": "millegrille_net", "aliases": ["mongoexpress"]}],
-        "labels": {
-          "application": "mongoexpress",
-          "millegrille": "${IDMG}",
-          "url": "https://mongoexpress.${HOSTNAME}",
-          "securite": "3.protege"
+        'resources': {
+          'cpu_limit': 500000000,
+          'mem_limit': 73741824
         },
-        "resources": {
-          "cpu_limit": 500000000,
-          "mem_limit": 73741824
+        'restart_policy': {
+          'condition': 'on-failure',
+          'delay': 60000000000,
+          'max_attempts': 2
         },
-        "restart_policy": {
-          "condition": "on-failure",
-          "delay": 60000000000,
-          "max_attempts": 2
-        },
-        "mode": {
-          "mode": "replicated",
-          "replicas": 1
-        }
-      }
+        'secrets': [
+          {
+            'certificate': True,
+            'filename': 'key.pem',
+            'name': 'pki.mongoexpress'
+          },
+          {
+            'current': 'key',
+            'filename': 'webkey.pem',
+            'name': 'pki.web'
+          },
+          {
+            'current': 'password',
+            'filename': 'mongo.password.txt',
+            'name': 'passwd.mongo'
+          },
+          {
+            'current': 'password',
+            'filename': 'web.password.txt',
+            'name': 'passwd.mongoexpress'
+          }
+        ]
+      },
+      'image': 'docker.maceroc.com/mg_mongo_express:0.54_0',
+      'passwords': [
+        'mongoexpress'
+      ]
     }
   ],
-  "nginx": {
-    "server_file": "mongoexpress.app.location",
-    "subdomain": "mongoexpress",
-    "params": {"PROXY_PASS_BACKEND": "https://mongoexpress:443"}
-  }
+  'en-tete': {
+    'estampille': 1653954429,
+    'fingerprint_certificat': 'z2i3XjxKxfYfQyXQzw8fzP3Ypw9yRWqNNttuU3r65vBXcf6n6PG',
+    'hachage_contenu': 'mEiBheH66mx5lXsH/8FIznt7tehqZ6MH43Rp5iAu3vWeJog',
+    'idmg': 'zeYncRqEqZ6eTEmUZ8whJFuHG796eSvCTWE4M432izXrp22bAtwGm7Jf',
+    'uuid_transaction': '230954f5-7cc4-4065-9580-bf6f633cee2c',
+    'version': 1
+  },
+  'nom': 'mongoexpress',
+  'securite': '3.protege',
+  'version': '2022.3.1'
 }

@@ -1,3 +1,4 @@
+import json
 import os
 
 import aiohttp
@@ -5,8 +6,8 @@ import logging
 import ssl
 
 from aiohttp.client_exceptions import ClientConnectorError
-from os import path, makedirs, stat
-from typing import Optional
+from os import path, makedirs
+from typing import Optional, Union
 from millegrilles_messages.messages import Constantes
 
 
@@ -77,7 +78,11 @@ class EntretienNginx:
     def verifier_repertoire_configuration(self):
         path_nginx = self.__etat_instance.configuration.path_nginx
         path_nginx_html = path.join(path_nginx, 'html')
-        makedirs(path_nginx_html, 0o750, exist_ok=True)
+        makedirs(path_nginx_html, 0o755, exist_ok=True)
+        path_nginx_data = path.join(path_nginx, 'data')
+        makedirs(path_nginx_data, 0o755, exist_ok=True)
+        path_nginx_module = path.join(path_nginx, 'modules')
+        makedirs(path_nginx_module, 0o750, exist_ok=True)
 
         # Verifier existance de la configuration de modules nginx
         configuration_modifiee = self.generer_configuration_nginx()
@@ -134,3 +139,18 @@ class EntretienNginx:
                 configuration_modifiee = True
 
         return configuration_modifiee
+
+    def sauvegarder_fichier_data(self, path_fichier: str, contenu: Union[str, bytes, dict], path_html=False):
+        path_nginx = self.__etat_instance.configuration.path_nginx
+        if path_html is True:
+            path_nginx_fichier = path.join(path_nginx, 'html', path_fichier)
+        else:
+            path_nginx_fichier = path.join(path_nginx, 'data', path_fichier)
+
+        if isinstance(contenu, str):
+            contenu = contenu.encode('utf-8')
+        elif isinstance(contenu, dict):
+            contenu = json.dumps(contenu).encode('utf-8')
+
+        with open(path_nginx_fichier, 'wb') as output:
+            output.write(contenu)

@@ -155,12 +155,12 @@ def parse_commands():
 
 def main():
     logging.basicConfig()
-    logging.getLogger('millegrilles').setLevel(logging.INFO)
+    logging.getLogger('millegrilles_instance').setLevel(logging.INFO)
     logging.getLogger('__main__').setLevel(logging.INFO)
 
     args = parse_commands()
     if args.debug:
-        logging.getLogger('millegrilles').setLevel(logging.DEBUG)
+        logging.getLogger('millegrilles_instance').setLevel(logging.DEBUG)
         logging.getLogger('__main__').setLevel(logging.DEBUG)
 
     generateur = Generateur(args)

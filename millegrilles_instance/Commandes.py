@@ -51,6 +51,10 @@ class CommandHandler:
             delegation_globale = None
 
         try:
+            if exchange == Constantes.SECURITE_PUBLIC and Constantes.SECURITE_PUBLIC in exchanges:
+                if Constantes.ROLE_CORE in roles:
+                    if action == ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE:
+                        return await self.sauvegarder_fiche_publique(message)
             if exchange == Constantes.SECURITE_PROTEGE and Constantes.SECURITE_PROTEGE in exchanges:
                 if Constantes.ROLE_CORE in roles:
                     if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
@@ -109,3 +113,10 @@ class CommandHandler:
 
     async def arreter_application(self, message: MessageWrapper):
         await self._gestionnaire_applications.arreter_application()
+
+    async def sauvegarder_fiche_publique(self, message: MessageWrapper):
+        self.__logger.debug("Sauvegarder fiche publique")
+        parsed = message.parsed
+        self._entretien_instance.sauvegarder_nginx_data('fiche.json', parsed, path_html=True)
+
+        return {'ok': True}

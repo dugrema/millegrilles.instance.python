@@ -8,7 +8,7 @@ import logging
 import secrets
 
 from os import path, stat, makedirs, listdir
-from typing import Optional
+from typing import Optional, Union
 
 from aiohttp import ClientSession
 from asyncio import Event, TimeoutError
@@ -390,6 +390,9 @@ class InstanceProtegee(InstanceAbstract):
 
     def get_config_modules(self) -> list:
         return CONFIG_MODULES_PROTEGES
+
+    def sauvegarder_nginx_data(self, nom_fichier: str, contenu: Union[bytes, str, dict], path_html=False):
+        self.__entretien_nginx.sauvegarder_fichier_data(nom_fichier, contenu, path_html)
 
     async def get_liste_applications(self):
         pass
