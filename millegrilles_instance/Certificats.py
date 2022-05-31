@@ -1,9 +1,17 @@
+import base64
+import datetime
 import logging
+import secrets
 
-from os import path
+from aiohttp import ClientSession
+from os import path, stat
 
+from millegrilles_messages.messages.CleCertificat import CleCertificat
+from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa
 from millegrilles_messages.messages.CleCertificat import CleCertificat
+from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
+
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +46,140 @@ def preparer_certificats_web(path_secrets: str):
         fichier.write(clecertificat_genere.get_pem_cle())
 
     return path_cert_web, path_key_web
+
+
+async def generer_certificats_modules(client_session: ClientSession, etat_instance,
+                                      etat_docker: EtatDockerInstanceSync, configuration: dict):
+    # S'assurer que tous les certificats sont presents et courants dans le repertoire secrets
+    path_secrets = etat_instance.configuration.path_secrets
+    for nom_module, value in configuration.items():
+        logger.debug("generer_certificats_modules() Verification certificat %s" % nom_module)
+
+        nom_certificat = 'pki.%s.cert' % nom_module
+        nom_cle = 'pki.%s.cle' % nom_module
+        path_certificat = path.join(path_secrets, nom_certificat)
+        path_cle = path.join(path_secrets, nom_cle)
+        combiner_keycert = value.get('combiner_keycert') or False
+
+        sauvegarder = False
+        try:
+            clecertificat = CleCertificat.from_files(path_cle, path_certificat)
+            enveloppe = clecertificat.enveloppe
+
+            # Ok, verifier si le certificat doit etre renouvele
+            detail_expiration = enveloppe.calculer_expiration()
+            if detail_expiration['expire'] is True or detail_expiration['renouveler'] is True:
+                clecertificat = await generer_nouveau_certificat(client_session, etat_instance, nom_module, value)
+                sauvegarder = True
+
+        except FileNotFoundError:
+            logger.info("Certificat %s non trouve, on le genere" % nom_module)
+            clecertificat = await generer_nouveau_certificat(client_session, etat_instance, nom_module, value)
+            sauvegarder = True
+
+        # Verifier si le certificat et la cle sont stocke dans docker
+        if sauvegarder is True:
+
+            cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
+            with open(path_cle, 'wb') as fichier:
+                fichier.write(clecertificat.private_key_bytes())
+                if combiner_keycert is True:
+                    fichier.write(cert_str.encode('utf-8'))
+            with open(path_certificat, 'w') as fichier:
+                cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
+                fichier.write(cert_str)
+
+        await etat_docker.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
+
+
+async def generer_nouveau_certificat(client_session: ClientSession, etat_instance, nom_module: str,
+                                     configuration: dict) -> CleCertificat:
+    instance_id = etat_instance.instance_id
+    idmg = etat_instance.certificat_millegrille.idmg
+    clecsr = CleCsrGenere.build(instance_id, idmg)
+    csr_str = clecsr.get_pem_csr()
+
+    # Preparer configuration dns au besoin
+    configuration = configuration.copy()
+    try:
+        dns = configuration['dns'].copy()
+        if dns.get('domain') is True:
+            nom_domaine = etat_instance.nom_domaine
+            hostnames = [nom_domaine]
+            if dns.get('hostnames') is not None:
+                hostnames.extend(dns['hostnames'])
+            dns['hostnames'] = hostnames
+            configuration['dns'] = dns
+    except KeyError:
+        pass
+
+    configuration['csr'] = csr_str
+
+    # Signer avec notre certificat (instance), requis par le certissuer
+    formatteur_message = etat_instance.formatteur_message
+    message_signe, _uuid = formatteur_message.signer_message(configuration)
+
+    logger.debug("Demande de signature de certificat pour %s => %s\n%s" % (nom_module, message_signe, csr_str))
+    url_issuer = etat_instance.certissuer_url
+    path_csr = path.join(url_issuer, 'signerModule')
+    async with client_session.post(path_csr, json=message_signe) as resp:
+        resp.raise_for_status()
+        reponse = await resp.json()
+
+    certificat = reponse['certificat']
+
+    # Confirmer correspondance entre certificat et cle
+    clecertificat = CleCertificat.from_pems(clecsr.get_pem_cle(), ''.join(certificat))
+    if clecertificat.cle_correspondent() is False:
+        raise Exception("Erreur cert/cle ne correspondent pas")
+
+    logger.debug("Reponse certissuer certificat %s\n%s" % (nom_module, ''.join(certificat)))
+    return clecertificat
+
+
+async def generer_passwords(etat_instance, etat_docker: EtatDockerInstanceSync,
+                            liste_noms_passwords: list):
+    """
+    Generer les passwords manquants.
+    :param etat_instance:
+    :param etat_docker:
+    :param liste_noms_passwords:
+    :return:
+    """
+    path_secrets = etat_instance.configuration.path_secrets
+    configurations = await etat_docker.get_configurations_datees()
+    secrets_dict = configurations['secrets']
+
+    for nom_password in liste_noms_passwords:
+        prefixe = 'passwd.%s' % nom_password
+        path_password = path.join(path_secrets, prefixe + '.txt')
+
+        try:
+            with open(path_password, 'r') as fichier:
+                password = fichier.read().strip()
+            info_fichier = stat(path_password)
+            date_password = info_fichier.st_mtime
+        except FileNotFoundError:
+            # Fichier non trouve, on doit le creer
+            password = base64.b64encode(secrets.token_bytes(24)).decode('utf-8').replace('=', '')
+            with open(path_password, 'w') as fichier:
+                fichier.write(password)
+            info_fichier = stat(path_password)
+            date_password = info_fichier.st_mtime
+
+        logger.debug("Date password : %s" % date_password)
+        date_password = datetime.datetime.utcfromtimestamp(date_password)
+        date_password_str = date_password.strftime('%Y%m%d%H%M%S')
+
+        label_passord = '%s.%s' % (prefixe, date_password_str)
+        try:
+            secrets_dict[label_passord]
+            continue  # Mot de passe existe
+        except KeyError:
+            pass  # Le mot de passe n'existe pas
+
+        # Ajouter mot de passe
+        await etat_docker.ajouter_password(nom_password, date_password_str, password)
 
 
 # def generer_certificat_nginx_selfsigned(insecure=False):

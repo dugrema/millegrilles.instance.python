@@ -10,7 +10,6 @@ from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.docker import DockerCommandes
 
 from millegrilles_instance import Constantes
-from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.docker.ParseConfiguration import ConfigurationService
 from millegrilles_messages.docker.DockerHandler import CommandeDocker
@@ -18,7 +17,7 @@ from millegrilles_messages.docker.DockerHandler import CommandeDocker
 
 class EtatDockerInstanceSync:
 
-    def __init__(self, etat_instance: EtatInstance, docker_handler: DockerHandler):
+    def __init__(self, etat_instance, docker_handler: DockerHandler):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__etat_instance = etat_instance
         self.__docker_handler = docker_handler  # DockerHandler
@@ -27,7 +26,7 @@ class EtatDockerInstanceSync:
 
         self.__docker_initialise = False
 
-    async def callback_changement_configuration(self, etat_instance: EtatInstance):
+    async def callback_changement_configuration(self, etat_instance):
         self.__logger.info("callback_changement_configuration - Reload configuration")
         await self.verifier_config_instance()
 
@@ -338,15 +337,45 @@ class EtatDockerInstanceSync:
         nginx = configuration.get('nginx')
         dependances = configuration['dependances']
 
+        commande_config_datees = DockerCommandes.CommandeGetConfigurationsDatees(aio=True)
+        self.__docker_handler.ajouter_commande(commande_config_datees)
+        commande_config_services = DockerCommandes.CommandeListerServices(filters={'name': nom_application}, aio=True)
+        self.__docker_handler.ajouter_commande(commande_config_services)
+
+        resultat_config_datees = await commande_config_datees.get_resultat()
+        correspondance = resultat_config_datees['correspondance']
+        service_existant = await commande_config_services.get_liste()
+
+        if len(service_existant) > 0:
+            return {'ok': False, 'err': 'Service deja installe'}
+
         # Generer certificats/passwords
         for dep in dependances:
             try:
                 certificat = dep['certificat']
+
+                # Verifier si certificat/cle existent deja
+                try:
+                    current = correspondance['pki.%s' % nom_application]['current']
+                    current['key']
+                    current['cert']
+                except KeyError:
+                    self.__logger.info("Generer certificat/secret pour %s" % nom_application)
+                    await self.__etat_instance.generer_certificats_module(self, nom_application, certificat)
+
             except KeyError:
                 pass
 
             try:
                 passwords = dep['passwords']
+                for password in passwords:
+                    try:
+                        current = correspondance['passwd.%s' % password]['current']
+                        current['password']
+                    except KeyError:
+                        self.__logger.info("Generer password %s pour %s" % (password, nom_application))
+                        await self.__etat_instance.generer_passwords(self, [password])
+
             except KeyError:
                 pass
 

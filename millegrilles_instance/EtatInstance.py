@@ -1,10 +1,11 @@
+import aiohttp
 import logging
 
 from asyncio import Event
 from typing import Optional
 
 from millegrilles_messages.messages import Constantes
-from millegrilles_instance.Certificats import preparer_certificats_web
+from millegrilles_instance.Certificats import preparer_certificats_web, generer_certificats_modules, generer_passwords
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_messages.IpUtils import get_ip, get_hostname
 from millegrilles_messages.messages.CleCertificat import CleCertificat
@@ -17,6 +18,7 @@ class EtatInstance:
     def __init__(self, configuration: ConfigurationInstance):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__configuration = configuration
+        self.__client_session = aiohttp.ClientSession()
 
         self.__ip_address: Optional[str] = None
         self.__hostname: Optional[str] = None
@@ -164,6 +166,13 @@ class EtatInstance:
             self.__stop_event.set()
         else:
             raise Exception("Stop event non disponible")
+
+    async def generer_certificats_module(self, etat_docker, nom_module: str, configuration: dict):
+        config = {nom_module: configuration}
+        await generer_certificats_modules(self.__client_session, self, etat_docker, config)
+
+    async def generer_passwords(self, etat_docker, passwords: list):
+        await generer_passwords(self, etat_docker, passwords)
 
 
 def load_fichier_config(path_fichier: str) -> Optional[str]:
