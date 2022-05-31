@@ -160,6 +160,10 @@ class EtatInstance:
         self.__entretien_nginx = entretien_nginx
 
     @property
+    def client_session(self):
+        return self.__client_session
+
+    @property
     def entretien_nginx(self):
         return self.__entretien_nginx
 

@@ -1,7 +1,7 @@
 import logging
 import json
 
-from os import path
+from os import path, listdir
 
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
@@ -36,3 +36,21 @@ class GestionnaireApplications:
 
     async def supprimer_application(self, nom_application: str):
         raise NotImplementedError('todo')
+
+    async def get_liste_configurations(self) -> list:
+        """
+        Charge l'information de configuration de toutes les applications connues.
+        :return:
+        """
+        info_configuration = list()
+        path_docker_apps = self.__etat_instance.configuration.path_docker_apps
+        for fichier_config in listdir(path_docker_apps):
+            if not fichier_config.startswith('app.'):
+                continue  # Skip, ce n'est pas une application
+            with open(path.join(path_docker_apps, fichier_config), 'rb') as fichier:
+                contenu = json.load(fichier)
+            nom = contenu['nom']
+            version = contenu['version']
+            info_configuration.append({'nom': nom, 'version': version})
+
+        return info_configuration

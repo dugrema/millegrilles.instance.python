@@ -340,7 +340,7 @@ class InstanceProtegee(InstanceAbstract):
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")
         configuration = await self.get_configuration_certificats()
-        await generer_certificats_modules(self.__client_session, self._etat_instance, self._etat_docker,
+        await generer_certificats_modules(self._etat_instance.client_session, self._etat_instance, self._etat_docker,
                                           configuration)
         self.__logger.debug("entretien_certificats fin")
         self.__event_setup_initial_certificats.set()
@@ -380,6 +380,10 @@ class InstanceProtegee(InstanceAbstract):
         commande = CommandeListeTopologie()
         self._etat_docker.ajouter_commande(commande)
         info_instance = parse_topologie_docker(await commande.get_info())
+
+        # Faire la liste des applications installees
+        liste_applications = await self._gestionnaire_applications.get_liste_configurations()
+        info_instance['applications_configurees'] = liste_applications
 
         await self.emettre_presence(producer, info_instance)
 
