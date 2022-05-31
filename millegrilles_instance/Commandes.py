@@ -100,23 +100,27 @@ class CommandHandler:
 
     async def installer_application(self, message: MessageWrapper):
         contenu = message.parsed
-        nom_application = contenu['nom_application']
+        # nom_application = contenu['nom_application']
         configuration = contenu['configuration']
-        await self._gestionnaire_applications.installer_application(nom_application, configuration)
-        return {'ok': True}
+        return await self._gestionnaire_applications.installer_application(configuration)
 
     async def supprimer_application(self, message: MessageWrapper):
-        await self._gestionnaire_applications.supprimer_application()
+        contenu = message.parsed
+        nom_application = contenu['nom_application']
+        return await self._gestionnaire_applications.supprimer_application(nom_application)
 
     async def demarrer_application(self, message: MessageWrapper):
-        await self._gestionnaire_applications.demarrer_application()
+        contenu = message.parsed
+        nom_application = contenu['nom_application']
+        return await self._gestionnaire_applications.demarrer_application(nom_application)
 
     async def arreter_application(self, message: MessageWrapper):
-        await self._gestionnaire_applications.arreter_application()
+        contenu = message.parsed
+        nom_application = contenu['nom_application']
+        return await self._gestionnaire_applications.arreter_application(nom_application)
 
     async def sauvegarder_fiche_publique(self, message: MessageWrapper):
         self.__logger.debug("Sauvegarder fiche publique")
         parsed = message.parsed
         self._entretien_instance.sauvegarder_nginx_data('fiche.json', parsed, path_html=True)
-
         return {'ok': True}

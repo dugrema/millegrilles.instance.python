@@ -332,3 +332,26 @@ class EtatDockerInstanceSync:
 
     def ajouter_commande(self, commande: CommandeDocker):
         self.__docker_handler.ajouter_commande(commande)
+
+    async def installer_application(self, configuration: dict):
+        nom_application = configuration['nom']
+        nginx = configuration.get('nginx')
+        dependances = configuration['dependances']
+
+        # Generer certificats/passwords
+        for dep in dependances:
+            try:
+                certificat = dep['certificat']
+            except KeyError:
+                pass
+
+            try:
+                passwords = dep['passwords']
+            except KeyError:
+                pass
+
+        # Deployer services
+        for dep in dependances:
+            pass
+
+        return {'ok': True}
