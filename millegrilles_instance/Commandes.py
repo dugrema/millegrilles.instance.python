@@ -140,4 +140,15 @@ class CommandHandler:
         return {'nom_application': nom_application, 'configuration': configuration_dict}
 
     async def configurer_application(self, message: MessageWrapper):
-        pass
+        parsed = message.parsed
+        nom_application = parsed['nom_application']
+        configuration = parsed['configuration']
+
+        configuration_str = json.dumps(configuration)
+
+        path_catalogues = self._etat_instance.configuration.path_docker_apps
+        path_fichier = path.join(path_catalogues, 'app.%s.json' % nom_application)
+        with open(path_fichier, 'w') as fichier:
+            fichier.write(configuration_str)
+
+        return await self._gestionnaire_applications.installer_application(configuration, reinstaller=True)

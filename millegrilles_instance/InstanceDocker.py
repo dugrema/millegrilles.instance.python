@@ -306,7 +306,7 @@ class EtatDockerInstanceSync:
 
         return params
 
-    async def installer_service(self, nom_service: str, configuration: dict, params: dict):
+    async def installer_service(self, nom_service: str, configuration: dict, params: dict, reinstaller=False):
 
         # Copier params, ajouter info service
         params = params.copy()
@@ -342,7 +342,7 @@ class EtatDockerInstanceSync:
         image_info = await commande_image.get_resultat()
 
         image_tag = image_info['tags'][0]
-        commande_creer_service = DockerCommandes.CommandeCreerService(image_tag, config_parsed, aio=True)
+        commande_creer_service = DockerCommandes.CommandeCreerService(image_tag, config_parsed, reinstaller=reinstaller, aio=True)
         self.__docker_handler.ajouter_commande(commande_creer_service)
         resultat = await commande_creer_service.get_resultat()
 
@@ -363,7 +363,7 @@ class EtatDockerInstanceSync:
     def ajouter_commande(self, commande: CommandeDocker):
         self.__docker_handler.ajouter_commande(commande)
 
-    async def installer_application(self, configuration: dict):
+    async def installer_application(self, configuration: dict, reinstaller=False):
         nom_application = configuration['nom']
         nginx = configuration.get('nginx')
         dependances = configuration['dependances']
@@ -377,7 +377,7 @@ class EtatDockerInstanceSync:
         correspondance = resultat_config_datees['correspondance']
         service_existant = await commande_config_services.get_liste()
 
-        if len(service_existant) > 0:
+        if len(service_existant) > 0 and reinstaller is False:
             return {'ok': False, 'err': 'Service deja installe'}
 
         # Generer certificats/passwords
@@ -428,7 +428,7 @@ class EtatDockerInstanceSync:
             nom_module = dep['name']
             params = await self.get_params_env_service()
             params['__nom_application'] = nom_application
-            await self.installer_service(nom_module, dep, params)
+            await self.installer_service(nom_module, dep, params, reinstaller)
 
         if redemarrer_nginx is True:
             await self.redemarrer_nginx()

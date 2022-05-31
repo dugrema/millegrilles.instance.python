@@ -21,7 +21,7 @@ class GestionnaireApplications:
     async def entretien(self):
         self.__logger.debug("entretien")
 
-    async def installer_application(self, configuration: dict):
+    async def installer_application(self, configuration: dict, reinstaller=False):
         path_docker_apps = self.__etat_instance.configuration.path_docker_apps
         nom_application = configuration['nom']
         path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
@@ -30,7 +30,7 @@ class GestionnaireApplications:
         with open(path_app, 'w') as fichier:
             json.dump(configuration, fichier, indent=2)
 
-        resultat = await self.__etat_docker.installer_application(configuration)
+        resultat = await self.__etat_docker.installer_application(configuration, reinstaller)
 
         producer = self.__rabbitmq_dao.get_producer()
         await self.__etat_docker.emettre_presence(producer)
