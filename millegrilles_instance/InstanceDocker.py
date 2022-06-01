@@ -436,11 +436,15 @@ class EtatDockerInstanceSync:
             # await self.redemarrer_nginx()
             try:
                 conf_dict = nginx['conf']
-                for nom_fichier, contenu in conf_dict.items():
-                    self.__etat_instance.entretien_nginx.ajouter_fichier_configuration(nom_fichier, contenu)
-                redemarrer_nginx = True
             except KeyError:
                 pass
+            else:
+                params = {
+                    'appname': nom_application,
+                }
+                for nom_fichier, contenu in conf_dict.items():
+                    self.__etat_instance.entretien_nginx.ajouter_fichier_configuration(nom_fichier, contenu, params)
+                redemarrer_nginx = True
 
         # Deployer services
         for dep in dependances:

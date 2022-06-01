@@ -148,17 +148,22 @@ class EntretienNginx:
 
         return configuration_modifiee
 
-    def ajouter_fichier_configuration(self, nom_fichier: str, contenu: str):
+    def ajouter_fichier_configuration(self, nom_fichier: str, contenu: str, params: Optional[dict] = None):
         path_nginx = self.__etat_instance.configuration.path_nginx
         path_nginx_modules = path.join(path_nginx, 'modules')
-        params = {
+        if params is None:
+            params = dict()
+        else:
+            params = params.copy()
+
+        params.update({
             'nodename': self.__etat_instance.hostname,
             'hostname': self.__etat_instance.hostname,
             'instance_url': 'https://%s:2443' % self.__etat_instance.hostname,
             'certissuer_url': 'http://%s:2080' % self.__etat_instance.hostname,
             'midcompte_url': 'https://midcompte:2444',
             'MQ_HOST': self.__etat_instance.mq_hostname,
-        }
+        })
 
         path_destination = path.join(path_nginx_modules, nom_fichier)
         contenu = contenu.format(**params)

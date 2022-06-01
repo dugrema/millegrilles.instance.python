@@ -1,0 +1,80 @@
+{
+  "nom": "messagerie_web",
+  "version": "2022.3.5",
+  "description": {
+    "en": "Messaging web",
+    "fr": "Messagerie web"
+  },
+  "securite": "2.prive",
+  "dependances": [
+    {
+      "name": "messagerie_web",
+      "image": "docker.maceroc.com/millegrilles_messagerie_web:2022.3.0",
+      "certificat": {
+        "roles": ["messagerie_web"],
+        "exchanges": ["2.prive", "1.public"],
+        "dns": {"localhost": true, "hostnames": ["messagerie"], "domain": true}
+      },
+      "env": {
+        "MG_MQ_CERTFILE": "/run/secrets/cert.pem",
+        "MG_MQ_KEYFILE": "/run/secrets/key.pem",
+        "MG_MQ_CAFILE": "/run/secrets/millegrille.cert.pem",
+        "WEB_CERT": "/run/secrets/cert.pem",
+        "WEB_KEY": "/run/secrets/key.pem",
+        "SERVER_TYPE": "spdy",
+        "HOST": "${HOSTNAME}",
+        "PORT": "443",
+        "MG_REDIS_HOST": "redis",
+        "MG_REDIS_PORT": "6379",
+        "MG_CONSIGNATION_URL": "https://fichiers:443/fichiers_transfert"
+      },
+      "mounts": [
+        {"source": "millegrilles-staging", "target": "/var/opt/millegrilles/consignation", "type": "volume"}
+      ],
+      "configs": [
+        {
+          "name": "pki.collections",
+          "current": "cert",
+          "filename": "/run/secrets/cert.pem"
+        },
+        {
+          "name": "pki.millegrille",
+          "filename": "/run/secrets/millegrille.cert.pem"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "pki.collections",
+          "current": "key",
+          "filename": "key.pem"
+        },
+        {
+          "name": "passwd.redis",
+          "current": "password",
+          "filename": "passwd.redis.txt"
+        }
+      ],
+      "networks": [{"target": "millegrille_net", "aliases": ["messagerie"]}],
+      "resources": {
+        "cpu_limit": 1000000000,
+        "mem_limit": 120000000
+      },
+      "restart_policy": {
+        "condition": "on-failure",
+        "delay": 60000000000,
+        "max_attempts": 2
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      },
+      "labels": {
+        "url": "https://${HOSTNAME}/messagerie",
+        "securite": "2.prive"
+      }
+    }
+  ],
+  "nginx": {
+    "conf": ["messagerie.app.location"]
+  }
+}
