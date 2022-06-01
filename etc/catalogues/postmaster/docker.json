@@ -1,0 +1,68 @@
+{
+  "nom": "postmaster",
+  "version": "2022.3.2",
+  "description": {
+    "en": "Postmaster",
+    "fr": "Postmaster"
+  },
+  "securite": "1.public",
+  "dependances": [
+    {
+      "name": "postmaster",
+      "image": "docker.maceroc.com/millegrilles_postmaster:2022.3.0",
+      "certificat": {
+        "roles": ["postmaster"],
+        "exchanges": ["1.public"]
+      },
+      "env": {
+          "MG_MQ_HOST": "mq",
+          "MG_MQ_PORT": "5673",
+          "CERTFILE": "/run/secrets/cert.pem",
+          "KEYFILE": "/run/secrets/key.pem",
+          "CAFILE": "/run/secrets/millegrille.cert.pem",
+          "RUST_LOG": "warn,millegrilles_postmaster=info",
+          "MG_REDIS_URL": "rediss://client_rust@redis:6379#insecure",
+          "MG_REDIS_PASSWORD_FILE": "/run/secrets/passwd.redis.txt",
+          "MG_FICHIERS_URL": "https://fichiers:443"
+      },
+      "constraints": ["node.labels.millegrilles.postmaster == true"],
+      "configs": [
+        {
+          "name": "pki.postmaster",
+          "current": "cert",
+          "filename": "/run/secrets/cert.pem"
+        },
+        {
+          "name": "pki.millegrille",
+          "filename": "/run/secrets/millegrille.cert.pem"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "pki.postmaster",
+          "current": "key",
+          "filename": "key.pem"
+        },
+        {
+          "name": "passwd.redis",
+          "current": "password",
+          "filename": "passwd.redis.txt"
+        }
+      ],
+      "networks": [{"target": "millegrille_net"}],
+      "resources": {
+        "cpu_limit": 500000000,
+        "mem_limit": 120000000
+      },
+      "restart_policy": {
+        "condition": "on-failure",
+        "delay": 60000000000,
+        "max_attempts": 2
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      }
+    }
+  ]
+}
