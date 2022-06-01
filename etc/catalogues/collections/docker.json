@@ -1,6 +1,6 @@
 {
   "nom": "collections",
-  "version": "2022.3.1",
+  "version": "2022.3.2",
   "securite": "2.prive",
   "dependances": [
     {
@@ -18,12 +18,12 @@
         "WEB_CERT": "/run/secrets/cert.pem",
         "WEB_KEY": "/run/secrets/key.pem",
         "SERVER_TYPE": "spdy",
-        "HOST": "${HOSTNAME_DOMAINE}",
+        "HOST": "${HOSTNAME}",
         "PORT": "443",
         "MG_REDIS_HOST": "redis",
         "MG_REDIS_PORT": "6379",
         "MG_MQ_REDIS_PASSWD": "/run/secrets/passwd.redis.txt",
-        "MG_CONSIGNATION_URL": "https://${MQ_HOST}:444/fichiers_transfert",
+        "MG_CONSIGNATION_URL": "https://${HOSTNAME}:444/fichiers_transfert",
         "PATH_STAGING": "/var/opt/millegrilles/consignation/staging/collections"
       },
       "constraints": ["node.labels.millegrilles.collections == true"],
