@@ -238,6 +238,9 @@ class EtatDockerInstanceSync:
 
         # Determiner s'il y a des services manquants
         nom_services_a_installer = set(services.keys())
+        for nom_service, config_service in services.items():
+            if config_service.get('image') is not None:
+                nom_services_a_installer.add(nom_service)
 
         # Services avec certificats/secrets/passwd a remplacer
         services_a_reconfigurer = set()
@@ -366,14 +369,17 @@ class EtatDockerInstanceSync:
 
         # S'assurer d'avoir l'image
         image = parser.image
-        commande_image = DockerCommandes.CommandeGetImage(image, pull=True, aio=True)
-        self.__docker_handler.ajouter_commande(commande_image)
-        image_info = await commande_image.get_resultat()
+        if image is not None:
+            commande_image = DockerCommandes.CommandeGetImage(image, pull=True, aio=True)
+            self.__docker_handler.ajouter_commande(commande_image)
+            image_info = await commande_image.get_resultat()
 
-        image_tag = image_info['tags'][0]
-        commande_creer_service = DockerCommandes.CommandeCreerService(image_tag, config_parsed, reinstaller=reinstaller, aio=True)
-        self.__docker_handler.ajouter_commande(commande_creer_service)
-        resultat = await commande_creer_service.get_resultat()
+            image_tag = image_info['tags'][0]
+            commande_creer_service = DockerCommandes.CommandeCreerService(image_tag, config_parsed, reinstaller=reinstaller, aio=True)
+            self.__docker_handler.ajouter_commande(commande_creer_service)
+            resultat = await commande_creer_service.get_resultat()
+        else:
+            self.__logger.warning("installer_service() Invoque pour un service sans images : %s", nom_service)
 
     async def maj_configuration_datee_service(self, nom_service: str, configuration: dict):
 
