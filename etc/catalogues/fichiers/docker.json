@@ -1,6 +1,6 @@
 {
   "nom": "fichiers",
-  "version": "2022.3.0",
+  "version": "2022.3.3",
   "securite": "2.prive",
   "dependances": [
     {
@@ -9,7 +9,7 @@
       "certificat": {
         "roles": ["fichiers"],
         "exchanges": ["2.prive", "1.public"],
-        "dns": {"localhost": true, "hostnames": ["coupdoeil"], "domain": true}
+        "dns": {"localhost": true, "hostnames": ["fichiers"], "domain": true}
       },
       "generateur": [
         {"label": "fichiers_ed25519", "type": "ed25519"},
@@ -26,8 +26,7 @@
         "WEB_KEY": "/run/secrets/key.pem",
         "SFTP_KEY": "/run/secrets/sftp.key.pem",
         "SERVER_TYPE": "https",
-        "MG_CONSIGNATION_PATH": "/var/opt/millegrilles/consignation",
-        "WEBAPPS_SRC_FOLDER": "/var/opt/millegrilles/nginx/html"
+        "MG_CONSIGNATION_PATH": "/var/opt/millegrilles/consignation"
       },
       "constraints": ["node.labels.millegrilles.fichiers == true"],
       "mounts": [
@@ -41,23 +40,23 @@
           "filename": "/run/secrets/cert.pem"
         },
         {
-          "name": "pki.millegrille.cert",
+          "name": "pki.millegrille",
           "filename": "/run/secrets/millegrille.cert.pem"
         }
       ],
       "secrets": [
         {
-          "name": "pki.mongoexpress",
+          "name": "pki.fichiers",
           "current": "key",
           "filename": "key.pem"
         },
         {
-          "name": "passwd.ed25519",
+          "name": "passwd.fichiers_ed25519",
           "current": "password",
           "filename": "sftp.ed25519.key.pem"
         },
         {
-          "name": "passwd.rsa",
+          "name": "passwd.fichiers_rsa",
           "current": "password",
           "filename": "sftp.rsa.key.pem"
         },
