@@ -1,0 +1,19 @@
+{
+  "nom": "certificat_senseurspassifs_hub",
+  "version": "2022.3.1",
+  "description": {
+    "en": "SenseursPassifs hub (certificate)",
+    "fr": "SenseursPassifs hub (certificat)"
+  },
+  "securite": "2.prive",
+  "dependances": [
+    {
+      "name": "senseurspassifs_hub",
+      "certificat": {
+        "roles": ["senseurspassifs_hub"],
+        "domaines": ["SenseursPassifs"],
+        "exchanges": ["2.prive", "1.public"]
+      }
+    }
+  ]
+}

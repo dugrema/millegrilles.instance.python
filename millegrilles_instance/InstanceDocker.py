@@ -449,9 +449,10 @@ class EtatDockerInstanceSync:
         # Deployer services
         for dep in dependances:
             nom_module = dep['name']
-            params = await self.get_params_env_service()
-            params['__nom_application'] = nom_application
-            await self.installer_service(nom_module, dep, params, reinstaller)
+            if dep.get('image') is not None:
+                params = await self.get_params_env_service()
+                params['__nom_application'] = nom_application
+                await self.installer_service(nom_module, dep, params, reinstaller)
 
         if redemarrer_nginx is True:
             await self.redemarrer_nginx()
