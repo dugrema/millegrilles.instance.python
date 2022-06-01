@@ -130,6 +130,8 @@ class InstanceAbstract:
         path_configuration = self._etat_instance.configuration.path_configuration
         path_configuration_docker = path.join(path_configuration, 'docker')
         configurations = await charger_configuration_docker(path_configuration_docker, self.get_config_modules())
+        configurations_apps = await charger_configuration_application(path_configuration_docker)
+        configurations.extend(configurations_apps)
 
         # map configuration certificat
         services = dict()
@@ -372,9 +374,6 @@ class InstanceProtegee(InstanceAbstract):
 
     def sauvegarder_nginx_data(self, nom_fichier: str, contenu: Union[bytes, str, dict], path_html=False):
         self.__entretien_nginx.sauvegarder_fichier_data(nom_fichier, contenu, path_html)
-
-    async def get_liste_applications(self):
-        pass
 
 
 async def charger_configuration_docker(path_configuration: str, fichiers: list) -> list:

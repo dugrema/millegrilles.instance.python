@@ -298,6 +298,9 @@ class EtatDockerInstanceSync:
                 config_ok = verifier_config_current(liste_config_datee['correspondance'], container_config, container_secrets)
                 if config_ok is False:
                     self.__logger.info("Configs/secrets out of date, regenerer config %s" % s.name)
+                    services_a_reconfigurer.add(s.name)
+                    config_service = services[s.name]
+                    await self.maj_configuration_datee_service(s.name, config_service)
 
         if len(nom_services_a_installer) > 0:
             self.__logger.debug("Services manquants dans docker : %s" % nom_services_a_installer)
@@ -372,7 +375,29 @@ class EtatDockerInstanceSync:
         self.__docker_handler.ajouter_commande(commande_creer_service)
         resultat = await commande_creer_service.get_resultat()
 
-        pass
+    async def maj_configuration_datee_service(self, nom_service: str, configuration: dict):
+
+        params = await self.get_params_env_service()
+        params['__nom_application'] = nom_service
+
+        # Copier params, ajouter info service
+        parser = ConfigurationService(configuration, params)
+        parser.parse()
+        config_parsed = parser.generer_docker_config()
+
+        config_maj = dict()
+        try:
+            config_maj['configs'] = config_parsed['configs']
+        except KeyError:
+            pass
+        try:
+            config_maj['secrets'] = config_parsed['secrets']
+        except KeyError:
+            pass
+
+        commande_maj = DockerCommandes.CommandeMajService(nom_service, config_maj)
+        self.__docker_handler.ajouter_commande(commande_maj)
+        await commande_maj.attendre()
 
     async def redemarrer_nginx(self):
         self.__logger.info("Redemarrer nginx pour charger configuration maj")
