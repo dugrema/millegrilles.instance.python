@@ -1,6 +1,7 @@
 import base64
 import datetime
 import logging
+import math
 import secrets
 
 from aiohttp import ClientSession
@@ -11,6 +12,7 @@ from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
+from millegrilles_messages.GenerateursSecrets import GenerateurEd25519, GenerateurRsa
 
 
 logger = logging.getLogger(__name__)
@@ -138,7 +140,7 @@ async def generer_nouveau_certificat(client_session: ClientSession, etat_instanc
 
 
 async def generer_passwords(etat_instance, etat_docker: EtatDockerInstanceSync,
-                            liste_noms_passwords: list):
+                            liste_passwords: list):
     """
     Generer les passwords manquants.
     :param etat_instance:
@@ -150,8 +152,19 @@ async def generer_passwords(etat_instance, etat_docker: EtatDockerInstanceSync,
     configurations = await etat_docker.get_configurations_datees()
     secrets_dict = configurations['secrets']
 
-    for nom_password in liste_noms_passwords:
-        prefixe = 'passwd.%s' % nom_password
+    for gen_password in liste_passwords:
+        if isinstance(gen_password, dict):
+            label = gen_password['label']
+            type_password = gen_password['type']
+            size = gen_password.get('size')
+        elif isinstance(gen_password, str):
+            label = gen_password
+            type_password = 'password'
+            size = 32
+        else:
+            raise ValueError('Mauvais type de generateur de mot de passe : %s' % gen_password)
+
+        prefixe = 'passwd.%s' % label
         path_password = path.join(path_secrets, prefixe + '.txt')
 
         try:
@@ -161,7 +174,7 @@ async def generer_passwords(etat_instance, etat_docker: EtatDockerInstanceSync,
             date_password = info_fichier.st_mtime
         except FileNotFoundError:
             # Fichier non trouve, on doit le creer
-            password = base64.b64encode(secrets.token_bytes(24)).decode('utf-8').replace('=', '')
+            password = generer_password(type_password, size)
             with open(path_password, 'w') as fichier:
                 fichier.write(password)
             info_fichier = stat(path_password)
@@ -179,7 +192,26 @@ async def generer_passwords(etat_instance, etat_docker: EtatDockerInstanceSync,
             pass  # Le mot de passe n'existe pas
 
         # Ajouter mot de passe
-        await etat_docker.ajouter_password(nom_password, date_password_str, password)
+        await etat_docker.ajouter_password(label, date_password_str, password)
+
+
+def generer_password(type_generateur='password', size: int = None):
+    if type_generateur == 'password':
+        if size is None:
+            size = 32
+        generer_bytes = math.ceil(size / 4 * 3)
+        pwd_genere = base64.b64encode(secrets.token_bytes(generer_bytes)).decode('utf-8').replace('=', '')
+        valeur = pwd_genere[:size]
+    elif type_generateur == 'ed25519':
+        generateur = GenerateurEd25519()
+        valeur = generateur.generer_private_openssh().decode('utf-8')
+    elif type_generateur == 'rsa':
+        generateur = GenerateurRsa()
+        valeur = generateur.generer_private_openssh().decode('utf-8')
+    else:
+        raise ValueError('Type de generateur inconnu : %s' % type_generateur)
+
+    return valeur
 
 
 # def generer_certificat_nginx_selfsigned(insecure=False):

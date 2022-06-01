@@ -400,15 +400,31 @@ class EtatDockerInstanceSync:
             except KeyError:
                 pass
 
+            # try:
+            #     passwords = dep['passwords']
+            #     for password in passwords:
+            #         try:
+            #             current = correspondance['passwd.%s' % password]['current']
+            #             current['password']
+            #         except KeyError:
+            #             self.__logger.info("Generer password %s pour %s" % (password, nom_application))
+            #             await self.__etat_instance.generer_passwords(self, [password])
+
             try:
-                passwords = dep['passwords']
-                for password in passwords:
+                generateur = dep['generateur']
+                for passwd_gen in generateur:
+                    if isinstance(passwd_gen, str):
+                        label = passwd_gen
+                        type_password = 'password'
+                    else:
+                        label = passwd_gen['label']
+                        type_password = passwd_gen['type']
                     try:
-                        current = correspondance['passwd.%s' % password]['current']
-                        current['password']
+                        current = correspondance['passwd.%s' % label]['current']
+                        current[type_password]
                     except KeyError:
-                        self.__logger.info("Generer password %s pour %s" % (password, nom_application))
-                        await self.__etat_instance.generer_passwords(self, [password])
+                        self.__logger.info("Generer password %s pour %s" % (label, nom_application))
+                        await self.__etat_instance.generer_passwords(self, [passwd_gen])
 
             except KeyError:
                 pass

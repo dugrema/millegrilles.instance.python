@@ -1,13 +1,13 @@
 {
   "nom": "mongoexpress",
-  "version": "2022.3.7",
+  "version": "2022.3.11",
   "securite": "3.protege",
   "dependances": [
     {
       "name": "mongoexpress",
       "image": "docker.maceroc.com/mg_mongo_express:0.54_0",
       "certificat": {"roles": ["mongoexpress"], "dns": {"hostnames": ["mongoexpress"]}},
-      "passwords": ["mongoexpress"],
+      "generateur": ["mongoexpress"],
       "env": {
         "ME_CONFIG_BASICAUTH_USERNAME": "mongo",
         "ME_CONFIG_MONGODB_ADMINUSERNAME": "admin",
@@ -78,8 +78,9 @@
         "replicas": 1
       },
       "labels": {
-        "url": "https://${HOSTNAME}:1444",
-        "securite": "3.protege"
+        "certificat": true,
+        "securite": "3.protege",
+        "url": "https://${HOSTNAME}:1444"
       }
     }
   ],

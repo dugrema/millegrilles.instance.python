@@ -11,6 +11,10 @@
         "exchanges": ["2.prive", "1.public"],
         "dns": {"localhost": true, "hostnames": ["coupdoeil"], "domain": true}
       },
+      "generateur": [
+        {"label": "fichiers_ed25519", "type": "ed25519"},
+        {"label": "fichiers_rsa", "type": "rsa", "size": 2048}
+      ],
       "env": {
         "MG_MQ_URL": "amqps://mq:5673",
         "MG_REDIS_HOST": "redis",
@@ -78,9 +82,5 @@
         "replicas": 1
       }
     }
-  ],
-  "nginx": {
-    "conf": ["mongoexpress.server"],
-    "ports": [1443, 1444]
-  }
+  ]
 }

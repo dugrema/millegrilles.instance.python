@@ -50,8 +50,6 @@
     "aliases": ["coupdoeil"]
   }],
   "labels": {
-    "millegrille": "${IDMG}",
-    "application": "coupdoeil",
     "securite": "3.protege",
     "url": "https://${HOSTNAME}/coupdoeil"
   },
