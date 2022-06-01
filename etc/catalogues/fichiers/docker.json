@@ -1,0 +1,86 @@
+{
+  "nom": "fichiers",
+  "version": "2022.3.0",
+  "securite": "2.prive",
+  "dependances": [
+    {
+      "name": "fichiers",
+      "image": "docker.maceroc.com/millegrilles_fichiers:2022.3.0",
+      "certificat": {
+        "roles": ["fichiers"],
+        "exchanges": ["2.prive", "1.public"],
+        "dns": {"localhost": true, "hostnames": ["coupdoeil"], "domain": true}
+      },
+      "env": {
+        "MG_MQ_URL": "amqps://mq:5673",
+        "MG_REDIS_HOST": "redis",
+        "MG_REDIS_PORT": "6379",
+        "MG_MQ_CERTFILE": "/run/secrets/cert.pem",
+        "MG_MQ_KEYFILE": "/run/secrets/key.pem",
+        "MG_MQ_CAFILE": "/run/secrets/millegrille.cert.pem",
+        "WEB_CERT": "/run/secrets/cert.pem",
+        "WEB_KEY": "/run/secrets/key.pem",
+        "SFTP_KEY": "/run/secrets/sftp.key.pem",
+        "SERVER_TYPE": "https",
+        "MG_CONSIGNATION_PATH": "/var/opt/millegrilles/consignation",
+        "WEBAPPS_SRC_FOLDER": "/var/opt/millegrilles/nginx/html"
+      },
+      "constraints": ["node.labels.millegrilles.fichiers == true"],
+      "mounts": [
+        {"source": "millegrilles-consignation", "target":  "/var/opt/millegrilles/consignation", "type": "volume"},
+        {"source": "/var/opt/millegrilles/nginx/html", "target":  "/var/opt/millegrilles/nginx/html", "type": "bind"}
+      ],
+      "configs": [
+        {
+          "name": "pki.fichiers",
+          "current": "cert",
+          "filename": "/run/secrets/cert.pem"
+        },
+        {
+          "name": "pki.millegrille.cert",
+          "filename": "/run/secrets/millegrille.cert.pem"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "pki.mongoexpress",
+          "current": "key",
+          "filename": "key.pem"
+        },
+        {
+          "name": "passwd.ed25519",
+          "current": "password",
+          "filename": "sftp.ed25519.key.pem"
+        },
+        {
+          "name": "passwd.rsa",
+          "current": "password",
+          "filename": "sftp.rsa.key.pem"
+        },
+        {
+          "name": "passwd.redis",
+          "current": "password",
+          "filename": "passwd.redis.txt"
+        }
+      ],
+      "networks": [{"target": "millegrille_net", "aliases": ["fichiers"]}],
+      "resources": {
+        "cpu_limit": 1000000000,
+        "mem_limit": 150000000
+      },
+      "restart_policy": {
+        "condition": "on-failure",
+        "delay": 60000000000,
+        "max_attempts": 2
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      }
+    }
+  ],
+  "nginx": {
+    "conf": ["mongoexpress.server"],
+    "ports": [1443, 1444]
+  }
+}

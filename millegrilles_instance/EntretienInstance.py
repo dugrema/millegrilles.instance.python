@@ -44,14 +44,11 @@ def get_module_execution(etat_instance: EtatInstance):
 
 CONFIG_MODULES_INSTALLATION = [
     'docker.certissuer.json',
-    # 'docker.acme.json',
-    # 'docker.nginx.json',
 ]
 
 
 CONFIG_MODULES_PROTEGES = [
     'docker.certissuer.json',
-    # 'docker.acme.json',
     'docker.nginx.json',
     'docker.redis.json',
     'docker.mq.json',
@@ -200,37 +197,13 @@ class InstanceAbstract:
 
     async def start_mq(self):
         stop_event = self._event_stop
-
-        # reply_res = RessourcesConsommation(callback_reply_q)
-        # q1 = RessourcesConsommation(callback_q_1, 'CoreBackup/tada')
-        # q1.ajouter_rk('3.protege', 'commande.CoreBackup.m1')
-        # q1.ajouter_rk('2.prive', 'commande.CoreBackup.m2')
-
         messages_thread = MessagesThread(stop_event)
-        # messages_thread.set_reply_ressources(reply_res)
-        # messages_thread.ajouter_consumer(q1)
 
         # Demarrer traitement messages
         await messages_thread.start_async()
         fut_run = messages_thread.run_async()
 
         return fut_run
-
-    # async def emettre_presence(self, producer: MessageProducerFormatteur, info: Optional[dict] = None):
-    #     self.__logger.info("Emettre presence")
-    #     if info is not None:
-    #         info_updatee = info.copy()
-    #     else:
-    #         info_updatee = dict()
-    #
-    #     info_updatee['fqdn_detecte'] = self._etat_instance.hostname
-    #     info_updatee['ip_detectee'] = self._etat_instance.ip_address
-    #     info_updatee['instance_id'] = self._etat_instance.instance_id
-    #     info_updatee['securite'] = self._etat_instance.niveau_securite
-    #
-    #     await producer.emettre_evenement(info_updatee, Constantes.DOMAINE_INSTANCE,
-    #                                      ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
-    #                                      exchanges=Constantes.SECURITE_PROTEGE)
 
 
 class InstanceInstallation(InstanceAbstract):

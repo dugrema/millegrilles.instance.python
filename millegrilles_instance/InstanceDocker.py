@@ -236,42 +236,45 @@ class EtatDockerInstanceSync:
         nom_services_a_installer = set(services.keys())
         for s in liste_services_docker:
             name = s.name
+            attrs = s.attrs
+            spec = attrs['Spec']
+            mode = spec['Mode']
+            try:
+                replicated = mode['Replicated']
+                replicas = replicated['Replicas']
+            except KeyError:
+                self.__logger.debug("Service %s configure sans replicas, on l'ignore" % name)
+                replicas = None
+
             try:
                 nom_services_a_installer.remove(name)
             except KeyError:
-                pass
+                # Ce n'est pas un module de base - verifier si c'est une application gere par l'instance
+                labels = spec['Labels']
+                if labels.get('application') is None:
+                    replicas = None
+
+            service_state_ok = False
+            if replicas is not None and replicas > 0:
+                # Verifier si le service est actif
+                tasks = s.tasks(filters={'desired-state': 'running'})
+                for task in tasks:
+                    try:
+                        status = task['Status']
+                        state = status['State']
+                        if state in ['running', 'preparing']:
+                            service_state_ok = True
+                    except KeyError:
+                        pass
             else:
-                attrs = s.attrs
-                replicas = 0
-                try:
-                    spec = attrs['Spec']
-                    mode = spec['Mode']
-                    replicated = mode['Replicated']
-                    replicas = replicated['Replicas']
-                except KeyError:
-                    self.__logger.debug("Service %s configure sans replicas, on l'ignore" % name)
+                service_state_ok = True
 
-                service_state_ok = False
-                if replicas > 0:
-                    # Verifier si le service est actif
-                    tasks = s.tasks(filters={'desired-state': 'running'})
-                    for task in tasks:
-                        try:
-                            status = task['Status']
-                            state = status['State']
-                            if state in ['running', 'preparing']:
-                                service_state_ok = True
-                        except KeyError:
-                            pass
-                else:
-                    service_state_ok = True
-
-                if service_state_ok is False:
-                    self.__logger.info("Service %s arrete, on le redemarre" % name)
-                    s.update(force_update=True)
-                    action_configurations = DockerCommandes.CommandeRedemarrerService(nom_service=name, aio=True)
-                    self.__docker_handler.ajouter_commande(action_configurations)
-                    await action_configurations.attendre()
+            if service_state_ok is False:
+                self.__logger.info("Service %s arrete, on le redemarre" % name)
+                s.update(force_update=True)
+                action_configurations = DockerCommandes.CommandeRedemarrerService(nom_service=name, aio=True)
+                self.__docker_handler.ajouter_commande(action_configurations)
+                await action_configurations.attendre()
 
         if len(nom_services_a_installer) > 0:
             self.__logger.debug("Services manquants dans docker : %s" % nom_services_a_installer)
