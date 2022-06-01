@@ -232,8 +232,16 @@ class EtatDockerInstanceSync:
         self.__docker_handler.ajouter_commande(commande_liste_services)
         liste_services_docker = await commande_liste_services.get_liste()
 
+        commande_config_currente = DockerCommandes.CommandeGetConfigurationsDatees(aio=True)
+        self.__docker_handler.ajouter_commande(commande_config_currente)
+        liste_config_datee = await commande_config_currente.get_resultat()
+
         # Determiner s'il y a des services manquants
         nom_services_a_installer = set(services.keys())
+
+        # Services avec certificats/secrets/passwd a remplacer
+        services_a_reconfigurer = set()
+
         for s in liste_services_docker:
             name = s.name
             attrs = s.attrs
@@ -275,6 +283,21 @@ class EtatDockerInstanceSync:
                 action_configurations = DockerCommandes.CommandeRedemarrerService(nom_service=name, aio=True)
                 self.__docker_handler.ajouter_commande(action_configurations)
                 await action_configurations.attendre()
+            else:
+                # Verifier si l'etat de la configuration est courant
+                container_spec = spec['TaskTemplate']['ContainerSpec']
+                try:
+                    container_secrets = container_spec['Secrets']
+                except KeyError:
+                    container_secrets = None
+                try:
+                    container_config = container_spec['Configs']
+                except KeyError:
+                    container_config = None
+
+                config_ok = verifier_config_current(liste_config_datee['correspondance'], container_config, container_secrets)
+                if config_ok is False:
+                    self.__logger.info("Configs/secrets out of date, regenerer config %s" % s.name)
 
         if len(nom_services_a_installer) > 0:
             self.__logger.debug("Services manquants dans docker : %s" % nom_services_a_installer)
@@ -508,3 +531,48 @@ class EtatDockerInstanceSync:
             info_configuration.append({'nom': nom, 'version': version})
 
         return info_configuration
+
+
+def verifier_config_current(liste_config_datee: dict, container_config: Optional[list], container_secrets: Optional[list]):
+
+    if container_config is not None:
+        for cs in container_config:
+            container_name = cs['ConfigName']
+            try:
+                name_split = container_name.split('.')
+                prefix = '.'.join(name_split[0:2])
+                if name_split[0] == 'pki':
+                    type_data = 'cert'
+                else:
+                    continue
+
+                current_name = liste_config_datee[prefix]['current'][type_data]['name']
+
+                if current_name != container_name:
+                    # On a un mismatch, il faut regenerer la configuration
+                    return False
+            except KeyError:
+                pass  # Secret n'a pas le bon format, pas gere
+
+    if container_secrets is not None:
+        for cs in container_secrets:
+            container_name = cs['SecretName']
+            try:
+                name_split = container_name.split('.')
+                prefix = '.'.join(name_split[0:2])
+                if name_split[0] == 'passwd':
+                    type_data = 'password'
+                elif name_split[0] == 'pki':
+                    type_data = 'key'
+                else:
+                    continue
+
+                current_name = liste_config_datee[prefix]['current'][type_data]['name']
+
+                if current_name != container_name:
+                    # On a un mismatch, il faut regenerer la configuration
+                    return False
+            except KeyError:
+                pass  # Secret n'a pas le bon format, pas gere
+
+    return True
