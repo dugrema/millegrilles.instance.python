@@ -1,0 +1,52 @@
+location = /collections/fichiers/verifier {{
+  set $upstream_collections https://collections:443;
+  proxy_pass $upstream_collections;
+  proxy_pass_request_body off;
+}}
+
+location /collections/fichiers {{
+  include /etc/nginx/conf.d/modules/fichiers.proxypass;
+
+  # Laisser collections confirmer que l'usager est actif, a acces au fichier
+  auth_request      /collections/fichiers/verifier;
+
+  # consignation.fichiers supporte les transfert avec PUT/POST/DELETE
+  # Ces transferts doivent etre bloques (utiliser /upload de collections a la place)
+  if ($request_method !~ GET|OPTIONS) {{
+    return 405;
+  }}
+
+  # Rewrite pour consignation.grosfichiers
+  rewrite ^(/collections/fichiers/)(.*)$ /fichiers_transfert/$2 break;
+
+  # Override header verified, aucun check SSL requis (cert nginx uniquement)
+  proxy_set_header VERIFIED INTERNAL;
+  proxy_set_header  Host              $host;
+  proxy_set_header  X-Hostname        $hostname;
+
+  # Config commune pour acces a consignation
+  # include /etc/nginx/conf.d/component_fichiers.include;
+}}
+
+location /collections/upload {{
+  set $upstream_collections https://collections:443;
+  proxy_pass $upstream_collections;
+
+  include /etc/nginx/conf.d/auth.include;
+  include /etc/nginx/conf.d/component_proxyheaders.include;
+
+  proxy_read_timeout 5m;
+  client_max_body_size 5m;
+}}
+
+location /collections {{
+  set $upstream_collections https://collections:443;
+  proxy_pass $upstream_collections;
+
+  include /etc/nginx/conf.d/auth.include;
+
+  include /etc/nginx/conf.d/component_proxyheaders.include;
+  include /etc/nginx/conf.d/component_gzip.include;
+  proxy_read_timeout 15m;
+  client_max_body_size 64k;
+}}
