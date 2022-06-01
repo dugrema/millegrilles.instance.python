@@ -146,6 +146,8 @@ class InstanceAbstract:
         path_configuration = self._etat_instance.configuration.path_configuration
         path_configuration_docker = path.join(path_configuration, 'docker')
         configurations = await charger_configuration_docker(path_configuration_docker, CONFIG_MODULES_PROTEGES)
+        configurations_apps = await charger_configuration_application(path_configuration_docker)
+        configurations.extend(configurations_apps)
 
         # map configuration certificat
         config_certificats = dict()
@@ -243,7 +245,7 @@ class InstanceProtegee(InstanceAbstract):
         taches_entretien = [
             TacheEntretien(datetime.timedelta(minutes=60), self.entretien_catalogues),
             TacheEntretien(datetime.timedelta(days=1), self.docker_initialisation),
-            TacheEntretien(datetime.timedelta(minutes=30), self.entretien_certificats),
+            TacheEntretien(datetime.timedelta(minutes=2), self.entretien_certificats),
             TacheEntretien(datetime.timedelta(minutes=360), self.entretien_passwords),
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_services),
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_nginx),
@@ -385,6 +387,24 @@ async def charger_configuration_docker(path_configuration: str, fichiers: list) 
             configuration.append(contenu)
         except FileNotFoundError:
             logger.error("Fichier de module manquant : %s" % path_fichier)
+
+    return configuration
+
+
+async def charger_configuration_application(path_configuration: str) -> list:
+    configuration = []
+    for filename in listdir(path_configuration):
+        if filename.startswith('app.'):
+            path_fichier = path.join(path_configuration, filename)
+            try:
+                with open(path_fichier, 'rb') as fichier:
+                    contenu = json.load(fichier)
+
+                deps = contenu['dependances']
+
+                configuration.extend(deps)
+            except FileNotFoundError:
+                logger.error("Fichier de module manquant : %s" % path_fichier)
 
     return configuration
 
