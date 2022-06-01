@@ -5,6 +5,7 @@ import math
 import secrets
 
 from aiohttp import ClientSession
+from docker.errors import APIError
 from os import path, stat
 
 from millegrilles_messages.messages.CleCertificat import CleCertificat
@@ -13,6 +14,7 @@ from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_messages.GenerateursSecrets import GenerateurEd25519, GenerateurRsa
+from millegrilles_messages.docker import DockerCommandes
 
 
 logger = logging.getLogger(__name__)
@@ -92,6 +94,57 @@ async def generer_certificats_modules(client_session: ClientSession, etat_instan
                 fichier.write(cert_str)
 
         await etat_docker.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
+
+
+async def nettoyer_configuration_expiree(etat_docker: EtatDockerInstanceSync):
+    commande_config = DockerCommandes.CommandeGetConfigurationsDatees()
+    etat_docker.ajouter_commande(commande_config)
+    config_datees = await commande_config.get_resultat()
+
+    config_a_supprimer = set()
+    secret_a_supprimer = set()
+    correspondance = config_datees['correspondance']
+    for element_config in correspondance.values():
+        current_config = element_config['current']
+        set_names_courants = set([v['name'] for v in current_config.values()])
+
+        for elem in element_config.values():
+            for elem_config in elem.values():
+                name_elem = elem_config['name']
+                if name_elem not in set_names_courants:
+                    name_split = name_elem.split('.')
+                    if name_split[2] == 'cert':
+                        config_a_supprimer.add(name_elem)
+                    else:
+                        secret_a_supprimer.add(name_elem)
+
+    for config_name in config_a_supprimer:
+        command = DockerCommandes.CommandeSupprimerConfiguration(config_name, aio=True)
+        etat_docker.ajouter_commande(command)
+        try:
+            await command.attendre()
+        except APIError as apie:
+            if apie.status_code == 400:  # in use
+                pass
+            elif apie.status_code == 404:  # deja supprime
+                pass
+            else:
+                raise apie
+
+    for secret_name in secret_a_supprimer:
+        command = DockerCommandes.CommandeSupprimerSecret(secret_name, aio=True)
+        etat_docker.ajouter_commande(command)
+        try:
+            await command.attendre()
+        except APIError as apie:
+            if apie.status_code == 400:  # in use
+                pass
+            elif apie.status_code == 404:  # deja supprime
+                pass
+            else:
+                raise apie
+
+    pass
 
 
 async def generer_nouveau_certificat(client_session: ClientSession, etat_instance, nom_module: str,

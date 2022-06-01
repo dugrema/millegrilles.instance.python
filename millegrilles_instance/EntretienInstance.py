@@ -13,16 +13,14 @@ from millegrilles_messages.docker.Entretien import TacheEntretien
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesThread import MessagesThread
 from millegrilles_instance.EtatInstance import EtatInstance
-from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance.EntretienNginx import EntretienNginx
 from millegrilles_instance.EntretienRabbitMq import EntretienRabbitMq
 from millegrilles_instance.RabbitMQDao import RabbitMQDao
 from millegrilles_instance.EntretienCatalogues import EntretienCatalogues
-from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
-from millegrilles_instance.CommandesDocker import CommandeListeTopologie
 from millegrilles_instance.EntretienApplications import GestionnaireApplications
-from millegrilles_instance.Certificats import generer_certificats_modules, generer_passwords
+from millegrilles_instance.Certificats import generer_certificats_modules, generer_passwords, \
+    nettoyer_configuration_expiree
 
 logger = logging.getLogger(__name__)
 
@@ -319,6 +317,7 @@ class InstanceProtegee(InstanceAbstract):
         configuration = await self.get_configuration_certificats()
         await generer_certificats_modules(self._etat_instance.client_session, self._etat_instance, self._etat_docker,
                                           configuration)
+        await nettoyer_configuration_expiree(self._etat_docker)
         self.__logger.debug("entretien_certificats fin")
         self.__event_setup_initial_certificats.set()
 
