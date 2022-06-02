@@ -20,7 +20,7 @@ from millegrilles_instance.RabbitMQDao import RabbitMQDao
 from millegrilles_instance.EntretienCatalogues import EntretienCatalogues
 from millegrilles_instance.EntretienApplications import GestionnaireApplications
 from millegrilles_instance.Certificats import generer_certificats_modules, generer_passwords, \
-    nettoyer_configuration_expiree
+    nettoyer_configuration_expiree, renouveler_certificat_instance_protege
 
 logger = logging.getLogger(__name__)
 
@@ -314,6 +314,32 @@ class InstanceProtegee(InstanceAbstract):
 
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")
+
+        # Verifier certificat d'instance
+        enveloppe_instance = self._etat_instance.clecertificat.enveloppe
+        expiration_instance = enveloppe_instance.calculer_expiration()
+        if expiration_instance['expire'] is True:
+            self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
+            raise NotImplementedError('todo - certificat expire, mettre en attente')
+        elif expiration_instance['renouveler'] is True:
+            self.__logger.info("Certificat d'instance peut etre renouvele")
+            clecertificat = await renouveler_certificat_instance_protege(self._etat_instance.client_session,
+                                                                         self._etat_instance)
+            # Sauvegarder nouveau certificat
+            path_secrets = self._etat_instance.configuration.path_secrets
+            nom_certificat = 'pki.instance.cert'
+            nom_cle = 'pki.instance.key'
+            path_certificat = path.join(path_secrets, nom_certificat)
+            path_cle = path.join(path_secrets, nom_cle)
+            cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
+            with open(path_cle, 'wb') as fichier:
+                fichier.write(clecertificat.private_key_bytes())
+            with open(path_certificat, 'w') as fichier:
+                fichier.write(cert_str)
+
+            # Reload configuration avec le nouveau certificat
+            await self._etat_instance.reload_configuration()
+
         configuration = await self.get_configuration_certificats()
         await generer_certificats_modules(self._etat_instance.client_session, self._etat_instance, self._etat_docker,
                                           configuration)

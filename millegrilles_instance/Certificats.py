@@ -8,7 +8,6 @@ from aiohttp import ClientSession
 from docker.errors import APIError
 from os import path, stat
 
-from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa
 from millegrilles_messages.messages.CleCertificat import CleCertificat
@@ -147,6 +146,36 @@ async def nettoyer_configuration_expiree(etat_docker: EtatDockerInstanceSync):
     pass
 
 
+async def renouveler_certificat_instance_protege(client_session: ClientSession, etat_instance) -> CleCertificat:
+
+    instance_id = etat_instance.instance_id
+
+    clecsr = CleCsrGenere.build(cn=instance_id)
+    csr_str = clecsr.get_pem_csr()
+    commande = {'csr_instance': csr_str}
+
+    # Signer avec notre certificat (instance), requis par le certissuer
+    formatteur_message = etat_instance.formatteur_message
+    message_signe, _uuid = formatteur_message.signer_message(commande)
+
+    logger.debug("Demande de signature de certificat pour instance protegee => %s\n%s" % (message_signe, csr_str))
+    url_issuer = etat_instance.certissuer_url
+    path_csr = path.join(url_issuer, 'renouvelerInstance')
+    async with client_session.post(path_csr, json=message_signe) as resp:
+        resp.raise_for_status()
+        reponse = await resp.json()
+
+    certificat = reponse['certificat']
+
+    # Confirmer correspondance entre certificat et cle
+    clecertificat = CleCertificat.from_pems(clecsr.get_pem_cle(), ''.join(certificat))
+    if clecertificat.cle_correspondent() is False:
+        raise Exception("Erreur cert/cle ne correspondent pas")
+
+    logger.debug("Reponse certissuer certificat protege\n%s" % ''.join(certificat))
+    return clecertificat
+
+
 async def generer_nouveau_certificat(client_session: ClientSession, etat_instance, nom_module: str,
                                      configuration: dict) -> CleCertificat:
     instance_id = etat_instance.instance_id
@@ -266,107 +295,3 @@ def generer_password(type_generateur='password', size: int = None):
 
     return valeur
 
-
-# def generer_certificat_nginx_selfsigned(insecure=False):
-#     """
-#     Utilise pour genere un certificat self-signed initial pour nginx
-#     :return:
-#     """
-#     generateur = GenerateurCertificatNginxSelfsigned()
-#
-#     clecert_ed25519 = generateur.generer('Installation')
-#     cle_pem_bytes_ed25519 = clecert_ed25519.private_key_bytes
-#     cert_pem_ed25519 = clecert_ed25519.public_bytes
-#
-#     clecert_web = generateur.generer('Installation', rsa=True)
-#     cle_pem_web = clecert_web.private_key_bytes
-#     cert_pem_web = clecert_web.public_bytes
-#
-#     # # Certificat interne
-#     # self.ajouter_secret('pki.nginx.key', data=cle_pem_bytes_ed25519)
-#     # self.ajouter_config('pki.nginx.cert', data=cert_pem_ed25519)
-#     #
-#     # # Certificat web
-#     # self.ajouter_secret('pki.web.key', data=cle_pem_web)
-#     # self.ajouter_config('pki.web.cert', data=cert_pem_web)
-#
-#     key_path = path.join(self.secret_path, 'pki.nginx.key.pem')
-#     try:
-#         with open(key_path, 'xb') as fichier:
-#             fichier.write(cle_pem_bytes_ed25519)
-#     except FileExistsError:
-#         pass
-#
-#     key_path = path.join(self.secret_path, 'pki.web.key.pem')
-#     try:
-#         with open(key_path, 'xb') as fichier:
-#             fichier.write(cle_pem_web)
-#     except FileExistsError:
-#         pass
-#
-#     return clecert_ed25519
-
-
-# class GenerateurCertificatNginxSelfsigned:
-#     """
-#     Genere un certificat self-signed pour Nginx pour l'installation d'un nouveau noeud.
-#     """
-#
-#     def generer(self, server_name: str, rsa=False):
-#         clecert = EnveloppeCleCert()
-#         if rsa is True:
-#             clecert.generer_private_key(generer_password=False, keysize=2048)
-#         else:
-#             # Va utilise type par defaut (EdDSA25519)
-#             clecert.generer_private_key(generer_password=False)
-#
-#         public_key = clecert.private_key.public_key()
-#         builder = x509.CertificateBuilder()
-#         builder = builder.not_valid_before(datetime.datetime.utcnow() - ConstantesGenerateurCertificat.DELTA_INITIAL)
-#         builder = builder.not_valid_after(datetime.datetime.utcnow() + ConstantesGenerateurCertificat.DUREE_CERT_INSTALLATION)
-#         builder = builder.serial_number(x509.random_serial_number())
-#         builder = builder.public_key(public_key)
-#
-#         builder = builder.add_extension(
-#             x509.SubjectKeyIdentifier.from_public_key(public_key),
-#             critical=False
-#         )
-#
-#         name = x509.Name([
-#             x509.NameAttribute(x509.name.NameOID.ORGANIZATION_NAME, u'MilleGrille'),
-#             x509.NameAttribute(x509.name.NameOID.COMMON_NAME, server_name),
-#         ])
-#         builder = builder.subject_name(name)
-#         builder = builder.issuer_name(name)
-#
-#         builder = builder.add_extension(
-#             x509.BasicConstraints(ca=True, path_length=0),
-#             critical=True,
-#         )
-#
-#         ski = x509.SubjectKeyIdentifier.from_public_key(clecert.private_key.public_key())
-#         builder = builder.add_extension(
-#             x509.AuthorityKeyIdentifier(
-#                 ski.digest,
-#                 None,
-#                 None
-#             ),
-#             critical=False
-#         )
-#
-#         if rsa is True:
-#             certificate = builder.sign(
-#                 private_key=clecert.private_key,
-#                 algorithm=hashes.SHA512(),
-#                 backend=default_backend()
-#             )
-#         else:
-#             certificate = builder.sign(
-#                 private_key=clecert.private_key,
-#                 algorithm=None,
-#                 backend=default_backend()
-#             )
-#
-#         clecert.set_cert(certificate)
-#
-#         return clecert
