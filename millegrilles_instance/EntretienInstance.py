@@ -33,25 +33,35 @@ def get_module_execution(etat_instance: EtatInstance):
     # Determiner si on a un certificat d'instance et s'il est expire
     try:
         clecert = etat_instance.clecertificat
-    except TypeError:
-        pass  # Pas de certificat
-    else:
         expiration = clecert.enveloppe.calculer_expiration()
-        if expiration['expire'] is True:
-            return InstanceCertificatProtegeExpire()
+    except AttributeError:
+        expiration = None  # Pas de certificat
 
     if securite == Constantes.SECURITE_PROTEGE:
+        if expiration is None or expiration.get('expire') is True:
+            return InstanceDockerCertificatProtegeExpire()
         return InstanceProtegee()
+    elif securite == Constantes.SECURITE_PRIVE:
+        if expiration is None or expiration.get('expire') is True:
+            return InstanceCertificatExpire()
+        elif etat_instance.docker_present is True:
+            return InstancePriveeDocker()
+        else:
+            return InstancePrivee()
     elif etat_instance.docker_present is True:
         # Si docker est actif, on demarre les services de base (certissuer, acme, nginx) pour
         # supporter l'instance protegee
-        return InstanceInstallation()
+        return InstanceInstallationAvecDocker()
 
-    return None
+    return InstanceInstallation()
 
 
 CONFIG_MODULES_INSTALLATION = [
     'docker.certissuer.json',
+]
+
+
+CONFIG_CERTIFICAT_EXPIRE = [
 ]
 
 
@@ -68,7 +78,7 @@ CONFIG_MODULES_PROTEGES = [
 ]
 
 
-class InstanceAbstract:
+class InstanceDockerAbstract:
 
     def __init__(self):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
@@ -222,7 +232,13 @@ class InstanceAbstract:
         return fut_run
 
 
-class InstanceInstallation(InstanceAbstract):
+class InstanceInstallation():
+
+    def __init__(self):
+        raise NotImplementedError('todo')
+
+
+class InstanceInstallationAvecDocker(InstanceDockerAbstract):
 
     def __init__(self):
         super().__init__()
@@ -250,7 +266,7 @@ class InstanceInstallation(InstanceAbstract):
         makedirs(path_certissuer, 0o700, exist_ok=True)
 
 
-class InstanceCertificatProtegeExpire(InstanceAbstract):
+class InstanceDockerCertificatProtegeExpire(InstanceDockerAbstract):
 
     def __init__(self):
         super().__init__()
@@ -267,7 +283,24 @@ class InstanceCertificatProtegeExpire(InstanceAbstract):
         return CONFIG_MODULES_INSTALLATION
 
 
-class InstanceProtegee(InstanceAbstract):
+class InstanceCertificatExpire(InstanceDockerAbstract):
+
+    def __init__(self):
+        super().__init__()
+        self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        self._event_stop: Optional[Event] = None
+        self._etat_instance: Optional[EtatInstance] = None
+        self._etat_docker: Optional[EtatDockerInstanceSync] = None
+
+    async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
+        self.__logger.info("Setup InstanceCertificatExpire")
+        await super().setup(etat_instance, etat_docker)
+
+    def get_config_modules(self) -> list:
+        return CONFIG_CERTIFICAT_EXPIRE
+
+
+class InstanceProtegee(InstanceDockerAbstract):
 
     def __init__(self):
         super().__init__()
@@ -418,16 +451,6 @@ class InstanceProtegee(InstanceAbstract):
 
         await self._etat_docker.emettre_presence(producer)
 
-        # commande = CommandeListeTopologie()
-        # self._etat_docker.ajouter_commande(commande)
-        # info_instance = parse_topologie_docker(await commande.get_info())
-        #
-        # # Faire la liste des applications installees
-        # liste_applications = await self._gestionnaire_applications.get_liste_configurations()
-        # info_instance['applications_configurees'] = liste_applications
-        #
-        # await self.emettre_presence(producer, info_instance)
-
     def get_config_modules(self) -> list:
         return CONFIG_MODULES_PROTEGES
 
@@ -436,6 +459,18 @@ class InstanceProtegee(InstanceAbstract):
 
     def sauvegarder_nginx_data(self, nom_fichier: str, contenu: Union[bytes, str, dict], path_html=False):
         self.__entretien_nginx.sauvegarder_fichier_data(nom_fichier, contenu, path_html)
+
+
+class InstancePriveeDocker(InstanceDockerAbstract):
+
+    def __init__(self):
+        raise NotImplementedError('todo')
+
+
+class InstancePrivee:
+
+    def __init__(self):
+        raise NotImplementedError('todo')
 
 
 async def charger_configuration_docker(path_configuration: str, fichiers: list) -> list:
@@ -468,140 +503,6 @@ async def charger_configuration_application(path_configuration: str) -> list:
                 logger.error("Fichier de module manquant : %s" % path_fichier)
 
     return configuration
-
-
-# async def generer_certificats_modules(client_session: ClientSession, etat_instance: EtatInstance,
-#                                       etat_docker: EtatDockerInstanceSync, configuration: dict):
-#     # S'assurer que tous les certificats sont presents et courants dans le repertoire secrets
-#     path_secrets = etat_instance.configuration.path_secrets
-#     for nom_module, value in configuration.items():
-#         logger.debug("generer_certificats_modules() Verification certificat %s" % nom_module)
-#
-#         nom_certificat = 'pki.%s.cert' % nom_module
-#         nom_cle = 'pki.%s.cle' % nom_module
-#         path_certificat = path.join(path_secrets, nom_certificat)
-#         path_cle = path.join(path_secrets, nom_cle)
-#         combiner_keycert = value.get('combiner_keycert') or False
-#
-#         sauvegarder = False
-#         try:
-#             clecertificat = CleCertificat.from_files(path_cle, path_certificat)
-#             enveloppe = clecertificat.enveloppe
-#
-#             # Ok, verifier si le certificat doit etre renouvele
-#             detail_expiration = enveloppe.calculer_expiration()
-#             if detail_expiration['expire'] is True or detail_expiration['renouveler'] is True:
-#                 clecertificat = await generer_nouveau_certificat(client_session, etat_instance, nom_module, value)
-#                 sauvegarder = True
-#
-#         except FileNotFoundError:
-#             logger.info("Certificat %s non trouve, on le genere" % nom_module)
-#             clecertificat = await generer_nouveau_certificat(client_session, etat_instance, nom_module, value)
-#             sauvegarder = True
-#
-#         # Verifier si le certificat et la cle sont stocke dans docker
-#         if sauvegarder is True:
-#
-#             cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
-#             with open(path_cle, 'wb') as fichier:
-#                 fichier.write(clecertificat.private_key_bytes())
-#                 if combiner_keycert is True:
-#                     fichier.write(cert_str.encode('utf-8'))
-#             with open(path_certificat, 'w') as fichier:
-#                 cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
-#                 fichier.write(cert_str)
-#
-#         await etat_docker.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
-#
-#
-# async def generer_nouveau_certificat(client_session: ClientSession, etat_instance: EtatInstance, nom_module: str,
-#                                      configuration: dict) -> CleCertificat:
-#     instance_id = etat_instance.instance_id
-#     idmg = etat_instance.certificat_millegrille.idmg
-#     clecsr = CleCsrGenere.build(instance_id, idmg)
-#     csr_str = clecsr.get_pem_csr()
-#
-#     # Preparer configuration dns au besoin
-#     configuration = configuration.copy()
-#     try:
-#         dns = configuration['dns'].copy()
-#         if dns.get('domain') is True:
-#             nom_domaine = etat_instance.nom_domaine
-#             hostnames = [nom_domaine]
-#             if dns.get('hostnames') is not None:
-#                 hostnames.extend(dns['hostnames'])
-#             dns['hostnames'] = hostnames
-#             configuration['dns'] = dns
-#     except KeyError:
-#         pass
-#
-#     configuration['csr'] = csr_str
-#
-#     # Signer avec notre certificat (instance), requis par le certissuer
-#     formatteur_message = etat_instance.formatteur_message
-#     message_signe, _uuid = formatteur_message.signer_message(configuration)
-#
-#     logger.debug("Demande de signature de certificat pour %s => %s\n%s" % (nom_module, message_signe, csr_str))
-#     url_issuer = etat_instance.certissuer_url
-#     path_csr = path.join(url_issuer, 'signerModule')
-#     async with client_session.post(path_csr, json=message_signe) as resp:
-#         resp.raise_for_status()
-#         reponse = await resp.json()
-#
-#     certificat = reponse['certificat']
-#
-#     # Confirmer correspondance entre certificat et cle
-#     clecertificat = CleCertificat.from_pems(clecsr.get_pem_cle(), ''.join(certificat))
-#     if clecertificat.cle_correspondent() is False:
-#         raise Exception("Erreur cert/cle ne correspondent pas")
-#
-#     logger.debug("Reponse certissuer certificat %s\n%s" % (nom_module, ''.join(certificat)))
-#     return clecertificat
-#
-#
-# async def generer_passwords(etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync,
-#                             liste_noms_passwords: list):
-#     """
-#     Generer les passwords manquants.
-#     :param etat_instance:
-#     :param etat_docker:
-#     :param liste_noms_passwords:
-#     :return:
-#     """
-#     path_secrets = etat_instance.configuration.path_secrets
-#     configurations = await etat_docker.get_configurations_datees()
-#     secrets_dict = configurations['secrets']
-#
-#     for nom_password in liste_noms_passwords:
-#         prefixe = 'passwd.%s' % nom_password
-#         path_password = path.join(path_secrets, prefixe + '.txt')
-#
-#         try:
-#             with open(path_password, 'r') as fichier:
-#                 password = fichier.read().strip()
-#             info_fichier = stat(path_password)
-#             date_password = info_fichier.st_mtime
-#         except FileNotFoundError:
-#             # Fichier non trouve, on doit le creer
-#             password = base64.b64encode(secrets.token_bytes(24)).decode('utf-8').replace('=', '')
-#             with open(path_password, 'w') as fichier:
-#                 fichier.write(password)
-#             info_fichier = stat(path_password)
-#             date_password = info_fichier.st_mtime
-#
-#         logger.debug("Date password : %s" % date_password)
-#         date_password = datetime.datetime.utcfromtimestamp(date_password)
-#         date_password_str = date_password.strftime('%Y%m%d%H%M%S')
-#
-#         label_passord = '%s.%s' % (prefixe, date_password_str)
-#         try:
-#             secrets_dict[label_passord]
-#             continue  # Mot de passe existe
-#         except KeyError:
-#             pass  # Le mot de passe n'existe pas
-#
-#         # Ajouter mot de passe
-#         await etat_docker.ajouter_password(nom_password, date_password_str, password)
 
 
 def setup_catalogues(etat_instance: EtatInstance):

@@ -1,6 +1,7 @@
 import aiohttp
 import asyncio
 import logging
+import json
 
 from aiohttp import web
 from asyncio import Event
@@ -12,7 +13,7 @@ from typing import Optional
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Configuration import ConfigurationWeb
 from millegrilles_instance.EtatInstance import EtatInstance
-from millegrilles_instance.InstallerInstance import installer_instance
+from millegrilles_instance.InstallerInstance import installer_instance, configurer_idmg
 
 
 class WebServer:
@@ -47,6 +48,7 @@ class WebServer:
             web.get('/installation/api/etatCertificatWeb', self.handle_etat_certificat_web),
 
             web.post('/installation/api/installer', self.handle_installer),
+            web.post('/installation/api/configurerIdmg', self.handle_configurer_idmg),
 
             # Application d'installation static React
             web.get('/installation/', self.installation_index_handler),
@@ -114,6 +116,11 @@ class WebServer:
         except:
             self.__logger.exception("Erreur installation")
             return web.Response(status=500)
+
+    async def handle_configurer_idmg(self, request: web.Request):
+        contenu = await request.json()
+        self.__logger.debug("installer_instance contenu\n%s" % json.dumps(contenu, indent=2))
+        return await configurer_idmg(self.__etat_instance, contenu)
 
     async def entretien(self):
         self.__logger.debug('Entretien')

@@ -67,6 +67,39 @@ async def installer_instance(etat_instance: EtatInstance, request: BaseRequest):
     return web.Response(status=201)
 
 
+async def configurer_idmg(etat_instance: EtatInstance, contenu: dict):
+    # Preparer configuration pour sauvegarde - agit comme validation du request recu
+    try:
+        securite = contenu['securite']
+        idmg = contenu['idmg']
+    except KeyError:
+        logger.error("configurer_idmg Parametres securite/idmg manquants")
+        return web.HTTPBadRequest()
+
+    if etat_instance.idmg is not None:
+        logger.error("Tentative de configurer idmg %s sur instance deja barree" % idmg)
+        return web.HTTPForbidden()
+
+    if etat_instance.niveau_securite is not None:
+        logger.error("Tentative de configurer securite %s sur instance deja barree" % securite)
+        return web.HTTPForbidden()
+
+    # Installer le certificat d'instance
+    configuration = etat_instance.configuration
+    path_idmg = configuration.instance_idmg_path
+    path_securite = configuration.instance_securite_path
+    with open(path_idmg, 'w') as fichier:
+        fichier.write(idmg)
+    with open(path_securite, 'w') as fichier:
+        fichier.write(securite)
+
+    # Declencher le recharger de la configuration de l'instance
+    # Va aussi installer les nouveaux elements de configuration/secrets dans docker
+    await etat_instance.reload_configuration()
+
+    return web.Response(status=200)
+
+
 async def installer_certificat_intermediaire(url_certissuer: str, contenu: dict) -> dict:
     securite = contenu['securite']
     certificat_ca = contenu['certificatMillegrille']
