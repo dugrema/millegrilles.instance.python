@@ -4,6 +4,7 @@ import logging
 from asyncio import Event
 from typing import Optional
 
+from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Certificats import preparer_certificats_web, generer_certificats_modules, generer_passwords
 from millegrilles_instance.Configuration import ConfigurationInstance
@@ -33,6 +34,7 @@ class EtatInstance:
 
         self.__docker_present = False
         self.__docker_actif = False
+        self.__csr_genere: Optional[CleCsrGenere] = None
 
         self.__entretien_nginx: Optional[EntretienNginx] = None
 
@@ -94,6 +96,14 @@ class EtatInstance:
 
     def set_docker_present(self, etat: bool):
         self.__docker_present = etat
+
+    def get_csr_genere(self):
+        if self.__csr_genere is None:
+            self.__csr_genere = CleCsrGenere.build(self.instance_id)
+        return self.__csr_genere
+
+    def clear_csr_genere(self):
+        self.__csr_genere = None
 
     @property
     def stop_event(self):

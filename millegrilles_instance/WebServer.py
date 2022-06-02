@@ -46,6 +46,7 @@ class WebServer:
             web.get('/installation/api/info', self.handle_api_info),
             web.get('/installation/api/infoMonitor', self.handle_api_info),  # Deprecated, FIX dans coupdoeil
             web.get('/installation/api/csr', self.handle_api_csr),
+            web.get('/installation/api/csrInstance', self.handle_api_csr_instance),
             web.get('/installation/api/etatCertificatWeb', self.handle_etat_certificat_web),
 
             web.post('/installation/api/installer', self.handle_installer),
@@ -98,6 +99,12 @@ class WebServer:
             async with session.get(path_csr) as resp:
                 text_response = await resp.text()
                 return web.Response(status=resp.status, text=text_response, headers=headers)
+
+    async def handle_api_csr_instance(self, request):
+        csr_genere = self.__etat_instance.get_csr_genere()
+        csr_pem = csr_genere.get_pem_csr()
+        headers = headers_cors()
+        return web.Response(text=csr_pem, headers=headers)
 
     async def handle_etat_certificat_web(self, request):
         return web.HTTPNotImplemented()
