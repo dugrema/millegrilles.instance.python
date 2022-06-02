@@ -81,7 +81,10 @@ class WebServer:
         except AttributeError:
             pass
 
-        return web.json_response(data=reponse)
+        # Headers CORS
+        headers = headers_cors()
+
+        return web.json_response(headers=headers, data=reponse)
 
     async def handle_api_csr(self, request):
         url_issuer = self.__etat_instance.certissuer_url
@@ -195,6 +198,16 @@ class WebRunner:
         configuration = self._configuration
         ssl_context.load_cert_chain(configuration.web_cert_pem_path, configuration.web_key_pem_path)
         return ssl_context
+
+
+def headers_cors() -> dict:
+
+    return {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range',
+        'Access-Control-Expose-Headers': 'Content-Length,Content-Range',
+    }
 
 
 def main():
