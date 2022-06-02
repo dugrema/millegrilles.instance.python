@@ -20,7 +20,7 @@ from millegrilles_instance.RabbitMQDao import RabbitMQDao
 from millegrilles_instance.EntretienCatalogues import EntretienCatalogues
 from millegrilles_instance.EntretienApplications import GestionnaireApplications
 from millegrilles_instance.Certificats import generer_certificats_modules, generer_passwords, \
-    nettoyer_configuration_expiree, renouveler_certificat_instance_protege
+    nettoyer_configuration_expiree, renouveler_certificat_instance_protege, generer_certificats_modules_satellites
 
 logger = logging.getLogger(__name__)
 
@@ -572,8 +572,7 @@ class InstancePriveeDocker(InstanceDockerAbstract):
             # await self._etat_instance.reload_configuration()
 
         configuration = await self.get_configuration_certificats()
-        await generer_certificats_modules(self._etat_instance.client_session, self._etat_instance, self._etat_docker,
-                                          configuration)
+        await generer_certificats_modules_satellites(self._etat_instance, self._etat_docker, configuration)
         await nettoyer_configuration_expiree(self._etat_docker)
         self.__logger.debug("entretien_certificats fin")
         self.__event_setup_initial_certificats.set()

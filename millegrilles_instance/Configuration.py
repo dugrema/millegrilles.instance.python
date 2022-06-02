@@ -19,6 +19,8 @@ CONST_INSTANCE_PARAMS = [
     Constantes.PARAM_INSTANCE_ID_PATH,
     Constantes.PARAM_INSTANCE_SECURITE_PATH,
     Constantes.PARAM_INSTANCE_PASSWD_MQ_PATH,
+    Constantes.PARAM_INSTANCE_MQ_HOST,
+    Constantes.PARAM_INSTANCE_MQ_PORT,
 ]
 
 CONST_WEB_PARAMS = [
@@ -48,6 +50,7 @@ class ConfigurationInstance:
         self.path_docker_apps = '/var/opt/millegrilles/configuration/docker'
         self.instance_password_mq_path = '/var/opt/millegrilles/secrets/passwd.mqadmin.txt'
         self.redis_key_path = '/var/opt/millegrilles/secrets/passwd.redis.txt'
+        self.config_json = '/var/opt/millegrilles/configuration/config.json'
 
         self.docker_actif = False
 

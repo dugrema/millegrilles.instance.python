@@ -1,12 +1,15 @@
 import aiohttp
 import logging
+import json
 
 from asyncio import Event
+from json.decoder import JSONDecodeError
 from typing import Optional
 
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages import Constantes
-from millegrilles_instance.Certificats import preparer_certificats_web, generer_certificats_modules, generer_passwords
+from millegrilles_instance.Certificats import preparer_certificats_web, generer_certificats_modules, generer_passwords, \
+    generer_certificats_modules_satellites
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_messages.IpUtils import get_ip, get_hostname
 from millegrilles_messages.messages.CleCertificat import CleCertificat
@@ -31,6 +34,9 @@ class EtatInstance:
         self.__clecertificat: Optional[CleCertificat] = None
         self.__nom_domaine: Optional[str] = None
         self.__password_mq: Optional[str] = None
+
+        self.__host_mq = "localhost"
+        self.__port_mq = 5673
 
         self.__docker_present = False
         self.__docker_actif = False
@@ -75,12 +81,44 @@ class EtatInstance:
         self.__nom_domaine = get_hostname(fqdn=True)  # Detection en attendant le charger le reste de la configuration
         self.__logger.debug("Nom domaine insance: %s" % self.__nom_domaine)
 
+        # Exporter configuration pour modules dependants
+        self.maj_configuration_json()
+
         if self.__clecertificat is not None:
             signateur = SignateurTransactionSimple(self.__clecertificat)
             self.__formatteur_message = FormatteurMessageMilleGrilles(self.__idmg, signateur)
 
         for listener in self.__config_listeners:
             await listener(self)
+
+    def maj_configuration_json(self, configuration: Optional[dict] = None):
+        config_json_path = self.configuration.config_json
+        try:
+            with open(config_json_path, 'rb') as fichier:
+                params_courants = json.load(fichier)
+        except FileNotFoundError:
+            params_courants = dict()
+        except JSONDecodeError:
+            raise Exception("Fichier %s corrompu" % config_json_path)
+
+        params_courants['idmg'] = self.idmg or params_courants.get('idmg')
+        params_courants['securite'] = self.niveau_securite or params_courants.get('securite')
+
+        if configuration is not None:
+            params_courants.update(configuration)
+
+        try:
+            self.__host_mq = params_courants['mq_host']
+        except KeyError:
+            pass
+
+        try:
+            self.__port_mq = params_courants['mq_port']
+        except KeyError:
+            pass
+
+        with open(config_json_path, 'w') as fichier:
+            json.dump(params_courants, fichier, indent=2)
 
     def ajouter_listener(self, callback_async):
         self.__config_listeners.append(callback_async)
@@ -162,10 +200,11 @@ class EtatInstance:
 
     @property
     def mq_hostname(self):
-        if self.__niveau_securite == Constantes.SECURITE_PROTEGE:
-            return self.__hostname
-        else:
-            raise NotImplementedError('todo')
+        return self.__host_mq or self.__hostname
+
+    @property
+    def mq_port(self):
+        return self.__port_mq
 
     @property
     def formatteur_message(self):
@@ -200,7 +239,10 @@ class EtatInstance:
 
     async def generer_certificats_module(self, etat_docker, nom_module: str, configuration: dict):
         config = {nom_module: configuration}
-        await generer_certificats_modules(self.__client_session, self, etat_docker, config)
+        if self.niveau_securite == Constantes.SECURITE_PROTEGE:
+            await generer_certificats_modules(self.__client_session, self, etat_docker, config)
+        else:
+            await generer_certificats_modules_satellites(self, etat_docker, config)
 
     async def generer_passwords(self, etat_docker, passwords: list):
         await generer_passwords(self, etat_docker, passwords)

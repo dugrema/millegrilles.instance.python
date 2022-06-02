@@ -27,7 +27,7 @@ class MqThread:
         self.__messages_thread: Optional[MessagesThread] = None
 
     async def configurer(self):
-        self.__mq_host = '127.0.0.1'
+        self.__mq_host = self.__etat_instance.mq_hostname
 
         env_configuration = {
             Constantes.ENV_CA_PEM: self.__etat_instance.configuration.instance_ca_pem_path,
@@ -35,7 +35,7 @@ class MqThread:
             Constantes.ENV_KEY_PEM: self.__etat_instance.configuration.instance_key_pem_path,
             Constantes.ENV_REDIS_PASSWORD_PATH: self.__etat_instance.configuration.redis_key_path,
             Constantes.ENV_MQ_HOSTNAME: self.__mq_host,
-            Constantes.ENV_REDIS_HOSTNAME: self.__mq_host,
+            Constantes.ENV_REDIS_HOSTNAME: self.__etat_instance.hostname,
         }
 
         messages_thread = MessagesThread(self.__event_stop)
@@ -121,7 +121,6 @@ class RabbitMQDao:
         self.__command_handler = CommandHandler(entretien_instance, etat_instance, etat_docker,
                                                 gestionnaire_applications)
 
-        self.__mq_host: Optional[str] = None
         self.__producer: Optional[MessageProducerFormatteur] = None
 
         # Cross-wiring
@@ -168,12 +167,13 @@ class RabbitMQDao:
         Creer un compte sur MQ via https (monitor).
         :return:
         """
-        self.__logger.info("Creation compte MQ avec %s" % self.__mq_host)
+        mq_host = self.__etat_instance.mq_hostname
+        self.__logger.info("Creation compte MQ avec %s" % mq_host)
 
         # Le monitor peut etre trouve via quelques hostnames :
         #  nginx : de l'interne, est le proxy web qui est mappe vers le monitor
         #  mq_host : de l'exterieur, est le serveur mq qui est sur le meme swarm docker que nginx
-        hosts = ['nginx', self.__mq_host, self.__etat_instance.mq_hostname]
+        hosts = ['nginx', self.__etat_instance.mq_hostname]
         port = 444  # 443
         path = 'administration/ajouterCompte'
 
@@ -189,8 +189,8 @@ class RabbitMQDao:
         try:
             import requests
             for host in hosts:
+                path_complet = 'https://%s:%d/%s' % (host, port, path)
                 try:
-                    path_complet = 'https://%s:%d/%s' % (host, port, path)
                     self.__logger.debug("Creation compte avec path %s" % path_complet)
                     reponse = requests.post(path_complet, json=chaine_cert, cert=cle_cert, verify=mq_cafile)
                     if reponse.status_code in [200, 201]:
