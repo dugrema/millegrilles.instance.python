@@ -70,7 +70,7 @@ class EtatInstance:
                                             self.__configuration.instance_cert_pem_path)
         self.__logger.debug("Certificat instance: %s" % self.__clecertificat)
 
-        self.__nom_domaine = 'mg-dev5.maple.maceroc.com'
+        self.__nom_domaine = get_hostname(fqdn=True)  # Detection en attendant le charger le reste de la configuration
         self.__logger.debug("Nom domaine insance: %s" % self.__nom_domaine)
 
         if self.__clecertificat is not None:

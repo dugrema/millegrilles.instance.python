@@ -1,3 +1,5 @@
 #!/bin/sh
 
-sudo setcap 'cap_net_bind_service=+ep' ../venv/usr/bin/python3.9
+PYTHON_BIN=/usr/bin/python3.10
+
+sudo setcap 'cap_net_bind_service=+ep' $PYTHON_BIN

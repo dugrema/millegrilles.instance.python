@@ -53,9 +53,11 @@ telecharger_package() {
 installer() {
   echo "Installation de l'application deployeur web React dans $BUILD_PATH"
   cd $BUILD_PATH/..
-  rm -rf react_build
-  mkdir react_build && \
-    tar -xf $BUILD_FILE -C react_build
+  rm -rf dist/web
+  mkdir -p dist/web && \
+    tar -xf $BUILD_FILE -C dist/web &&
+    mv dist/web/build/* dist/web &&
+    rmdir dist/web/build
 }
 
 makeManifest() {

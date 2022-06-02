@@ -94,6 +94,7 @@ class ApplicationInstance:
         self.__logger.info("Preparer l'environnement")
         self.__entretien_event = Event()
         self._stop_event = Event()
+        self.__etat_instance.set_stop_event(self._stop_event)
 
         makedirs(self.__configuration.path_secrets, 0o700, exist_ok=True)
         makedirs(self.__configuration.path_secrets_partages, 0o710, exist_ok=True)
@@ -186,8 +187,8 @@ class ApplicationInstance:
         :return:
         """
         self.__loop = asyncio.get_event_loop()
-        self._stop_event = Event()
-        self.__etat_instance.set_stop_event(self._stop_event)
+        # self._stop_event = Event()
+        # self.__etat_instance.set_stop_event(self._stop_event)
 
         tasks = [
             asyncio.create_task(self.entretien()),

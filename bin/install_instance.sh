@@ -30,6 +30,9 @@ if [ ! -d "${PATH_MILLEGRILLES}" ]; then
   URL_MG_MESSAGES="${MG_PIP_REPOSITORY_URL}/${PIP_PACKAGE_MESSAGES}"
   echo "Installer millegrilles messages avec url : ${URL_MG_MESSAGES}"
   sudo -u mginstance ${REP_BIN}/install_python.sh "${PATH_VENV}" "${URL_MG_MESSAGES}"
+
+  echo "Copier application web"
+  ${REP_BIN}/install_web.sh
 fi
 
 echo
