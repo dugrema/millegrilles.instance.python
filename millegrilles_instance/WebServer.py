@@ -44,15 +44,19 @@ class WebServer:
             web.get('/', self.rediriger_root),
 
             web.get('/installation/api/info', self.handle_api_info),
+            web.get('/installation/api/infoMonitor', self.handle_api_info),  # Deprecated, FIX dans coupdoeil
             web.get('/installation/api/csr', self.handle_api_csr),
             web.get('/installation/api/etatCertificatWeb', self.handle_etat_certificat_web),
 
             web.post('/installation/api/installer', self.handle_installer),
             web.post('/installation/api/configurerIdmg', self.handle_configurer_idmg),
 
+            web.options('/installation/api/installer', self.options_cors),
+
             # Application d'installation static React
             web.get('/installation/', self.installation_index_handler),
             web.get('/installation', self.installation_index_handler),
+
             web.static('/installation', self.__configuration.path_app_installation),
         ])
 
@@ -89,17 +93,30 @@ class WebServer:
     async def handle_api_csr(self, request):
         url_issuer = self.__etat_instance.certissuer_url
         path_csr = path.join(url_issuer, 'csr')
+        headers = headers_cors()
         async with aiohttp.ClientSession() as session:
             async with session.get(path_csr) as resp:
                 text_response = await resp.text()
-                return web.Response(status=resp.status, text=text_response)
+                return web.Response(status=resp.status, text=text_response, headers=headers)
 
     async def handle_etat_certificat_web(self, request):
         return web.HTTPNotImplemented()
 
+    async def options_cors(self, request):
+        headers = {
+            'Access-Control-Allow-Origin': '*',
+            'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+            'Access-Control-Allow-Headers': 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range',
+            'Access-Control-Max-Age': '1728000',
+            'Content-Type': 'text/plain; charset=utf-8',
+            'Content-Length': '0',
+        }
+        return web.HTTPNoContent(headers=headers)
+
     async def handle_installer(self, request):
+        headers = headers_cors()
         try:
-            resultat = await installer_instance(self.__etat_instance, request)
+            resultat = await installer_instance(self.__etat_instance, request, headers_response=headers)
 
             if self.__webrunner_443 is not None:
                 self.__logger.info("Desactiver server instance sur port 443 pour demarrer nginx")
@@ -118,7 +135,7 @@ class WebServer:
             return resultat
         except:
             self.__logger.exception("Erreur installation")
-            return web.Response(status=500)
+            return web.Response(headers=headers, status=500)
 
     async def handle_configurer_idmg(self, request: web.Request):
         contenu = await request.json()

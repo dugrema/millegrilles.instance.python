@@ -3,6 +3,7 @@ import json
 import logging
 
 from os import path
+from typing import Optional
 
 from aiohttp import web
 from aiohttp.web_request import BaseRequest
@@ -14,7 +15,7 @@ from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertific
 logger = logging.getLogger(__name__)
 
 
-async def installer_instance(etat_instance: EtatInstance, request: BaseRequest):
+async def installer_instance(etat_instance: EtatInstance, request: BaseRequest, headers_response: Optional[dict] = None):
     configuration = etat_instance.configuration
     contenu = await request.json()
     logger.debug("installer_instance contenu\n%s" % json.dumps(contenu, indent=2))
@@ -64,7 +65,7 @@ async def installer_instance(etat_instance: EtatInstance, request: BaseRequest):
     # Va aussi installer les nouveaux elements de configuration/secrets dans docker
     await etat_instance.reload_configuration()
 
-    return web.Response(status=201)
+    return web.Response(status=201, headers=headers_response)
 
 
 async def configurer_idmg(etat_instance: EtatInstance, contenu: dict):
