@@ -13,6 +13,7 @@ from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertific
 from millegrilles_messages.messages.FormatteurMessages import SignateurTransactionSimple, FormatteurMessageMilleGrilles
 from millegrilles_instance.EntretienNginx import EntretienNginx
 
+
 class EtatInstance:
 
     def __init__(self, configuration: ConfigurationInstance):
@@ -90,6 +91,10 @@ class EtatInstance:
 
     def set_docker_present(self, etat: bool):
         self.__docker_present = etat
+
+    @property
+    def stop_event(self):
+        return self.__stop_event
 
     @property
     def docker_present(self):

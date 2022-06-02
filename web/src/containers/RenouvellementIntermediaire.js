@@ -81,7 +81,7 @@ async function demanderCsr() {
   console.debug("Charger csr")
 
   // const urlCsr = '/installation/api/csrIntermediaire'
-  const urlCsr = '/certissuer/csr'
+  const urlCsr = '/installation/api/csr'
   const csrResponse = await axios.get(urlCsr)
   console.debug("CSR recu : %O", csrResponse)
   if(csrResponse.status !== 200) {
@@ -102,8 +102,10 @@ async function soumettreIntermediaire(props) {
 
   var paramsInstallation = {
     idmg,
-    chainePem: [intermediairePem, infoClecertMillegrille.certificat],
+    // chainePem: [intermediairePem, infoClecertMillegrille.certificat],
     securite: '3.protege',
+    certificatIntermediaire: intermediairePem,
+    certificatMillegrille: infoClecertMillegrille.certificat,
   }
 
   if(props.rootProps.infoInternet) {

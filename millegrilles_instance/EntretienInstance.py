@@ -30,6 +30,16 @@ TachesEntretienType = list[TacheEntretien]
 def get_module_execution(etat_instance: EtatInstance):
     securite = etat_instance.niveau_securite
 
+    # Determiner si on a un certificat d'instance et s'il est expire
+    try:
+        clecert = etat_instance.clecertificat
+    except TypeError:
+        pass  # Pas de certificat
+    else:
+        expiration = clecert.enveloppe.calculer_expiration()
+        if expiration['expire'] is True:
+            return InstanceCertificatProtegeExpire()
+
     if securite == Constantes.SECURITE_PROTEGE:
         return InstanceProtegee()
     elif etat_instance.docker_present is True:
@@ -74,7 +84,7 @@ class InstanceAbstract:
 
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
         self.__logger.info("Setup InstanceInstallation")
-        self._event_stop = Event()
+        self._event_stop = etat_instance.stop_event
         self._event_entretien = Event()
         self._etat_instance = etat_instance
         self._etat_docker = etat_docker
@@ -90,6 +100,7 @@ class InstanceAbstract:
         self.__logger.info("Fermerture InstanceInstallation")
         self._etat_instance.retirer_listener(self.declencher_run)
         self._event_stop.set()
+        self._event_entretien.set()
 
     async def declencher_run(self, etat_instance: Optional[EtatInstance]):
         """
@@ -104,6 +115,7 @@ class InstanceAbstract:
 
     async def run(self):
         self.__logger.info("run()")
+        self._event_stop = self._etat_instance.stop_event
         while self._event_stop.is_set() is False:
             self.__logger.debug("run() debut execution cycle")
 
@@ -119,6 +131,8 @@ class InstanceAbstract:
                 self._event_entretien.clear()
             except TimeoutError:
                 pass
+
+        await self.fermer()
         self.__logger.info("Fin run()")
 
     def get_config_modules(self) -> list:
@@ -236,6 +250,23 @@ class InstanceInstallation(InstanceAbstract):
         makedirs(path_certissuer, 0o700, exist_ok=True)
 
 
+class InstanceCertificatProtegeExpire(InstanceAbstract):
+
+    def __init__(self):
+        super().__init__()
+        self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        self._event_stop: Optional[Event] = None
+        self._etat_instance: Optional[EtatInstance] = None
+        self._etat_docker: Optional[EtatDockerInstanceSync] = None
+
+    async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
+        self.__logger.info("Setup InstanceCertificatProtegeExpire")
+        await super().setup(etat_instance, etat_docker)
+
+    def get_config_modules(self) -> list:
+        return CONFIG_MODULES_INSTALLATION
+
+
 class InstanceProtegee(InstanceAbstract):
 
     def __init__(self):
@@ -320,7 +351,8 @@ class InstanceProtegee(InstanceAbstract):
         expiration_instance = enveloppe_instance.calculer_expiration()
         if expiration_instance['expire'] is True:
             self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
-            raise NotImplementedError('todo - certificat expire, mettre en attente')
+            # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
+            await self._etat_instance.stop()
         elif expiration_instance['renouveler'] is True:
             self.__logger.info("Certificat d'instance peut etre renouvele")
             clecertificat = await renouveler_certificat_instance_protege(self._etat_instance.client_session,

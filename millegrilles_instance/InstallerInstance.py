@@ -21,9 +21,18 @@ async def installer_instance(etat_instance: EtatInstance, request: BaseRequest):
 
     # Preparer configuration pour sauvegarde - agit comme validation du request recu
     securite = contenu['securite']
-    certificat_ca = contenu['certificatMillegrille']
-    enveloppe_ca = EnveloppeCertificat.from_pem(certificat_ca)
-    idmg = enveloppe_ca.idmg
+    enveloppe_ca = etat_instance.certificat_millegrille
+    idmg = etat_instance.idmg
+    if enveloppe_ca is None:
+        certificat_ca = contenu['certificatMillegrille']
+        enveloppe_ca = EnveloppeCertificat.from_pem(certificat_ca)
+    else:
+        certificat_ca = None  # Ne pas changer de certificat CA
+
+    if idmg is None:
+        idmg = enveloppe_ca.idmg
+    elif idmg != enveloppe_ca.idmg:
+        raise Exception("Mismatch idmg local et recu")
 
     # Injecter un CSR pour generer un certificat d'instance local
     clecsr = CleCsrGenere.build(etat_instance.instance_id)
@@ -41,8 +50,9 @@ async def installer_instance(etat_instance: EtatInstance, request: BaseRequest):
     path_key = configuration.instance_key_pem_path
     with open(path_idmg, 'w') as fichier:
         fichier.write(idmg)
-    with open(path_ca, 'w') as fichier:
-        fichier.write(certificat_ca)
+    if certificat_ca is not None:
+        with open(path_ca, 'w') as fichier:
+            fichier.write(certificat_ca)
     with open(path_securite, 'w') as fichier:
         fichier.write(securite)
     with open(path_cert, 'w') as fichier:
