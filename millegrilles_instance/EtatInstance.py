@@ -84,7 +84,10 @@ class EtatInstance:
         self.__config_listeners.append(callback_async)
 
     def retirer_listener(self, callback_async):
-        self.__config_listeners.remove(callback_async)
+        try:
+            self.__config_listeners.remove(callback_async)
+        except ValueError:
+            pass
 
     def etat(self):
         pass

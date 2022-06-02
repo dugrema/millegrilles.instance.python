@@ -327,6 +327,11 @@ class InstanceProtegee(InstanceAbstract):
 
         await super().declencher_run(etat_instance)
 
+    async def fermer(self):
+        await super().fermer()
+        self.__event_setup_initial_certificats.set()
+        self.__event_setup_initial_passwords.set()
+
     async def run(self):
         self.__logger.info("run()")
 

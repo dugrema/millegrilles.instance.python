@@ -177,6 +177,8 @@ class ApplicationInstance:
     def fermer(self):
         if self.__loop is not None:
             self.__loop.call_soon_threadsafe(self._stop_event.set)
+            if self.__module_entretien is not None:
+                self.__loop.call_soon_threadsafe(asyncio.ensure_future, self.__module_entretien.fermer())
 
     async def executer(self):
         """
