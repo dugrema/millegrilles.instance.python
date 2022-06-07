@@ -1,3 +1,5 @@
+import os
+
 import aiohttp
 import logging
 import json
@@ -97,11 +99,13 @@ class EtatInstance:
         try:
             with open(config_json_path, 'rb') as fichier:
                 params_courants = json.load(fichier)
+            os.rename(config_json_path, config_json_path + '.old')
         except FileNotFoundError:
             params_courants = dict()
         except JSONDecodeError:
             raise Exception("Fichier %s corrompu" % config_json_path)
 
+        params_courants['instance_id'] = self.instance_id
         params_courants['idmg'] = self.idmg or params_courants.get('idmg')
         params_courants['securite'] = self.niveau_securite or params_courants.get('securite')
 
