@@ -49,7 +49,12 @@ class MqThread:
         instance_id = self.__etat_instance.instance_id
         niveau_securite = self.__etat_instance.niveau_securite
         reply_res = RessourcesConsommation(self.callback_reply_q)
-        reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
+
+        # RK uniquement 3.protege
+        if niveau_securite == Constantes.SECURITE_PROTEGE:
+            reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
+
+        # RK globaux (meme niveau que l'instance)
         reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_INSTALLER))
         reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
@@ -62,6 +67,8 @@ class MqThread:
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_REQUETE_CONFIG))
         reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER))
+
+        # RK globaux sur exchange 1.public
         reply_res.ajouter_rk(Constantes.SECURITE_PUBLIC, 'evenement.CoreTopologie.%s' % ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE)
 
         # q1 = RessourcesConsommation(callback_q_1, 'CoreBackup/tada')

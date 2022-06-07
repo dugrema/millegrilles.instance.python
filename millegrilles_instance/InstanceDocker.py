@@ -77,7 +77,7 @@ class EtatDockerInstanceSync:
 
         await producer.emettre_evenement(info_updatee, Constantes.DOMAINE_INSTANCE,
                                          ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
-                                         exchanges=Constantes.SECURITE_PROTEGE)
+                                         exchanges=self.__etat_instance.niveau_securite)
 
     async def verifier_date_certificats(self):
         pass
