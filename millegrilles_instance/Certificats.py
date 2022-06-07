@@ -14,6 +14,7 @@ from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_messages.GenerateursSecrets import GenerateurEd25519, GenerateurRsa
 from millegrilles_messages.docker import DockerCommandes
+from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 
 
 logger = logging.getLogger(__name__)
@@ -95,7 +96,8 @@ async def generer_certificats_modules(client_session: ClientSession, etat_instan
         await etat_docker.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
 
 
-async def generer_certificats_modules_satellites(etat_instance, etat_docker: EtatDockerInstanceSync, configuration: dict):
+async def generer_certificats_modules_satellites(producer: MessageProducerFormatteur, etat_instance,
+                                                 etat_docker: EtatDockerInstanceSync, configuration: dict):
     # S'assurer que tous les certificats sont presents et courants dans le repertoire secrets
     path_secrets = etat_instance.configuration.path_secrets
     for nom_module, value in configuration.items():
@@ -108,21 +110,20 @@ async def generer_certificats_modules_satellites(etat_instance, etat_docker: Eta
         combiner_keycert = value.get('combiner_keycert') or False
 
         sauvegarder = False
-        raise NotImplementedError('todo')
-        # try:
-        #     clecertificat = CleCertificat.from_files(path_cle, path_certificat)
-        #     enveloppe = clecertificat.enveloppe
-        #
-        #     # Ok, verifier si le certificat doit etre renouvele
-        #     detail_expiration = enveloppe.calculer_expiration()
-        #     if detail_expiration['expire'] is True or detail_expiration['renouveler'] is True:
-        #         clecertificat = await generer_nouveau_certificat(client_session, etat_instance, nom_module, value)
-        #         sauvegarder = True
-        #
-        # except FileNotFoundError:
-        #     logger.info("Certificat %s non trouve, on le genere" % nom_module)
-        #     clecertificat = await generer_nouveau_certificat(client_session, etat_instance, nom_module, value)
-        #     sauvegarder = True
+        try:
+            clecertificat = CleCertificat.from_files(path_cle, path_certificat)
+            enveloppe = clecertificat.enveloppe
+
+            # Ok, verifier si le certificat doit etre renouvele
+            detail_expiration = enveloppe.calculer_expiration()
+            if detail_expiration['expire'] is True or detail_expiration['renouveler'] is True:
+                clecertificat = await demander_nouveau_certificat(producer, etat_instance, nom_module, value)
+                sauvegarder = True
+
+        except FileNotFoundError:
+            logger.info("Certificat %s non trouve, on le genere" % nom_module)
+            clecertificat = await demander_nouveau_certificat(producer, etat_instance, nom_module, value)
+            sauvegarder = True
 
         # Verifier si le certificat et la cle sont stocke dans docker
         if sauvegarder is True:
@@ -265,49 +266,42 @@ async def generer_nouveau_certificat(client_session: ClientSession, etat_instanc
     return clecertificat
 
 
-async def generer_nouveau_certificat_satellite(etat_instance, nom_module: str, configuration: dict) -> CleCertificat:
-    raise NotImplementedError('todo')
-    # instance_id = etat_instance.instance_id
-    # idmg = etat_instance.certificat_millegrille.idmg
-    # clecsr = CleCsrGenere.build(instance_id, idmg)
-    # csr_str = clecsr.get_pem_csr()
-    #
-    # # Preparer configuration dns au besoin
-    # configuration = configuration.copy()
-    # try:
-    #     dns = configuration['dns'].copy()
-    #     if dns.get('domain') is True:
-    #         nom_domaine = etat_instance.nom_domaine
-    #         hostnames = [nom_domaine]
-    #         if dns.get('hostnames') is not None:
-    #             hostnames.extend(dns['hostnames'])
-    #         dns['hostnames'] = hostnames
-    #         configuration['dns'] = dns
-    # except KeyError:
-    #     pass
-    #
-    # configuration['csr'] = csr_str
-    #
-    # # Signer avec notre certificat (instance), requis par le certissuer
-    # formatteur_message = etat_instance.formatteur_message
-    # message_signe, _uuid = formatteur_message.signer_message(configuration)
-    #
-    # logger.debug("Demande de signature de certificat pour %s => %s\n%s" % (nom_module, message_signe, csr_str))
-    # url_issuer = etat_instance.certissuer_url
-    # path_csr = path.join(url_issuer, 'signerModule')
-    # async with client_session.post(path_csr, json=message_signe) as resp:
-    #     resp.raise_for_status()
-    #     reponse = await resp.json()
-    #
-    # certificat = reponse['certificat']
-    #
-    # # Confirmer correspondance entre certificat et cle
-    # clecertificat = CleCertificat.from_pems(clecsr.get_pem_cle(), ''.join(certificat))
-    # if clecertificat.cle_correspondent() is False:
-    #     raise Exception("Erreur cert/cle ne correspondent pas")
-    #
-    # logger.debug("Reponse certissuer certificat %s\n%s" % (nom_module, ''.join(certificat)))
-    # return clecertificat
+async def demander_nouveau_certificat(producer: MessageProducerFormatteur, etat_instance, nom_module: str, configuration: dict) -> CleCertificat:
+    instance_id = etat_instance.instance_id
+    idmg = etat_instance.certificat_millegrille.idmg
+    clecsr = CleCsrGenere.build(instance_id, idmg)
+    csr_str = clecsr.get_pem_csr()
+
+    # Preparer configuration dns au besoin
+    configuration = configuration.copy()
+    try:
+        dns = configuration['dns'].copy()
+        if dns.get('domain') is True:
+            nom_domaine = etat_instance.nom_domaine
+            hostnames = [nom_domaine]
+            if dns.get('hostnames') is not None:
+                hostnames.extend(dns['hostnames'])
+            dns['hostnames'] = hostnames
+            configuration['dns'] = dns
+    except KeyError:
+        pass
+
+    configuration['csr'] = csr_str
+
+    # Emettre commande de signature, attendre resultat
+    niveau_securite = etat_instance.niveau_securite
+    message_reponse = await producer.executer_commande(configuration, 'CorePki', 'signerCsr', exchange=niveau_securite)
+    reponse = message_reponse.parsed
+
+    certificat = reponse['certificat']
+
+    # Confirmer correspondance entre certificat et cle
+    clecertificat = CleCertificat.from_pems(clecsr.get_pem_cle(), ''.join(certificat))
+    if clecertificat.cle_correspondent() is False:
+        raise Exception("Erreur cert/cle ne correspondent pas")
+
+    logger.debug("Reponse certissuer certificat %s\n%s" % (nom_module, ''.join(certificat)))
+    return clecertificat
 
 
 async def generer_passwords(etat_instance, etat_docker: EtatDockerInstanceSync,
