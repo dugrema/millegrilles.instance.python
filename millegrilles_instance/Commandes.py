@@ -63,7 +63,9 @@ class CommandHandler:
                 if delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
                     if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
                         return await self.transmettre_catalogue(producer)
-                    elif action == ConstantesInstance.COMMANDE_APPLICATION_INSTALLER:
+            elif exchange == self._etat_instance.niveau_securite:  # Doit etre meme niveau que l'instance
+                if delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
+                    if action == ConstantesInstance.COMMANDE_APPLICATION_INSTALLER:
                         reponse = await self.installer_application(message)
                     elif action == ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER:
                         reponse = await self.supprimer_application(message)

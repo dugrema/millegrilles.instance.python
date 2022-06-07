@@ -30,9 +30,9 @@ class GestionnaireApplications:
         with open(path_app, 'w') as fichier:
             json.dump(configuration, fichier, indent=2)
 
-        resultat = await self.__etat_docker.installer_application(configuration, reinstaller)
-
         producer = self.__rabbitmq_dao.get_producer()
+        resultat = await self.__etat_docker.installer_application(producer, configuration, reinstaller)
+
         await self.__etat_docker.emettre_presence(producer)
 
         return resultat

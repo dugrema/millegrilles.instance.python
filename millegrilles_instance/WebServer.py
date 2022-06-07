@@ -159,8 +159,9 @@ class WebServer:
             self.__stop_event = Event()
 
         # Configuration pour site sur port 443 (utilise si nginx n'est pas configure)
-        niveau_securite_initial = self.__etat_instance.niveau_securite
-        if niveau_securite_initial != Constantes.SECURITE_PROTEGE:
+        #niveau_securite_initial = self.__etat_instance.niveau_securite
+        #if niveau_securite_initial != Constantes.SECURITE_PROTEGE:
+        if self.__etat_instance.certificat_millegrille is None:  # Pas encore initialise
             self.__webrunner_443 = WebRunner(self.__etat_instance, self.__configuration, self.__app, port=443)
 
         try:
