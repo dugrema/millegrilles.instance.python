@@ -104,6 +104,7 @@ async def installer_satellite(etat_instance: EtatInstance, contenu: dict, securi
     path_securite = configuration.instance_securite_path
     path_cert = configuration.instance_cert_pem_path
     path_key = configuration.instance_key_pem_path
+    path_config_json = configuration.config_json
     with open(path_idmg, 'w') as fichier:
         fichier.write(idmg)
     if certificat_ca is not None:
@@ -115,6 +116,21 @@ async def installer_satellite(etat_instance: EtatInstance, contenu: dict, securi
         fichier.write(cert_pem)
     with open(path_key, 'w') as fichier:
         fichier.write(cle_pem)
+
+    try:
+        with open(path_config_json, 'r') as fichier:
+            contenu_config = json.load(fichier)
+    except FileNotFoundError:
+        contenu_config = dict()
+
+    contenu_config.update({
+        'hostname': contenu['hostname'],
+        'mq_host': contenu['host'],
+        'mq_port': contenu['port'],
+        'securite': contenu['securite']
+    })
+    with open(path_config_json, 'w') as fichier:
+        json.dump(contenu_config, fichier)
 
     # Declencher le recharger de la configuration de l'instance
     # Va aussi installer les nouveaux elements de configuration/secrets dans docker
