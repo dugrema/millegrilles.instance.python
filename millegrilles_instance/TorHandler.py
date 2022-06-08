@@ -2,7 +2,7 @@ import logging
 
 from docker.models.containers import Container
 
-from millegrilles_messages.docker.DockerHandler import CommandeDocker, DockerClient
+from millegrilles_messages.docker.DockerHandler import CommandeDocker, DockerClient, DockerException
 
 ONIONIZE_HOSTNAME_PATH = '/var/lib/tor/onion_services/nginx/hostname'
 
@@ -49,5 +49,5 @@ def trouver_onionize(docker_client: DockerClient) -> Container:
     return container
 
 
-class OnionizeNonDisponibleException(Exception):
+class OnionizeNonDisponibleException(DockerException):
     pass
