@@ -9,6 +9,9 @@ from aiohttp.client_exceptions import ClientConnectorError
 from os import path, makedirs
 from typing import Optional, Union
 from millegrilles_messages.messages import Constantes
+from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
+from millegrilles_messages.messages.CleCertificat import CleCertificat
+from millegrilles_instance.AcmeHandler import CommandeAcmeExtractCertificates, AcmeNonDisponibleException
 
 
 class EntretienNginx:
@@ -51,6 +54,8 @@ class EntretienNginx:
         try:
             if self.__entretien_initial_complete is False:
                 await self.preparer_nginx()
+
+            await self.verifier_certificat_web()
 
             if self.__session is None:
                 await self.creer_session()
@@ -185,3 +190,60 @@ class EntretienNginx:
 
         with open(path_nginx_fichier, 'wb') as output:
             output.write(contenu)
+
+    async def verifier_certificat_web(self):
+        """
+        Verifier si le certificat web doit etre change (e.g. maj ACME)
+        :return:
+        """
+        hostname = self.__etat_instance.hostname
+        commande = CommandeAcmeExtractCertificates(hostname)
+        self.__etat_docker.ajouter_commande(commande)
+        try:
+            resultat = await commande.get_resultat()
+        except AcmeNonDisponibleException:
+            self.__logger.debug("Service ACME non demarre")
+            return
+
+        exit_code = resultat['code']
+        str_resultat = resultat['resultat']
+        key_pem = resultat['key']
+        cert_pem = resultat['cert']
+
+        if exit_code != 0:
+            self.__logger.debug("Aucun certificat web avec ACME pour %s\n%s" % (hostname, str_resultat))
+            return
+
+        enveloppe_acme = CleCertificat.from_pems(key_pem, cert_pem)
+        if enveloppe_acme.cle_correspondent() is False:
+            self.__logger.warning("Cle/certificat ACME ne correspondent pas (etat inconsistent)")
+            return
+
+        # S'assurer que le certificat installe est le meme que celui recu
+        configuration = self.__etat_instance.configuration
+        path_cle_web = configuration.path_cle_web
+        path_cert_web = configuration.path_certificat_web
+
+        remplacer = False
+        try:
+            cert_courant = EnveloppeCertificat.from_file(path_cert_web)
+        except FileNotFoundError:
+            self.__logger.info("Fichier certificat web absent, on utilise la version ACME")
+            remplacer = True
+        else:
+            if cert_courant.not_valid_after < enveloppe_acme.enveloppe.not_valid_after:
+                self.__logger.info("Fichier certificat ACME plus recent que le certificat courant, on l'applique")
+                remplacer = True
+
+        if remplacer is True:
+            self.__logger.info("Remplacer le certificat web nginx")
+            with open(path_cle_web, 'w') as fichier:
+                fichier.write(key_pem)
+            with open(path_cert_web, 'w') as fichier:
+                fichier.write(cert_pem)
+
+            self.__logger.info("Redemarrer nginx avec le nouveau certificat web")
+            await self.__etat_docker.redemarrer_nginx()
+
+    def maj_certificat_web(self):
+        pass

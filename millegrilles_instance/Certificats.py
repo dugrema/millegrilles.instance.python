@@ -233,7 +233,7 @@ async def generer_nouveau_certificat(client_session: ClientSession, etat_instanc
     try:
         dns = configuration['dns'].copy()
         if dns.get('domain') is True:
-            nom_domaine = etat_instance.nom_domaine
+            nom_domaine = etat_instance.hostname
             hostnames = [nom_domaine]
             if dns.get('hostnames') is not None:
                 hostnames.extend(dns['hostnames'])
@@ -277,7 +277,7 @@ async def demander_nouveau_certificat(producer: MessageProducerFormatteur, etat_
     try:
         dns = configuration['dns'].copy()
         if dns.get('domain') is True:
-            nom_domaine = etat_instance.nom_domaine
+            nom_domaine = etat_instance.hostname
             hostnames = [nom_domaine]
             if dns.get('hostnames') is not None:
                 hostnames.extend(dns['hostnames'])

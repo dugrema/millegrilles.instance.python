@@ -329,7 +329,7 @@ class EtatDockerInstanceSync:
         config_datees = await action_datees.get_resultat()
 
         params = {
-            'HOSTNAME': self.__etat_instance.nom_domaine,
+            'HOSTNAME': self.__etat_instance.hostname,
             'IDMG': self.__etat_instance.idmg,
             '__secrets': docker_secrets,
             '__configs': docker_configs,

@@ -161,8 +161,12 @@ def trouver_acme(docker_client: DockerClient) -> Container:
     """
     containers = docker_client.containers.list(filters={'label': 'acme=true'})
     if len(containers) == 0:
-        raise Exception("Container ACME introuvable")
+        raise AcmeNonDisponibleException("Container ACME introuvable")
 
     container = containers.pop()  # Prendre un containe ACME au hasard
 
     return container
+
+
+class AcmeNonDisponibleException(Exception):
+    pass

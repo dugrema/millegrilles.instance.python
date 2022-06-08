@@ -35,7 +35,6 @@ class EtatInstance:
         self.__idmg: Optional[str] = None
         self.__certificat_millegrille: Optional[EnveloppeCertificat] = None
         self.__clecertificat: Optional[CleCertificat] = None
-        self.__nom_domaine: Optional[str] = None
         self.__password_mq: Optional[str] = None
 
         self.__host_mq = "localhost"
@@ -59,6 +58,7 @@ class EtatInstance:
 
         self.__ip_address = get_ip()
         self.__hostname = get_hostname(fqdn=True)
+        self.__logger.debug("Nom domaine insance: %s" % self.__hostname)
 
         # Generer les certificats web self-signed au besoin
         path_cert_web, path_cle_web = preparer_certificats_web(self.__configuration.path_secrets)
@@ -80,9 +80,6 @@ class EtatInstance:
         self.__clecertificat = load_clecert(self.__configuration.instance_key_pem_path,
                                             self.__configuration.instance_cert_pem_path)
         self.__logger.debug("Certificat instance: %s" % self.__clecertificat)
-
-        self.__nom_domaine = get_hostname(fqdn=True)  # Detection en attendant le charger le reste de la configuration
-        self.__logger.debug("Nom domaine insance: %s" % self.__nom_domaine)
 
         # Exporter configuration pour modules dependants
         self.maj_configuration_json()
