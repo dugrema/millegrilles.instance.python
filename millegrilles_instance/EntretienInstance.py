@@ -58,6 +58,7 @@ def get_module_execution(etat_instance: EtatInstance):
 
 CONFIG_MODULES_INSTALLATION = [
     'docker.certissuer.json',
+    'docker.acme.json',
 ]
 
 
@@ -67,6 +68,7 @@ CONFIG_CERTIFICAT_EXPIRE = [
 
 CONFIG_MODULES_PROTEGES = [
     'docker.certissuer.json',
+    'docker.acme.json',
     'docker.nginx.json',
     'docker.redis.json',
     'docker.mq.json',
@@ -81,12 +83,14 @@ CONFIG_MODULES_PROTEGES = [
 CONFIG_MODULES_PRIVES = [
     'docker.nginx.json',
     'docker.redis.json',
+    'docker.acme.json',
 ]
 
 
 CONFIG_MODULES_PUBLICS = [
     'docker.nginx.json',
     'docker.redis.json',
+    'docker.acme.json',
 ]
 
 
