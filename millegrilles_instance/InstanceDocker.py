@@ -349,7 +349,10 @@ class EtatDockerInstanceSync:
         if self.__etat_instance.idmg is not None:
             params['__idmg'] = self.__etat_instance.idmg
 
-        parser = ConfigurationService(configuration, params)
+        config_service = configuration.copy()
+        config_service.update(config_service['config'])  # Combiner la configuration de base et du service
+
+        parser = ConfigurationService(config_service, params)
         parser.parse()
         config_parsed = parser.generer_docker_config()
 

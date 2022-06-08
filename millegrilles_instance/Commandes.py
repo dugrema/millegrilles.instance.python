@@ -59,10 +59,6 @@ class CommandHandler:
                 if Constantes.ROLE_CORE in roles:
                     if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
                         return await self.transmettre_catalogue(producer)
-            elif exchange == Constantes.SECURITE_PROTEGE:
-                if delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
-                    if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
-                        return await self.transmettre_catalogue(producer)
             elif exchange == self._etat_instance.niveau_securite:  # Doit etre meme niveau que l'instance
                 if delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
                     if action == ConstantesInstance.COMMANDE_APPLICATION_INSTALLER:
@@ -77,6 +73,11 @@ class CommandHandler:
                         reponse = await self.get_application_configuration(message)
                     elif action == ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER:
                         reponse = await self.configurer_application(message)
+
+                    # Exchange protege seulement
+                    elif exchange == Constantes.SECURITE_PROTEGE:
+                        if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
+                            return await self.transmettre_catalogue(producer)
 
             if reponse is None:
                 reponse = {'ok': False, 'err': 'Commande inconnue ou acces refuse'}

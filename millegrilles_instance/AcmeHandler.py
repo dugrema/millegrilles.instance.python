@@ -4,7 +4,7 @@ from docker.models.containers import Container
 from os import path
 from typing import Optional
 
-from millegrilles_messages.docker.DockerHandler import CommandeDocker, DockerClient
+from millegrilles_messages.docker.DockerHandler import CommandeDocker, DockerClient, DockerException
 
 
 class CommandeAcmeIssue(CommandeDocker):
@@ -59,6 +59,8 @@ class CommandeAcmeExtractCertificates(CommandeDocker):
         try:
             exit_code, str_resultat, key_pem, cert_pem = self.get_certificat(container)
             self.callback({'code': exit_code, 'resultat': str_resultat, 'key': key_pem, 'cert': cert_pem})
+        except AcmeNonDisponibleException:
+            self.callback({'code': -2})
         except Exception as e:
             self.__logger.exception("Erreur executer()")
             self.callback({'code': -1, 'resultat': str(e)})
@@ -168,5 +170,5 @@ def trouver_acme(docker_client: DockerClient) -> Container:
     return container
 
 
-class AcmeNonDisponibleException(Exception):
+class AcmeNonDisponibleException(DockerException):
     pass
