@@ -31,9 +31,24 @@ async def test_issue_testcert_webroot():
 
 
 async def test_issue_testcert_cloudns():
-    cloudns_subid = environ['CLOUDNS_SUBID']
-    cloudns_password = environ['CLOUDNS_PASSWORD']
+    cloudns_subid = environ['CLOUDNS_SUB_AUTH_ID']
+    cloudns_password = environ['CLOUDNS_AUTH_PASSWORD']
     logger.info("Generer certificat avec cloudns sub_id %s" % cloudns_subid)
+
+    params = {
+        'modeTest': True,
+        'modeCreation': 'dns_cloudns',
+        'cloudns_subauthid': cloudns_subid,
+        'cloudns_password': cloudns_password,
+    }
+
+    commande = CommandeAcmeIssue(DOMAINE, params)
+    docker_handler.ajouter_commande(commande)
+    resultat = await commande.get_resultat()
+
+    exit_code = resultat['code']
+    str_resultat = resultat['resultat']
+    logger.info("Resultat issue webroot (%d)\n%s" % (exit_code, str_resultat))
 
 
 async def test_get_certificats():
@@ -51,11 +66,11 @@ async def test_get_certificats():
 
 async def run_tests():
     logger.debug("run_tests debut")
-    # try:
-    #     await test_issue_testcert_cloudns()
-    # except KeyError:
-    #     logger.info("Generer certificat avec webroot")
-    #     await test_issue_testcert_webroot()
+    try:
+        await test_issue_testcert_cloudns()
+    except KeyError:
+        logger.info("Generer certificat avec webroot")
+        await test_issue_testcert_webroot()
     await test_get_certificats()
     logger.debug("run_tests fin")
 

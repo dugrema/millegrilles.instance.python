@@ -64,10 +64,6 @@ class CommandeAcmeExtractCertificates(CommandeDocker):
             self.callback({'code': -1, 'resultat': str(e)})
 
     def get_certificat(self, container: Container):
-        # acme.sh --install-cert -d example.com \
-        # --key-file       /path/to/keyfile/in/nginx/key.pem  \
-        # --fullchain-file /path/to/fullchain/nginx/cert.pem
-
         key_file_path = path.join(self.__directory, 'key.pem')
         cert_file_path = path.join(self.__directory, 'cert.pem')
 
@@ -155,47 +151,6 @@ def generer_issue_str(domain: str, params: dict) -> (str, dict):
 
     print('commande ACME : %s' % commande_acme)
     return commande_acme, params_combines
-
-
-def extraire_tar():
-    raise NotImplementedError('todo')
-    # try:
-    #     cert_bytes = gestionnaire_docker.get_archive_bytes(acme_container_id, '/acme.sh/%s' % domaine_noeud)
-    #     io_buffer = io.BytesIO(cert_bytes)
-    #     with tarfile.open(fileobj=io_buffer) as tar_content:
-    #         member_key = tar_content.getmember('%s/%s.key' % (domaine_noeud, domaine_noeud))
-    #         key_bytes = tar_content.extractfile(member_key).read()
-    #         member_fullchain = tar_content.getmember('%s/fullchain.cer' % domaine_noeud)
-    #         fullchain_bytes = tar_content.extractfile(member_fullchain).read()
-    #
-    #     # Inserer certificat, cle dans docker
-    #     secret_name, date_secret = gestionnaire_docker.sauvegarder_secret(
-    #         'pki.web.key', key_bytes, ajouter_date=True)
-    #
-    #     # gestionnaire_docker.sauvegarder_config('acme.configuration', json.dumps(configuration_acme).encode('utf-8'))
-    #     gestionnaire_docker.sauvegarder_config('pki.web.cert.' + date_secret, fullchain_bytes)
-    #
-    #     # Forcer reconfiguration nginx
-    #     gestionnaire_docker.maj_service('nginx')
-    #
-    #     if generateur_transactions is not None:
-    #         evenement_succes = {
-    #             'ok': True,
-    #             'code': resultat_acme,
-    #             'output': output_acme.decode('utf-8')
-    #         }
-    #         generateur_transactions.emettre_message(
-    #             evenement_succes, rk, action=action, partition=partition, ajouter_certificats=True)
-    # except Exception:
-    #     self.__logger.exception("Erreur sauvegarde certificat ACME dans docker")
-    #     if generateur_transactions is not None:
-    #         evenement_erreur = {
-    #             'ok': False,
-    #             'err': 'Erreur sauvegarde certificat ACME dans docker (note: certificat TLS genere OK)',
-    #             'output': output_acme.decode('utf-8')
-    #         }
-    #         generateur_transactions.emettre_message(
-    #             evenement_erreur, rk, action=action, partition=partition, ajouter_certificats=True)
 
 
 def trouver_acme(docker_client: DockerClient) -> Container:
