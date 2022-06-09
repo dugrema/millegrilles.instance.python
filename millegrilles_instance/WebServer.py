@@ -57,6 +57,8 @@ class WebServer:
             web.post('/installation/api/installerCertificat', self.handle_installer_certificat),
 
             web.options('/installation/api/installer', self.options_cors),
+            web.options('/installation/api/configurerMQ', self.options_cors),
+            web.options('/installation/api/installerCertificat', self.options_cors),
 
             # Application d'installation static React
             web.get('/installation/', self.installation_index_handler),
@@ -163,7 +165,7 @@ class WebServer:
         self.__etat_instance.maj_configuration_json({'hostname': hostname})
         await self.__etat_instance.reload_configuration()
 
-        return web.json_response({'ok': True})
+        return web.json_response({'ok': True}, headers=headers_cors())
 
     async def handle_configurer_mq(self, request: web.Request):
         contenu = await request.json()
@@ -182,7 +184,7 @@ class WebServer:
         self.__etat_instance.maj_configuration_json(config_dict)
         await self.__etat_instance.reload_configuration()
 
-        return web.json_response({'ok': True})
+        return web.json_response({'ok': True}, headers=headers_cors())
 
     async def handle_installer_certificat(self, request: web.Request):
         """
@@ -222,7 +224,7 @@ class WebServer:
 
         await self.__etat_instance.reload_configuration()
 
-
+        return web.json_response({'ok': True}, headers=headers_cors())
 
     async def entretien(self):
         self.__logger.debug('Entretien')
