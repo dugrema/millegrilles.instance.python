@@ -21,7 +21,7 @@ printenv
 echo "****************"
 echo
 
-if [ ! -d "${PATH_MILLEGRILLES}" ]; then
+if [ ! -d "${PATH_MILLEGRILLES}/configuration" ]; then
   configurer_reps
   echo "Installer packages apt pour python3 venv"
   sudo apt install -y python3-pip python3-venv
@@ -32,7 +32,7 @@ if [ ! -d "${PATH_MILLEGRILLES}" ]; then
   sudo -u mginstance ${REP_BIN}/install_python.sh "${PATH_VENV}" "${URL_MG_MESSAGES}"
 
   echo "Copier application web"
-  ${REP_BIN}/install_web.sh
+  sudo -u mginstance ${REP_BIN}/install_web.sh
 fi
 
 echo
