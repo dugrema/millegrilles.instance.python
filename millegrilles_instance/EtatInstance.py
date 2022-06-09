@@ -7,6 +7,7 @@ import json
 from asyncio import Event
 from json.decoder import JSONDecodeError
 from typing import Optional
+from os import path, listdir
 
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages import Constantes
@@ -264,9 +265,31 @@ class EtatInstance:
         info_updatee['instance_id'] = self.instance_id
         info_updatee['securite'] = self.niveau_securite
 
+        # Faire la liste des applications installees
+        liste_applications = await self.get_liste_configurations()
+        info_updatee['applications_configurees'] = liste_applications
+
         await producer.emettre_evenement(info_updatee, Constantes.DOMAINE_INSTANCE,
                                          ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
                                          exchanges=self.niveau_securite)
+
+    async def get_liste_configurations(self) -> list:
+        """
+        Charge l'information de configuration de toutes les applications connues.
+        :return:
+        """
+        info_configuration = list()
+        path_docker_apps = self.configuration.path_docker_apps
+        for fichier_config in listdir(path_docker_apps):
+            if not fichier_config.startswith('app.'):
+                continue  # Skip, ce n'est pas une application
+            with open(path.join(path_docker_apps, fichier_config), 'rb') as fichier:
+                contenu = json.load(fichier)
+            nom = contenu['nom']
+            version = contenu['version']
+            info_configuration.append({'nom': nom, 'version': version})
+
+        return info_configuration
 
 
 def load_fichier_config(path_fichier: str) -> Optional[str]:

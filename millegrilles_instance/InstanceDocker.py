@@ -1,11 +1,10 @@
 import asyncio
-import json
 import logging
 
 
 from asyncio import Event, TimeoutError
 from docker.errors import APIError, NotFound
-from os import path, listdir, unlink
+from os import path, unlink
 from typing import Optional
 
 from millegrilles_messages.docker.DockerHandler import DockerHandler
@@ -66,23 +65,11 @@ class EtatDockerInstanceSync:
         info_instance = await commande.get_info()
         info_updatee.update(info_instance)
 
-        # info_updatee['fqdn_detecte'] = self.__etat_instance.hostname
-        # info_updatee['ip_detectee'] = self.__etat_instance.ip_address
-        # info_updatee['instance_id'] = self.__etat_instance.instance_id
-        # info_updatee['securite'] = self.__etat_instance.niveau_securite
-
-        # Faire la liste des applications installees
-        liste_applications = await self.get_liste_configurations()
-        info_updatee['applications_configurees'] = liste_applications
+        # # Faire la liste des applications installees
+        # liste_applications = await self.__etat_instance.get_liste_configurations()
+        # info_updatee['applications_configurees'] = liste_applications
 
         await self.__etat_instance.emettre_presence(producer, info_updatee)
-
-        # await producer.emettre_evenement(info_updatee, Constantes.DOMAINE_INSTANCE,
-        #                                  ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
-        #                                  exchanges=self.__etat_instance.niveau_securite)
-
-    async def verifier_date_certificats(self):
-        pass
 
     async def verifier_config_instance(self):
         instance_id = self.__etat_instance.instance_id
@@ -465,16 +452,6 @@ class EtatDockerInstanceSync:
             except KeyError:
                 pass
 
-            # try:
-            #     passwords = dep['passwords']
-            #     for password in passwords:
-            #         try:
-            #             current = correspondance['passwd.%s' % password]['current']
-            #             current['password']
-            #         except KeyError:
-            #             self.__logger.info("Generer password %s pour %s" % (password, nom_application))
-            #             await self.__etat_instance.generer_passwords(self, [password])
-
             try:
                 generateur = dep['generateur']
                 for passwd_gen in generateur:
@@ -556,23 +533,23 @@ class EtatDockerInstanceSync:
 
         return {'ok': resultat}
 
-    async def get_liste_configurations(self) -> list:
-        """
-        Charge l'information de configuration de toutes les applications connues.
-        :return:
-        """
-        info_configuration = list()
-        path_docker_apps = self.__etat_instance.configuration.path_docker_apps
-        for fichier_config in listdir(path_docker_apps):
-            if not fichier_config.startswith('app.'):
-                continue  # Skip, ce n'est pas une application
-            with open(path.join(path_docker_apps, fichier_config), 'rb') as fichier:
-                contenu = json.load(fichier)
-            nom = contenu['nom']
-            version = contenu['version']
-            info_configuration.append({'nom': nom, 'version': version})
-
-        return info_configuration
+    # async def get_liste_configurations(self) -> list:
+    #     """
+    #     Charge l'information de configuration de toutes les applications connues.
+    #     :return:
+    #     """
+    #     info_configuration = list()
+    #     path_docker_apps = self.__etat_instance.configuration.path_docker_apps
+    #     for fichier_config in listdir(path_docker_apps):
+    #         if not fichier_config.startswith('app.'):
+    #             continue  # Skip, ce n'est pas une application
+    #         with open(path.join(path_docker_apps, fichier_config), 'rb') as fichier:
+    #             contenu = json.load(fichier)
+    #         nom = contenu['nom']
+    #         version = contenu['version']
+    #         info_configuration.append({'nom': nom, 'version': version})
+    #
+    #     return info_configuration
 
 
 def verifier_config_current(liste_config_datee: dict, container_config: Optional[list], container_secrets: Optional[list]):
