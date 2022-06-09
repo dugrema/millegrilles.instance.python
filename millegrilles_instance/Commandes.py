@@ -13,6 +13,7 @@ from millegrilles_messages.messages.MessagesModule import MessageProducerFormatt
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_messages.messages.MessagesModule import MessageWrapper
 from millegrilles_instance.EntretienApplications import GestionnaireApplications
+from millegrilles_instance.AcmeHandler import CommandeAcmeIssue, CommandeAcmeExtractCertificates
 
 
 class CommandHandler:
@@ -60,27 +61,35 @@ class CommandHandler:
                 if Constantes.ROLE_CORE in roles:
                     if action == ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE:
                         return await self.sauvegarder_fiche_publique(message)
-            elif exchange == Constantes.SECURITE_PROTEGE and Constantes.SECURITE_PROTEGE in exchanges:
+
+            if exchange == Constantes.SECURITE_PUBLIC and delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
+                if action == ConstantesInstance.REQUETE_CONFIGURATION_ACME:
+                    return await self.get_configuration_acme(message)
+
+            if exchange == Constantes.SECURITE_PROTEGE and Constantes.SECURITE_PROTEGE in exchanges:
                 if Constantes.ROLE_CORE in roles:
                     if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
                         return await self.transmettre_catalogue(producer)
-            elif exchange == self._etat_instance.niveau_securite:  # Doit etre meme niveau que l'instance
+
+            if exchange == self._etat_instance.niveau_securite:  # Doit etre meme niveau que l'instance
                 if delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
                     if action == ConstantesInstance.COMMANDE_APPLICATION_INSTALLER:
-                        reponse = await self.installer_application(message)
-                    elif action == ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER:
-                        reponse = await self.supprimer_application(message)
-                    elif action == ConstantesInstance.COMMANDE_APPLICATION_DEMARRER:
-                        reponse = await self.demarrer_application(message)
-                    elif action == ConstantesInstance.COMMANDE_APPLICATION_ARRETER:
-                        reponse = await self.arreter_application(message)
-                    elif action == ConstantesInstance.COMMANDE_APPLICATION_REQUETE_CONFIG:
-                        reponse = await self.get_application_configuration(message)
-                    elif action == ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER:
-                        reponse = await self.configurer_application(message)
+                        return await self.installer_application(message)
+                    if action == ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER:
+                        return await self.supprimer_application(message)
+                    if action == ConstantesInstance.COMMANDE_APPLICATION_DEMARRER:
+                        return await self.demarrer_application(message)
+                    if action == ConstantesInstance.COMMANDE_APPLICATION_ARRETER:
+                        return await self.arreter_application(message)
+                    if action == ConstantesInstance.COMMANDE_APPLICATION_REQUETE_CONFIG:
+                        return await self.get_application_configuration(message)
+                    if action == ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER:
+                        return await self.configurer_application(message)
+                    if action == ConstantesInstance.COMMANDE_CONFIGURER_DOMAINE:
+                        return await self.configurer_domaine(message)
 
                     # Exchange protege seulement
-                    elif exchange == Constantes.SECURITE_PROTEGE:
+                    if exchange == Constantes.SECURITE_PROTEGE:
                         if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
                             return await self.transmettre_catalogue(producer)
 
@@ -160,3 +169,54 @@ class CommandHandler:
             fichier.write(configuration_str)
 
         return await self._gestionnaire_applications.installer_application(configuration, reinstaller=True)
+
+    async def configurer_domaine(self, message: MessageWrapper):
+        parsed = message.parsed
+
+        # Preparer configuration pour sauvegarde
+        path_configuration = self._etat_instance.configuration.path_configuration
+        path_fichier_acme = path.join(path_configuration, ConstantesInstance.CONFIG_NOMFICHIER_ACME)
+        elems = [
+            'modeCreation', 'force', 'modeTest',
+            'domainesAdditionnels', 'dnssleep',
+            'cloudns_subauthid',
+            # 'cloudns_password',
+        ]
+        configuration = dict()
+        for elem in elems:
+            try:
+                configuration[elem] = parsed[elem]
+            except KeyError:
+                pass
+
+        # Executer issue ACME
+        hostname = self._etat_instance.hostname
+        commande = CommandeAcmeIssue(hostname, parsed)
+        self._etat_docker.ajouter_commande(commande)
+        resultat = await commande.get_resultat()
+
+        if resultat['code'] not in [0, 2]:
+            return {'ok': False, 'code': resultat['code'], 'err': "Echec creation certificat pour %s" % hostname}
+
+        try:
+            with open(path_fichier_acme, 'w') as fichier:
+                json.dump(configuration, fichier, indent=2)
+
+            # Declencher chargement certificat web
+            await self._etat_instance.reload_configuration()
+
+            return {'ok': True}
+        except Exception as e:
+            self.__logger.exception("Erreur sauvegarde configuration acme.json")
+            return {'ok': False, 'err': str(e)}
+
+    async def get_configuration_acme(self, message: MessageWrapper):
+        path_configuration = self._etat_instance.configuration.path_configuration
+        path_fichier_acme = path.join(path_configuration, ConstantesInstance.CONFIG_NOMFICHIER_ACME)
+        try:
+            with open(path_fichier_acme, 'r') as fichier:
+                configuration = json.load(fichier)
+            configuration['ok'] = True
+            return configuration
+        except FileNotFoundError:
+            return {'ok': False, 'err': 'Configuration absente'}

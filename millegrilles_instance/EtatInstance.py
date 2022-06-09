@@ -180,7 +180,7 @@ class EtatInstance:
 
     @property
     def nom_domaine(self):
-        return self.__nom_domaine
+        return self.__hostname
 
     @property
     def configuration(self):

@@ -51,6 +51,10 @@ class MqThread:
         niveau_securite = self.__etat_instance.niveau_securite
         reply_res = RessourcesConsommation(self.callback_reply_q)
 
+        # RK Public pour toutes les instances
+        reply_res.ajouter_rk(Constantes.SECURITE_PUBLIC, 'requete.instance.%s.%s' % (
+            instance_id, ConstantesInstance.REQUETE_CONFIGURATION_ACME))
+
         # RK uniquement 3.protege
         if niveau_securite == Constantes.SECURITE_PROTEGE:
             reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
@@ -68,6 +72,8 @@ class MqThread:
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_REQUETE_CONFIG))
         reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER))
+        reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
+            instance_id, ConstantesInstance.COMMANDE_CONFIGURER_DOMAINE))
 
         # RK globaux sur exchange 1.public
         reply_res.ajouter_rk(Constantes.SECURITE_PUBLIC, 'evenement.CoreTopologie.%s' % ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE)
