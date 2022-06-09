@@ -5,12 +5,11 @@ import json
 
 from aiohttp import web
 from asyncio import Event
-from asyncio.exceptions import TimeoutError, CancelledError
+from asyncio.exceptions import TimeoutError
 from os import path
 from ssl import SSLContext
 from typing import Optional
 
-from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Configuration import ConfigurationWeb
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstallerInstance import installer_instance, configurer_idmg
@@ -51,6 +50,8 @@ class WebServer:
 
             web.post('/installation/api/installer', self.handle_installer),
             web.post('/installation/api/configurerIdmg', self.handle_configurer_idmg),
+            web.post('/installation/api/changerDomaine', self.handle_changer_domaine),
+            web.post('/installation/api/configurerMQ', self.handle_configurer_mq),
 
             web.options('/installation/api/installer', self.options_cors),
 
@@ -148,6 +149,34 @@ class WebServer:
         contenu = await request.json()
         self.__logger.debug("installer_instance contenu\n%s" % json.dumps(contenu, indent=2))
         return await configurer_idmg(self.__etat_instance, contenu)
+
+    async def handle_changer_domaine(self, request: web.Request):
+        contenu = await request.json()
+        self.__logger.debug("handle_changer_domaine contenu\n%s" % json.dumps(contenu, indent=2))
+
+        # Valider message - delegation globale
+
+        # Conserver hostname
+        hostname = contenu['hostname']
+        self.__etat_instance.maj_configuration_json({'hostname': hostname})
+        await self.__etat_instance.reload_configuration()
+
+        return web.json_response({'ok': True})
+
+    async def handle_configurer_mq(self, request: web.Request):
+        contenu = await request.json()
+        self.__logger.debug("handle_configurer_mq contenu\n%s" % json.dumps(contenu, indent=2))
+
+        # Valider message - delegation globale
+
+        config_dict = {
+            'mq_host': contenu['host'],
+            'mq_port': int(contenu['port']),
+        }
+        self.__etat_instance.maj_configuration_json(config_dict)
+        await self.__etat_instance.reload_configuration()
+
+        return web.json_response({'ok': True})
 
     async def entretien(self):
         self.__logger.debug('Entretien')

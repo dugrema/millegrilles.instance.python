@@ -220,3 +220,8 @@ class CommandHandler:
             return configuration
         except FileNotFoundError:
             return {'ok': False, 'err': 'Configuration absente'}
+
+    async def set_hostname(self, message: MessageWrapper):
+        hostname = message.parsed['hostname']
+        self._etat_instance.maj_configuration_json({'hostname': hostname})
+        return {'ok': True}

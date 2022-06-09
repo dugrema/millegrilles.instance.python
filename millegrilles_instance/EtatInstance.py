@@ -271,7 +271,9 @@ class EtatInstance:
         else:
             info_updatee = dict()
 
-        info_updatee['fqdn_detecte'] = self.hostname
+        info_updatee['hostname'] = self.hostname
+        info_updatee['domaine'] = self.hostname
+        info_updatee['fqdn_detecte'] = get_hostname(fqdn=True)
         info_updatee['ip_detectee'] = self.ip_address
         info_updatee['instance_id'] = self.instance_id
         info_updatee['securite'] = self.niveau_securite
