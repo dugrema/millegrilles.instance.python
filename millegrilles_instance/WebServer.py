@@ -10,6 +10,7 @@ from os import path
 from ssl import SSLContext
 from typing import Optional
 
+from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Configuration import ConfigurationWeb
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstallerInstance import installer_instance, configurer_idmg
@@ -130,15 +131,10 @@ class WebServer:
                 self.__logger.info("Desactiver server instance sur port 443 pour demarrer nginx")
 
                 self.__logger.warning("Installation, redemarrer (peut pas arreter port 443 pour nginx)")
-                self.__etat_instance.set_redemarrer(True)
-                self.__stop_event.set()
-                await self.__etat_instance.stop()
-
-                # try:
-                #     await self.__webrunner_443.stop()
-                # except CancelledError:
-                #     self.__logger.warning("webrunner port 443 cancelle")
-                # self.__webrunner_443 = None
+                await self.__etat_instance.reload_configuration()
+                # self.__etat_instance.set_redemarrer(True)
+                # self.__stop_event.set()
+                # await self.__etat_instance.stop()
 
             return resultat
         except:
@@ -155,6 +151,10 @@ class WebServer:
         self.__logger.debug("handle_changer_domaine contenu\n%s" % json.dumps(contenu, indent=2))
 
         # Valider message - delegation globale
+        enveloppe = await self.__etat_instance.validateur_message.verifier(contenu)
+        if enveloppe.get_delegation_globale != Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
+            self.__logger.error("Requete handle_configurer_mq() avec certificat sans delegation globale")
+            return web.HTTPForbidden()
 
         # Conserver hostname
         hostname = contenu['hostname']
@@ -168,6 +168,10 @@ class WebServer:
         self.__logger.debug("handle_configurer_mq contenu\n%s" % json.dumps(contenu, indent=2))
 
         # Valider message - delegation globale
+        enveloppe = await self.__etat_instance.validateur_message.verifier(contenu)
+        if enveloppe.get_delegation_globale != Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
+            self.__logger.error("Requete handle_configurer_mq() avec certificat sans delegation globale")
+            return web.HTTPForbidden()
 
         config_dict = {
             'mq_host': contenu['host'],

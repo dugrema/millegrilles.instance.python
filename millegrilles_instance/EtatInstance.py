@@ -21,6 +21,8 @@ from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertific
 from millegrilles_messages.messages.FormatteurMessages import SignateurTransactionSimple, FormatteurMessageMilleGrilles
 from millegrilles_instance.EntretienNginx import EntretienNginx
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
+from millegrilles_messages.messages.ValidateurCertificats import ValidateurCertificatCache
+from millegrilles_messages.messages.ValidateurMessage import ValidateurMessage
 
 
 class EtatInstance:
@@ -51,6 +53,8 @@ class EtatInstance:
         # Liste de listeners qui sont appeles sur changement de configuration
         self.__config_listeners = list()
         self.__formatteur_message: Optional[FormatteurMessageMilleGrilles] = None
+        self.__validateur_certificats: Optional[ValidateurCertificatCache] = None
+        self.__validateur_message: Optional[ValidateurMessage] = None
 
         self.__stop_event: Optional[Event] = None
         self.__redemarrer = False
@@ -89,6 +93,8 @@ class EtatInstance:
         if self.__clecertificat is not None:
             signateur = SignateurTransactionSimple(self.__clecertificat)
             self.__formatteur_message = FormatteurMessageMilleGrilles(self.__idmg, signateur)
+            self.__validateur_certificats = ValidateurCertificatCache(self.__certificat_millegrille)
+            self.__validateur_message = ValidateurMessage(self.__validateur_certificats)
 
         for listener in self.__config_listeners:
             await listener(self)
@@ -135,6 +141,10 @@ class EtatInstance:
 
     def etat(self):
         pass
+
+    async def entretien(self):
+        if self.__validateur_certificats is not None:
+            await self.__validateur_certificats.entretien()
 
     def set_docker_present(self, etat: bool):
         self.__docker_present = etat
@@ -231,6 +241,14 @@ class EtatInstance:
     @property
     def redemarrer(self):
         return self.__redemarrer
+
+    @property
+    def validateur_certificats(self):
+        return self.__validateur_certificats
+
+    @property
+    def validateur_message(self):
+        return self.__validateur_message
 
     def doit_activer_443(self):
         """
