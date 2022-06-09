@@ -223,6 +223,43 @@ async def renouveler_certificat_instance_protege(client_session: ClientSession, 
     return clecertificat
 
 
+async def renouveler_certificat_satellite(producer: MessageProducerFormatteur, etat_instance) -> CleCertificat:
+
+    instance_id = etat_instance.instance_id
+
+    clecsr = CleCsrGenere.build(cn=instance_id)
+    csr_str = clecsr.get_pem_csr()
+    configuration = {'csr_instance': csr_str, 'roles': ['instance']}
+
+    path_secrets = etat_instance.configuration.path_secrets
+    nom_certificat = 'pki.instance.cert'
+    nom_cle = 'pki.instance.key'
+    path_certificat = path.join(path_secrets, nom_certificat)
+    path_cle = path.join(path_secrets, nom_cle)
+
+    # Emettre commande de signature, attendre resultat
+    niveau_securite = etat_instance.niveau_securite
+    message_reponse = await producer.executer_commande(configuration, 'CorePki', 'signerCsr', exchange=niveau_securite)
+    reponse = message_reponse.parsed
+
+    certificat = reponse['certificat']
+
+    # Confirmer correspondance entre certificat et cle
+    clecertificat = CleCertificat.from_pems(clecsr.get_pem_cle(), ''.join(certificat))
+    if clecertificat.cle_correspondent() is False:
+        raise Exception("Erreur cert/cle ne correspondent pas")
+
+    cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
+    with open(path_cle, 'wb') as fichier:
+        fichier.write(clecertificat.private_key_bytes())
+    with open(path_certificat, 'w') as fichier:
+        cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
+        fichier.write(cert_str)
+
+    logger.debug("Reponse certissuer certificat satellite\n%s" % ''.join(certificat))
+    return clecertificat
+
+
 async def generer_nouveau_certificat(client_session: ClientSession, etat_instance, nom_module: str,
                                      configuration: dict) -> CleCertificat:
     instance_id = etat_instance.instance_id

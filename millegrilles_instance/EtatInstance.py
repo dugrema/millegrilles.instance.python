@@ -232,6 +232,17 @@ class EtatInstance:
     def redemarrer(self):
         return self.__redemarrer
 
+    def doit_activer_443(self):
+        """
+        :return: True si le WebServer doit ouvrir le port 443 (en plus du port 2443)
+        """
+        if self.__certificat_millegrille is None:
+            return True
+        if self.__docker_actif is False:
+            return True
+
+        return False
+
     def set_stop_event(self, stop_event: Event):
         self.__stop_event = stop_event
 

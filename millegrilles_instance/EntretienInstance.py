@@ -12,8 +12,6 @@ from asyncio import Event, TimeoutError
 from millegrilles_messages.docker.Entretien import TacheEntretien
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesThread import MessagesThread
-from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
-from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance.EntretienNginx import EntretienNginx
@@ -22,7 +20,8 @@ from millegrilles_instance.RabbitMQDao import RabbitMQDao
 from millegrilles_instance.EntretienCatalogues import EntretienCatalogues
 from millegrilles_instance.EntretienApplications import GestionnaireApplications
 from millegrilles_instance.Certificats import generer_certificats_modules, generer_passwords, \
-    nettoyer_configuration_expiree, renouveler_certificat_instance_protege, generer_certificats_modules_satellites
+    nettoyer_configuration_expiree, renouveler_certificat_instance_protege, generer_certificats_modules_satellites, \
+    renouveler_certificat_satellite
 
 logger = logging.getLogger(__name__)
 
@@ -97,6 +96,9 @@ CONFIG_MODULES_PUBLICS = [
 
 
 class InstanceAbstract:
+    """
+    Instance sans docker. Utilise pour installation, renouvellement certificat et instance privee sans docker.
+    """
 
     def __init__(self):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
@@ -810,6 +812,13 @@ class InstancePrivee(InstanceAbstract):
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")
 
+        if self.__event_setup_initial_certificats.is_set() is False:
+            # Ajouter attente d'initialisation thread RabbitMQ
+            await asyncio.sleep(3)
+
+        await self.__rabbitmq_dao.attendre_pret(10)
+        producer = self.__rabbitmq_dao.get_producer()
+
         # Verifier certificat d'instance
         enveloppe_instance = self._etat_instance.clecertificat.enveloppe
         expiration_instance = enveloppe_instance.calculer_expiration()
@@ -818,31 +827,12 @@ class InstancePrivee(InstanceAbstract):
             # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
             await self._etat_instance.stop()
         elif expiration_instance['renouveler'] is True:
+        # else:
             self.__logger.info("Certificat d'instance peut etre renouvele")
-            raise NotImplementedError('todo')
-            # clecertificat = await renouveler_certificat_instance_protege(self._etat_instance.client_session,
-            #                                                              self._etat_instance)
-            # # Sauvegarder nouveau certificat
-            # path_secrets = self._etat_instance.configuration.path_secrets
-            # nom_certificat = 'pki.instance.cert'
-            # nom_cle = 'pki.instance.key'
-            # path_certificat = path.join(path_secrets, nom_certificat)
-            # path_cle = path.join(path_secrets, nom_cle)
-            # cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
-            # with open(path_cle, 'wb') as fichier:
-            #     fichier.write(clecertificat.private_key_bytes())
-            # with open(path_certificat, 'w') as fichier:
-            #     fichier.write(cert_str)
-            #
-            # # Reload configuration avec le nouveau certificat
-            # await self._etat_instance.reload_configuration()
-
-        if self.__event_setup_initial_certificats.is_set() is False:
-            # Ajouter attente d'initialisation thread RabbitMQ
-            await asyncio.sleep(3)
-
-        await self.__rabbitmq_dao.attendre_pret(10)
-        producer = self.__rabbitmq_dao.get_producer()
+            await renouveler_certificat_satellite(producer, self._etat_instance)
+            # Redemarrer instance
+            self._etat_instance.set_redemarrer(True)
+            await self._etat_instance.reload_configuration()
 
         if producer is not None:
             configuration = await self.get_configuration_certificats()
