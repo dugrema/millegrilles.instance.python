@@ -15,4 +15,6 @@ pip3 install wheel
 echo "Installer millegrilles messages (path $URL_MGMESSAGES)"
 pip3 install $URL_MGMESSAGES
 
+pip3 install -r requirements.txt
+
 echo "[INFO] Fin configuration venv python3"
