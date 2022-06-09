@@ -322,6 +322,18 @@ class EtatInstance:
 
         return info_configuration
 
+    def maj_clecert(self, clecert: CleCertificat):
+        # Installer le certificat d'instance
+        cert_pem = '\n'.join(clecert.enveloppe.chaine_pem())
+        cle_pem = clecert.private_key_bytes().decode('utf-8')
+        configuration = self.configuration
+        path_cert = configuration.instance_cert_pem_path
+        path_key = configuration.instance_key_pem_path
+        with open(path_cert, 'w') as fichier:
+            fichier.write(cert_pem)
+        with open(path_key, 'w') as fichier:
+            fichier.write(cle_pem)
+
 
 def load_fichier_config(path_fichier: str) -> Optional[str]:
     try:

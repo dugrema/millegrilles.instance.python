@@ -14,6 +14,7 @@ from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Configuration import ConfigurationWeb
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstallerInstance import installer_instance, configurer_idmg
+from millegrilles_messages.messages.CleCertificat import CleCertificat
 
 
 class WebServer:
@@ -53,6 +54,7 @@ class WebServer:
             web.post('/installation/api/configurerIdmg', self.handle_configurer_idmg),
             web.post('/installation/api/changerDomaine', self.handle_changer_domaine),
             web.post('/installation/api/configurerMQ', self.handle_configurer_mq),
+            web.post('/installation/api/installerCertificat', self.handle_installer_certificat),
 
             web.options('/installation/api/installer', self.options_cors),
 
@@ -181,6 +183,46 @@ class WebServer:
         await self.__etat_instance.reload_configuration()
 
         return web.json_response({'ok': True})
+
+    async def handle_installer_certificat(self, request: web.Request):
+        """
+        Sert a renouveller un certificat pousse via HTTPS
+        :param request:
+        :return:
+        """
+        contenu = await request.json()
+        certificat = '\n'.join(contenu['certificat'])
+
+        # Valider le nouveau certificat, s'assurer que c'est un certificat d'instance du bon niveau
+        enveloppe = await self.__etat_instance.validateur_certificats.valider(certificat)
+        exchanges = enveloppe.get_exchanges
+        roles = enveloppe.get_roles
+
+        # Roles doit inclure intance
+        if 'instance' not in roles:
+            self.__logger.error("Certificat recu ne contient pas role 'instance'")
+            return web.HTTPBadRequest()
+
+        # Roles doit inclure securite locale
+        niveau_securite = self.__etat_instance.niveau_securite
+        if niveau_securite not in exchanges:
+            self.__logger.error("Certificat recu ne contient pas niveau de securite  '%s'" % niveau_securite)
+            return web.HTTPBadRequest()
+
+        clecsr = self.__etat_instance.get_csr_genere()
+
+        # Verifier que le certificat et la cle correspondent
+        cle_pem = clecsr.get_pem_cle()
+        clecert = CleCertificat.from_pems(cle_pem, certificat)
+        if not clecert.cle_correspondent():
+            raise ValueError('Cle et Certificat ne correspondent pas')
+
+        # Installer le nouveau certificat d'instance
+        self.__etat_instance.maj_clecert(clecert)
+
+        await self.__etat_instance.reload_configuration()
+
+
 
     async def entretien(self):
         self.__logger.debug('Entretien')
