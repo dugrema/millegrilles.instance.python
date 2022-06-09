@@ -350,7 +350,10 @@ class EtatDockerInstanceSync:
             params['__idmg'] = self.__etat_instance.idmg
 
         config_service = configuration.copy()
-        config_service.update(config_service['config'])  # Combiner la configuration de base et du service
+        try:
+            config_service.update(config_service['config'])  # Combiner la configuration de base et du service
+        except KeyError:
+            pass
 
         parser = ConfigurationService(config_service, params)
         parser.parse()
