@@ -118,7 +118,7 @@ class MqThread:
 class RabbitMQDao:
 
     def __init__(self, event_stop: Event, entretien_instance, etat_instance: EtatInstance,
-                 etat_docker: EtatDockerInstanceSync, gestionnaire_applications: GestionnaireApplications):
+                 etat_docker: Optional[EtatDockerInstanceSync], gestionnaire_applications: GestionnaireApplications):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__event_stop = event_stop
         self.__entretien_instance = entretien_instance

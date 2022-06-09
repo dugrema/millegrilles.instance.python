@@ -4,6 +4,7 @@ import lzma
 
 from cryptography.x509.extensions import ExtensionNotFound
 from os import listdir, path
+from typing import Optional
 
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance import Constantes as ConstantesInstance
@@ -17,7 +18,7 @@ from millegrilles_instance.EntretienApplications import GestionnaireApplications
 class CommandHandler:
 
     def __init__(self, entretien_instance, etat_instance: EtatInstance,
-                 etat_docker: EtatDockerInstanceSync, gestionnaire_applications: GestionnaireApplications):
+                 etat_docker: Optional[EtatDockerInstanceSync], gestionnaire_applications: GestionnaireApplications):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self._entretien_instance = entretien_instance
         self._etat_instance = etat_instance

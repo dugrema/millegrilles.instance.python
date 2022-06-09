@@ -4,7 +4,7 @@ from docker.models.containers import Container
 from os import path
 from typing import Optional
 
-from millegrilles_messages.docker.DockerHandler import CommandeDocker, DockerClient, DockerException
+from millegrilles_messages.docker.DockerHandler import CommandeDocker, DockerClient, DockerHandlerException
 
 
 class CommandeAcmeIssue(CommandeDocker):
@@ -170,5 +170,5 @@ def trouver_acme(docker_client: DockerClient) -> Container:
     return container
 
 
-class AcmeNonDisponibleException(DockerException):
+class AcmeNonDisponibleException(DockerHandlerException):
     pass

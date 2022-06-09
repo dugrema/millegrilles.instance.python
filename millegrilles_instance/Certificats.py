@@ -7,6 +7,7 @@ import secrets
 from aiohttp import ClientSession
 from docker.errors import APIError
 from os import path, stat
+from typing import Optional
 
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa
@@ -97,7 +98,7 @@ async def generer_certificats_modules(client_session: ClientSession, etat_instan
 
 
 async def generer_certificats_modules_satellites(producer: MessageProducerFormatteur, etat_instance,
-                                                 etat_docker: EtatDockerInstanceSync, configuration: dict):
+                                                 etat_docker: Optional[EtatDockerInstanceSync], configuration: dict):
     # S'assurer que tous les certificats sont presents et courants dans le repertoire secrets
     path_secrets = etat_instance.configuration.path_secrets
     for nom_module, value in configuration.items():
@@ -137,7 +138,8 @@ async def generer_certificats_modules_satellites(producer: MessageProducerFormat
                 cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
                 fichier.write(cert_str)
 
-        await etat_docker.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
+        if etat_docker is not None:
+            await etat_docker.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
 
 
 async def nettoyer_configuration_expiree(etat_docker: EtatDockerInstanceSync):
@@ -304,7 +306,7 @@ async def demander_nouveau_certificat(producer: MessageProducerFormatteur, etat_
     return clecertificat
 
 
-async def generer_passwords(etat_instance, etat_docker: EtatDockerInstanceSync,
+async def generer_passwords(etat_instance, etat_docker: Optional[EtatDockerInstanceSync],
                             liste_passwords: list):
     """
     Generer les passwords manquants.
@@ -314,8 +316,11 @@ async def generer_passwords(etat_instance, etat_docker: EtatDockerInstanceSync,
     :return:
     """
     path_secrets = etat_instance.configuration.path_secrets
-    configurations = await etat_docker.get_configurations_datees()
-    secrets_dict = configurations['secrets']
+    if etat_docker is not None:
+        configurations = await etat_docker.get_configurations_datees()
+        secrets_dict = configurations['secrets']
+    else:
+        secrets_dict = dict()
 
     for gen_password in liste_passwords:
         if isinstance(gen_password, dict):
@@ -357,7 +362,8 @@ async def generer_passwords(etat_instance, etat_docker: EtatDockerInstanceSync,
             pass  # Le mot de passe n'existe pas
 
         # Ajouter mot de passe
-        await etat_docker.ajouter_password(label, date_password_str, password)
+        if etat_docker is not None:
+            await etat_docker.ajouter_password(label, date_password_str, password)
 
 
 def generer_password(type_generateur='password', size: int = None):
