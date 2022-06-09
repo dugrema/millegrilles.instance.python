@@ -49,6 +49,13 @@ def get_module_execution(etat_instance: EtatInstance):
             return InstancePriveeDocker()
         else:
             return InstancePrivee()
+    elif securite == Constantes.SECURITE_PUBLIC:
+        if expiration is None or expiration.get('expire') is True:
+            return InstanceCertificatExpire()
+        elif etat_instance.docker_present is True:
+            return InstancePubliqueDocker()
+        else:
+            raise Exception("Type d'instance non supporte (public/sans docker)")
     elif etat_instance.docker_present is True:
         # Si docker est actif, on demarre les services de base (certissuer, acme, nginx) pour
         # supporter l'instance protegee
@@ -668,6 +675,13 @@ class InstancePriveeDocker(InstanceDockerAbstract):
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")
 
+        if self.__event_setup_initial_certificats.is_set() is False:
+            # Ajouter attente d'initialisation thread RabbitMQ
+            await asyncio.sleep(3)
+
+        await self.__rabbitmq_dao.attendre_pret(10)
+        producer = self.__rabbitmq_dao.get_producer()
+
         # Verifier certificat d'instance
         enveloppe_instance = self._etat_instance.clecertificat.enveloppe
         expiration_instance = enveloppe_instance.calculer_expiration()
@@ -676,24 +690,20 @@ class InstancePriveeDocker(InstanceDockerAbstract):
             # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
             await self._etat_instance.stop()
         elif expiration_instance['renouveler'] is True:
+            # else:
             self.__logger.info("Certificat d'instance peut etre renouvele")
-            raise NotImplementedError('todo')
-            # clecertificat = await renouveler_certificat_instance_protege(self._etat_instance.client_session,
-            #                                                              self._etat_instance)
-            # # Sauvegarder nouveau certificat
-            # path_secrets = self._etat_instance.configuration.path_secrets
-            # nom_certificat = 'pki.instance.cert'
-            # nom_cle = 'pki.instance.key'
-            # path_certificat = path.join(path_secrets, nom_certificat)
-            # path_cle = path.join(path_secrets, nom_cle)
-            # cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
-            # with open(path_cle, 'wb') as fichier:
-            #     fichier.write(clecertificat.private_key_bytes())
-            # with open(path_certificat, 'w') as fichier:
-            #     fichier.write(cert_str)
-            #
-            # # Reload configuration avec le nouveau certificat
-            # await self._etat_instance.reload_configuration()
+            await renouveler_certificat_satellite(producer, self._etat_instance)
+            # Redemarrer instance
+            self._etat_instance.set_redemarrer(True)
+            await self._etat_instance.reload_configuration()
+
+        if producer is not None:
+            configuration = await self.get_configuration_certificats()
+            await generer_certificats_modules_satellites(producer, self._etat_instance, None, configuration)
+            self.__logger.debug("entretien_certificats fin")
+            self.__event_setup_initial_certificats.set()
+        else:
+            self.__logger.info("entretien_certificats() Producer MQ n'est pas pret, skip entretien")
 
         configuration = await self.get_configuration_certificats()
         producer = self.__rabbitmq_dao.get_producer()
@@ -740,6 +750,12 @@ class InstancePriveeDocker(InstanceDockerAbstract):
 
     def sauvegarder_nginx_data(self, nom_fichier: str, contenu: Union[bytes, str, dict], path_html=False):
         self.__entretien_nginx.sauvegarder_fichier_data(nom_fichier, contenu, path_html)
+
+
+class InstancePubliqueDocker(InstancePriveeDocker):
+
+    def __init__(self):
+        super().__init__()
 
 
 class InstancePrivee(InstanceAbstract):
