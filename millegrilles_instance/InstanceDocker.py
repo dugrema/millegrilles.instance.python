@@ -43,7 +43,6 @@ class EtatDockerInstanceSync:
             if self.__docker_initialise is True:
                 self.__logger.debug("Debut Entretien EtatDockerInstanceSync")
                 await self.verifier_config_instance()
-                await self.verifier_date_certificats()
                 self.__logger.debug("Fin Entretien EtatDockerInstanceSync")
 
             try:
