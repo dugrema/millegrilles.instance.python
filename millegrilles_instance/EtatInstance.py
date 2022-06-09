@@ -238,7 +238,7 @@ class EtatInstance:
         """
         if self.__certificat_millegrille is None:
             return True
-        if self.__docker_actif is False:
+        if self.__docker_present is False:
             return True
 
         return False
