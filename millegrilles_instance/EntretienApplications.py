@@ -1,8 +1,10 @@
 import logging
 import json
+import os
 
 from os import path
 
+from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 
@@ -31,33 +33,50 @@ class GestionnaireApplications:
             json.dump(configuration, fichier, indent=2)
 
         producer = self.__rabbitmq_dao.get_producer()
-        resultat = await self.__etat_docker.installer_application(producer, configuration, reinstaller)
-
-        await self.__etat_docker.emettre_presence(producer)
-
-        return resultat
+        if self.__etat_docker is not None:
+            resultat = await self.__etat_docker.installer_application(producer, configuration, reinstaller)
+            await self.__etat_docker.emettre_presence(producer)
+            return resultat
+        else:
+            resultat = await installer_application_sansdocker(self.__etat_instance, producer, configuration)
+            await self.__etat_instance.emettre_presence(producer)
+            return resultat
 
     async def demarrer_application(self, nom_application: str):
-        resultat = await self.__etat_docker.demarrer_application(nom_application)
+        if self.__etat_docker is not None:
+            resultat = await self.__etat_docker.demarrer_application(nom_application)
 
-        producer = self.__rabbitmq_dao.get_producer()
-        await self.__etat_docker.emettre_presence(producer)
+            producer = self.__rabbitmq_dao.get_producer()
+            await self.__etat_docker.emettre_presence(producer)
 
-        return resultat
+            return resultat
+        else:
+            return {'ok': False, 'err': 'Non supporte'}
 
     async def arreter_application(self, nom_application: str):
-        resultat = await self.__etat_docker.arreter_application(nom_application)
+        if self.__etat_docker is not None:
+            resultat = await self.__etat_docker.arreter_application(nom_application)
 
-        producer = self.__rabbitmq_dao.get_producer()
-        await self.__etat_docker.emettre_presence(producer)
+            producer = self.__rabbitmq_dao.get_producer()
+            await self.__etat_docker.emettre_presence(producer)
 
-        return resultat
+            return resultat
+        else:
+            return {'ok': False, 'err': 'Non supporte'}
 
     async def supprimer_application(self, nom_application: str):
-        resultat = await self.__etat_docker.supprimer_application(nom_application)
         producer = self.__rabbitmq_dao.get_producer()
-        await self.__etat_docker.emettre_presence(producer)
-        return resultat
+        if self.__etat_docker is not None:
+            resultat = await self.__etat_docker.supprimer_application(nom_application)
+            await self.__etat_docker.emettre_presence(producer)
+            return resultat
+        else:
+            path_docker_apps = self.__etat_instance.configuration.path_docker_apps
+            path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
+            self.__logger.debug("Supprimer configuration pour app %s vers %s" % (nom_application, path_app))
+            os.unlink(path_app)
+            await self.__etat_instance.emettre_presence(producer)
+            return {'ok': True}
 
     # async def get_liste_configurations(self) -> list:
     #     """
@@ -76,3 +95,40 @@ class GestionnaireApplications:
     #         info_configuration.append({'nom': nom, 'version': version})
     #
     #     return info_configuration
+
+
+async def installer_application_sansdocker(etat_instance: EtatInstance, producer: MessageProducerFormatteur, configuration: dict):
+    nom_application = configuration['nom']
+    dependances = configuration['dependances']
+    path_secrets = etat_instance.configuration.path_secrets
+
+    # Generer certificats/passwords
+    for dep in dependances:
+        try:
+            certificat = dep['certificat']
+
+            # Verifier si certificat/cle existent deja
+            path_cert = path.join(path_secrets, 'pki.%s.cert' % nom_application)
+            path_cle = path.join(path_secrets, 'pki.%s.cle' % nom_application)
+            if path.exists(path_cert) is False or path.exists(path_cle) is False:
+                await etat_instance.generer_certificats_module_satellite(producer, None, nom_application, certificat)
+
+        except KeyError:
+            pass
+
+        try:
+            generateur = dep['generateur']
+            for passwd_gen in generateur:
+                if isinstance(passwd_gen, str):
+                    label = passwd_gen
+                else:
+                    label = passwd_gen['label']
+
+                path_password = path.join(path_secrets, 'passwd.%s.txt' % label)
+                if path.exists(path_password) is False:
+                    await etat_instance.generer_passwords(None, [passwd_gen])
+
+        except KeyError:
+            pass
+
+    return {'ok': True}

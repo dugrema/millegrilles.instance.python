@@ -10,6 +10,7 @@ from typing import Optional
 
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages import Constantes
+from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.Certificats import preparer_certificats_web, generer_certificats_modules, generer_passwords, \
     generer_certificats_modules_satellites
 from millegrilles_instance.Configuration import ConfigurationInstance
@@ -250,6 +251,22 @@ class EtatInstance:
 
     async def generer_passwords(self, etat_docker, passwords: list):
         await generer_passwords(self, etat_docker, passwords)
+
+    async def emettre_presence(self, producer: MessageProducerFormatteur, info: Optional[dict] = None):
+        self.__logger.info("Emettre presence")
+        if info is not None:
+            info_updatee = info.copy()
+        else:
+            info_updatee = dict()
+
+        info_updatee['fqdn_detecte'] = self.hostname
+        info_updatee['ip_detectee'] = self.ip_address
+        info_updatee['instance_id'] = self.instance_id
+        info_updatee['securite'] = self.niveau_securite
+
+        await producer.emettre_evenement(info_updatee, Constantes.DOMAINE_INSTANCE,
+                                         ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
+                                         exchanges=self.niveau_securite)
 
 
 def load_fichier_config(path_fichier: str) -> Optional[str]:

@@ -66,18 +66,20 @@ class EtatDockerInstanceSync:
         info_instance = await commande.get_info()
         info_updatee.update(info_instance)
 
-        info_updatee['fqdn_detecte'] = self.__etat_instance.hostname
-        info_updatee['ip_detectee'] = self.__etat_instance.ip_address
-        info_updatee['instance_id'] = self.__etat_instance.instance_id
-        info_updatee['securite'] = self.__etat_instance.niveau_securite
+        # info_updatee['fqdn_detecte'] = self.__etat_instance.hostname
+        # info_updatee['ip_detectee'] = self.__etat_instance.ip_address
+        # info_updatee['instance_id'] = self.__etat_instance.instance_id
+        # info_updatee['securite'] = self.__etat_instance.niveau_securite
 
         # Faire la liste des applications installees
         liste_applications = await self.get_liste_configurations()
         info_updatee['applications_configurees'] = liste_applications
 
-        await producer.emettre_evenement(info_updatee, Constantes.DOMAINE_INSTANCE,
-                                         ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
-                                         exchanges=self.__etat_instance.niveau_securite)
+        await self.__etat_instance.emettre_presence(producer, info_updatee)
+
+        # await producer.emettre_evenement(info_updatee, Constantes.DOMAINE_INSTANCE,
+        #                                  ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
+        #                                  exchanges=self.__etat_instance.niveau_securite)
 
     async def verifier_date_certificats(self):
         pass

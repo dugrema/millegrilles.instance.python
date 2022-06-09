@@ -28,12 +28,16 @@ class CommandHandler:
     async def executer_commande(self, producer: MessageProducerFormatteur, message: MessageWrapper):
         reponse = None
 
+        routing_key = message.routing_key
+        exchange = message.exchange
+        if exchange is None or exchange == '':
+            self.__logger.warning("Message reponse recu sur Q commande, on le drop (RK: %s)" % routing_key)
+            return
+
         if message.est_valide is False:
             return {'ok': False, 'err': 'Signature ou certificat invalide'}
 
-        routing_key = message.routing_key
         action = routing_key.split('.').pop()
-        exchange = message.exchange
         enveloppe = message.certificat
 
         try:

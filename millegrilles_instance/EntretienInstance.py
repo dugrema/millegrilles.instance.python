@@ -114,6 +114,8 @@ class InstanceAbstract:
         self._event_entretien = Event()
         self._etat_instance = etat_instance
 
+        setup_dir_apps(etat_instance)
+
         # Ajouter listener de changement de configuration. Demarre l'execution des taches d'entretien/installation.
         self._etat_instance.ajouter_listener(self.declencher_run)
 
@@ -204,6 +206,9 @@ class InstanceAbstract:
         fut_run = messages_thread.run_async()
 
         return fut_run
+
+    def sauvegarder_nginx_data(self, nom_fichier: str, contenu: Union[bytes, str, dict], path_html=False):
+        pass  # Aucun effet sans docker
 
 
 class InstanceInstallation(InstanceAbstract):
@@ -856,27 +861,27 @@ class InstancePrivee(InstanceAbstract):
             self.__logger.debug("entretien_topologie Producer MQ non disponible")
             return
 
-        await self.emettre_presence(producer)
+        await self._etat_instance.emettre_presence(producer)
 
-    async def emettre_presence(self, producer: MessageProducerFormatteur, info: Optional[dict] = None):
-        self.__logger.info("Emettre presence")
-        if info is not None:
-            info_updatee = info.copy()
-        else:
-            info_updatee = dict()
-
-        info_updatee['fqdn_detecte'] = self._etat_instance.hostname
-        info_updatee['ip_detectee'] = self._etat_instance.ip_address
-        info_updatee['instance_id'] = self._etat_instance.instance_id
-        info_updatee['securite'] = self._etat_instance.niveau_securite
-
-        # Faire la liste des applications installees
-        # liste_applications = await self.get_liste_applications()
-        # info_updatee['applications_configurees'] = liste_applications
-
-        await producer.emettre_evenement(info_updatee, Constantes.DOMAINE_INSTANCE,
-                                         ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
-                                         exchanges=self._etat_instance.niveau_securite)
+    # async def emettre_presence(self, producer: MessageProducerFormatteur, info: Optional[dict] = None):
+    #     self.__logger.info("Emettre presence")
+    #     if info is not None:
+    #         info_updatee = info.copy()
+    #     else:
+    #         info_updatee = dict()
+    #
+    #     info_updatee['fqdn_detecte'] = self._etat_instance.hostname
+    #     info_updatee['ip_detectee'] = self._etat_instance.ip_address
+    #     info_updatee['instance_id'] = self._etat_instance.instance_id
+    #     info_updatee['securite'] = self._etat_instance.niveau_securite
+    #
+    #     # Faire la liste des applications installees
+    #     # liste_applications = await self.get_liste_applications()
+    #     # info_updatee['applications_configurees'] = liste_applications
+    #
+    #     await producer.emettre_evenement(info_updatee, Constantes.DOMAINE_INSTANCE,
+    #                                      ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
+    #                                      exchanges=self._etat_instance.niveau_securite)
 
 
 async def charger_configuration_docker(path_configuration: str, fichiers: list) -> list:
@@ -918,9 +923,10 @@ async def charger_configuration_application(path_configuration: str) -> list:
 
 
 def setup_catalogues(etat_instance: EtatInstance):
+    setup_dir_apps(etat_instance)
+
     path_configuration = etat_instance.configuration.path_configuration
     path_docker_catalogues = path.join(path_configuration, 'docker')
-    makedirs(path_docker_catalogues, 0o750, exist_ok=True)
 
     repertoire_src_catalogues = path.abspath('../etc/docker')
     for fichier in listdir(repertoire_src_catalogues):
@@ -930,3 +936,9 @@ def setup_catalogues(etat_instance: EtatInstance):
             with open(path_fichier_src, 'r') as fichier_src:
                 with open(path_fichier_dest, 'w') as fichier_dest:
                     fichier_dest.write(fichier_src.read())
+
+
+def setup_dir_apps(etat_instance: EtatInstance):
+    path_configuration = etat_instance.configuration.path_configuration
+    path_docker_catalogues = path.join(path_configuration, 'docker')
+    makedirs(path_docker_catalogues, 0o750, exist_ok=True)
