@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from asyncio import Event
+from asyncio import Event, TimeoutError
 from typing import Optional
 
 from millegrilles_instance.EtatInstance import EtatInstance
@@ -25,6 +25,7 @@ class MqThread:
 
         self.__mq_host: Optional[str] = None
         self.__messages_thread: Optional[MessagesThread] = None
+        self.__event_producer: Optional[Event] = None
 
     async def configurer(self):
         self.__mq_host = self.__etat_instance.mq_hostname
@@ -114,6 +115,13 @@ class MqThread:
             # Thread inactive
             return None
 
+    async def attendre_pret(self, timeout=30):
+        if self.__messages_thread is not None:
+            await self.__messages_thread.attendre_pret(timeout)
+            return True
+        else:
+            return False
+
 
 class RabbitMQDao:
 
@@ -129,6 +137,7 @@ class RabbitMQDao:
                                                 gestionnaire_applications)
 
         self.__producer: Optional[MessageProducerFormatteur] = None
+        self.__mq_thread: Optional[MqThread] = None
 
         # Cross-wiring
         gestionnaire_applications.set_rabbitmq_dao(self)
@@ -150,14 +159,15 @@ class RabbitMQDao:
                 self.__logger.info("Resultat creer compte MQ : %s" % resultat_creer_compte)
 
                 # coroutine principale d'execution MQ
-                mq_thread = await self.creer_thread()
-                await mq_thread.configurer()
-                self.__producer = mq_thread.get_producer()
+                self.__mq_thread = await self.creer_thread()
+                await self.__mq_thread.configurer()
+                self.__producer = self.__mq_thread.get_producer()
 
-                await mq_thread.run()
+                await self.__mq_thread.run()
             except Exception as e:
                 self.__logger.exception("Erreur connexion MQ")
             finally:
+                self.__mq_thread = None
                 self.__producer = None
 
             # Attendre pour redemarrer execution module
@@ -214,3 +224,8 @@ class RabbitMQDao:
 
         return False
 
+    async def attendre_pret(self, timeout=30) -> bool:
+        if self.__mq_thread is not None:
+            return await self.__mq_thread.attendre_pret(timeout)
+        else:
+            return False

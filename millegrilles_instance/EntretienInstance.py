@@ -804,9 +804,8 @@ class InstancePrivee(InstanceAbstract):
         return list()
 
     async def entretien_applications(self):
-        self.__logger.warning("entretien_applications() TODO!!!")
-        #if self._gestionnaire_applications is not None:
-        #    await self._gestionnaire_applications.entretien()
+        if self._gestionnaire_applications is not None:
+            await self._gestionnaire_applications.entretien()
 
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")
@@ -838,11 +837,20 @@ class InstancePrivee(InstanceAbstract):
             # # Reload configuration avec le nouveau certificat
             # await self._etat_instance.reload_configuration()
 
-        configuration = await self.get_configuration_certificats()
+        if self.__event_setup_initial_certificats.is_set() is False:
+            # Ajouter attente d'initialisation thread RabbitMQ
+            await asyncio.sleep(3)
+
+        await self.__rabbitmq_dao.attendre_pret(10)
         producer = self.__rabbitmq_dao.get_producer()
-        await generer_certificats_modules_satellites(producer, self._etat_instance, None, configuration)
-        self.__logger.debug("entretien_certificats fin")
-        self.__event_setup_initial_certificats.set()
+
+        if producer is not None:
+            configuration = await self.get_configuration_certificats()
+            await generer_certificats_modules_satellites(producer, self._etat_instance, None, configuration)
+            self.__logger.debug("entretien_certificats fin")
+            self.__event_setup_initial_certificats.set()
+        else:
+            self.__logger.info("entretien_certificats() Producer MQ n'est pas pret, skip entretien")
 
     async def entretien_passwords(self):
         self.__logger.debug("entretien_passwords debut")
