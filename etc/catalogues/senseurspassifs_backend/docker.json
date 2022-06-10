@@ -1,0 +1,73 @@
+{
+  "nom": "senseurspassifs_backend",
+  "version": "2022.3.3",
+  "description": {
+    "en": "Senseurs Passifs (back-end)",
+    "fr": "Senseurs Passifs (back-end)"
+  },
+  "securite": "2.prive",
+  "dependances": [
+    {
+      "name": "senseurspassifs_backend",
+      "image": "docker.maceroc.com/millegrilles_senseurspassifs:2022.3.0",
+      "certificat": {
+        "roles": ["senseurspassifs"],
+        "domaines": ["SenseursPassifs"],
+        "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
+      },
+      "env": {
+        "MG_MQ_HOST": "mq",
+        "MG_MQ_PORT": "5673",
+        "CERTFILE": "/run/secrets/cert.pem",
+        "KEYFILE": "/run/secrets/key.pem",
+        "CAFILE": "/run/secrets/millegrille.cert.pem",
+        "MG_MONGO_HOST": "mongo",
+        "RUST_LOG": "warn,millegrilles_senseurspassifs=info"
+      },
+      "constraints": [
+        "node.labels.millegrilles.senseurspassifs == true"
+      ],
+      "configs": [
+        {
+          "name": "pki.senseurspassifs_backend",
+          "current": "cert",
+          "filename": "/run/secrets/cert.pem"
+        },
+        {
+          "name": "pki.millegrille",
+          "filename": "/run/secrets/millegrille.cert.pem"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "pki.senseurspassifs_backend",
+          "current": "key",
+          "filename": "key.pem"
+        },
+        {
+          "name": "passwd.redis",
+          "current": "password",
+          "filename": "passwd.redis.txt"
+        }
+      ],
+      "networks": [
+        {
+          "target": "millegrille_net"
+        }
+      ],
+      "resources": {
+        "cpu_limit": 500000000,
+        "mem_limit": 120000000
+      },
+      "restart_policy": {
+        "condition": "on-failure",
+        "delay": 60000000000,
+        "max_attempts": 2
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      }
+    }
+  ]
+}
