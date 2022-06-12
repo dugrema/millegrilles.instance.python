@@ -3,6 +3,7 @@
 configurer_reps() {
   creer_comptes
   creer_repertoires
+  copier_fichiers
 }
 
 creer_repertoires() {
@@ -13,7 +14,8 @@ creer_repertoires() {
   sudo mkdir -p $PATH_MILLEGRILLES/nginx
   sudo mkdir -p $PATH_MILLEGRILLES/secrets
   sudo mkdir -p $PATH_MILLEGRILLES/shared_secrets
-  sudo mkdir -p $PATH_MILLEGRILLES/configuration
+  sudo mkdir -p $PATH_MILLEGRILLES/python
+  sudo mkdir -p $PATH_MILLEGRILLES/bin
 
   sudo chown root:syslog $PATH_LOGS
   if [ $? -ne 0 ]; then
@@ -70,4 +72,10 @@ creer_comptes() {
   done
 
   echo "[OK] Comptes millegrilles prets"
+}
+
+copier_fichiers() {
+  cp bin/start_instance.sh $PATH_MILLEGRILLES/bin
+  sudo cp etc/mginstance.service /etc/systemd/system
+  sudo cp etc/01-millegrilles.conf /etc/rsyslog
 }

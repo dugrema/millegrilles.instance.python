@@ -1,0 +1,21 @@
+[Unit]
+Description=Service d'instance pour MilleGrilles.
+After=docker.service
+
+[Service]
+Type=simple
+Nice=2
+PIDFile=/var/run/mginstance.pid
+ExecStart=/var/opt/millegrilles/bin/start_instance.sh --verbose
+# ExecStop=/opt/millegrilles/bin/monitor.sh stop
+# ExecStartPre=+/opt/millegrilles/bin/prestart_monitor.sh
+User=mginstance
+Group=millegrilles
+Restart=always
+RestartSec=30s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=mginstance
+
+[Install]
+WantedBy=multi-user.target

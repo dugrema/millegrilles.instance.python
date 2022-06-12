@@ -4,7 +4,10 @@ PATH_VENV=$1
 URL_MGMESSAGES=$2
 
 echo "[INFO] Configurer venv python3, venv et dependances sous ${PATH_VENV}"
-python3 -m venv $PATH_VENV
+python3 -m venv --system-site-packages $PATH_VENV
+
+PYTHON_BIN=`readlink -f $PATH_VENV/bin/python3`
+sudo setcap 'cap_net_bind_service=+ep' $PYTHON_BIN
 
 echo "Activer venv ${PATH_VENV}"
 source "${PATH_VENV}/bin/activate"
