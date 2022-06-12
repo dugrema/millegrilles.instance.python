@@ -10,6 +10,7 @@ creer_repertoires() {
   echo "[INFO] Configurer les repertoires de MilleGrilles"
 
   sudo mkdir -p $PATH_MILLEGRILLES/issuer $PATH_LOGS
+  sudo mkdir -p $PATH_MILLEGRILLES/configuration
   sudo mkdir -p $PATH_MILLEGRILLES/consignation
   sudo mkdir -p $PATH_MILLEGRILLES/nginx
   sudo mkdir -p $PATH_MILLEGRILLES/secrets
@@ -43,8 +44,14 @@ creer_repertoires() {
   sudo chmod 2710 $PATH_MILLEGRILLES/shared_secrets
   sudo chown mginstance:millegrilles $PATH_MILLEGRILLES/shared_secrets
 
-  sudo chmod 2750 $PATH_MILLEGRILLES/configuration
+  sudo chmod 2755 $PATH_MILLEGRILLES/configuration
   sudo chown mginstance:millegrilles $PATH_MILLEGRILLES/configuration
+
+  sudo chmod 2755 $PATH_MILLEGRILLES/bin
+  sudo chown mginstance:millegrilles $PATH_MILLEGRILLES/bin
+
+  sudo chmod 2755 $PATH_MILLEGRILLES/python
+  sudo chown mginstance:millegrilles $PATH_MILLEGRILLES/python
 
   echo "[OK] Deployeur Python et dependances installes"
 }
@@ -75,7 +82,10 @@ creer_comptes() {
 }
 
 copier_fichiers() {
-  cp bin/start_instance.sh $PATH_MILLEGRILLES/bin
+  echo "[INFO] Copier fichiers systeme"
+  sudo cp bin/start_instance.sh $PATH_MILLEGRILLES/bin
+  sudo chown mginstance:millegrilles $PATH_MILLEGRILLES/bin/start_instance.sh
   sudo cp etc/mginstance.service /etc/systemd/system
   sudo cp etc/01-millegrilles.conf /etc/rsyslog
+  echo "[INFO] Fin copier fichiers systeme"
 }

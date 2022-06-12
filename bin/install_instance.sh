@@ -32,6 +32,9 @@ if [ ! -d "${PATH_MILLEGRILLES}/configuration" ]; then
   echo "Installer millegrilles messages avec url : ${URL_MG_MESSAGES}"
   sudo -u mginstance ${REP_BIN}/install_python.sh "${PATH_VENV}" "${URL_MG_MESSAGES}"
 
+  export PYTHON_BIN=`readlink -f $PATH_MILLEGRILLES/venv/bin/python3`
+  sudo setcap 'cap_net_bind_service=+ep' $PYTHON_BIN
+
   echo "Copier python instance"
   sudo -u mginstance cp -r ${REP_BASE}/millegrilles_instance ${PATH_MILLEGRILLES}/python
 
