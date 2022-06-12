@@ -1,5 +1,6 @@
 #!/bin/env bash
 
+REP_BASE={$PWD}
 REP_ETC=./etc
 REP_BIN=./bin
 
@@ -30,6 +31,9 @@ if [ ! -d "${PATH_MILLEGRILLES}/configuration" ]; then
   URL_MG_MESSAGES="${MG_PIP_REPOSITORY_URL}/${PIP_PACKAGE_MESSAGES}"
   echo "Installer millegrilles messages avec url : ${URL_MG_MESSAGES}"
   sudo -u mginstance ${REP_BIN}/install_python.sh "${PATH_VENV}" "${URL_MG_MESSAGES}"
+
+  echo "Copier python instance"
+  sudo -u mginstance cp -r ${REP_BASE}/millegrilles_instance ${PATH_MILLEGRILLES}/python
 
   echo "Copier application web"
   sudo -u mginstance ${REP_BIN}/install_web.sh
