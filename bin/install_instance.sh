@@ -1,6 +1,6 @@
 #!/bin/env bash
 
-REP_BASE={$PWD}
+REP_BASE=${PWD}
 REP_ETC=./etc
 REP_BIN=./bin
 
@@ -33,12 +33,14 @@ if [ ! -d "${PATH_MILLEGRILLES}/configuration" ]; then
   sudo -u mginstance ${REP_BIN}/install_python.sh "${PATH_VENV}" "${URL_MG_MESSAGES}"
 
   echo "Copier python instance"
-  sudo -u mginstance cp -r ${REP_BASE}/millegrilles_instance ${PATH_MILLEGRILLES}/python
+  sudo cp -r ${REP_BASE}/millegrilles_instance ${PATH_MILLEGRILLES}/python
+  sudo chown -R mginstance:millegrilles ${PATH_MILLEGRILLES}/python
 
   echo "Copier application web"
-  sudo -u mginstance ${REP_BIN}/install_web.sh
+  sudo ${REP_BIN}/install_web.sh
+  sudo chown -R mginstance:millegrilles ${PATH_MILLEGRILLES}/dist
 
-  export PYTHON_BIN=`readlink -f $PATH_MILLEGRILLES/venv/bin/python3`
+  export PYTHON_BIN=`sudo readlink -f $PATH_MILLEGRILLES/venv/bin/python3`
   sudo setcap 'cap_net_bind_service=+ep' $PYTHON_BIN
 
 fi
