@@ -3,6 +3,7 @@ set -e
 
 echo "[INFO] Copier fichier web"
 PATH_VAR_CONFIGURATION_DOCKER="/var/opt/millegrilles/configuration/docker"
+PATH_VAR_CONFIGURATION_CATALOGUES="/var/opt/millegrilles/configuration/catalogues"
 PATH_VAR_CONFIGURATION_NGINX="/var/opt/millegrilles/configuration/nginx"
 PATH_VAR_CONFIGURATION_PYTHON="/var/opt/millegrilles/python"
 
@@ -16,6 +17,11 @@ echo "$PATH_DIR_DOCKER"
 sudo -u mginstance mkdir -p "${PATH_VAR_CONFIGURATION_DOCKER}"
 sudo cp -v ${PATH_DIR_DOCKER}/docker.*.json "${PATH_VAR_CONFIGURATION_DOCKER}"
 sudo chown mginstance:millegrilles "${PATH_VAR_CONFIGURATION_DOCKER}"
+
+PATH_DIR_CATALOGUES="${PATH_DIR_INSTALL}/etc/catalogues"
+sudo -u mginstance mkdir -p "${PATH_VAR_CONFIGURATION_CATALOGUES}"
+sudo cp -v ${PATH_DIR_CATALOGUES}/*.json.xz "${PATH_VAR_CONFIGURATION_CATALOGUES}"
+sudo chown mginstance:millegrilles "${PATH_VAR_CONFIGURATION_CATALOGUES}"
 
 PATH_DIR_NGINX="${PATH_DIR_INSTALL}/etc/nginx"
 echo "$PATH_DIR_NGINX"
