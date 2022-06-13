@@ -32,9 +32,8 @@ if [ ! -d "${PATH_MILLEGRILLES}/configuration" ]; then
   echo "Installer millegrilles messages avec url : ${URL_MG_MESSAGES}"
   sudo -u mginstance ${REP_BIN}/install_python.sh "${PATH_VENV}" "${URL_MG_MESSAGES}"
 
-  echo "Copier python instance"
-  sudo cp -r ${REP_BASE}/millegrilles_instance ${PATH_MILLEGRILLES}/python
-  sudo chown -R mginstance:millegrilles ${PATH_MILLEGRILLES}/python
+  echo "Copier fichiers de configuration, code python"
+  sudo ${REP_BIN}/install_catalogues.sh
 
   echo "Copier application web"
   sudo ${REP_BIN}/install_web.sh

@@ -123,7 +123,7 @@ class InstanceAbstract:
         self._event_entretien = Event()
         self._etat_instance = etat_instance
 
-        setup_dir_apps(etat_instance)
+        #setup_dir_apps(etat_instance)
 
         # Entretien etat_instance (certificats cache du validateur)
         self._taches_entretien.append(TacheEntretien(datetime.timedelta(seconds=30), self._etat_instance.entretien))
@@ -369,7 +369,7 @@ class InstanceDockerAbstract:
 
     async def entretien_catalogues(self):
         if self.__setup_catalogues_complete is False:
-            setup_catalogues(self._etat_instance)
+            #setup_catalogues(self._etat_instance)
             self.__setup_catalogues_complete = True
 
     async def entretien_applications(self):
@@ -922,23 +922,23 @@ async def charger_configuration_application(path_configuration: str) -> list:
     return configuration
 
 
-def setup_catalogues(etat_instance: EtatInstance):
-    setup_dir_apps(etat_instance)
-
-    path_configuration = etat_instance.configuration.path_configuration
-    path_docker_catalogues = path.join(path_configuration, 'docker')
-
-    repertoire_src_catalogues = path.abspath('../etc/docker')
-    for fichier in listdir(repertoire_src_catalogues):
-        path_fichier_src = path.join(repertoire_src_catalogues, fichier)
-        path_fichier_dest = path.join(path_docker_catalogues, fichier)
-        if path.exists(path_fichier_dest) is False:
-            with open(path_fichier_src, 'r') as fichier_src:
-                with open(path_fichier_dest, 'w') as fichier_dest:
-                    fichier_dest.write(fichier_src.read())
-
-
-def setup_dir_apps(etat_instance: EtatInstance):
-    path_configuration = etat_instance.configuration.path_configuration
-    path_docker_catalogues = path.join(path_configuration, 'docker')
-    makedirs(path_docker_catalogues, 0o750, exist_ok=True)
+# def setup_catalogues(etat_instance: EtatInstance):
+#     setup_dir_apps(etat_instance)
+#
+#     path_configuration = etat_instance.configuration.path_configuration
+#     path_docker_catalogues = path.join(path_configuration, 'docker')
+#
+#     repertoire_src_catalogues = path.abspath('../etc/docker')
+#     for fichier in listdir(repertoire_src_catalogues):
+#         path_fichier_src = path.join(repertoire_src_catalogues, fichier)
+#         path_fichier_dest = path.join(path_docker_catalogues, fichier)
+#         if path.exists(path_fichier_dest) is False:
+#             with open(path_fichier_src, 'r') as fichier_src:
+#                 with open(path_fichier_dest, 'w') as fichier_dest:
+#                     fichier_dest.write(fichier_src.read())
+#
+#
+# def setup_dir_apps(etat_instance: EtatInstance):
+#     path_configuration = etat_instance.configuration.path_configuration
+#     path_docker_catalogues = path.join(path_configuration, 'docker')
+#     makedirs(path_docker_catalogues, 0o750, exist_ok=True)
