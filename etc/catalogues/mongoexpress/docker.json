@@ -1,6 +1,6 @@
 {
   "nom": "mongoexpress",
-  "version": "2022.3.11",
+  "version": "2022.3.12",
   "securite": "3.protege",
   "dependances": [
     {

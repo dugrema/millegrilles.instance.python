@@ -12,7 +12,8 @@ server {{
     include /etc/nginx/conf.d/modules/*.conf;
 
     location / {{
-      proxy_pass https://mq:8443;
+      set $upstream_mq https://mq:8443;
+      proxy_pass $upstream_mq;
     }}
 }}
 
