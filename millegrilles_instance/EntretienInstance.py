@@ -12,6 +12,7 @@ from asyncio import Event, TimeoutError
 from millegrilles_messages.docker.Entretien import TacheEntretien
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesThread import MessagesThread
+from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance.EntretienNginx import EntretienNginx
@@ -84,6 +85,7 @@ CONFIG_MODULES_PROTEGES = [
     'docker.midcompte.json',
     'docker.core.json',
     'docker.maitrecomptes.json',
+    'docker.maitrecomptes_redis1.json',
     'docker.coupdoeil.json',
 ]
 

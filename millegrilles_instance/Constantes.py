@@ -47,3 +47,6 @@ EVENEMENT_PRESENCE_INSTANCE = 'presence'
 CONFIG_NOMFICHIER_ACME = 'acme.json'
 CONFIG_NOMFICHIER_CONFIGURATION = 'config.json'
 
+
+class RedemarrageException(BaseException):
+    pass

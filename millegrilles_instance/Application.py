@@ -4,6 +4,7 @@ import argparse
 import asyncio
 import logging
 import signal
+import sys
 
 from asyncio import Event
 from asyncio.exceptions import TimeoutError
@@ -17,6 +18,7 @@ from millegrilles_instance.WebServer import WebServer
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance.EntretienInstance import get_module_execution
+from millegrilles_instance import Constantes as ConstantesInstance
 
 
 async def initialiser_application():
@@ -140,6 +142,7 @@ class ApplicationInstance:
             # Interrompre module d'execution en cours
             await self.__module_entretien.fermer()
             self.__module_entretien = None
+            # raise ConstantesInstance.RedemarrageException("Fermeture pour changer configuration")
 
         self.__module_entretien = get_module_execution(etat_instance)
         if self.__module_entretien is not None:
@@ -149,7 +152,8 @@ class ApplicationInstance:
 
     def exit_gracefully(self, signum=None, frame=None):
         self.__logger.info("Fermer application, signal: %d" % signum)
-        self.fermer()
+        if self.__loop is not None:
+            self.__loop.call_soon_threadsafe(self._stop_event.set)
 
     async def entretien(self):
         """
@@ -175,11 +179,21 @@ class ApplicationInstance:
 
         self.__logger.debug("Fin coroutine d'entretien")
 
-    def fermer(self):
-        if self.__loop is not None:
-            self.__loop.call_soon_threadsafe(self._stop_event.set)
-            if self.__module_entretien is not None:
-                self.__loop.call_soon_threadsafe(asyncio.ensure_future, self.__module_entretien.fermer())
+    async def fermer(self):
+        self._stop_event.set()
+        try:
+            await self.__module_entretien.fermer()
+        except Exception:
+            self.__logger.exception("Erreur fermeture application")
+
+        # if self.__loop is not None:
+        #     self.__loop.call_soon_threadsafe(self._stop_event.set)
+        #     if self.__module_entretien is not None:
+        #         self.__loop.call_soon_threadsafe(asyncio.ensure_future, self.__module_entretien.fermer())
+
+    async def __fermer_cleanup(self):
+        await self._stop_event.wait()
+        await self.fermer()
 
     async def executer(self):
         """
@@ -191,15 +205,22 @@ class ApplicationInstance:
         # self.__etat_instance.set_stop_event(self._stop_event)
 
         tasks = [
-            asyncio.create_task(self.entretien()),
-            asyncio.create_task(self.__web_server.run(self._stop_event))
+            asyncio.create_task(self.entretien(), name="Entretien app"),
+            self.__web_server.run(self._stop_event),
+            self.__fermer_cleanup(),
         ]
 
         if self.__docker_etat is not None:
             tasks.append(asyncio.create_task(self.__docker_etat.entretien(self._stop_event)))
 
         # Execution de la loop avec toutes les tasks
-        await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
+        try:
+            await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
+            self.__logger.info("Fin d'au moins une task application - cleanup")
+        finally:
+            await self.fermer()
+
+        self.__logger.info("Fin application.executer")
 
     @property
     def redemarrer(self):
@@ -218,7 +239,7 @@ async def demarrer():
     try:
         logger.info("Debut execution app")
         await app.executer()
-        return app.redemarrer
+        return False
     except KeyboardInterrupt:
         logger.info("Arret execution app via signal (KeyboardInterrupt), fin thread main")
         return False
@@ -226,8 +247,8 @@ async def demarrer():
         logger.exception("Exception durant execution app, fin thread main")
         return False
     finally:
+        await app.fermer()  # S'assurer de mettre le flag de stop_event
         logger.info("Fin execution app")
-        app.fermer()  # S'assurer de mettre le flag de stop_event
 
 
 def main():
@@ -235,10 +256,15 @@ def main():
     Methode d'execution de l'application
     :return:
     """
-    redemarrer = True
-    while redemarrer is True:
-        redemarrer = asyncio.run(demarrer())
+    # redemarrer = True
+    # while redemarrer is True:
+    #     redemarrer = asyncio.run(demarrer())
+    asyncio.run(demarrer())
+
+    pass
 
 
 if __name__ == '__main__':
     main()
+
+    pass

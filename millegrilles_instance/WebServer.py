@@ -15,6 +15,7 @@ from millegrilles_instance.Configuration import ConfigurationWeb
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstallerInstance import installer_instance, configurer_idmg
 from millegrilles_messages.messages.CleCertificat import CleCertificat
+from millegrilles_instance import Constantes as ConstantesInstances
 
 
 class WebServer:
@@ -36,6 +37,19 @@ class WebServer:
         self._preparer_routes()
 
         self.__webrunner = WebRunner(self.__etat_instance, self.__configuration, self.__app)
+
+    async def fermer(self):
+        self.__stop_event.set()
+
+        try:
+            await self.__webrunner_443.stop()
+        except Exception as e:
+            self.__logger.debug("Erreur fermeture webrunner 443 : %s" % str(e))
+
+        try:
+            await self.__webrunner.stop()
+        except Exception:
+            self.__logger.exception("Erreur fermeture webrunner")
 
     def _charger_configuration(self, configuration: Optional[dict] = None):
         self.__configuration.parse_config(configuration)
@@ -135,15 +149,26 @@ class WebServer:
                 self.__logger.info("Desactiver server instance sur port 443 pour demarrer nginx")
 
                 self.__logger.warning("Installation, redemarrer (peut pas arreter port 443 pour nginx)")
-                await self.__etat_instance.reload_configuration()
+                # await self.__etat_instance.reload_configuration()
                 # self.__etat_instance.set_redemarrer(True)
                 # self.__stop_event.set()
                 # await self.__etat_instance.stop()
 
-            return resultat
+            # return resultat
+
+            await self.fermer()
+            await self.__etat_instance.stop()
+            return web.Response(headers=headers, status=200)
+
+        except ConstantesInstances.RedemarrageException:
+            self.__stop_event.set()
+            return web.Response(headers=headers, status=200)
         except:
             self.__logger.exception("Erreur installation")
-            return web.Response(headers=headers, status=500)
+            await self.fermer()
+            await self.__etat_instance.stop()
+            # return web.Response(headers=headers, status=500)
+            return web.Response(headers=headers, status=200)
 
     async def handle_configurer_idmg(self, request: web.Request):
         contenu = await request.json()
@@ -284,16 +309,12 @@ class WebRunner:
         await self.__site.start()
 
     async def stop(self):
-        raise NotImplementedError()
-        # try:
-        #     await self.__site.stop()
-        # except CancelledError:
-        #     self.__logger.warning('site.stop() %s cancelled' % self._port)
-
-        # try:
-        #     await asyncio.wait_for(self._runner.cleanup(), 1)
-        # except CancelledError:
-        #     self.__logger.warning('runner.cleanup() %s cancelled' % self._port)
+        try:
+            await self._runner.app.shutdown()
+            self._runner.app.clear()  # Clear all sessions
+            await self._runner.shutdown()
+        except asyncio.CancelledError:
+            self.__logger.warning('site.stop() %s cancelled' % self._port)
 
     def charger_ssl(self):
         ssl_context = SSLContext()

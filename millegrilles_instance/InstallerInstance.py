@@ -11,6 +11,7 @@ from aiohttp.web_request import BaseRequest
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages.CleCertificat import CleCertificat
+from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 
@@ -83,7 +84,8 @@ async def installer_protege(etat_instance: EtatInstance, contenu: dict, certific
 
     # Declencher le recharger de la configuration de l'instance
     # Va aussi installer les nouveaux elements de configuration/secrets dans docker
-    await etat_instance.reload_configuration()
+    # await etat_instance.reload_configuration()
+    #raise ConstantesInstance("installation completee")
 
 
 async def installer_satellite(etat_instance: EtatInstance, contenu: dict, securite: str, certificat_ca: str, idmg: str):
