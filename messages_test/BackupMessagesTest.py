@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import json
 
 from threading import Event
 
@@ -42,10 +43,9 @@ async def run_tests(messages_thread, stop_event):
     logger.info("emettre commandes backup")
 
     action = 'backupTransactions'
-    commande = {
-
-    }
-    reponse = await producer.executer_commande(commande, 'fichiers', action=action, exchange=Constantes.SECURITE_PRIVE)
+    with open('./sample_backup.json', 'r') as fichier:
+        commande = json.load(fichier)
+    reponse = await producer.executer_commande(commande, 'fichiers', action=action, exchange=Constantes.SECURITE_PRIVE, noformat=True)
     enveloppe = reponse.certificat
     logger.info("Reponse recue : %s", enveloppe)
 
