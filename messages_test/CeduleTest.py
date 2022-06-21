@@ -1,8 +1,10 @@
 import asyncio
+import datetime
 import logging
-import json
 
 from threading import Event
+
+import pytz
 
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesThread import MessagesThread
@@ -39,34 +41,29 @@ async def run_tests(messages_thread, stop_event):
     # Demarrer test (attendre connexion prete)
     await messages_thread.attendre_pret()
 
-    logger.info("emettre commandes backup")
+    logger.info("emettre commandes cedule")
 
-    # await backup_transactions(messages_thread)
-    await backup_rotation_transactions(messages_thread)
+    await cedule_heure_specifique(messages_thread)
 
     stop_event.set()
 
     logger.info("Fin main()")
 
 
-async def backup_transactions(messages_thread):
-    action = 'backupTransactions'
-    with open('./sample_backup.json', 'r') as fichier:
-        commande = json.load(fichier)
+async def cedule_heure_specifique(messages_thread):
+    action = 'cedule'
     producer = messages_thread.get_producer()
-    reponse = await producer.executer_commande(commande, 'fichiers', action=action, exchange=Constantes.SECURITE_PRIVE,
-                                               noformat=True)
-    contenu = json.dumps(reponse.parsed, indent=2)
-    logger.info("Reponse recue : %s", contenu)
-
-
-async def backup_rotation_transactions(messages_thread):
-    action = 'rotationBackupTransactions'
-    commande = {'domaine': 'DUMMY'}
-    producer = messages_thread.get_producer()
-    reponse = await producer.executer_commande(commande, 'fichiers', action=action, exchange=Constantes.SECURITE_PRIVE)
-    contenu = json.dumps(reponse.parsed, indent=2)
-    logger.info("Reponse recue : %s", contenu)
+    estampille = datetime.datetime(2022, 6, 19, 8, 0, 0, tzinfo=pytz.UTC)
+    evenement = {
+        "estampille": int(estampille.timestamp()),
+        "date_string": estampille.isoformat(),
+        "flag_annee": False,
+        "flag_heure": False,
+        "flag_jour": False,
+        "flag_mois": False,
+        "flag_semaine": False
+    }
+    await producer.emettre_evenement(evenement, 'global', action=action, exchanges=[Constantes.SECURITE_PRIVE])
 
 
 async def callback_reply_q(message, messages_module):
