@@ -41,8 +41,8 @@ async def run_tests(messages_thread, stop_event):
 
     logger.info("emettre commandes backup")
 
-    # await backup_transactions(messages_thread)
-    await backup_rotation_transactions(messages_thread)
+    await backup_transactions(messages_thread)
+    # await backup_rotation_transactions(messages_thread)
 
     stop_event.set()
 
