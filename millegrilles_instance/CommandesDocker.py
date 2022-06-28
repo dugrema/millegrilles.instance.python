@@ -36,6 +36,7 @@ class CommandeExecuterScriptDansService(CommandeDocker):
 
     def __init__(self, nom_service: str, path_script: str):
         super().__init__(aio=True)
+        self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
 
         self.__nom_service = nom_service
         self.__path_script = path_script
@@ -43,7 +44,7 @@ class CommandeExecuterScriptDansService(CommandeDocker):
         self.facteur_throttle = 2.0
 
     def executer(self, docker_client: DockerClient):
-        containers = docker_client.containers.list(filters={"name": self.__nom_service})
+        containers = docker_client.containers.list(filters={"name": "^%s\\." % self.__nom_service})
         container = None
         for i in range(0, 5):
             try:
@@ -51,6 +52,7 @@ class CommandeExecuterScriptDansService(CommandeDocker):
                 break
             except IndexError:
                 # Container non-trouve, on attend avant de reessayer
+                self.__logger.debug("Container de service %s non trouve, on attend 5 secondes" % self.__nom_service)
                 try:
                     time.sleep(5)
                 except asyncio.TimeoutError:
@@ -58,12 +60,35 @@ class CommandeExecuterScriptDansService(CommandeDocker):
                 containers = docker_client.containers.list(filters={"name": self.__nom_service})
 
         if container is None:
+            self.__logger.debug("Container de service %s non trouve, on abandonne" % self.__nom_service)
             return self.callback({'code': -1, 'output': 'Container %s introuvable' % self.__nom_service})
 
+        self.__logger.debug("Container de service %s, on execute le script %s" % (self.__nom_service, self.__path_script))
         exit_code, output = container.exec_run(self.__path_script)
+        self.__logger.debug("Resultat execution %s = %s" % (self.__path_script, exit_code))
         self.callback({'code': exit_code, 'output': output})
 
     async def get_resultat(self) -> dict:
+        resultat = await self.attendre()
+        info = resultat['args'][0]
+        return info
+
+
+class CommandeGetServicesBackup(CommandeDocker):
+    """
+    Retourne la liste de tous les services avec un label "backup_scripts"
+    """
+
+    def __init__(self):
+        super().__init__(aio=True)
+        self.facteur_throttle = 0.25
+
+    def executer(self, docker_client: DockerClient):
+        liste_services = docker_client.services.list(filters={"label": "backup_scripts"})
+        services = parse_list_service(liste_services)
+        self.callback(services)
+
+    async def get_services(self) -> dict:
         resultat = await self.attendre()
         info = resultat['args'][0]
         return info

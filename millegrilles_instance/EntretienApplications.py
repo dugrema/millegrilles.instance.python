@@ -1,8 +1,11 @@
+import datetime
 import logging
 import json
 import os
 
 from os import path
+
+import pytz
 
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 from millegrilles_instance.EtatInstance import EtatInstance
@@ -17,11 +20,22 @@ class GestionnaireApplications:
         self.__etat_docker = etat_docker
         self.__rabbitmq_dao = None
 
+        # Initialiser le prochain backup
+        #self.__prochain_backup_applications = datetime.datetime.now(tz=pytz.UTC) + datetime.timedelta(minutes=10)
+        self.__prochain_backup_applications = datetime.datetime.now(tz=pytz.UTC) + datetime.timedelta(seconds=10)
+        self.__intervalle_backup_applications = datetime.timedelta(days=1)  # Intervalle backup suivants
+
     def set_rabbitmq_dao(self, rabbitmq_dao):
         self.__rabbitmq_dao = rabbitmq_dao
 
     async def entretien(self):
         self.__logger.debug("entretien")
+        date_courante = datetime.datetime.now(tz=pytz.UTC)
+        if self.__prochain_backup_applications < date_courante:
+            try:
+                await self.backup_applications()
+            finally:
+                self.__prochain_backup_applications = datetime.datetime.now(tz=pytz.UTC) + self.__intervalle_backup_applications
 
     async def installer_application(self, configuration: dict, reinstaller=False):
         path_docker_apps = self.__etat_instance.configuration.path_docker_apps
@@ -77,6 +91,9 @@ class GestionnaireApplications:
             os.unlink(path_app)
             await self.__etat_instance.emettre_presence(producer)
             return {'ok': True}
+
+    async def backup_applications(self):
+        await self.__etat_docker.backup_applications()
 
     # async def get_liste_configurations(self) -> list:
     #     """

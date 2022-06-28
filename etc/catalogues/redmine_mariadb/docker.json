@@ -1,6 +1,6 @@
 {
   "nom": "redmine_mariadb",
-  "version": "2022.4.10",
+  "version": "2022.4.11",
   "description": {
     "en": "Redmine",
     "fr": "Redmine"
@@ -38,7 +38,11 @@
           "aliases": ["mariadb"]
         }
       ],
-      "labels": {"shared": "true"},
+      "labels": {
+        "shared": "true",
+        "scripts_path": "/var/opt/millegrilles/redmine_mariadb",
+        "backup_scripts": "script.redmine.mariadb.backup.sh"
+      },
       "resources": {
         "cpu_limit": 1000000000,
         "mem_limit": 209715200
@@ -83,7 +87,9 @@
         "application": "redmine_mariadb",
         "url": "https://redmine.${HOSTNAME}",
         "securite": "2.prive",
-        "dependances": "mariadb_shared"
+        "dependances": "mariadb_shared",
+        "scripts_path": "/var/opt/millegrilles/redmine_mariadb",
+        "backup_scripts": "script.redmine.files.backup.sh"
       },
       "resources": {
         "cpu_limit": 1000000000,

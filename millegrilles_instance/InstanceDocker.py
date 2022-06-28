@@ -13,13 +13,15 @@ from base64 import b64decode
 from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.docker import DockerCommandes
 
-from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.docker.ParseConfiguration import ConfigurationService
 from millegrilles_messages.docker.DockerHandler import CommandeDocker
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
-from millegrilles_instance.CommandesDocker import CommandeListeTopologie, CommandeExecuterScriptDansService
+
+from millegrilles_instance import Constantes as ConstantesInstance
+from millegrilles_instance.CommandesDocker import CommandeListeTopologie, CommandeExecuterScriptDansService, \
+    CommandeGetServicesBackup
 
 
 class EtatDockerInstanceSync:
@@ -482,21 +484,23 @@ class EtatDockerInstanceSync:
                 except KeyError:
                     pass
                 else:
-                    path_scripts = path.join('/var/opt/millegrilles_scripts', nom_application)
+                    path_rep = configuration.get('scripts_path') or '/var/opt/millegrilles_scripts'
+                    path_scripts = path.join(path_rep, nom_application)
                     scripts_module_path = [path.join(path_scripts, s) for s in scripts_module]
-                    await self.executer_scripts_installation(nom_module, scripts_module_path)
+                    await self.executer_scripts_container(nom_module, scripts_module_path)
 
         if redemarrer_nginx is True:
             await self.redemarrer_nginx()
 
         return {'ok': True}
 
-    async def executer_scripts_installation(self, nom_container: str, path_scripts: list):
+    async def executer_scripts_container(self, nom_container: str, path_scripts: list, codes_ok=frozenset([0])):
         """
+        Execute des scripts deja presents dans le container.
 
-        :param nom_container: Nom du service/container
+        :param nom_container: Nom du service/container (filters: name)
         :param path_scripts: Path du repertoire avec les scripts
-        :param noms_scripts:
+        :param codes_ok: Liste de codes de retour qui sont valides
         :return:
         """
         for path_script in path_scripts:
@@ -509,10 +513,11 @@ class EtatDockerInstanceSync:
             code = resultat['code']
             output = resultat['output']
 
-            self.__logger.info("Resultat execution %s\n%s" % (code, output))
-
-            if code != 0:
+            if code not in codes_ok:
+                self.__logger.error("Resultat execution %s = %s\n%s" % (path_script, code, output))
                 raise Exception("Erreur execution script installation %s: %s" % (path_script, code))
+            else:
+                self.__logger.info("Resultat execution %s\n%s" % (code, output))
 
     async def generer_valeurs(self, correspondance, dependances, nom_application, producer):
         for dep in dependances:
@@ -585,6 +590,35 @@ class EtatDockerInstanceSync:
             pass
 
         return {'ok': resultat}
+
+    async def backup_applications(self):
+        """
+        Execute les scripts de backup de tous les containers.
+        :return:
+        """
+        commande_services = CommandeGetServicesBackup()
+        self.__docker_handler.ajouter_commande(commande_services)
+        services_backup = await commande_services.get_services()
+
+        for nom_service, values in services_backup.items():
+            try:
+                labels = values['labels']
+                backup_scripts = labels['backup_scripts']
+                backup_scripts = backup_scripts.split(',')
+            except KeyError:  # Ne devrait pas arriver, backup_scripts est le filter dans services.list()
+                continue
+
+            path_scripts = labels.get('scripts_path') or path.join('/var/opt/millegrilles_scripts', nom_service)
+
+            for script in backup_scripts:
+                path_script = path.join(path_scripts, script)
+                commande_backup = CommandeExecuterScriptDansService(nom_service, path_script)
+                self.__docker_handler.ajouter_commande(commande_backup)
+                resultat = await commande_backup.get_resultat()
+                code = resultat['code']
+                self.__logger.info("Resultat backup %s = %s" % (path_script, code))
+
+        pass
 
     # async def get_liste_configurations(self) -> list:
     #     """
