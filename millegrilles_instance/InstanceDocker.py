@@ -1,11 +1,14 @@
 import asyncio
 import logging
-
+import tempfile
+import tarfile
+import io
 
 from asyncio import Event, TimeoutError
 from docker.errors import APIError, NotFound
-from os import path, unlink
+from os import path, unlink, makedirs
 from typing import Optional
+from base64 import b64decode
 
 from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.docker import DockerCommandes
@@ -16,7 +19,7 @@ from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.docker.ParseConfiguration import ConfigurationService
 from millegrilles_messages.docker.DockerHandler import CommandeDocker
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
-from millegrilles_instance.CommandesDocker import CommandeListeTopologie
+from millegrilles_instance.CommandesDocker import CommandeListeTopologie, CommandeExecuterScriptDansService
 
 
 class EtatDockerInstanceSync:
@@ -372,6 +375,8 @@ class EtatDockerInstanceSync:
             commande_creer_service = DockerCommandes.CommandeCreerService(image_tag, config_parsed, reinstaller=reinstaller, aio=True)
             self.__docker_handler.ajouter_commande(commande_creer_service)
             resultat = await commande_creer_service.get_resultat()
+
+            return resultat
         else:
             self.__logger.warning("installer_service() Invoque pour un service sans images : %s", nom_service)
 
@@ -432,6 +437,84 @@ class EtatDockerInstanceSync:
             return {'ok': False, 'err': 'Service deja installe'}
 
         # Generer certificats/passwords
+        await self.generer_valeurs(correspondance, dependances, nom_application, producer)
+
+        # Copier scripts
+        try:
+            scripts_base64 = configuration['scripts_content']
+        except KeyError:
+            pass
+        else:
+            path_scripts = '/var/opt/millegrilles/scripts'
+
+            tar_scripts_bytes = b64decode(scripts_base64)
+            server_file_obj = io.BytesIO(tar_scripts_bytes)
+            path_scripts_app = path.join(path_scripts, nom_application)
+            makedirs(path_scripts_app, mode=0o755, exist_ok=True)
+            tar_content = tarfile.open(fileobj=server_file_obj)
+            tar_content.extractall(path_scripts_app)
+
+        redemarrer_nginx = False
+        if nginx is not None:
+            self.__logger.debug("Conserver information nginx")
+            try:
+                conf_dict = nginx['conf']
+            except KeyError:
+                pass
+            else:
+                params = {
+                    'appname': nom_application,
+                }
+                for nom_fichier, contenu in conf_dict.items():
+                    self.__etat_instance.entretien_nginx.ajouter_fichier_configuration(nom_fichier, contenu, params)
+                redemarrer_nginx = True
+
+        # Deployer services
+        for dep in dependances:
+            nom_module = dep['name']
+            if dep.get('image') is not None:
+                params = await self.get_params_env_service()
+                params['__nom_application'] = nom_application
+                resultat_installation = await self.installer_service(nom_module, dep, params, reinstaller)
+
+                try:
+                    scripts_module = configuration['scripts_installation'][nom_module]
+                except KeyError:
+                    pass
+                else:
+                    path_scripts = path.join('/var/opt/millegrilles_scripts', nom_application)
+                    scripts_module_path = [path.join(path_scripts, s) for s in scripts_module]
+                    await self.executer_scripts_installation(nom_module, scripts_module_path)
+
+        if redemarrer_nginx is True:
+            await self.redemarrer_nginx()
+
+        return {'ok': True}
+
+    async def executer_scripts_installation(self, nom_container: str, path_scripts: list):
+        """
+
+        :param nom_container: Nom du service/container
+        :param path_scripts: Path du repertoire avec les scripts
+        :param noms_scripts:
+        :return:
+        """
+        for path_script in path_scripts:
+            self.__logger.debug("Executer script %s dans service/containers %s" % (path_script, nom_container))
+            commande = CommandeExecuterScriptDansService(nom_container, path_script)
+            self.__docker_handler.ajouter_commande(commande)
+
+            resultat = await commande.get_resultat()
+
+            code = resultat['code']
+            output = resultat['output']
+
+            self.__logger.info("Resultat execution %s\n%s" % (code, output))
+
+            if code != 0:
+                raise Exception("Erreur execution script installation %s: %s" % (path_script, code))
+
+    async def generer_valeurs(self, correspondance, dependances, nom_application, producer):
         for dep in dependances:
             try:
                 certificat = dep['certificat']
@@ -446,7 +529,8 @@ class EtatDockerInstanceSync:
                     if self.__etat_instance.niveau_securite == Constantes.SECURITE_PROTEGE:
                         await self.__etat_instance.generer_certificats_module(self, nom_application, certificat)
                     else:
-                        await self.__etat_instance.generer_certificats_module_satellite(producer, self, nom_application, certificat)
+                        await self.__etat_instance.generer_certificats_module_satellite(producer, self, nom_application,
+                                                                                        certificat)
 
             except KeyError:
                 pass
@@ -469,36 +553,6 @@ class EtatDockerInstanceSync:
 
             except KeyError:
                 pass
-
-        redemarrer_nginx = False
-        if nginx is not None:
-            self.__logger.debug("Conserver information nginx")
-
-            # await self.redemarrer_nginx()
-            try:
-                conf_dict = nginx['conf']
-            except KeyError:
-                pass
-            else:
-                params = {
-                    'appname': nom_application,
-                }
-                for nom_fichier, contenu in conf_dict.items():
-                    self.__etat_instance.entretien_nginx.ajouter_fichier_configuration(nom_fichier, contenu, params)
-                redemarrer_nginx = True
-
-        # Deployer services
-        for dep in dependances:
-            nom_module = dep['name']
-            if dep.get('image') is not None:
-                params = await self.get_params_env_service()
-                params['__nom_application'] = nom_application
-                await self.installer_service(nom_module, dep, params, reinstaller)
-
-        if redemarrer_nginx is True:
-            await self.redemarrer_nginx()
-
-        return {'ok': True}
 
     async def demarrer_application(self, nom_application: str):
         commande_image = DockerCommandes.CommandeDemarrerService(nom_application, replicas=1, aio=True)

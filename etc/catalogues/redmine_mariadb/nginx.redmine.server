@@ -1,0 +1,21 @@
+server {{
+  include /etc/nginx/conf.d/app_base.conf.include;
+
+  server_name redmine.{hostname};
+
+  # Ajout redirect sur logout de Redmine vers page /millegrilles
+  location /logout {{
+    return 307 https://{hostname}/millegrilles;
+  }}
+
+  location / {{
+    set $upstream_redmine http://redmine:3000;
+    proxy_pass $upstream_redmine;
+
+    # Note: component_base utilise limite taille fichier trop petite pour redmine
+    include /etc/nginx/conf.d/component_proxyheaders.include;
+    include /etc/nginx/conf.d/component_gzip.include;
+    proxy_read_timeout 120s;
+    client_max_body_size 10M;
+  }}
+}}

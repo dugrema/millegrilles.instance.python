@@ -1,11 +1,14 @@
+import asyncio
 import base64
 import json
 import logging
+import time
 
 from typing import Union
 
 from docker import DockerClient
 from docker.errors import APIError, NotFound
+from docker.models.containers import Container
 
 from millegrilles_messages.docker.DockerHandler import CommandeDocker
 
@@ -24,6 +27,43 @@ class CommandeListeTopologie(CommandeDocker):
         self.callback({'info': info, 'containers': containers, 'services': services})
 
     async def get_info(self) -> dict:
+        resultat = await self.attendre()
+        info = resultat['args'][0]
+        return info
+
+
+class CommandeExecuterScriptDansService(CommandeDocker):
+
+    def __init__(self, nom_service: str, path_script: str):
+        super().__init__(aio=True)
+
+        self.__nom_service = nom_service
+        self.__path_script = path_script
+
+        self.facteur_throttle = 2.0
+
+    def executer(self, docker_client: DockerClient):
+        containers = docker_client.containers.list(filters={"name": self.__nom_service})
+        container = None
+        for i in range(0, 5):
+            try:
+                container: Container = containers.pop()
+                break
+            except IndexError:
+                # Container non-trouve, on attend avant de reessayer
+                try:
+                    time.sleep(5)
+                except asyncio.TimeoutError:
+                    pass
+                containers = docker_client.containers.list(filters={"name": self.__nom_service})
+
+        if container is None:
+            return self.callback({'code': -1, 'output': 'Container %s introuvable' % self.__nom_service})
+
+        exit_code, output = container.exec_run(self.__path_script)
+        self.callback({'code': exit_code, 'output': output})
+
+    async def get_resultat(self) -> dict:
         resultat = await self.attendre()
         info = resultat['args'][0]
         return info

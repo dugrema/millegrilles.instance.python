@@ -1,0 +1,109 @@
+{
+  "nom": "redmine_mariadb",
+  "version": "2022.4.10",
+  "description": {
+    "en": "Redmine",
+    "fr": "Redmine"
+  },
+  "securite": "2.prive",
+  "dependances": [
+    {
+      "name": "mariadb_shared",
+      "image": "mariadb:10.5",
+      "generateur": ["mariadb", "redmine"],
+      "env": {
+        "MYSQL_ROOT_PASSWORD_FILE": "/run/secrets/mariadb.password.txt"
+      },
+      "mounts": [
+        {"source": "shared_mariadb", "target":  "/var/lib/mysql", "type": "volume"},
+        {"source": "millegrilles_backup", "target":  "/var/opt/millegrilles_backup", "type": "volume"},
+        {"source": "/var/opt/millegrilles/scripts", "target":  "/var/opt/millegrilles_scripts", "type": "bind", "read_only": true}
+      ],
+      "constraints": ["node.labels.millegrilles.app.redmine == true"],
+      "secrets": [
+        {
+          "name": "passwd.mariadb",
+          "current": "password",
+          "filename": "mariadb.password.txt"
+        },
+        {
+          "name": "passwd.redmine",
+          "current": "password",
+          "filename": "mariadb.redmine.txt"
+        }
+      ],
+      "networks": [
+        {
+          "target": "millegrille_net",
+          "aliases": ["mariadb"]
+        }
+      ],
+      "labels": {"shared": "true"},
+      "resources": {
+        "cpu_limit": 1000000000,
+        "mem_limit": 209715200
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      }
+    },
+    {
+      "name": "redmine",
+      "image": "redmine:4.1-alpine",
+      "generateur": ["redmine"],
+      "env": {
+        "REDMINE_DB_PASSWORD_FILE": "/run/secrets/redmine.password.txt",
+        "REDMINE_DB_MYSQL": "mariadb",
+        "REDMINE_DB_USERNAME": "redmine",
+        "REDMINE_DB_DATABASE": "redmine"
+      },
+      "mounts": [
+        {"source": "redmine_files", "target":  "/usr/src/redmine/files", "type": "volume"},
+        {"source": "millegrilles_backup", "target":  "/var/opt/millegrilles_backup", "type": "volume"},
+        {"source": "/var/opt/millegrilles/scripts", "target":  "/var/opt/millegrilles_scripts", "type": "bind", "read_only": true}
+      ],
+      "constraints": ["node.labels.millegrilles.app.redmine == true"],
+      "secrets": [
+        {
+          "name": "passwd.redmine",
+          "current": "password",
+          "filename": "redmine.password.txt"
+        }
+      ],
+      "networks": [
+        {
+          "target": "millegrille_net",
+          "aliases": [
+            "redmine"
+          ]
+        }
+      ],
+      "labels": {
+        "application": "redmine_mariadb",
+        "url": "https://redmine.${HOSTNAME}",
+        "securite": "2.prive",
+        "dependances": "mariadb_shared"
+      },
+      "resources": {
+        "cpu_limit": 1000000000,
+        "mem_limit": 209715200
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      }
+    }
+  ],
+  "scripts": [
+    "script.redmine.files.backup.sh",
+    "script.redmine.mariadb.backup.sh",
+    "script.redmine.mariadb.installation.sh"
+  ],
+  "scripts_installation": {
+    "mariadb_shared": ["script.redmine.mariadb.installation.sh"]
+  },
+  "nginx": {
+    "conf": ["nginx.redmine.server"]
+  }
+}

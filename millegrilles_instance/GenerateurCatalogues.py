@@ -51,7 +51,6 @@ class Generateur:
             pass
 
         catalogue_apps = dict()
-        fpconfig, path_config_temp = tempfile.mkstemp()
         for rep, config in IterateurApplications(path_catalogues):
             nom_application = config['nom']
             self.__logger.debug("Repertoire : %s" % rep)
@@ -62,6 +61,26 @@ class Generateur:
             # Verifier si on doit creer une archive tar pour cette application
             # Tous les fichiers sauf docker.json sont inclus et sauvegarde sous une archive tar.xz
             # dans l'entree de catalogue
+            try:
+                script_files = config['scripts']
+            except KeyError:
+                pass
+            else:
+                fpconfig, path_config_temp = tempfile.mkstemp()
+                try:
+                    with tarfile.open(path_config_temp, 'w:xz') as fichier:
+                        for filename in script_files:
+                            file_path = path.join(rep, filename)
+                            fichier.add(file_path, arcname=filename)
+
+                    # Lire fichier .tar, convertir en base64
+                    with open(path_config_temp, 'rb') as fichier:
+                        contenu_tar_b64 = b64encode(fichier.read())
+
+                    config['scripts_content'] = contenu_tar_b64.decode('utf-8')
+                finally:
+                    unlink(path_config_temp)  # Cleanup fichier temporaire
+
             # fichier_app = [f for f in listdir(rep) if f not in ['docker.json']]
             try:
                 conf_files = config['nginx']['conf']
@@ -81,8 +100,6 @@ class Generateur:
             path_archive_application = path.join(path_archives_application, nom_application + '.json.xz')
             with lzma.open(path_archive_application, 'wt') as output:
                 json.dump(config, output)
-
-        unlink(path_config_temp)  # Cleanup fichier temporaire
 
         # catalogue = {
         #     'applications': catalogue_apps

@@ -53,8 +53,8 @@ async def run_tests(messages_thread, stop_event):
 async def cedule_heure_specifique(messages_thread):
     action = 'cedule'
     producer = messages_thread.get_producer()
-    # estampille = datetime.datetime(2022, 6, 19, 8, 0, 0, tzinfo=pytz.UTC)  # Complet
-    estampille = datetime.datetime(2022, 6, 20, 8, 0, 0, tzinfo=pytz.UTC)  # Incremental
+    estampille = datetime.datetime(2022, 6, 19, 4, 0, 0, tzinfo=pytz.UTC)  # Complet
+    # estampille = datetime.datetime(2022, 6, 20, 8, 0, 0, tzinfo=pytz.UTC)  # Incremental
     evenement = {
         "estampille": int(estampille.timestamp()),
         "date_string": estampille.isoformat(),
