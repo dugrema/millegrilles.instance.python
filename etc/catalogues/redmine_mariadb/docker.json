@@ -1,6 +1,6 @@
 {
   "nom": "redmine_mariadb",
-  "version": "2022.4.11",
+  "version": "2022.4.12",
   "description": {
     "en": "Redmine",
     "fr": "Redmine"
@@ -40,7 +40,7 @@
       ],
       "labels": {
         "shared": "true",
-        "scripts_path": "/var/opt/millegrilles/redmine_mariadb",
+        "scripts_path": "/var/opt/millegrilles_scripts/redmine_mariadb",
         "backup_scripts": "script.redmine.mariadb.backup.sh"
       },
       "resources": {
@@ -88,7 +88,7 @@
         "url": "https://redmine.${HOSTNAME}",
         "securite": "2.prive",
         "dependances": "mariadb_shared",
-        "scripts_path": "/var/opt/millegrilles/redmine_mariadb",
+        "scripts_path": "/var/opt/millegrilles_scripts/redmine_mariadb",
         "backup_scripts": "script.redmine.files.backup.sh"
       },
       "resources": {

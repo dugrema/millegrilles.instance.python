@@ -616,8 +616,11 @@ class EtatDockerInstanceSync:
                 self.__docker_handler.ajouter_commande(commande_backup)
                 resultat = await commande_backup.get_resultat()
                 code = resultat['code']
-                self.__logger.info("Resultat backup %s = %s" % (path_script, code))
-
+                output = resultat['output']
+                if code != 0:
+                    self.__logger.warn("Resultat backup %s = %s\n%s" % (path_script, code, output))
+                else:
+                    self.__logger.info("Resultat backup %s = %s" % (path_script, code))
         pass
 
     # async def get_liste_configurations(self) -> list:
