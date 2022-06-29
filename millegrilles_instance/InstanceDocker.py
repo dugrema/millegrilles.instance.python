@@ -448,11 +448,12 @@ class EtatDockerInstanceSync:
             pass
         else:
             path_scripts = '/var/opt/millegrilles/scripts'
+            makedirs(path_scripts, mode=0o755, exist_ok=True)
+            path_scripts_app = path.join(path_scripts, nom_application)
+            makedirs(path_scripts_app, mode=0o755, exist_ok=True)
 
             tar_scripts_bytes = b64decode(scripts_base64)
             server_file_obj = io.BytesIO(tar_scripts_bytes)
-            path_scripts_app = path.join(path_scripts, nom_application)
-            makedirs(path_scripts_app, mode=0o755, exist_ok=True)
             tar_content = tarfile.open(fileobj=server_file_obj)
             tar_content.extractall(path_scripts_app)
 
@@ -622,24 +623,6 @@ class EtatDockerInstanceSync:
                 else:
                     self.__logger.info("Resultat backup %s = %s" % (path_script, code))
         pass
-
-    # async def get_liste_configurations(self) -> list:
-    #     """
-    #     Charge l'information de configuration de toutes les applications connues.
-    #     :return:
-    #     """
-    #     info_configuration = list()
-    #     path_docker_apps = self.__etat_instance.configuration.path_docker_apps
-    #     for fichier_config in listdir(path_docker_apps):
-    #         if not fichier_config.startswith('app.'):
-    #             continue  # Skip, ce n'est pas une application
-    #         with open(path.join(path_docker_apps, fichier_config), 'rb') as fichier:
-    #             contenu = json.load(fichier)
-    #         nom = contenu['nom']
-    #         version = contenu['version']
-    #         info_configuration.append({'nom': nom, 'version': version})
-    #
-    #     return info_configuration
 
 
 def verifier_config_current(liste_config_datee: dict, container_config: Optional[list], container_secrets: Optional[list]):

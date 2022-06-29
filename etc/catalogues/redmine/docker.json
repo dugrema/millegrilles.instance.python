@@ -1,6 +1,6 @@
 {
-  "nom": "redmine_mariadb",
-  "version": "2022.4.12",
+  "nom": "redmine",
+  "version": "2022.4.17",
   "description": {
     "en": "Redmine",
     "fr": "Redmine"
@@ -8,21 +8,21 @@
   "securite": "2.prive",
   "dependances": [
     {
-      "name": "mariadb_shared",
+      "name": "redmine_mariadb",
       "image": "mariadb:10.5",
-      "generateur": ["mariadb", "redmine"],
+      "generateur": ["redminemariadb", "redmine"],
       "env": {
         "MYSQL_ROOT_PASSWORD_FILE": "/run/secrets/mariadb.password.txt"
       },
       "mounts": [
-        {"source": "shared_mariadb", "target":  "/var/lib/mysql", "type": "volume"},
+        {"source": "redmine_mariadb", "target":  "/var/lib/mysql", "type": "volume"},
         {"source": "millegrilles_backup", "target":  "/var/opt/millegrilles_backup", "type": "volume"},
         {"source": "/var/opt/millegrilles/scripts", "target":  "/var/opt/millegrilles_scripts", "type": "bind", "read_only": true}
       ],
       "constraints": ["node.labels.millegrilles.app.redmine == true"],
       "secrets": [
         {
-          "name": "passwd.mariadb",
+          "name": "passwd.redminemariadb",
           "current": "password",
           "filename": "mariadb.password.txt"
         },
@@ -35,12 +35,12 @@
       "networks": [
         {
           "target": "millegrille_net",
-          "aliases": ["mariadb"]
+          "aliases": ["redminemariadb"]
         }
       ],
       "labels": {
         "shared": "true",
-        "scripts_path": "/var/opt/millegrilles_scripts/redmine_mariadb",
+        "scripts_path": "/var/opt/millegrilles_scripts/redmine",
         "backup_scripts": "script.redmine.mariadb.backup.sh"
       },
       "resources": {
@@ -58,7 +58,7 @@
       "generateur": ["redmine"],
       "env": {
         "REDMINE_DB_PASSWORD_FILE": "/run/secrets/redmine.password.txt",
-        "REDMINE_DB_MYSQL": "mariadb",
+        "REDMINE_DB_MYSQL": "redminemariadb",
         "REDMINE_DB_USERNAME": "redmine",
         "REDMINE_DB_DATABASE": "redmine"
       },
@@ -84,11 +84,11 @@
         }
       ],
       "labels": {
-        "application": "redmine_mariadb",
+        "application": "redmine",
         "url": "https://redmine.${HOSTNAME}",
         "securite": "2.prive",
-        "dependances": "mariadb_shared",
-        "scripts_path": "/var/opt/millegrilles_scripts/redmine_mariadb",
+        "dependances": "redmine_mariadb",
+        "scripts_path": "/var/opt/millegrilles_scripts/redmine",
         "backup_scripts": "script.redmine.files.backup.sh"
       },
       "resources": {
@@ -107,7 +107,7 @@
     "script.redmine.mariadb.installation.sh"
   ],
   "scripts_installation": {
-    "mariadb_shared": ["script.redmine.mariadb.installation.sh"]
+    "redmine_mariadb": ["script.redmine.mariadb.installation.sh"]
   },
   "nginx": {
     "conf": ["nginx.redmine.server"]

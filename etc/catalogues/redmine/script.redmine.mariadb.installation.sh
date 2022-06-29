@@ -32,7 +32,7 @@ echo "-----------"
 # Attente mariadb
 sleep 15
 
-mysql -h mariadb -p"`cat $ROOT_PASSFILE`" < $SCRIPT
+mysql -h redminemariadb -p"`cat $ROOT_PASSFILE`" < $SCRIPT
 EXIT_CODE=$?
 
 # Cleanup

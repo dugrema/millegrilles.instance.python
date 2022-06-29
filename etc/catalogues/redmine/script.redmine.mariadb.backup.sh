@@ -13,7 +13,7 @@ fi
 
 mkdir -p $REP_BACKUP
 
-mysqldump -h mariadb -u redmine -p"$PASSWORD" redmine > $REP_BACKUP/backup.redmine_mariadb.sql
+mysqldump -h redminemariadb -u redmine -p"$PASSWORD" redmine > $REP_BACKUP/backup.redmine.mariadb.sql
 EXIT_CODE=$?
 
 echo "[OK] Fin du script de backup de redmine.mariadb"
