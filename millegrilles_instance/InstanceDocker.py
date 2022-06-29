@@ -619,7 +619,7 @@ class EtatDockerInstanceSync:
                 code = resultat['code']
                 output = resultat['output']
                 if code != 0:
-                    self.__logger.warn("Resultat backup %s = %s\n%s" % (path_script, code, output))
+                    self.__logger.warning("Resultat backup %s = %s\n%s" % (path_script, code, output))
                 else:
                     self.__logger.info("Resultat backup %s = %s" % (path_script, code))
         pass
