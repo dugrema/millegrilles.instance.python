@@ -4,8 +4,8 @@ import logging
 from asyncio import Event as EventAsyncio, TimeoutError
 from threading import Event
 
-from millegrilles.docker.DockerHandler import DockerHandler, DockerState
-from millegrilles.docker.DockerCommandes import CommandeListerServices, CommandeListerContainers, \
+from millegrilles_messages.docker.DockerHandler import DockerHandler, DockerState
+from millegrilles_messages.docker.DockerCommandes import CommandeListerServices, CommandeListerContainers, \
     CommandeAjouterConfiguration, CommandeSupprimerConfiguration, CommandeGetConfiguration, \
     CommandeAjouterSecret, CommandeSupprimerSecret, CommandeGetConfigurationsDatees, CommandeListerConfigs, \
     CommandeListerSecrets, CommandeGetImage, CommandeEnsureNodeLabels
