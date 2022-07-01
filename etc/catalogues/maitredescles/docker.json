@@ -1,11 +1,11 @@
 {
   "nom": "maitredescles",
-  "version": "2022.3.8",
+  "version": "2022.4.0",
   "securite": "4.secure",
   "dependances": [
     {
       "name": "maitredescles",
-      "image": "docker.maceroc.com/millegrilles_maitredescles:2022.3.0",
+      "image": "docker.maceroc.com/millegrilles_maitredescles:2022.4.0",
       "certificat": {
         "roles": ["maitredescles", "maitrecles"],
         "domaines": ["MaitreDesCles"],
