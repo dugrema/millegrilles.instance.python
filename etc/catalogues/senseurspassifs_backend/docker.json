@@ -1,6 +1,6 @@
 {
   "nom": "senseurspassifs_backend",
-  "version": "2022.3.3",
+  "version": "2022.4.0",
   "description": {
     "en": "Senseurs Passifs (back-end)",
     "fr": "Senseurs Passifs (back-end)"
@@ -9,7 +9,7 @@
   "dependances": [
     {
       "name": "senseurspassifs_backend",
-      "image": "docker.maceroc.com/millegrilles_senseurspassifs:2022.3.0",
+      "image": "docker.maceroc.com/millegrilles_senseurspassifs:2022.4.0",
       "certificat": {
         "roles": ["senseurspassifs"],
         "domaines": ["SenseursPassifs"],
