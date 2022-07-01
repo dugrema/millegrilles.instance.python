@@ -7,4 +7,4 @@ export CERT_PEM=/var/opt/millegrilles/secrets/pki.instance.cert
 export KEY_PEM=/var/opt/millegrilles/secrets/pki.instance.key
 export MQ_HOSTNAME=localhost
 
-python3 -m millegrilles_messages.backup --verbose restaurer --transactions $@
+python3 -m millegrilles_messages.backup --verbose restaurer --transactions --rechiffrer $@
