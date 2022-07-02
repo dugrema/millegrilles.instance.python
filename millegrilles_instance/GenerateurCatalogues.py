@@ -37,6 +37,9 @@ class Generateur:
 
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
 
+        self.__logger.info("Utilisation idmg %s pour signer les catalogues" % idmg)
+        self.__logger.info("Certificat %s expiration %s" % (clecert.fingerprint, clecert.enveloppe.not_valid_after))
+
     def generer_catalogue_applications(self):
         """
         Genere les fichiers de configuration d'application et le fichier de catalogue d'applications
