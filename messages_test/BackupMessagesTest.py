@@ -43,7 +43,8 @@ async def run_tests(messages_thread, stop_event):
 
     # await backup_transactions(messages_thread)
     # await backup_rotation_transactions(messages_thread)
-    await get_backups(messages_thread)
+    # await get_backups(messages_thread)
+    await declencher_backup_complet(messages_thread)
 
     stop_event.set()
 
@@ -73,6 +74,15 @@ async def backup_rotation_transactions(messages_thread):
 async def get_backups(messages_thread):
     action = 'getClesBackupTransactions'
     commande = {}
+    producer = messages_thread.get_producer()
+    reponse = await producer.executer_commande(commande, 'fichiers', action=action, exchange=Constantes.SECURITE_PRIVE)
+    contenu = json.dumps(reponse.parsed, indent=2)
+    logger.info("Reponse recue : %s", contenu)
+
+
+async def declencher_backup_complet(messages_thread):
+    action = 'demarrerBackupTransactions'
+    commande = {'complet': True}
     producer = messages_thread.get_producer()
     reponse = await producer.executer_commande(commande, 'fichiers', action=action, exchange=Constantes.SECURITE_PRIVE)
     contenu = json.dumps(reponse.parsed, indent=2)
