@@ -622,7 +622,28 @@ class EtatDockerInstanceSync:
                     self.__logger.warning("Resultat backup %s = %s\n%s" % (path_script, code, output))
                 else:
                     self.__logger.info("Resultat backup %s = %s" % (path_script, code))
-        pass
+
+        # Executer backup pour chiffrer archives
+        image_backup = self.__etat_instance.configuration.docker_image_backup
+
+        env_backup = {
+            'CA_PEM': '/var/opt/millegrilles/configuration/pki.millegrille.cert',
+            'CERT_PEM': '/var/opt/millegrilles/secrets/pki.instance.cert',
+            'KEY_PEM': '/var/opt/millegrilles/secrets/pki.instance.key',
+            'MQ_HOSTNAME': 'mq',
+        }
+        commande_container_backup = DockerCommandes.CommandeRunContainer(
+            image_backup,
+            "-m millegrilles_messages.backup backup --source /var/opt/millegrilles_backup",
+            environment=env_backup,
+        )
+        commande_container_backup.ajouter_mount('millegrilles_backup', '/var/opt/millegrilles_backup',
+                                                mount_type='volume')
+        commande_container_backup.ajouter_mount('/var/opt/millegrilles', '/var/opt/millegrilles',
+                                                mount_type='bind', read_only=True)
+        self.__docker_handler.ajouter_commande(commande_container_backup)
+        resultat = await commande_container_backup.get_resultat()
+        self.__logger.debug("Chiffrage backup applications complete : %s" % resultat)
 
 
 def verifier_config_current(liste_config_datee: dict, container_config: Optional[list], container_secrets: Optional[list]):

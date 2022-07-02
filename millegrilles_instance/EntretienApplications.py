@@ -21,8 +21,7 @@ class GestionnaireApplications:
         self.__rabbitmq_dao = None
 
         # Initialiser le prochain backup
-        #self.__prochain_backup_applications = datetime.datetime.now(tz=pytz.UTC) + datetime.timedelta(minutes=10)
-        self.__prochain_backup_applications = datetime.datetime.now(tz=pytz.UTC) + datetime.timedelta(seconds=10)
+        self.__prochain_backup_applications = datetime.datetime.now(tz=pytz.UTC) + datetime.timedelta(seconds=30)
         self.__intervalle_backup_applications = datetime.timedelta(days=1)  # Intervalle backup suivants
 
     def set_rabbitmq_dao(self, rabbitmq_dao):
