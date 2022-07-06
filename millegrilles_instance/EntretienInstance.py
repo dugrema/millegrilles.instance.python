@@ -412,7 +412,7 @@ class InstanceInstallationAvecDocker(InstanceDockerAbstract):
     async def entretien_repertoires_installation(self):
         path_nginx = self._etat_instance.configuration.path_nginx
         path_nginx_html = path.join(path_nginx, 'html')
-        makedirs(path_nginx_html, 0o750, exist_ok=True)
+        makedirs(path_nginx_html, 0o755, exist_ok=True)
         path_certissuer = self._etat_instance.configuration.path_certissuer
         makedirs(path_certissuer, 0o700, exist_ok=True)
 
