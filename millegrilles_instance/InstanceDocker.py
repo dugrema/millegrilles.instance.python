@@ -22,6 +22,7 @@ from millegrilles_messages.messages.MessagesModule import MessageProducerFormatt
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.CommandesDocker import CommandeListeTopologie, CommandeExecuterScriptDansService, \
     CommandeGetServicesBackup
+from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname, OnionizeNonDisponibleException
 
 
 class EtatDockerInstanceSync:
@@ -68,6 +69,11 @@ class EtatDockerInstanceSync:
         self.ajouter_commande(commande)
         info_instance = await commande.get_info()
         info_updatee.update(info_instance)
+
+        # Trouver l'addresse .onion (TOR) si disponible
+        adresse_onion = await self.verifier_tor()
+        if adresse_onion is not None:
+            info_updatee['onion'] = adresse_onion
 
         # # Faire la liste des applications installees
         # liste_applications = await self.__etat_instance.get_liste_configurations()
@@ -644,6 +650,18 @@ class EtatDockerInstanceSync:
         self.__docker_handler.ajouter_commande(commande_container_backup)
         resultat = await commande_container_backup.get_resultat()
         self.__logger.debug("Chiffrage backup applications complete : %s" % resultat)
+
+    async def verifier_tor(self):
+        commande = CommandeOnionizeGetHostname()
+        self.__docker_handler.ajouter_commande(commande)
+        try:
+            hostname = await commande.get_resultat()
+        except OnionizeNonDisponibleException:
+            self.__logger.debug("Service onionize non demarre")
+            return
+
+        self.__logger.debug("Adresse onionize : %s" % hostname)
+        return hostname
 
 
 def verifier_config_current(liste_config_datee: dict, container_config: Optional[list], container_secrets: Optional[list]):

@@ -12,7 +12,7 @@ from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_instance.AcmeHandler import CommandeAcmeExtractCertificates, AcmeNonDisponibleException
-from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname, OnionizeNonDisponibleException
+# from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname, OnionizeNonDisponibleException
 
 
 class EntretienNginx:
@@ -58,7 +58,7 @@ class EntretienNginx:
 
             await self.verifier_certificat_web()
 
-            await self.verifier_tor()
+            # await self.verifier_tor()
 
             if self.__session is None:
                 await self.creer_session()
@@ -250,13 +250,13 @@ class EntretienNginx:
             self.__logger.info("Redemarrer nginx avec le nouveau certificat web")
             await self.__etat_docker.redemarrer_nginx()
 
-    async def verifier_tor(self):
-        commande = CommandeOnionizeGetHostname()
-        self.__etat_docker.ajouter_commande(commande)
-        try:
-            hostname = await commande.get_resultat()
-        except OnionizeNonDisponibleException:
-            self.__logger.debug("Service onionize non demarre")
-            return
-
-        self.__logger.debug("Adresse onionize : %s" % hostname)
+    # async def verifier_tor(self):
+    #     commande = CommandeOnionizeGetHostname()
+    #     self.__etat_docker.ajouter_commande(commande)
+    #     try:
+    #         hostname = await commande.get_resultat()
+    #     except OnionizeNonDisponibleException:
+    #         self.__logger.debug("Service onionize non demarre")
+    #         return
+    #
+    #     self.__logger.debug("Adresse onionize : %s" % hostname)
