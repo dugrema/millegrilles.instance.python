@@ -1,0 +1,18 @@
+{
+  "nom": "relaiweb",
+  "version": "2022.4.0",
+  "description": {
+    "en": "Web relay for commands",
+    "fr": "Relai web pour commandes"
+  },
+  "securite": "1.public",
+  "dependances": [
+    {
+      "name": "relaiweb",
+      "certificat": {
+        "roles": ["relaiweb"],
+        "exchanges": ["1.public"]
+      }
+    }
+  ]
+}
