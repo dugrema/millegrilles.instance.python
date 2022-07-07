@@ -42,6 +42,7 @@ async def run_tests(messages_thread, stop_event):
     logger.info("emettre requetes backup")
 
     await relai_get(messages_thread)
+    # await relai_post(messages_thread)
 
     stop_event.set()
 
@@ -50,7 +51,16 @@ async def run_tests(messages_thread, stop_event):
 
 async def relai_get(messages_thread):
     action = 'get'
-    commande = {'url': 'https://mg-dev1.maple.maceroc.com/ficher.json'}
+    commande = {'url': 'https://mg-int1.maple.maceroc.com/fiche.json'}
+    producer = messages_thread.get_producer()
+    reponse = await producer.executer_commande(commande, 'relaiweb', action=action, exchange=Constantes.SECURITE_PUBLIC)
+    contenu = json.dumps(reponse.parsed, indent=2)
+    logger.info("Reponse recue : %s", contenu)
+
+
+async def relai_post(messages_thread):
+    action = 'post'
+    commande = {'url': 'https://mg-int1.maple.maceroc.com/fiche.json'}
     producer = messages_thread.get_producer()
     reponse = await producer.executer_commande(commande, 'relaiweb', action=action, exchange=Constantes.SECURITE_PUBLIC)
     contenu = json.dumps(reponse.parsed, indent=2)
