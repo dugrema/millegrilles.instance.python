@@ -1,6 +1,6 @@
 {
   "nom": "media",
-  "version": "2022.4.1",
+  "version": "2022.4.2",
   "securite": "4.secure",
   "dependances": [
     {
@@ -9,7 +9,8 @@
       "certificat": {
         "roles": ["media", "fichiers"],
         "domaines": ["GrosFichiers"],
-        "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
+        "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"],
+        "dns": {"localhost": true, "hostnames": ["media"], "domain": true}
       },
       "env": {
         "MG_MQ_URL": "amqps://mq:5673",
