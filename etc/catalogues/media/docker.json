@@ -1,6 +1,6 @@
 {
   "nom": "media",
-  "version": "2022.4.2",
+  "version": "2022.4.3",
   "securite": "4.secure",
   "dependances": [
     {
@@ -67,5 +67,8 @@
         "replicas": 1
       }
     }
-  ]
+  ],
+  "nginx": {
+    "conf": ["media.app.location.tls", "media.app.proxypass"]
+  }
 }
