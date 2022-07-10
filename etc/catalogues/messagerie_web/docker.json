@@ -1,6 +1,6 @@
 {
   "nom": "messagerie_web",
-  "version": "2022.4.0",
+  "version": "2022.4.1",
   "description": {
     "en": "Messaging web",
     "fr": "Messagerie web"
@@ -33,7 +33,7 @@
       ],
       "configs": [
         {
-          "name": "pki.collections",
+          "name": "pki.messagerie_web",
           "current": "cert",
           "filename": "/run/secrets/cert.pem"
         },
@@ -44,7 +44,7 @@
       ],
       "secrets": [
         {
-          "name": "pki.collections",
+          "name": "pki.messagerie_web",
           "current": "key",
           "filename": "key.pem"
         },

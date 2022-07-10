@@ -1,13 +1,20 @@
-location = /collections/fichiers/verifier {{
-  set $upstream_collections https://collections:443;
-  proxy_pass $upstream_collections;
+location = /collections/initSession {{
+  include /etc/nginx/conf.d/modules/collections.app.proxypass;
   proxy_pass_request_body off;
+  proxy_set_header X-Original-URI $request_uri;
+  include /etc/nginx/conf.d/auth.include;
+}}
+
+location = /collections/fichiers/verifier {{
+  include /etc/nginx/conf.d/modules/collections.app.proxypass;
+  proxy_pass_request_body off;
+  proxy_set_header X-Original-URI $request_uri;
 }}
 
 location = /collections/streams/verifier {{
-  set $upstream_collections https://collections:443;
-  proxy_pass $upstream_collections;
+  include /etc/nginx/conf.d/modules/collections.app.proxypass;
   proxy_pass_request_body off;
+  proxy_set_header X-Original-URI $request_uri;
 }}
 
 location /collections/fichiers {{
@@ -35,7 +42,7 @@ location /collections/fichiers {{
 }}
 
 location /collections/streams {{
-  include /etc/nginx/conf.d/modules/media.proxypass;
+  include /etc/nginx/conf.d/modules/media.app.proxypass;
 
   # Laisser collections confirmer que l'usager est actif, a acces au fichier
   auth_request      /collections/streams/verifier;
@@ -59,8 +66,7 @@ location /collections/streams {{
 }}
 
 location /collections/upload {{
-  set $upstream_collections https://collections:443;
-  proxy_pass $upstream_collections;
+  include /etc/nginx/conf.d/modules/collections.app.proxypass;
 
   include /etc/nginx/conf.d/auth.include;
   include /etc/nginx/conf.d/component_proxyheaders.include;
@@ -70,8 +76,7 @@ location /collections/upload {{
 }}
 
 location /collections {{
-  set $upstream_collections https://collections:443;
-  proxy_pass $upstream_collections;
+  include /etc/nginx/conf.d/modules/collections.app.proxypass;
 
   include /etc/nginx/conf.d/auth.include;
 

@@ -41,7 +41,8 @@ async def run_tests(messages_thread, stop_event):
 
     logger.info("emettre requetes grosfichiers")
 
-    await get_documentsParFuuid(messages_thread)
+    # await get_documentsParFuuid(messages_thread)
+    await verifier_acces_fuuids(messages_thread)
 
     stop_event.set()
 
@@ -51,6 +52,22 @@ async def run_tests(messages_thread, stop_event):
 async def get_documentsParFuuid(messages_thread):
     action = 'documentsParFuuid'
     requete = {'fuuids_documents': ['zSEfXUAmNoDiHaPaocwvfuAu78eQSejBDpmrif5Zw8QSo5SdK9mBuqBe7QQYEku5KiVNVEpQy8gHCpgDTywVLrKc4dfyPH']}
+    producer = messages_thread.get_producer()
+    reponse = await producer.executer_requete(requete, 'GrosFichiers', action=action, exchange=Constantes.SECURITE_PRIVE)
+    contenu = json.dumps(reponse.parsed, indent=2)
+    logger.info("Reponse recue : %s", contenu)
+
+
+async def verifier_acces_fuuids(messages_thread):
+    action = 'verifierAccesFuuids'
+    requete = {
+        'user_id': 'z2i3XjxEBWbPQ8KptFX8DEA4BstgkwKghfR2fFznQEdW9zjc6qL',
+        'fuuids': [
+            #'zSEfXUAWF1A6WTjXYernnhZtjLswj6BRfRLHfGLjGbCUAVxaJYE3nbYEVQ6bAYmFNS5Q3tMRRXeg16Zb9oRYGHZuySRSKk',
+            #'zSEfXUDbNyYCAvXXypa7QBSPFN9VmtiP2nPNRRXnkpsHYM4MRrfwqE4CJnnX6TsDCpVrYGLCzsoz7wbETU34fhYNEPjuPp',
+            'zSEfXUD8p125rKUNbRmLcg5eSihuJtS24wCxSW941H6gDs2cAwZBNKuXZPvNUiDvyJmEmXUdMkwie35arDs3tAPLFaV3B1',
+        ]
+    }
     producer = messages_thread.get_producer()
     reponse = await producer.executer_requete(requete, 'GrosFichiers', action=action, exchange=Constantes.SECURITE_PRIVE)
     contenu = json.dumps(reponse.parsed, indent=2)
