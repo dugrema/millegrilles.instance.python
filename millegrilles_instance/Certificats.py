@@ -74,8 +74,18 @@ async def generer_certificats_modules(client_session: ClientSession, etat_instan
             # Ok, verifier si le certificat doit etre renouvele
             detail_expiration = enveloppe.calculer_expiration()
             if detail_expiration['expire'] is True or detail_expiration['renouveler'] is True:
-                clecertificat = await generer_nouveau_certificat(client_session, etat_instance, nom_module, value)
-                sauvegarder = True
+                roles = enveloppe.get_roles
+                if 'maitredescles' in roles:
+                    # Verifier si on est en cours de rotation d'un certificat de maitre des cles
+                    # Il faut laisser le temps aux cles de finir d'etre rechiffrees
+                    if detail_expiration['expire'] is True or etat_instance.is_rotation_maitredescles() is False:
+                        clecertificat = await generer_nouveau_certificat(
+                            client_session, etat_instance, nom_module, value)
+                        sauvegarder = True
+                        etat_instance.set_rotation_maitredescles()
+                else:
+                    clecertificat = await generer_nouveau_certificat(client_session, etat_instance, nom_module, value)
+                    sauvegarder = True
 
         except FileNotFoundError:
             logger.info("Certificat %s non trouve, on le genere" % nom_module)

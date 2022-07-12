@@ -1,6 +1,7 @@
 import os
 
 import aiohttp
+import datetime
 import logging
 import json
 
@@ -58,6 +59,8 @@ class EtatInstance:
 
         self.__stop_event: Optional[Event] = None
         self.__redemarrer = False
+
+        self.__attente_rotation_maitredescles: Optional[datetime.datetime] = None
 
     async def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
@@ -333,6 +336,21 @@ class EtatInstance:
             fichier.write(cert_pem)
         with open(path_key, 'w') as fichier:
             fichier.write(cle_pem)
+
+    def set_rotation_maitredescles(self):
+        # Conserver delai de 3 heures avant prochaine rotation de certificat de maitre des cles
+        self.__attente_rotation_maitredescles = datetime.datetime.utcnow() + datetime.timedelta(hours=3)
+
+    def is_rotation_maitredescles(self):
+        if self.__attente_rotation_maitredescles is None:
+            return False
+
+        datenow = datetime.datetime.utcnow()
+        if datenow > self.__attente_rotation_maitredescles:
+            self.__attente_rotation_maitredescles = None
+            return False
+
+        return True
 
 
 def load_fichier_config(path_fichier: str) -> Optional[str]:
