@@ -244,6 +244,8 @@ class EtatDockerInstanceSync:
         # Services avec certificats/secrets/passwd a remplacer
         services_a_reconfigurer = set()
 
+        liste_services_docker = trier_services(liste_services_docker)
+
         for s in liste_services_docker:
             name = s.name
             attrs = s.attrs
@@ -707,3 +709,28 @@ def verifier_config_current(liste_config_datee: dict, container_config: Optional
                 pass  # Secret n'a pas le bon format, pas gere
 
     return True
+
+
+def trier_services(liste_services: list) -> list:
+
+    services_speciaux = ['mq', 'mongo', 'certissuer', 'midcompte', 'nginx', 'redis']
+
+    map_services_parnom = dict()
+    liste_services_finale = list()
+    for service in liste_services:
+        nom_service = service.attrs['Spec']['Name']
+        if nom_service in services_speciaux:
+            map_services_parnom[nom_service] = service
+        else:
+            liste_services_finale.append(service)
+
+    # Mettre services par ordre de priorite
+    services_speciaux.reverse()
+    for nom_service in services_speciaux:
+        try:
+            service = map_services_parnom[nom_service]
+            liste_services_finale.insert(0, service)
+        except KeyError:
+            pass
+
+    return liste_services_finale
