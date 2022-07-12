@@ -38,8 +38,8 @@
   "networks": [{"target": "millegrille_net", "aliases": ["redis"]}],
   "labels": {"millegrille": "${IDMG}"},
   "resources": {
-    "cpu_limit": 750000000,
-    "mem_limit": 100000000
+    "cpu_limit": 1000000000,
+    "mem_limit": 400000000
   },
   "restart_policy": {
     "condition": "on-failure",
