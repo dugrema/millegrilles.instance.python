@@ -1,6 +1,6 @@
 {
   "nom": "messagerie_web",
-  "version": "2022.4.1",
+  "version": "2022.4.6",
   "description": {
     "en": "Messaging web",
     "fr": "Messagerie web"
@@ -75,6 +75,6 @@
     }
   ],
   "nginx": {
-    "conf": ["messagerie.app.location"]
+    "conf": ["messagerie.app.location", "messagerie.app.proxypass"]
   }
 }

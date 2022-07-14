@@ -1,12 +1,24 @@
-location = /messagerie/fichiers/verifier {{
-  set $upstream_{appname}_verifier https://messagerie:443;
-  proxy_pass $upstream_{appname}_verifier;
+location = /messagerie/initSession {{
+  include /etc/nginx/conf.d/modules/messagerie.app.proxypass;
   proxy_pass_request_body off;
+  proxy_set_header X-Original-URI $request_uri;
+  include /etc/nginx/conf.d/auth.include;
+}}
+
+location = /messagerie/fichiers/verifier {{
+  include /etc/nginx/conf.d/modules/messagerie.app.proxypass;
+  proxy_pass_request_body off;
+  proxy_set_header X-Original-URI $request_uri;
+}}
+
+location = /messagerie/streams/verifier {{
+  include /etc/nginx/conf.d/modules/messagerie.app.proxypass;
+  proxy_pass_request_body off;
+  proxy_set_header X-Original-URI $request_uri;
 }}
 
 location /messagerie/poster {{
-  set $upstream_{appname}_poster https://messagerie:443;
-  proxy_pass $upstream_{appname}_poster;
+  include /etc/nginx/conf.d/modules/messagerie.app.proxypass;
   include /etc/nginx/conf.d/component_proxyheaders.include;
   include /etc/nginx/conf.d/component_gzip.include;
 
@@ -35,9 +47,28 @@ location /messagerie/fichiers {{
   proxy_set_header  X-Hostname        $hostname;
 }}
 
+location /messagerie/streams {{
+  include /etc/nginx/conf.d/modules/media.app.proxypass;
+
+  # Laisser collections confirmer que l'usager est actif, a acces au fichier
+  auth_request      /messagerie/streams/verifier;
+
+  # Ces transferts doivent etre bloques (utiliser /upload de collections a la place)
+  if ($request_method !~ GET|OPTIONS) {{
+    return 405;
+  }}
+
+  # Rewrite pour consignation.grosfichiers
+  rewrite ^(/messagerie/streams/)(.*)$ /stream_transfert/$2 break;
+
+  # Override header verified, aucun check SSL requis (cert nginx uniquement)
+  proxy_set_header  VERIFIED INTERNAL;
+  proxy_set_header  Host              $host;
+  proxy_set_header  X-Hostname        $hostname;
+}}
+
 location /messagerie/upload {{
-  set $upstream_{appname}_upload https://messagerie:443;
-  proxy_pass $upstream_{appname}_upload;
+  include /etc/nginx/conf.d/modules/messagerie.app.proxypass;
 
   include /etc/nginx/conf.d/auth.include;
   include /etc/nginx/conf.d/component_proxyheaders.include;
@@ -47,8 +78,7 @@ location /messagerie/upload {{
 }}
 
 location /messagerie {{
-  set $upstream_{appname} https://messagerie:443;
-  proxy_pass $upstream_{appname};
+  include /etc/nginx/conf.d/modules/messagerie.app.proxypass;
 
   include /etc/nginx/conf.d/auth.include;
 

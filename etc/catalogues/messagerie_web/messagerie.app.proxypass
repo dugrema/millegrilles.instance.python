@@ -1,0 +1,8 @@
+set $upstream_messagerie https://messagerie:443;
+proxy_pass $upstream_messagerie;
+
+proxy_ssl_certificate         /run/secrets/nginx.cert.pem;
+proxy_ssl_certificate_key     /run/secrets/nginx.key.pem;
+proxy_ssl_trusted_certificate /usr/share/nginx/files/certs/millegrille.cert.pem;
+proxy_ssl_verify       on;
+proxy_ssl_verify_depth 1;
