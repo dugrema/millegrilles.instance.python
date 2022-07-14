@@ -1,6 +1,6 @@
 {
   "nom": "maitredescles_redis1",
-  "version": "2022.4.0",
+  "version": "2022.4.1",
   "securite": "4.secure",
   "dependances": [
     {
