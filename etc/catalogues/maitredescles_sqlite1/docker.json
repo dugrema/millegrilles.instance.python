@@ -1,0 +1,72 @@
+{
+  "nom": "maitredescles_sqlite1",
+  "version": "2022.4.1",
+  "securite": "4.secure",
+  "dependances": [
+    {
+      "name": "maitredescles_sqlite1",
+      "image": "docker.maceroc.com/millegrilles_maitredescles:2022.4.0",
+      "certificat": {
+        "roles": ["maitredescles_sqlite1","maitredescles"],
+        "domaines": ["MaitreDesCles"],
+        "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
+      },
+      "env": {
+        "MG_MQ_HOST": "mq",
+        "MG_MQ_PORT": "5673",
+        "MG_MONGO_HOST": "mongo",
+        "MG_MQ_SSL": "on",
+        "MG_MQ_AUTH_CERT": "on",
+        "CERTFILE": "/run/secrets/cert.pem",
+        "KEYFILE": "/run/secrets/key.pem",
+        "CAFILE": "/run/secrets/millegrille.cert.pem",
+        "MG_REDIS_URL": "rediss://client_rust@redis:6379#insecure",
+        "MG_REDIS_PASSWORD_FILE": "/run/secrets/passwd.redis.txt",
+        "RUST_LOG": "warn",
+        "MG_MAITREDESCLES_MODE": "sqlite",
+        "MG_SQLITE_PATH": "/var/opt/millegrilles/maitredescles"
+      },
+      "constraints": ["node.labels.millegrilles.maitredescles == true"],
+      "mounts": [
+        {"source": "maitredescles-sqlite1", "target":  "/var/opt/millegrilles/maitredescles", "type": "volume"}
+      ],
+      "configs": [
+        {
+          "name": "pki.maitredescles_sqlite1",
+          "current": "cert",
+          "filename": "/run/secrets/cert.pem"
+        },
+        {
+          "name": "pki.millegrille",
+          "filename": "/run/secrets/millegrille.cert.pem"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "pki.maitredescles_sqlite1",
+          "current": "key",
+          "filename": "key.pem"
+        },
+        {
+          "name": "passwd.redis",
+          "current": "password",
+          "filename": "passwd.redis.txt"
+        }
+      ],
+      "networks": [{"target": "millegrille_net"}],
+      "resources": {
+        "cpu_limit": 1000000000,
+        "mem_limit": 120000000
+      },
+      "restart_policy": {
+        "condition": "on-failure",
+        "delay": 60000000000,
+        "max_attempts": 2
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      }
+    }
+  ]
+}
