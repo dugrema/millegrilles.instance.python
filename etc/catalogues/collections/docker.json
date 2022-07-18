@@ -1,6 +1,6 @@
 {
   "nom": "collections",
-  "version": "2022.4.2",
+  "version": "2022.4.3",
   "securite": "2.prive",
   "dependances": [
     {

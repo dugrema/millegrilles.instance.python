@@ -37,6 +37,19 @@ location /collections/fichiers {{
   proxy_set_header  Host              $host;
   proxy_set_header  X-Hostname        $hostname;
 
+  # Cache de fichiers du proxy
+  proxy_cache       cache_fichiers;
+  proxy_cache_lock  on;
+  proxy_cache_background_update on;
+  proxy_cache_use_stale error timeout updating
+                        http_500 http_502 http_503 http_504;
+
+  proxy_cache_key   $uri$is_args$args$slice_range;
+  proxy_set_header  Range $slice_range;
+  proxy_cache_valid 200 201 202 206 1d;
+  proxy_cache_valid 404 15s;
+  proxy_cache_valid 401 403 500 502 503 504 5s;
+
   # Config commune pour acces a consignation
   # include /etc/nginx/conf.d/component_fichiers.include;
 }}
@@ -60,6 +73,20 @@ location /collections/streams {{
   proxy_set_header VERIFIED INTERNAL;
   proxy_set_header  Host              $host;
   proxy_set_header  X-Hostname        $hostname;
+
+  # Cache de streams du proxy. Supporte slicing (http 206)
+  slice 5m;
+  proxy_cache       cache_fichiers;
+  proxy_cache_lock  on;
+  proxy_cache_background_update on;
+  proxy_cache_use_stale error timeout updating
+                        http_500 http_502 http_503 http_504;
+
+  proxy_cache_key   $uri$is_args$args$slice_range;
+  proxy_set_header  Range $slice_range;
+  proxy_cache_valid 200 201 202 206 1d;
+  proxy_cache_valid 404 15s;
+  proxy_cache_valid 401 403 500 502 503 504 5s;
 
   # Config commune pour acces a consignation
   # include /etc/nginx/conf.d/component_fichiers.include;
