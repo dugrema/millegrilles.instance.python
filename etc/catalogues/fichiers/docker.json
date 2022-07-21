@@ -1,6 +1,6 @@
 {
   "nom": "fichiers",
-  "version": "2022.4.0",
+  "version": "2022.4.1",
   "securite": "2.prive",
   "dependances": [
     {
@@ -69,7 +69,7 @@
       "networks": [{"target": "millegrille_net", "aliases": ["fichiers"]}],
       "resources": {
         "cpu_limit": 1000000000,
-        "mem_limit": 150000000
+        "mem_limit": 300000000
       },
       "restart_policy": {
         "condition": "on-failure",
