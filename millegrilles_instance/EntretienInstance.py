@@ -85,7 +85,6 @@ CONFIG_MODULES_PROTEGES = [
     'docker.midcompte.json',
     'docker.core.json',
     'docker.maitrecomptes.json',
-    'docker.maitrecomptes_redis1.json',
     'docker.coupdoeil.json',
 ]
 
