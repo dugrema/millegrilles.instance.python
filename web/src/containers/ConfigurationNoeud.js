@@ -61,7 +61,7 @@ function ConfigurerNoeudPrive(props) {
       <Row>
         <Col className="bouton">
           <Button onClick={installer} value="true">Demarrer installation</Button>
-          <Button onClick={props.precedent} value='false' variant="secondary">Precedent</Button>
+          <Button onClick={props.annuler} value='false' variant="secondary">Annuler</Button>
         </Col>
       </Row>
     </>
@@ -93,7 +93,7 @@ function ConfigurerNoeudPublic(props) {
       <Row>
         <Col className="bouton">
           <Button onClick={installer} value="true">Demarrer installation</Button>
-          <Button onClick={props.precedent} value='false' variant="secondary">Precedent</Button>
+          <Button onClick={props.annuler} value='false' variant="secondary">Annuler</Button>
         </Col>
       </Row>
     </>
@@ -126,7 +126,7 @@ function InstallerNoeudProtege(props) {
       <Row>
         <Col className="bouton">
           <Button onClick={installer} value="true">Demarrer installation</Button>
-          <Button onClick={props.precedent} value='false' variant="secondary">Precedent</Button>
+          <Button onClick={props.annuler} value='false' variant="secondary">Annuler</Button>
         </Col>
       </Row>
     </Container>

@@ -7,7 +7,7 @@ import axios from 'axios'
 import { SelectionnerTypeNoeud } from './SelectionTypeNoeud'
 import { ChargementClePrivee } from './ChargerCleCert'
 import { GenererNouvelleCle } from './GenererNouvelleCle'
-import { PageConfigurationInternet } from './ConfigurationInternet'
+// import { PageConfigurationInternet } from './ConfigurationInternet'
 import { ConfigurationCompletee } from './PagesEtat'
 import { ConfigurerNoeudIdmg } from './ConfigurationNoeudIdmg'
 import { ConfigurerNoeud } from './ConfigurationNoeud'
@@ -17,7 +17,7 @@ const MAPPING_PAGES = {
   SelectionnerTypeNoeud,
   ChargementClePrivee,
   GenererNouvelleCle,
-  PageConfigurationInternet,
+  // PageConfigurationInternet,
   ConfigurationCompletee,
   ConfigurerNoeud,
   ConfigurerNoeudIdmg,
@@ -138,6 +138,7 @@ export class Installation extends React.Component {
               setIdmg={this.setIdmg}
               setInternetDisponible={this.setInternetDisponible}
               afficherPageTypeInstallation={this.afficherPageTypeInstallation}
+              annuler={()=>this.setState({page: ''})}
               {...this.state} />
       )
 

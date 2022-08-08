@@ -22,7 +22,7 @@ function App(props) {
 
   const [idmg, setIdmg] = useState('')
   const [info, setInfo] = useState('')
-  const [infoInternet, setInfoInternet] = useState('')
+  // const [infoInternet, setInfoInternet] = useState('')
   const [page, setPage] = useState('Installation')
   const [infoClecertMillegrille, setInfoClecertMillegrille] = useState('')
   const [intermediairePem, setIntermediairePem] = useState('')
@@ -64,14 +64,14 @@ function App(props) {
   // console.debug("Nom usager : %s, estProprietaire : %s", this.state.nomUsager, this.state.estProprietaire)
 
   const rootProps = {
-    idmg, info, infoInternet, infoClecertMillegrille, 
+    idmg, info, /*infoInternet,*/ infoClecertMillegrille, 
     intermediairePem, intermediaireCert,
     manifest,
 
     setInfo: conserverInfo,
     setInfoClecertMillegrille: changerInfoClecertMillegrille,
     setInfoCertificatNoeudProtege,
-    setInfoInternet,
+    // setInfoInternet,
     setManifest,
     // setIdmg,
   }

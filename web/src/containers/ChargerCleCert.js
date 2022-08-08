@@ -238,7 +238,7 @@ export class ChargementClePrivee extends React.Component {
         {cacherBoutons!==true?
           <Row className="boutons-installer">
             <Col>
-              <Button onClick={this.props.setPage} value='PageConfigurationInternet' disabled={!this.state.clePriveeChargee}>Suivant</Button>
+              <Button onClick={this.props.setPage} value='ConfigurerNoeud' disabled={!this.state.clePriveeChargee}>Suivant</Button>
               <Button onClick={this.props.setPage} value='SelectionnerTypeNoeud' variant="secondary">Retour</Button>
             </Col>
           </Row>
