@@ -4,7 +4,7 @@ import Row from 'react-bootstrap/Row'
 import Col from 'react-bootstrap/Col'
 import Button from 'react-bootstrap/Button'
 import Alert from 'react-bootstrap/Alert'
-import QRCode from 'qrcode.react'
+// import QRCode from 'qrcode.react'
 
 import {pki as forgePki} from '@dugrema/node-forge'
 import { forgecommon } from '@dugrema/millegrilles.reactjs'
@@ -91,7 +91,7 @@ function LayoutApplication(props) {
 
   var qrCode = null
   if(props.rootProps.idmgCompte) {
-    qrCode = <QRCode value={'idmg:' + props.rootProps.idmg} size={75} />
+    // qrCode = <QRCode value={'idmg:' + props.rootProps.idmg} size={75} />
   }
 
   const pageAffichee = (

@@ -1,6 +1,6 @@
 import React from 'react'
 import { Row, Col, Alert } from 'react-bootstrap'
-import QRCode from 'qrcode.react'
+// import QRCode from 'qrcode.react'
 import { Trans } from 'react-i18next';
 
 export class RenderPEM extends React.Component {
@@ -31,7 +31,7 @@ export class RenderPEM extends React.Component {
         pemData = this.props.nom + ';' + (idx+1) + ';' + nbCodes + '\n' + pemData;
         qrCodes.push(
           <Col xs={6} key={idx} className='qr-code'>
-            <QRCode className="qrcode" value={pemData} size={300} />
+            {/*<QRCode className="qrcode" value={pemData} size={300} />*/}
           </Col>
         );
       }
@@ -95,7 +95,7 @@ export function PageBackupCles(props) {
             <p>{props.motdepasse}</p>
           </Col>
           <Col lg={4}>
-            <QRCode value={props.motdepasse} size={75} />
+            {/*<QRCode value={props.motdepasse} size={75} />*/}
           </Col>
         </Row>
 

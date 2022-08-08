@@ -3,27 +3,42 @@
   "version": "2022.5.0",
   "private": true,
   "dependencies": {
-    "@dugrema/millegrilles.reactjs": "git+ssh://git.maceroc.com/git/millegrilles.reactjs#2022.5",
-    "font-awesome": "^4.7.0",
-    "i18next": "^21.8.16",
-    "i18next-browser-languagedetector": "^6.1.4",
-    "moment-timezone": "^0.5.34",
+    "crypto-browserify": "^3.12.0",
+    "os-browserify": "^0.3.0",
     "react": "^18.2.0",
+    "react-app-rewired": "^2.2.1",
     "react-bootstrap": "^2.5.0",
     "react-dom": "^18.2.0",
     "react-dropzone": "^14.2.2",
     "react-i18next": "^11.18.3",
-    "react-scripts": "^5.0.1"
+    "react-scripts": "^5.0.1",
+    "stream-browserify": "^3.0.0"
+  },
+  "devDependencies": {
+    "@dugrema/millegrilles.reactjs": "git+ssh://git.maceroc.com/git/millegrilles.reactjs#2022.5",
+    "assert": "^2.0.0",
+    "buffer": "^6.0.3",
+    "crypto": "^1.0.1",
+    "font-awesome": "^4.7.0",
+    "fs": "^0.0.1-security",
+    "https-browserify": "^1.0.0",
+    "i18next": "^21.8.16",
+    "i18next-browser-languagedetector": "^6.1.4",
+    "moment-timezone": "^0.5.34",
+    "stream": "^0.0.2",
+    "stream-http": "^3.2.0",
+    "url": "^0.11.0"
   },
   "peerDependencies": {
+    "@dugrema/node-forge": "https://github.com/dugrema/forge.git#ed25519",
     "@dugrema/millegrilles.utiljs": "git+ssh://git.maceroc.com/git/millegrilles.utiljs#2022.5",
     "axios": "^0",
     "bootstrap": "^5.1"
   },
   "scripts": {
-    "start": "export WDS_SOCKET_PATH=/installation/sockjs-node && rescripts start",
-    "build": "BABEL_ENV=production rescripts build",
-    "eject": "react-scripts eject"
+    "start": "export WDS_SOCKET_PATH=/installation/sockjs-node && react-app-rewired start",
+    "build": "BABEL_ENV=production react-app-rewired build",
+    "eject": "react-app-rewired eject"
   },
   "eslintConfig": {
     "extends": "react-app"
@@ -40,6 +55,6 @@
       "last 1 safari version"
     ]
   },
-  "proxy": "https://mg-dev5.maple.maceroc.com:2443",
+  "proxy": "https://localhost:2443",
   "homepage": "/installation"
 }

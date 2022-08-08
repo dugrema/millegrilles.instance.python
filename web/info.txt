@@ -1,0 +1,171 @@
+
+> monitor.web@2022.5.0 start
+> export WDS_SOCKET_PATH=/installation/sockjs-node && react-app-rewired start
+
+Attempting to bind to HOST environment variable: ::
+If this was unintentional, check that you haven't mistakenly set it in your shell.
+Learn more here: https://cra.link/advanced-config
+
+!!! fallback : {
+  assert: 'assert/',
+  buffer: 'buffer/',
+  crypto: 'crypto-browserify/',
+  http: 'stream-http/',
+  https: 'https-browserify/',
+  os: 'os-browserify/',
+  stream: 'stream-browserify/',
+  url: 'url/'
+}
+!!! plugins : [
+  HtmlWebpackPlugin {
+    userOptions: {
+      inject: true,
+      template: '/mnt/tas/mathieu/PycharmProjects/millegrilles.instance.python/web/public/index.html'
+    },
+    version: 5
+  },
+  InterpolateHtmlPlugin {
+    htmlWebpackPlugin: [class HtmlWebpackPlugin] {
+      version: 5,
+      getHooks: [Function: getHtmlWebpackPluginHooks],
+      createHtmlTagObject: [Function: createHtmlTagObject]
+    },
+    replacements: {
+      NODE_ENV: 'development',
+      PUBLIC_URL: '/installation',
+      WDS_SOCKET_HOST: undefined,
+      WDS_SOCKET_PATH: '/installation/sockjs-node',
+      WDS_SOCKET_PORT: undefined,
+      FAST_REFRESH: true
+    }
+  },
+  ModuleNotFoundPlugin {
+    appPath: '/mnt/tas/mathieu/PycharmProjects/millegrilles.instance.python/web',
+    yarnLockFile: undefined,
+    useYarnCommand: [Function: bound useYarnCommand],
+    getRelativePath: [Function: bound getRelativePath],
+    prettierError: [Function: bound prettierError]
+  },
+  DefinePlugin { definitions: { 'process.env': [Object] } },
+  ReactRefreshPlugin {
+    options: {
+      overlay: false,
+      exclude: /node_modules/i,
+      include: /\.([cm]js|[jt]sx?|flow)$/i
+    }
+  },
+  CaseSensitivePathsPlugin {
+    options: {},
+    logger: Object [console] {
+      log: [Function: log],
+      warn: [Function: warn],
+      dir: [Function: dir],
+      time: [Function: time],
+      timeEnd: [Function: timeEnd],
+      timeLog: [Function: timeLog],
+      trace: [Function: trace],
+      assert: [Function: assert],
+      clear: [Function: clear],
+      count: [Function: count],
+      countReset: [Function: countReset],
+      group: [Function: group],
+      groupEnd: [Function: groupEnd],
+      table: [Function: table],
+      debug: [Function: debug],
+      info: [Function: info],
+      dirxml: [Function: dirxml],
+      error: [Function: error],
+      groupCollapsed: [Function: groupCollapsed],
+      Console: [Function: Console],
+      profile: [Function: profile],
+      profileEnd: [Function: profileEnd],
+      timeStamp: [Function: timeStamp],
+      context: [Function: context]
+    },
+    pathCache: Map(0) {},
+    fsOperations: 0,
+    primed: false
+  },
+  WebpackManifestPlugin {
+    options: {
+      assetHookStage: Infinity,
+      basePath: '',
+      fileName: 'asset-manifest.json',
+      filter: null,
+      generate: [Function: generate],
+      map: null,
+      publicPath: '/installation/',
+      removeKeyHash: /([a-f0-9]{16,32}\.?)/gi,
+      seed: undefined,
+      serialize: [Function: serialize],
+      sort: null,
+      transformExtensions: /^(gz|map)$/i,
+      useEntryKeys: false,
+      useLegacyEmit: false,
+      writeToFileEmit: false
+    }
+  },
+  IgnorePlugin {
+    options: { resourceRegExp: /^\.\/locale$/, contextRegExp: /moment$/ },
+    checkIgnore: [Function: bound checkIgnore]
+  },
+  ESLintWebpackPlugin {
+    key: 'ESLintWebpackPlugin',
+    options: {
+      extensions: [Array],
+      emitError: true,
+      emitWarning: true,
+      failOnError: true,
+      resourceQueryExclude: [],
+      formatter: '/mnt/tas/mathieu/PycharmProjects/millegrilles.instance.python/web/node_modules/react-dev-utils/eslintFormatter.js',
+      eslintPath: '/mnt/tas/mathieu/PycharmProjects/millegrilles.instance.python/web/node_modules/eslint/lib/api.js',
+      context: '/mnt/tas/mathieu/PycharmProjects/millegrilles.instance.python/web/src',
+      cache: true,
+      cacheLocation: '/mnt/tas/mathieu/PycharmProjects/millegrilles.instance.python/web/node_modules/.cache/.eslintcache',
+      cwd: '/mnt/tas/mathieu/PycharmProjects/millegrilles.instance.python/web',
+      resolvePluginsRelativeTo: '/mnt/tas/mathieu/PycharmProjects/millegrilles.instance.python/web/node_modules/react-scripts/config',
+      baseConfig: [Object]
+    },
+    run: [Function: bound run] AsyncFunction
+  },
+  ProvidePlugin { definitions: { Buffer: [Array] } }
+]
+Buffer : {
+  Blob: [class Blob],
+  resolveObjectURL: [Function: resolveObjectURL],
+  Buffer: [Function: Buffer] {
+    poolSize: 8192,
+    from: [Function: from],
+    of: [Function: of],
+    alloc: [Function: alloc],
+    allocUnsafe: [Function: allocUnsafe],
+    allocUnsafeSlow: [Function: allocUnsafeSlow],
+    isBuffer: [Function: isBuffer],
+    compare: [Function: compare],
+    isEncoding: [Function: isEncoding],
+    concat: [Function: concat],
+    byteLength: [Function: byteLength],
+    [Symbol(kIsEncodingSymbol)]: [Function: isEncoding]
+  },
+  SlowBuffer: [Function: SlowBuffer],
+  transcode: [Function: transcode],
+  kMaxLength: 4294967296,
+  kStringMaxLength: 536870888,
+  btoa: [Function: btoa],
+  atob: [Function: atob],
+  constants: { MAX_LENGTH: 4294967296, MAX_STRING_LENGTH: 536870888 },
+  INSPECT_MAX_BYTES: [Getter/Setter]
+}
+Starting the development server...
+
+Compiled successfully!
+
+You can now view monitor.web in the browser.
+
+  Local:            https://localhost:8444/installation
+  On Your Network:  https://192.168.2.131:8444/installation
+
+Note that the development build is not optimized.
+To create a production build, use npm run build.
+
+webpack compiled successfully

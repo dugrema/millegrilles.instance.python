@@ -1,7 +1,7 @@
 import React from 'react'
 import { Container, Row, Col} from 'react-bootstrap'
 import { Trans } from 'react-i18next'
-import QRCode from 'qrcode.react'
+// import QRCode from 'qrcode.react'
 
 import Menu from './Menu'
 
@@ -44,7 +44,7 @@ function Footer(props) {
   var qrCode = null
 
   if(props.rootProps.idmg) {
-    qrCode = <QRCode value={'idmg:' + idmg} size={75} />
+    // qrCode = <QRCode value={'idmg:' + idmg} size={75} />
   }
 
   return (
