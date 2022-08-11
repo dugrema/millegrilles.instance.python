@@ -1,6 +1,6 @@
 {
   "name": "coupdoeil",
-  "image": "docker.maceroc.com/millegrilles_web_coupdoeil:2022.4.0",
+  "image": "docker.maceroc.com/millegrilles_web_coupdoeil:2022.5.0",
   "certificat": {
     "roles": ["coupdoeil"],
     "exchanges": ["3.protege", "2.prive", "1.public"],
