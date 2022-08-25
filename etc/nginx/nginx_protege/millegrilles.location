@@ -14,6 +14,10 @@ location = /millegrilles/authentification/verifier {{
   client_max_body_size 5m;  # Limite batch upload
 }}
 
+location /millegrilles/authentification {{
+  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
+}}
+
 #location = /millegrilles/authentification/verifier_public {{
 #  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
 #  proxy_pass_request_body off; # no need to send the POST body

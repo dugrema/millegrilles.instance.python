@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 import json
 
@@ -42,11 +43,24 @@ async def run_tests(messages_thread, stop_event):
     logger.info("emettre requetes grosfichiers")
 
     # await get_documentsParFuuid(messages_thread)
-    await verifier_acces_fuuids(messages_thread)
+    # await verifier_acces_fuuids(messages_thread)
+    # await get_favoris(messages_thread)
+    # await sync_collection(messages_thread)
+    # await sync_recents(messages_thread)
+    await sync_corbeille(messages_thread)
 
     stop_event.set()
 
     logger.info("Fin main()")
+
+
+async def get_favoris(messages_thread):
+    action = 'favoris'
+    requete = {'user_id': 'z2i3XjxEBWbPQ8KptFX8DEA4BstgkwKghfR2fFznQEdW9zjc6qL'}
+    producer = messages_thread.get_producer()
+    reponse = await producer.executer_requete(requete, 'GrosFichiers', action=action, exchange=Constantes.SECURITE_PRIVE)
+    contenu = json.dumps(reponse.parsed, indent=2)
+    logger.info("Reponse recue : %s", contenu)
 
 
 async def get_documentsParFuuid(messages_thread):
@@ -72,6 +86,75 @@ async def verifier_acces_fuuids(messages_thread):
     reponse = await producer.executer_requete(requete, 'GrosFichiers', action=action, exchange=Constantes.SECURITE_PRIVE)
     contenu = json.dumps(reponse.parsed, indent=2)
     logger.info("Reponse recue : %s", contenu)
+
+
+async def sync_collection(messages_thread):
+    action = 'syncCollection'
+    skip = 0
+    complete = False
+    while complete is False:
+        requete = {
+            'cuuid': '085b8595-c8e6-480c-a451-b2515fcd38a7',
+            'user_id': 'z2i3Xjx9Jv4LqevqLyEFoWib1TL9YrfdMczmWxXWrZdb1gN7fTb',
+            'limit': 2,
+            'skip': skip,
+        }
+        producer = messages_thread.get_producer()
+        reponse = await producer.executer_requete(requete, 'GrosFichiers', action=action, exchange=Constantes.SECURITE_PROTEGE)
+        contenu = json.dumps(reponse.parsed, indent=2)
+        logger.info("Reponse recue : %s", contenu)
+        complete = reponse.parsed['complete']
+        skip = skip + len(reponse.parsed['fichiers'])
+
+    logger.info("Nombre de fichiers : %d" % skip)
+
+
+async def sync_recents(messages_thread):
+    action = 'syncRecents'
+    skip = 0
+    complete = False
+    while complete is False:
+        requete = {
+            'cuuid': '085b8595-c8e6-480c-a451-b2515fcd38a7',
+            'user_id': 'z2i3Xjx9Jv4LqevqLyEFoWib1TL9YrfdMczmWxXWrZdb1gN7fTb',
+            'debut': round(datetime.datetime.utcnow().timestamp() - (13 * 24 * 60 * 60)),
+            'fin': round(datetime.datetime.utcnow().timestamp() - (12 * 24 * 60 * 60)),
+            'limit': 10,
+            'skip': skip,
+        }
+        producer = messages_thread.get_producer()
+        reponse = await producer.executer_requete(requete, 'GrosFichiers', action=action, exchange=Constantes.SECURITE_PROTEGE)
+        contenu = json.dumps(reponse.parsed, indent=2)
+        logger.info("Reponse recue : %s", contenu)
+        complete = reponse.parsed['complete']
+        compte = len(reponse.parsed['fichiers'])
+        skip = skip + compte
+
+    logger.info("Nombre de fichiers : %d" % skip)
+
+
+async def sync_corbeille(messages_thread):
+    action = 'syncCorbeille'
+    skip = 0
+    complete = False
+    while complete is False:
+        requete = {
+            'cuuid': '085b8595-c8e6-480c-a451-b2515fcd38a7',
+            'user_id': 'z2i3Xjx9Jv4LqevqLyEFoWib1TL9YrfdMczmWxXWrZdb1gN7fTb',
+            'debut': round(datetime.datetime.utcnow().timestamp() - (13 * 24 * 60 * 60)),
+            'fin': round(datetime.datetime.utcnow().timestamp() - (12 * 24 * 60 * 60)),
+            'limit': 10,
+            'skip': skip,
+        }
+        producer = messages_thread.get_producer()
+        reponse = await producer.executer_requete(requete, 'GrosFichiers', action=action, exchange=Constantes.SECURITE_PROTEGE)
+        contenu = json.dumps(reponse.parsed, indent=2)
+        logger.info("Reponse recue : %s", contenu)
+        complete = reponse.parsed['complete']
+        compte = len(reponse.parsed['fichiers'])
+        skip = skip + compte
+
+    logger.info("Nombre de fichiers : %d" % skip)
 
 
 async def callback_reply_q(message, messages_module):
