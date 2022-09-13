@@ -46,8 +46,8 @@ async def run_tests(messages_thread, stop_event):
     # await verifier_acces_fuuids(messages_thread)
     # await get_favoris(messages_thread)
     # await sync_collection(messages_thread)
-    # await sync_recents(messages_thread)
-    await sync_corbeille(messages_thread)
+    await sync_recents(messages_thread)
+    # await sync_corbeille(messages_thread)
 
     stop_event.set()
 
@@ -115,10 +115,9 @@ async def sync_recents(messages_thread):
     complete = False
     while complete is False:
         requete = {
-            'cuuid': '085b8595-c8e6-480c-a451-b2515fcd38a7',
             'user_id': 'z2i3Xjx9Jv4LqevqLyEFoWib1TL9YrfdMczmWxXWrZdb1gN7fTb',
-            'debut': round(datetime.datetime.utcnow().timestamp() - (13 * 24 * 60 * 60)),
-            'fin': round(datetime.datetime.utcnow().timestamp() - (12 * 24 * 60 * 60)),
+            'debut': round(datetime.datetime.utcnow().timestamp() - (14 * 24 * 60 * 60)),
+            'fin': round(datetime.datetime.utcnow().timestamp() - (13 * 24 * 60 * 60)),
             'limit': 10,
             'skip': skip,
         }
@@ -139,7 +138,6 @@ async def sync_corbeille(messages_thread):
     complete = False
     while complete is False:
         requete = {
-            'cuuid': '085b8595-c8e6-480c-a451-b2515fcd38a7',
             'user_id': 'z2i3Xjx9Jv4LqevqLyEFoWib1TL9YrfdMczmWxXWrZdb1gN7fTb',
             'debut': round(datetime.datetime.utcnow().timestamp() - (13 * 24 * 60 * 60)),
             'fin': round(datetime.datetime.utcnow().timestamp() - (12 * 24 * 60 * 60)),
