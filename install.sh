@@ -16,6 +16,7 @@ fi
 
 # Executer le script d'installation de base sans docker
 ${REP_BIN}/install_instance.sh
+${REP_BIN}/install_fixes.sh
 
 if [ -n "${DOCKER}" ]; then
   ${REP_BIN}/install_docker.sh
