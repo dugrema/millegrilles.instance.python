@@ -1,10 +1,10 @@
 {
   "nom": "maitredescles_ca_partvolatil",
-  "version": "2022.6.0",
+  "version": "2022.6.2",
   "securite": "4.secure",
   "dependances": [
     {
-      "name": "maitredescles",
+      "name": "maitredescles_ca_partvolatil",
       "image": "docker.maceroc.com/millegrilles_maitredescles:2022.6.0",
       "certificat": {
         "roles": ["maitredescles_connexion"],
@@ -28,7 +28,7 @@
       "constraints": ["node.labels.millegrilles.maitredescles == true"],
       "configs": [
         {
-          "name": "pki.maitredescles",
+          "name": "pki.maitredescles_ca_partvolatil",
           "current": "cert",
           "filename": "/run/secrets/cert.pem"
         },
@@ -39,7 +39,7 @@
       ],
       "secrets": [
         {
-          "name": "pki.maitredescles",
+          "name": "pki.maitredescles_ca_partvolatil",
           "current": "key",
           "filename": "key.pem"
         },
