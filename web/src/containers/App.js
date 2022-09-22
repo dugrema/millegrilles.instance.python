@@ -7,13 +7,14 @@ import Alert from 'react-bootstrap/Alert'
 // import QRCode from 'qrcode.react'
 
 import {pki as forgePki} from '@dugrema/node-forge'
-import { forgecommon } from '@dugrema/millegrilles.reactjs'
-import { getIdmg } from '@dugrema/millegrilles.utiljs/src/idmg'
+import { forgecommon, idmg } from '@dugrema/millegrilles.reactjs'
+// import { getIdmg } from '@dugrema/millegrilles.utiljs/src/idmg'
 
 import { LayoutMillegrilles } from './Layout'
 import { Installation } from './Installation'
 import RenouvellementIntermediaire from './RenouvellementIntermediaire'
 
+const { getIdmg } = idmg
 const { splitPEMCerts, extraireExtensionsMillegrille } = forgecommon
 
 // const MAPPING_PAGES = { Installation, RenouvellementIntermediaire }
@@ -222,7 +223,7 @@ function AfficherInformationNoeud(props) {
     listeInfo.push(
       <Row key='certificat'>
         <Col sm={3}>Certificat</Col>
-        <Col><pre>{pemCertificat}</pre></Col>
+        <Col><pre>{pemCertificat.join("\n")}</pre></Col>
       </Row>
     )
   }

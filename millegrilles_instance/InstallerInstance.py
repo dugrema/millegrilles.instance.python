@@ -43,7 +43,10 @@ async def installer_instance(etat_instance: EtatInstance, request: BaseRequest, 
     elif idmg != enveloppe_ca.idmg:
         raise Exception("Mismatch idmg local et recu")
 
-    if securite == Constantes.SECURITE_PROTEGE:
+    if securite == Constantes.SECURITE_SECURE:
+        await installer_secure(etat_instance, contenu, certificat_ca, idmg)
+        return web.Response(status=201, headers=headers_response)
+    elif securite == Constantes.SECURITE_PROTEGE:
         await installer_protege(etat_instance, contenu, certificat_ca, idmg)
         return web.Response(status=201, headers=headers_response)
     elif securite in [Constantes.SECURITE_PUBLIC, Constantes.SECURITE_PRIVE]:
@@ -52,6 +55,35 @@ async def installer_instance(etat_instance: EtatInstance, request: BaseRequest, 
     else:
         logger.error("installer_instance Mauvais type instance (%s)" % securite)
         return web.HTTPBadRequest()
+
+
+async def installer_secure(etat_instance: EtatInstance, contenu: dict, certificat_ca: str, idmg: str):
+    # Injecter un CSR pour generer un certificat d'instance local
+    clecsr = CleCsrGenere.build(etat_instance.instance_id)
+    csr_str = clecsr.get_pem_csr()
+    contenu['csr_instance'] = csr_str
+
+    reponse = await installer_certificat_intermediaire(etat_instance.certissuer_url, contenu)
+    certificat_instance = reponse['certificat']
+
+    # Installer le certificat d'instance
+    configuration = etat_instance.configuration
+    path_idmg = configuration.instance_idmg_path
+    path_ca = configuration.instance_ca_pem_path
+    path_securite = configuration.instance_securite_path
+    path_cert = configuration.instance_cert_pem_path
+    path_key = configuration.instance_key_pem_path
+    with open(path_idmg, 'w') as fichier:
+        fichier.write(idmg)
+    if certificat_ca is not None:
+        with open(path_ca, 'w') as fichier:
+            fichier.write(certificat_ca)
+    with open(path_securite, 'w') as fichier:
+        fichier.write(Constantes.SECURITE_SECURE)
+    with open(path_cert, 'w') as fichier:
+        fichier.write(''.join(certificat_instance))
+    with open(path_key, 'w') as fichier:
+        fichier.write(clecsr.get_pem_cle())
 
 
 async def installer_protege(etat_instance: EtatInstance, contenu: dict, certificat_ca: str, idmg: str):
