@@ -1,0 +1,19 @@
+{
+  "nom": "certificat_maitredescles",
+  "version": "2022.6.0",
+  "description": {
+    "en": "Maitre des cles (certificate)",
+    "fr": "Maitre des cles (certificat)"
+  },
+  "securite": "4.secure",
+  "dependances": [
+    {
+      "name": "certificat_maitredescles",
+      "certificat": {
+        "roles": ["maitredescles"],
+        "domaines": ["MaitreDesCles"],
+        "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
+      }
+    }
+  ]
+}
