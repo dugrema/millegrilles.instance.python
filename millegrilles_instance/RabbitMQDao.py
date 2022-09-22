@@ -59,6 +59,10 @@ class MqThread:
         if niveau_securite == Constantes.SECURITE_PROTEGE:
             reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
 
+        if niveau_securite == Constantes.SECURITE_SECURE:
+            # Downgrade securite a 3.protege pour recevoir les commandes
+            niveau_securite = Constantes.SECURITE_PROTEGE
+
         # RK globaux (meme niveau que l'instance)
         reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_INSTALLER))

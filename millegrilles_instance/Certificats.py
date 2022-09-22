@@ -340,6 +340,8 @@ async def demander_nouveau_certificat(producer: MessageProducerFormatteur, etat_
 
     # Emettre commande de signature, attendre resultat
     niveau_securite = etat_instance.niveau_securite
+    if niveau_securite == '4.secure':
+        niveau_securite = '3.protege'
     message_reponse = await producer.executer_commande(configuration, 'CorePki', 'signerCsr', exchange=niveau_securite)
     reponse = message_reponse.parsed
 

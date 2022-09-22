@@ -71,7 +71,12 @@ class CommandHandler:
                     if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
                         return await self.transmettre_catalogue(producer)
 
-            if exchange == self._etat_instance.niveau_securite:  # Doit etre meme niveau que l'instance
+            if self._etat_instance.niveau_securite == Constantes.SECURITE_SECURE:
+                securite_effectif = Constantes.SECURITE_PROTEGE
+            else:
+                securite_effectif = self._etat_instance.niveau_securite
+
+            if exchange == securite_effectif:  # Doit etre meme niveau que l'instance
                 if delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
                     if action == ConstantesInstance.COMMANDE_APPLICATION_INSTALLER:
                         return await self.installer_application(message)
