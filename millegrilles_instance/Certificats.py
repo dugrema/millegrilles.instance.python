@@ -53,8 +53,8 @@ def preparer_certificats_web(path_secrets: str):
     return path_cert_web, path_key_web
 
 
-async def generer_certificats_modules(client_session: ClientSession, etat_instance,
-                                      etat_docker: EtatDockerInstanceSync, configuration: dict):
+async def generer_certificats_modules(client_session: ClientSession, etat_instance, configuration: dict,
+                                      etat_docker: Optional[EtatDockerInstanceSync] = None):
     # S'assurer que tous les certificats sont presents et courants dans le repertoire secrets
     path_secrets = etat_instance.configuration.path_secrets
     for nom_module, value in configuration.items():
@@ -104,7 +104,8 @@ async def generer_certificats_modules(client_session: ClientSession, etat_instan
                 cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
                 fichier.write(cert_str)
 
-        await etat_docker.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
+        if etat_docker is not None:
+            await etat_docker.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
 
 
 async def generer_certificats_modules_satellites(producer: MessageProducerFormatteur, etat_instance,

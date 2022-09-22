@@ -275,7 +275,7 @@ class EtatInstance:
 
     async def generer_certificats_module(self, etat_docker, nom_module: str, configuration: dict):
         config = {nom_module: configuration}
-        await generer_certificats_modules(self.__client_session, self, etat_docker, config)
+        await generer_certificats_modules(self.__client_session, self, config, None)
 
     async def generer_certificats_module_satellite(self, producer: MessageProducerFormatteur,
                                                    etat_docker, nom_module: str, configuration: dict):
