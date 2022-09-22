@@ -14,10 +14,12 @@ export class ConfigurerNoeud extends React.Component {
     // Note : le noeud public doit etre configure avec internet
 
     if(this.props.rootProps.internetDisponible) {
-      // Configuration du noeud avec certificat web SSL
-      // Combine l'installation du certificat et du noeud en un appel
       return (
         <PageConfigurationDomaineAttente {...this.props} />
+      )
+    } else if(typeNoeud === 'secure') {
+      return (
+        <InstallerNoeudSecure {...this.props} />
       )
     } else if(typeNoeud === 'protege') {
       return (
@@ -44,7 +46,7 @@ function ConfigurerNoeudPrive(props) {
         console.error("Erreur demarrage installation noeud\n%O", err)
         return
       }
-      // Recharger page apres 15 secondes
+      // Recharger page apres timeout
       setTimeout(_=>{window.location.reload()}, 2000)
     })
   }
@@ -104,6 +106,40 @@ function InstallerNoeudProtege(props) {
 
   const installer = event => {
     installerNoeudProtege(props, {}, err=>{
+      if(err) {
+        console.error("Erreur demarrage installation noeud\n%O", err)
+        return
+      }
+      console.debug("Recu reponse demarrage installation noeud")
+      // Recharger page apres 15 secondes
+      setTimeout(_=>{window.location.reload()}, 15000)
+    })
+  }
+
+  const intermediaireCert = props.rootProps.intermediaireCert
+
+  return (
+    <Container>
+      <h2>Finaliser la configuration</h2>
+
+      <h3>Certificat du noeud</h3>
+      <InformationCertificat certificat={intermediaireCert} />
+
+      <Row>
+        <Col className="bouton">
+          <Button onClick={installer} value="true">Demarrer installation</Button>
+          <Button onClick={props.annuler} value='false' variant="secondary">Annuler</Button>
+        </Col>
+      </Row>
+    </Container>
+  )
+
+}
+
+function InstallerNoeudSecure(props) {
+
+  const installer = event => {
+    installerNoeudSecure(props, {}, err=>{
       if(err) {
         console.error("Erreur demarrage installation noeud\n%O", err)
         return
@@ -360,6 +396,38 @@ function AfficherErreurConnexion(props) {
   )
 }
 
+async function installerNoeudSecure(props, params, callback) {
+  console.debug("Pour installation, proppys!\n%O", props)
+
+  const idmg = props.idmg || props.rootProps.idmg,
+        intermediairePem = props.rootProps.intermediairePem,
+        certificatMillegrillePem = props.rootProps.infoClecertMillegrille.certificat
+
+  var paramsInstallation = {
+    ...params,
+    idmg,
+    certificatMillegrille: certificatMillegrillePem,
+    certificatIntermediaire: intermediairePem,
+    securite: '4.secure',
+  }
+
+  if(props.rootProps.infoInternet) {
+    // Ajouter les parametres de configuration internet
+    paramsInstallation = {...props.rootProps.infoInternet, ...paramsInstallation}
+  }
+
+  axios.post('/installation/api/installer', paramsInstallation)
+  .then(reponse=>{
+    console.debug("Recu reponse demarrage installation noeud\n%O", reponse)
+    callback() // Aucune erreur
+  })
+  .catch(err=>{
+    console.error("Erreur demarrage installation noeud\n%O", err)
+    callback(err)
+  })
+
+}
+
 async function installerNoeudProtege(props, params, callback) {
   console.debug("Pour installation, proppys!\n%O", props)
 
@@ -367,29 +435,9 @@ async function installerNoeudProtege(props, params, callback) {
         intermediairePem = props.rootProps.intermediairePem,
         certificatMillegrillePem = props.rootProps.infoClecertMillegrille.certificat
 
-//throw new Error("fix me")
-
-  // Set certificat intermediaire dans le certissuer
-  // const paramsIssuer = {
-  //   idmg,
-  //   chainePem: [infoCertificatNoeudProtege.pem, infoClecertMillegrille.certificat],
-  // }
-  // await axios.post('/certissuer/issuer', paramsIssuer)
-  // .then(reponse=>{
-  //   console.debug("Recu reponse demarrage installation noeud\n%O", reponse)
-  //   callback() // Aucune erreur
-  // })
-  // .catch(err=>{
-  //   console.error("Erreur demarrage installation noeud\n%O", err)
-  //   callback(err)
-  // })
-
   var paramsInstallation = {
     ...params,
-    // certificatMillegrillePem: this.props.certificatMillegrillePem,
-    // certificatPem: infoCertificatNoeudProtege.pem,
     idmg,
-    // chainePem: [intermediairePem, certificatMillegrillePem],
     certificatMillegrille: certificatMillegrillePem,
     certificatIntermediaire: intermediairePem,
     securite: '3.protege',

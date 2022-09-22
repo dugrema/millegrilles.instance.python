@@ -7,7 +7,6 @@ import axios from 'axios'
 import { SelectionnerTypeNoeud } from './SelectionTypeNoeud'
 import { ChargementClePrivee } from './ChargerCleCert'
 import { GenererNouvelleCle } from './GenererNouvelleCle'
-// import { PageConfigurationInternet } from './ConfigurationInternet'
 import { ConfigurationCompletee } from './PagesEtat'
 import { ConfigurerNoeudIdmg } from './ConfigurationNoeudIdmg'
 import { ConfigurerNoeud } from './ConfigurationNoeud'
@@ -17,7 +16,6 @@ const MAPPING_PAGES = {
   SelectionnerTypeNoeud,
   ChargementClePrivee,
   GenererNouvelleCle,
-  // PageConfigurationInternet,
   ConfigurationCompletee,
   ConfigurerNoeud,
   ConfigurerNoeudIdmg,
