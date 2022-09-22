@@ -303,9 +303,14 @@ class EtatInstance:
         liste_applications = await self.get_liste_configurations()
         info_updatee['applications_configurees'] = liste_applications
 
+        niveau_securite = self.niveau_securite
+        if niveau_securite == Constantes.SECURITE_SECURE:
+            # Downgrade 4.secure a niveau 3.protege
+            niveau_securite = Constantes.SECURITE_PROTEGE
+
         await producer.emettre_evenement(info_updatee, Constantes.DOMAINE_INSTANCE,
                                          ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
-                                         exchanges=self.niveau_securite)
+                                         exchanges=niveau_securite)
 
     async def get_liste_configurations(self) -> list:
         """
@@ -314,14 +319,17 @@ class EtatInstance:
         """
         info_configuration = list()
         path_docker_apps = self.configuration.path_docker_apps
-        for fichier_config in listdir(path_docker_apps):
-            if not fichier_config.startswith('app.'):
-                continue  # Skip, ce n'est pas une application
-            with open(path.join(path_docker_apps, fichier_config), 'rb') as fichier:
-                contenu = json.load(fichier)
-            nom = contenu['nom']
-            version = contenu['version']
-            info_configuration.append({'nom': nom, 'version': version})
+        try:
+            for fichier_config in listdir(path_docker_apps):
+                if not fichier_config.startswith('app.'):
+                    continue  # Skip, ce n'est pas une application
+                with open(path.join(path_docker_apps, fichier_config), 'rb') as fichier:
+                    contenu = json.load(fichier)
+                nom = contenu['nom']
+                version = contenu['version']
+                info_configuration.append({'nom': nom, 'version': version})
+        except FileNotFoundError:
+            self.__logger.debug("get_liste_configurations Path catalogues docker non trouve")
 
         return info_configuration
 

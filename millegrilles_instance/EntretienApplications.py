@@ -92,7 +92,8 @@ class GestionnaireApplications:
             return {'ok': True}
 
     async def backup_applications(self):
-        await self.__etat_docker.backup_applications()
+        if self.__etat_docker is not None:
+            await self.__etat_docker.backup_applications()
 
     # async def get_liste_configurations(self) -> list:
     #     """
