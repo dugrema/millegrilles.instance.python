@@ -67,15 +67,12 @@ export class Installation extends React.Component {
       // Set page courante selon etat de configuration
       var page = this.state.page
       if( ! info.securite ) {
-        console.debug("Ouvrir configuration type noeud")
         page = 'SelectionnerTypeNoeud'
       } else if( ! info.idmg && info.securite === '3.protege' ) {
-        console.debug("Ouvrir configuration idmg")
         page = 'ChargementClePrivee'  // Page config cle MilleGrille
       } else if( ! info.idmg ) {
         page = 'ConfigurerNoeudIdmg'  // Page set IDMG
       } else if( ! info.domaine ) {
-        console.debug("Ouvrir configuration domaine internet")
         page = 'PageConfigurationInternet'
       }
 
@@ -96,7 +93,6 @@ export class Installation extends React.Component {
 
   setPage = event => { 
     const page = event.currentTarget.value
-    console.debug("Page : %s", page)
     this.setState({page}) 
   }
 
@@ -110,17 +106,14 @@ export class Installation extends React.Component {
 
   afficherPageTypeInstallation = event => {
     // Transfere l'ecran a la page selon le type d'installation choisi (noeud, internet)
-    console.debug("Affiche page, etat %O", this.state)
-    if(this.state.typeNoeud === 'protege') {
+    if(['secure', 'protege'].includes(this.state.typeNoeud)) {
       this.setState({page: 'ChargementClePrivee'})
     } else if(['prive', 'public'].includes(this.state.typeNoeud)) {
       this.setState({page: 'ConfigurerNoeudIdmg'})
     }
-
   }
 
   render() {
-    console.debug("!!! Info monitor state : %O", this.state)
     if(this.state.infoMonitorChargee) {
       // Domaine est configure, on procede a l'installation
       var Page = SelectionnerTypeNoeud

@@ -183,8 +183,8 @@ export class ChargementClePrivee extends React.Component {
 
   render() {
 
-    const { cacherBoutons } = this.props
-    
+    const { cacherBoutons, typeNoeud } = this.props
+   
     if(this.state.modeScanQR) {
       return <QRCodeReader fermer={this.fermerScanQr}
                            resultatScan={this.state.resultatScan}
@@ -224,7 +224,8 @@ export class ChargementClePrivee extends React.Component {
                                     afficherErreur={this.state.afficherErreur}
                                     erreurChargement={this.state.erreurChargement}
                                     cacherErreurChargement={this.cacherErreurChargement}
-                                    existantSeulement={cacherBoutons} />
+                                    existantSeulement={cacherBoutons} 
+                                    typeNoeud={typeNoeud} />
     }
 
     return (
@@ -252,6 +253,8 @@ export class ChargementClePrivee extends React.Component {
 
 function ChargerInformation(props) {
 
+  const { typeNoeud } = props
+
   var erreurChargement = ''
   if(props.afficherErreur) {
     erreurChargement = (
@@ -275,17 +278,22 @@ function ChargerInformation(props) {
 
   return (
     <Row>
-      <Col md={5}>
-        <h4>Creer une nouvelle MilleGrille</h4>
-        <Button variant="secondary"
-                onClick={props.setPage}
-                value="GenererNouvelleCle">Nouvelle</Button>
-      </Col>
-      <Col md={2}>
-        <p>|</p>
-        <p>OU</p>
-        <p>|</p>
-      </Col>
+      {typeNoeud==='protege'?
+        <>
+          <Col md={5}>
+            <h4>Creer une nouvelle MilleGrille</h4>
+            <Button variant="secondary"
+                    onClick={props.setPage}
+                    value="GenererNouvelleCle">Nouvelle</Button>
+          </Col>
+          <Col md={2}>
+            <p>|</p>
+            <p>OU</p>
+            <p>|</p>
+          </Col>
+        </>
+        :''
+      }
       <Col md={5}>
         {erreurChargement}
         <FormUpload {...props}/>
