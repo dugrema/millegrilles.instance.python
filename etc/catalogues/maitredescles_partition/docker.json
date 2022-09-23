@@ -1,13 +1,13 @@
 {
-  "nom": "maitredescles",
+  "nom": "maitredescles_partition",
   "version": "2022.6.1",
   "securite": "4.secure",
   "dependances": [
     {
-      "name": "maitredescles",
+      "name": "maitredescles_partition",
       "image": "docker.maceroc.com/millegrilles_maitredescles:2022.6.0",
       "certificat": {
-        "roles": ["maitredescles", "maitrecles"],
+        "roles": ["maitredescles"],
         "domaines": ["MaitreDesCles"],
         "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
       },
@@ -23,7 +23,7 @@
         "MG_REDIS_URL": "rediss://client_rust@redis:6379#insecure",
         "MG_REDIS_PASSWORD_FILE": "/run/secrets/passwd.redis.txt",
         "RUST_LOG": "warn",
-        "MG_MAITREDESCLES_MODE": "CA_partition"
+        "MG_MAITREDESCLES_MODE": "partition"
       },
       "constraints": ["node.labels.millegrilles.maitredescles == true"],
       "configs": [
