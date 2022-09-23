@@ -1,4 +1,8 @@
-# VARS=`~/PycharmProjects/millegrilles.instance.python/bin/read_config.py`
+# Utilitaire pour lire configuration vers bash
+# Exemple pour un script :
+#   VARS=`~/PycharmProjects/millegrilles.instance.python/bin/read_config.py`
+#   source ~/PycharmProjects/millegrilles.instance.python/bin/source_config.sh
+
 if [ -z "$VARS" ]; then
   echo "Passer VARS"
   exit 1
