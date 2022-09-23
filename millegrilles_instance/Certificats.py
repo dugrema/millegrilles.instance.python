@@ -341,11 +341,28 @@ async def demander_nouveau_certificat(producer: MessageProducerFormatteur, etat_
     # Emettre commande de signature, attendre resultat
     niveau_securite = etat_instance.niveau_securite
     if niveau_securite == '4.secure':
-        niveau_securite = '3.protege'
-    message_reponse = await producer.executer_commande(configuration, 'CorePki', 'signerCsr', exchange=niveau_securite)
-    reponse = message_reponse.parsed
+        instance_id = etat_instance.instance_id
 
-    certificat = reponse['certificat']
+        clecsr = CleCsrGenere.build(cn=instance_id)
+        csr_str = clecsr.get_pem_csr()
+        commande = {'csr_instance': csr_str}
+
+        # Signer avec notre certificat (instance), requis par le certissuer
+        formatteur_message = etat_instance.formatteur_message
+        message_signe, _uuid = formatteur_message.signer_message(commande)
+
+        url_issuer = etat_instance.certissuer_url
+        path_csr = path.join(url_issuer, 'renouvelerInstance')
+        client_session = etat_instance.client_session
+        async with client_session.post(path_csr, json=message_signe) as resp:
+            resp.raise_for_status()
+            reponse = await resp.json()
+
+        certificat = reponse['certificat']
+    else:
+        message_reponse = await producer.executer_commande(configuration, 'CorePki', 'signerCsr', exchange=niveau_securite)
+        reponse = message_reponse.parsed
+        certificat = reponse['certificat']
 
     # Confirmer correspondance entre certificat et cle
     clecertificat = CleCertificat.from_pems(clecsr.get_pem_cle(), ''.join(certificat))
@@ -354,6 +371,22 @@ async def demander_nouveau_certificat(producer: MessageProducerFormatteur, etat_
 
     logger.debug("Reponse certissuer certificat %s\n%s" % (nom_module, ''.join(certificat)))
     return clecertificat
+
+
+async def signer_certificat_instance_secure(etat_instance, message: dict) -> CleCertificat:
+    """
+    Permet de signer localement un certificat en utiliser le certissuer local (toujours present sur instance secure)
+    """
+    logger.debug("Demande de signature de certificat via instance secure => %s" % message)
+    client_session = etat_instance.client_session
+    url_issuer = etat_instance.certissuer_url
+    path_csr = path.join(url_issuer, 'signerModule')
+    async with client_session.post(path_csr, json=message) as resp:
+        resp.raise_for_status()
+        reponse = await resp.json()
+
+    logger.debug("Reponse certissuer signer_certificat_instance_secure\n%s" % ''.join(reponse))
+    return reponse
 
 
 async def generer_passwords(etat_instance, etat_docker: Optional[EtatDockerInstanceSync],

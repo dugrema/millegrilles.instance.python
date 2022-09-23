@@ -61,23 +61,29 @@ class MqThread:
 
         if niveau_securite == Constantes.SECURITE_SECURE:
             # Downgrade securite a 3.protege pour recevoir les commandes
-            niveau_securite = Constantes.SECURITE_PROTEGE
+            niveau_securite_ajuste = Constantes.SECURITE_PROTEGE
+        else:
+            niveau_securite_ajuste = niveau_securite
 
-        # RK globaux (meme niveau que l'instance)
-        reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
+        # RK globaux (meme niveau que l'instance - sauf 4.secure qui est downgrade a 3.protege)
+        reply_res.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_INSTALLER))
-        reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
+        reply_res.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER))
-        reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
+        reply_res.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_DEMARRER))
-        reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
+        reply_res.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_ARRETER))
-        reply_res.ajouter_rk(niveau_securite, 'requete.instance.%s.%s' % (
+        reply_res.ajouter_rk(niveau_securite_ajuste, 'requete.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_REQUETE_CONFIG))
-        reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
+        reply_res.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER))
-        reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s.%s' % (
+        reply_res.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_CONFIGURER_DOMAINE))
+
+        # Commandes sur niveau 4.secure
+        if niveau_securite == Constantes.SECURITE_SECURE:
+            reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_CSR)
 
         # RK globaux sur exchange 1.public
         reply_res.ajouter_rk(Constantes.SECURITE_PUBLIC, 'evenement.CoreTopologie.%s' % ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE)
