@@ -84,6 +84,7 @@ class MqThread:
         # Commandes sur niveau 4.secure
         if niveau_securite == Constantes.SECURITE_SECURE:
             reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_CSR)
+            reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_COMPTE_USAGER)
 
         # RK globaux sur exchange 1.public
         reply_res.ajouter_rk(Constantes.SECURITE_PUBLIC, 'evenement.CoreTopologie.%s' % ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE)

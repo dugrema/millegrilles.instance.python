@@ -389,6 +389,22 @@ async def signer_certificat_instance_secure(etat_instance, message: dict) -> Cle
     return reponse
 
 
+async def signer_certificat_usager_via_secure(etat_instance, message: dict) -> CleCertificat:
+    """
+    Permet de signer localement un certificat en utiliser le certissuer local (toujours present sur instance secure)
+    """
+    logger.debug("Demande de signature de certificat via instance secure => %s" % message)
+    client_session = etat_instance.client_session
+    url_issuer = etat_instance.certissuer_url
+    path_csr = path.join(url_issuer, 'signerUsager')
+    async with client_session.post(path_csr, json=message) as resp:
+        resp.raise_for_status()
+        reponse = await resp.json()
+
+    logger.debug("Reponse certissuer signer_certificat_instance_secure\n%s" % ''.join(reponse))
+    return reponse
+
+
 async def generer_passwords(etat_instance, etat_docker: Optional[EtatDockerInstanceSync],
                             liste_passwords: list):
     """

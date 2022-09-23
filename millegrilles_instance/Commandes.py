@@ -13,8 +13,8 @@ from millegrilles_messages.messages.MessagesModule import MessageProducerFormatt
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_messages.messages.MessagesModule import MessageWrapper
 from millegrilles_instance.EntretienApplications import GestionnaireApplications
-from millegrilles_instance.AcmeHandler import CommandeAcmeIssue, CommandeAcmeExtractCertificates
-from millegrilles_instance.Certificats import signer_certificat_instance_secure
+from millegrilles_instance.AcmeHandler import CommandeAcmeIssue
+from millegrilles_instance.Certificats import signer_certificat_instance_secure, signer_certificat_usager_via_secure
 
 class CommandHandler:
 
@@ -102,6 +102,8 @@ class CommandHandler:
             if exchange == Constantes.SECURITE_SECURE:
                 if action == ConstantesInstance.COMMANDE_SIGNER_CSR:
                     return await self.signer_csr(message)
+                elif action == ConstantesInstance.COMMANDE_SIGNER_COMPTE_USAGER:
+                    return await self.signer_compte_usager(message)
 
             if reponse is None:
                 reponse = {'ok': False, 'err': 'Commande inconnue ou acces refuse'}
@@ -244,5 +246,16 @@ class CommandHandler:
 
         # Faire le relai de la signature vers certissuer
         reponse = await signer_certificat_instance_secure(self._etat_instance, message.parsed)
+
+        return {'ok': True, 'certificat': reponse['certificat']}
+
+    async def signer_compte_usager(self, message: MessageWrapper):
+        if Constantes.ROLE_CORE not in message.certificat.get_roles:
+            return {'ok': False, 'err': 'Acces refuse'}
+        elif Constantes.DOMAINE_CORE_MAITREDESCOMPTES not in message.certificat.get_domaines:
+            return {'ok': False, 'err': 'Acces refuse'}
+
+        # Faire le relai de la signature vers certissuer
+        reponse = await signer_certificat_usager_via_secure(self._etat_instance, message.parsed)
 
         return {'ok': True, 'certificat': reponse['certificat']}
