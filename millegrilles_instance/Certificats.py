@@ -34,7 +34,8 @@ def preparer_certificats_web(path_secrets: str):
     path_key_webss = path.join(path_secrets, 'pki.webss.cle')
     if path.exists(path_cert_webss) and path.exists(path_key_webss):
         clecertificat_genere = CleCertificat.from_files(path_key_webss, path_cert_webss)
-        certificat = ''.join(clecertificat_genere.get_pem_certificat())
+        pem_certificat = clecertificat_genere.enveloppe.chaine_pem()
+        certificat = ''.join(pem_certificat)
     else:
         # Generer certificat self-signed
         clecertificat_genere = generer_self_signed_rsa('localhost')
@@ -47,8 +48,8 @@ def preparer_certificats_web(path_secrets: str):
 
     with open(path_cert_web, 'w') as fichier:
         fichier.write(certificat)
-    with open(path_key_web, 'w') as fichier:
-        fichier.write(clecertificat_genere.get_pem_cle())
+    with open(path_key_web, 'wb') as fichier:
+        fichier.write(clecertificat_genere.private_key_bytes())
 
     return path_cert_web, path_key_web
 
