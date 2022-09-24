@@ -236,7 +236,7 @@ class EntretienNginx:
             self.__logger.info("Fichier certificat web absent, on utilise la version ACME")
             remplacer = True
         else:
-            if cert_courant.not_valid_after < enveloppe_acme.enveloppe.not_valid_after:
+            if cert_courant.not_valid_before < enveloppe_acme.enveloppe.not_valid_before:
                 self.__logger.info("Fichier certificat ACME plus recent que le certificat courant, on l'applique")
                 remplacer = True
 
