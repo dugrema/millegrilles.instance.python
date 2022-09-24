@@ -1,6 +1,6 @@
 {
   "nom": "maitredescles_partition",
-  "version": "2022.6.1",
+  "version": "2022.6.2",
   "securite": "4.secure",
   "dependances": [
     {
