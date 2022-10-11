@@ -570,7 +570,9 @@ class InstanceProtegee(InstanceDockerAbstract):
             await self._etat_instance.stop()
         elif expiration_instance['renouveler'] is True:
             self.__logger.info("Certificat d'instance peut etre renouvele")
-            clecertificat = await renouveler_certificat_instance_protege(self._etat_instance.client_session,
+            producer = self.__rabbitmq_dao.get_producer()
+            clecertificat = await renouveler_certificat_instance_protege(producer,
+                                                                         self._etat_instance.client_session,
                                                                          self._etat_instance)
             # Sauvegarder nouveau certificat
             path_secrets = self._etat_instance.configuration.path_secrets
@@ -714,7 +716,9 @@ class InstanceSecureDocker(InstanceDockerAbstract):
             await self._etat_instance.stop()
         elif expiration_instance['renouveler'] is True:
             self.__logger.info("Certificat d'instance peut etre renouvele")
-            clecertificat = await renouveler_certificat_instance_protege(self._etat_instance.client_session,
+            producer = self.__rabbitmq_dao.get_producer()
+            clecertificat = await renouveler_certificat_instance_protege(producer,
+                                                                         self._etat_instance.client_session,
                                                                          self._etat_instance)
             # Sauvegarder nouveau certificat
             path_secrets = self._etat_instance.configuration.path_secrets
@@ -1119,7 +1123,9 @@ class InstanceSecure(InstanceAbstract):
             await self._etat_instance.stop()
         elif expiration_instance['renouveler'] is True:
             self.__logger.info("Certificat d'instance peut etre renouvele")
-            clecertificat = await renouveler_certificat_instance_protege(self._etat_instance.client_session,
+            producer = self.__rabbitmq_dao.get_producer()
+            clecertificat = await renouveler_certificat_instance_protege(producer,
+                                                                         self._etat_instance.client_session,
                                                                          self._etat_instance)
             # Sauvegarder nouveau certificat
             path_secrets = self._etat_instance.configuration.path_secrets

@@ -205,7 +205,7 @@ async def nettoyer_configuration_expiree(etat_docker: EtatDockerInstanceSync):
     pass
 
 
-async def renouveler_certificat_instance_protege(client_session: ClientSession, etat_instance) -> CleCertificat:
+async def renouveler_certificat_instance_protege(producer: MessageProducerFormatteur, client_session: ClientSession, etat_instance) -> CleCertificat:
 
     instance_id = etat_instance.instance_id
 
@@ -220,19 +220,22 @@ async def renouveler_certificat_instance_protege(client_session: ClientSession, 
     logger.debug("Demande de signature de certificat pour instance protegee => %s\n%s" % (message_signe, csr_str))
     url_issuer = etat_instance.certissuer_url
     path_csr = path.join(url_issuer, 'renouvelerInstance')
-    async with client_session.post(path_csr, json=message_signe) as resp:
-        resp.raise_for_status()
-        reponse = await resp.json()
+    try:
+        async with client_session.post(path_csr, json=message_signe) as resp:
+            resp.raise_for_status()
+            reponse = await resp.json()
+        certificat = reponse['certificat']
 
-    certificat = reponse['certificat']
+        # Confirmer correspondance entre certificat et cle
+        clecertificat = CleCertificat.from_pems(clecsr.get_pem_cle(), ''.join(certificat))
+        if clecertificat.cle_correspondent() is False:
+            raise Exception("Erreur cert/cle ne correspondent pas")
 
-    # Confirmer correspondance entre certificat et cle
-    clecertificat = CleCertificat.from_pems(clecsr.get_pem_cle(), ''.join(certificat))
-    if clecertificat.cle_correspondent() is False:
-        raise Exception("Erreur cert/cle ne correspondent pas")
-
-    logger.debug("Reponse certissuer certificat protege\n%s" % ''.join(certificat))
-    return clecertificat
+        logger.debug("Reponse certissuer certificat protege\n%s" % ''.join(certificat))
+        return clecertificat
+    except Exception:
+        logger.exception("Erreur chargement certificat via https, fallback CorePki")
+        return await renouveler_certificat_satellite(producer, etat_instance)
 
 
 async def renouveler_certificat_satellite(producer: MessageProducerFormatteur, etat_instance) -> CleCertificat:
