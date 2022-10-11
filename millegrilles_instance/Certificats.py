@@ -211,7 +211,7 @@ async def renouveler_certificat_instance_protege(client_session: ClientSession, 
 
     clecsr = CleCsrGenere.build(cn=instance_id)
     csr_str = clecsr.get_pem_csr()
-    commande = {'csr_instance': csr_str}
+    commande = {'csr': csr_str}
 
     # Signer avec notre certificat (instance), requis par le certissuer
     formatteur_message = etat_instance.formatteur_message
@@ -241,7 +241,7 @@ async def renouveler_certificat_satellite(producer: MessageProducerFormatteur, e
 
     clecsr = CleCsrGenere.build(cn=instance_id)
     csr_str = clecsr.get_pem_csr()
-    configuration = {'csr_instance': csr_str, 'roles': ['instance']}
+    configuration = {'csr': csr_str, 'roles': ['instance']}
 
     path_secrets = etat_instance.configuration.path_secrets
     nom_certificat = 'pki.instance.cert'
@@ -346,7 +346,7 @@ async def demander_nouveau_certificat(producer: MessageProducerFormatteur, etat_
 
         clecsr = CleCsrGenere.build(cn=instance_id)
         csr_str = clecsr.get_pem_csr()
-        commande = {'csr_instance': csr_str}
+        commande = {'csr': csr_str}
 
         # Signer avec notre certificat (instance), requis par le certissuer
         formatteur_message = etat_instance.formatteur_message

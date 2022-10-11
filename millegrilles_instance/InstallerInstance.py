@@ -61,7 +61,7 @@ async def installer_secure(etat_instance: EtatInstance, contenu: dict, certifica
     # Injecter un CSR pour generer un certificat d'instance local
     clecsr = CleCsrGenere.build(etat_instance.instance_id)
     csr_str = clecsr.get_pem_csr()
-    contenu['csr_instance'] = csr_str
+    contenu['csr'] = csr_str
 
     reponse = await installer_certificat_intermediaire(etat_instance.certissuer_url, contenu)
     certificat_instance = reponse['certificat']
@@ -90,7 +90,7 @@ async def installer_protege(etat_instance: EtatInstance, contenu: dict, certific
     # Injecter un CSR pour generer un certificat d'instance local
     clecsr = CleCsrGenere.build(etat_instance.instance_id)
     csr_str = clecsr.get_pem_csr()
-    contenu['csr_instance'] = csr_str
+    contenu['csr'] = csr_str
 
     reponse = await installer_certificat_intermediaire(etat_instance.certissuer_url, contenu)
     certificat_instance = reponse['certificat']
@@ -212,7 +212,7 @@ async def installer_certificat_intermediaire(url_certissuer: str, contenu: dict)
     req = {
         'ca': certificat_ca,
         'intermediaire': certificat_intermediaire,
-        'csr_instance': contenu['csr_instance'],
+        'csr': contenu['csr'],
         'securite': securite,
     }
 
