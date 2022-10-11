@@ -9,6 +9,7 @@ from docker.errors import APIError
 from os import path, stat
 from typing import Optional
 
+from millegrilles_messages.messages import Constantes
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa
 from millegrilles_messages.messages.CleCertificat import CleCertificat
@@ -241,10 +242,19 @@ async def renouveler_certificat_instance_protege(producer: MessageProducerFormat
 async def renouveler_certificat_satellite(producer: MessageProducerFormatteur, etat_instance) -> CleCertificat:
 
     instance_id = etat_instance.instance_id
+    niveau_securite = etat_instance.niveau_securite
+
+    exchanges = [Constantes.SECURITE_SECURE, Constantes.SECURITE_PROTEGE, Constantes.SECURITE_PRIVE, Constantes.SECURITE_PUBLIC]
+    while exchanges[0] != niveau_securite:
+        exchanges.pop(0)
 
     clecsr = CleCsrGenere.build(cn=instance_id)
     csr_str = clecsr.get_pem_csr()
-    configuration = {'csr': csr_str, 'roles': ['instance']}
+    configuration = {
+        'csr': csr_str,
+        'roles': ['instance'],
+        'exchanges': exchanges
+    }
 
     path_secrets = etat_instance.configuration.path_secrets
     nom_certificat = 'pki.instance.cert'
@@ -253,7 +263,6 @@ async def renouveler_certificat_satellite(producer: MessageProducerFormatteur, e
     path_cle = path.join(path_secrets, nom_cle)
 
     # Emettre commande de signature, attendre resultat
-    niveau_securite = etat_instance.niveau_securite
     message_reponse = await producer.executer_commande(configuration, 'CorePki', 'signerCsr', exchange=niveau_securite)
     reponse = message_reponse.parsed
 
