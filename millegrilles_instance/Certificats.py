@@ -5,7 +5,7 @@ import math
 import secrets
 
 from aiohttp import ClientSession
-from aiohttp.client_exceptions import ClientResponseError
+from aiohttp.client_exceptions import ClientConnectorError, ClientResponseError
 from docker.errors import APIError
 from os import path, stat
 from typing import Optional
@@ -235,12 +235,9 @@ async def renouveler_certificat_instance_protege(producer: MessageProducerFormat
 
         logger.debug("Reponse certissuer certificat protege\n%s" % ''.join(certificat))
         return clecertificat
-    except ClientResponseError as cre:
-        if cre.status == 500:
-            logger.exception("Certissuer local non disponible, fallback CorePki")
-            return await renouveler_certificat_satellite(producer, etat_instance)
-        else:
-            raise cre
+    except (ClientConnectorError, ClientResponseError):
+        logger.exception("Certissuer local non disponible, fallback CorePki")
+        return await renouveler_certificat_satellite(producer, etat_instance)
 
 
 async def renouveler_certificat_satellite(producer: MessageProducerFormatteur, etat_instance) -> CleCertificat:
@@ -327,15 +324,12 @@ async def generer_nouveau_certificat(producer: MessageProducerFormatteur,
             reponse = await resp.json()
 
         certificat = reponse['certificat']
-    except ClientResponseError as cre:
-        if cre.status == 500:
-            logger.exception("Certissuer local non disponible, fallback CorePki")
-            message_reponse = await producer.executer_commande(
-                configuration, 'CorePki', 'signerCsr', exchange=etat_instance.niveau_securite)
-            reponse = message_reponse.parsed
-            certificat = reponse['certificat']
-        else:
-            raise cre
+    except (ClientConnectorError, ClientResponseError):
+        logger.exception("Certissuer local non disponible, fallback CorePki")
+        message_reponse = await producer.executer_commande(
+            configuration, 'CorePki', 'signerCsr', exchange=etat_instance.niveau_securite)
+        reponse = message_reponse.parsed
+        certificat = reponse['certificat']
 
     # Confirmer correspondance entre certificat et cle
     clecertificat = CleCertificat.from_pems(clecsr.get_pem_cle(), ''.join(certificat))
