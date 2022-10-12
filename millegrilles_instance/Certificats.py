@@ -5,6 +5,7 @@ import math
 import secrets
 
 from aiohttp import ClientSession
+from aiohttp.client_exceptions import ClientResponseError
 from docker.errors import APIError
 from os import path, stat
 from typing import Optional
@@ -234,9 +235,12 @@ async def renouveler_certificat_instance_protege(producer: MessageProducerFormat
 
         logger.debug("Reponse certissuer certificat protege\n%s" % ''.join(certificat))
         return clecertificat
-    except Exception:
-        logger.exception("Erreur chargement certificat via https, fallback CorePki")
-        return await renouveler_certificat_satellite(producer, etat_instance)
+    except ClientResponseError as cre:
+        if cre.status == 500:
+            logger.exception("Certissuer local non disponible, fallback CorePki")
+            return await renouveler_certificat_satellite(producer, etat_instance)
+        else:
+            raise cre
 
 
 async def renouveler_certificat_satellite(producer: MessageProducerFormatteur, etat_instance) -> CleCertificat:

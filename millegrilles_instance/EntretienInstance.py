@@ -569,6 +569,7 @@ class InstanceProtegee(InstanceDockerAbstract):
             # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
             await self._etat_instance.stop()
         elif expiration_instance['renouveler'] is True:
+        #else:
             self.__logger.info("Certificat d'instance peut etre renouvele")
             producer = self.__rabbitmq_dao.get_producer()
             clecertificat = await renouveler_certificat_instance_protege(producer,
