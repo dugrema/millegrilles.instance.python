@@ -56,7 +56,7 @@ def preparer_certificats_web(path_secrets: str):
     return path_cert_web, path_key_web
 
 
-async def generer_certificats_modules(client_session: ClientSession, etat_instance, configuration: dict,
+async def generer_certificats_modules(producer: MessageProducerFormatteur, client_session: ClientSession, etat_instance, configuration: dict,
                                       etat_docker: Optional[EtatDockerInstanceSync] = None):
     # S'assurer que tous les certificats sont presents et courants dans le repertoire secrets
     path_secrets = etat_instance.configuration.path_secrets
@@ -83,16 +83,16 @@ async def generer_certificats_modules(client_session: ClientSession, etat_instan
                     # Il faut laisser le temps aux cles de finir d'etre rechiffrees
                     if detail_expiration['expire'] is True or etat_instance.is_rotation_maitredescles() is False:
                         clecertificat = await generer_nouveau_certificat(
-                            client_session, etat_instance, nom_module, value)
+                            producer, client_session, etat_instance, nom_module, value)
                         sauvegarder = True
                         etat_instance.set_rotation_maitredescles()
                 else:
-                    clecertificat = await generer_nouveau_certificat(client_session, etat_instance, nom_module, value)
+                    clecertificat = await generer_nouveau_certificat(producer, client_session, etat_instance, nom_module, value)
                     sauvegarder = True
 
         except FileNotFoundError:
             logger.info("Certificat %s non trouve, on le genere" % nom_module)
-            clecertificat = await generer_nouveau_certificat(client_session, etat_instance, nom_module, value)
+            clecertificat = await generer_nouveau_certificat(producer, client_session, etat_instance, nom_module, value)
             sauvegarder = True
 
         # Verifier si le certificat et la cle sont stocke dans docker
@@ -288,7 +288,10 @@ async def renouveler_certificat_satellite(producer: MessageProducerFormatteur, e
     return clecertificat
 
 
-async def generer_nouveau_certificat(client_session: ClientSession, etat_instance, nom_module: str,
+async def generer_nouveau_certificat(producer: MessageProducerFormatteur,
+                                     client_session: ClientSession,
+                                     etat_instance,
+                                     nom_module: str,
                                      configuration: dict) -> CleCertificat:
     instance_id = etat_instance.instance_id
     idmg = etat_instance.certificat_millegrille.idmg
@@ -318,11 +321,21 @@ async def generer_nouveau_certificat(client_session: ClientSession, etat_instanc
     logger.debug("Demande de signature de certificat pour %s => %s\n%s" % (nom_module, message_signe, csr_str))
     url_issuer = etat_instance.certissuer_url
     path_csr = path.join(url_issuer, 'signerModule')
-    async with client_session.post(path_csr, json=message_signe) as resp:
-        resp.raise_for_status()
-        reponse = await resp.json()
+    try:
+        async with client_session.post(path_csr, json=message_signe) as resp:
+            resp.raise_for_status()
+            reponse = await resp.json()
 
-    certificat = reponse['certificat']
+        certificat = reponse['certificat']
+    except ClientResponseError as cre:
+        if cre.status == 500:
+            logger.exception("Certissuer local non disponible, fallback CorePki")
+            message_reponse = await producer.executer_commande(
+                configuration, 'CorePki', 'signerCsr', exchange=etat_instance.niveau_securite)
+            reponse = message_reponse.parsed
+            certificat = reponse['certificat']
+        else:
+            raise cre
 
     # Confirmer correspondance entre certificat et cle
     clecertificat = CleCertificat.from_pems(clecsr.get_pem_cle(), ''.join(certificat))

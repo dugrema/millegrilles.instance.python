@@ -591,8 +591,9 @@ class InstanceProtegee(InstanceDockerAbstract):
             await self._etat_instance.reload_configuration()
 
         configuration = await self.get_configuration_certificats()
-        await generer_certificats_modules(self._etat_instance.client_session, self._etat_instance, configuration,
-                                          self._etat_docker)
+        producer = self.__rabbitmq_dao.get_producer()
+        await generer_certificats_modules(producer, self._etat_instance.client_session, self._etat_instance,
+                                          configuration, self._etat_docker)
         await nettoyer_configuration_expiree(self._etat_docker)
         self.__logger.debug("entretien_certificats fin")
         self.__event_setup_initial_certificats.set()
@@ -737,7 +738,8 @@ class InstanceSecureDocker(InstanceDockerAbstract):
             await self._etat_instance.reload_configuration()
 
         configuration = await self.get_configuration_certificats()
-        await generer_certificats_modules(self._etat_instance.client_session, self._etat_instance, configuration, None)
+        producer = self.__rabbitmq_dao.get_producer()
+        await generer_certificats_modules(producer, self._etat_instance.client_session, self._etat_instance, configuration, None)
         self.__logger.debug("entretien_certificats fin")
         self.__event_setup_initial_certificats.set()
 
@@ -1144,7 +1146,8 @@ class InstanceSecure(InstanceAbstract):
             await self._etat_instance.reload_configuration()
 
         configuration = await self.get_configuration_certificats()
-        await generer_certificats_modules(self._etat_instance.client_session, self._etat_instance, configuration, None)
+        producer = self.__rabbitmq_dao.get_producer()
+        await generer_certificats_modules(producer, self._etat_instance.client_session, self._etat_instance, configuration, None)
         self.__logger.debug("entretien_certificats fin")
         self.__event_setup_initial_certificats.set()
 

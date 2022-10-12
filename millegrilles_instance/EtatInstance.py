@@ -273,9 +273,9 @@ class EtatInstance:
         else:
             raise Exception("Stop event non disponible")
 
-    async def generer_certificats_module(self, etat_docker, nom_module: str, configuration: dict):
+    async def generer_certificats_module(self, producer: MessageProducerFormatteur, etat_docker, nom_module: str, configuration: dict):
         config = {nom_module: configuration}
-        await generer_certificats_modules(self.__client_session, self, config, None)
+        await generer_certificats_modules(producer, self.__client_session, self, config, None)
 
     async def generer_certificats_module_satellite(self, producer: MessageProducerFormatteur,
                                                    etat_docker, nom_module: str, configuration: dict):
