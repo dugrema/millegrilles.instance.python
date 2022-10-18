@@ -1,13 +1,13 @@
 {
   "nom": "maitredescles_sqlite_secure",
-  "version": "2022.7.1",
+  "version": "2022.7.2",
   "securite": "4.secure",
   "dependances": [
     {
       "name": "maitredescles_sqlite_secure",
       "image": "docker.maceroc.com/millegrilles_maitredescles:2022.7.0",
       "certificat": {
-        "roles": ["maitredescles_sqlite1","maitredescles"],
+        "roles": ["maitredescles_sqlite_secure","maitredescles"],
         "domaines": ["MaitreDesCles"],
         "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
       },
@@ -29,11 +29,11 @@
       },
       "constraints": ["node.labels.millegrilles.maitredescles == true"],
       "mounts": [
-        {"source": "maitredescles-sqlite1", "target":  "/var/opt/millegrilles/maitredescles", "type": "volume"}
+        {"source": "maitredescles-sqlite", "target":  "/var/opt/millegrilles/maitredescles", "type": "volume"}
       ],
       "configs": [
         {
-          "name": "pki.maitredescles_sqlite1",
+          "name": "pki.maitredescles_sqlite_secure",
           "current": "cert",
           "filename": "/run/secrets/cert.pem"
         },
@@ -44,7 +44,7 @@
       ],
       "secrets": [
         {
-          "name": "pki.maitredescles_sqlite1",
+          "name": "pki.maitredescles_sqlite_secure",
           "current": "key",
           "filename": "key.pem"
         },

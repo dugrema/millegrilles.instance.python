@@ -1,6 +1,6 @@
 {
   "nom": "maitredescles_sqlite1",
-  "version": "2022.7.0",
+  "version": "2022.7.1",
   "securite": "4.secure",
   "dependances": [
     {
@@ -28,7 +28,7 @@
       },
       "constraints": ["node.labels.millegrilles.maitredescles == true"],
       "mounts": [
-        {"source": "maitredescles-sqlite1", "target":  "/var/opt/millegrilles/maitredescles", "type": "volume"}
+        {"source": "maitredescles-sqlite", "target":  "/var/opt/millegrilles/maitredescles", "type": "volume"}
       ],
       "configs": [
         {
