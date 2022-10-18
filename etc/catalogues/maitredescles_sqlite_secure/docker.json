@@ -1,10 +1,10 @@
 {
   "nom": "maitredescles_sqlite_secure",
-  "version": "2022.7.0",
+  "version": "2022.7.1",
   "securite": "4.secure",
   "dependances": [
     {
-      "name": "maitredescles_sqlite1",
+      "name": "maitredescles_sqlite_secure",
       "image": "docker.maceroc.com/millegrilles_maitredescles:2022.7.0",
       "certificat": {
         "roles": ["maitredescles_sqlite1","maitredescles"],
