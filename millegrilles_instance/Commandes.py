@@ -63,14 +63,14 @@ class CommandHandler:
             if type_message == 'evenement':
                 if action == 'certMaitreDesCles':
                     if 'maitredescles' in roles:
-                        print("certificat maitre des cles recu : %s" % enveloppe.fingerprint)
+                        self.__logger.debug("certificat maitre des cles recu : %s" % enveloppe.fingerprint)
                         self._etat_instance.ajouter_certificat_maitredescles(enveloppe)
-                return  # Aucun message
+                        return  # Aucun message
 
-            if exchange == Constantes.SECURITE_PUBLIC and Constantes.SECURITE_PUBLIC in exchanges:
-                if Constantes.ROLE_CORE in roles:
-                    if action == ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE:
-                        return await self.sauvegarder_fiche_publique(message)
+                if action == ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE:
+                    if exchange == Constantes.SECURITE_PUBLIC and Constantes.SECURITE_PUBLIC in exchanges:
+                        if Constantes.ROLE_CORE in roles:
+                            return await self.sauvegarder_fiche_publique(message)
 
             if exchange == Constantes.SECURITE_PUBLIC and delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
                 if action == ConstantesInstance.REQUETE_CONFIGURATION_ACME:
