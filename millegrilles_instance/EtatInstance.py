@@ -62,6 +62,8 @@ class EtatInstance:
 
         self.__attente_rotation_maitredescles: Optional[datetime.datetime] = None
 
+        self.__certificats_maitredescles: dict[str, CacheCertificat] = dict()
+
     async def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
 
@@ -149,6 +151,10 @@ class EtatInstance:
         if self.__validateur_certificats is not None:
             await self.__validateur_certificats.entretien()
 
+        maitredescles_expire = [v.fingerprint for v in self.__certificats_maitredescles.values() if v.cache_expire()]
+        for fingerprint in maitredescles_expire:
+            del self.__certificats_maitredescles[fingerprint]
+
     def set_docker_present(self, etat: bool):
         self.__docker_present = etat
 
@@ -159,6 +165,17 @@ class EtatInstance:
 
     def clear_csr_genere(self):
         self.__csr_genere = None
+
+    def ajouter_certificat_maitredescles(self, certificat: EnveloppeCertificat):
+        fingerprint = certificat.fingerprint
+        try:
+            env_cache = self.__certificats_maitredescles[fingerprint]
+            # Touch certificat existant
+            env_cache.touch()
+        except KeyError:
+            # Conserver certificat
+            env_cache = CacheCertificat(certificat)
+            self.__certificats_maitredescles[fingerprint] = env_cache
 
     @property
     def stop_event(self):
@@ -382,3 +399,25 @@ def load_enveloppe_cert(path_cert: str) -> Optional[EnveloppeCertificat]:
         return EnveloppeCertificat.from_file(path_cert)
     except FileNotFoundError:
         return None
+
+
+class CacheCertificat:
+
+    def __init__(self, enveloppe: EnveloppeCertificat):
+        self.derniere_reception = datetime.datetime.utcnow()
+        self.enveloppe = enveloppe
+
+    @property
+    def fingerprint(self) -> str:
+        return self.enveloppe.fingerprint
+
+    @property
+    def pems(self) -> list:
+        return self.enveloppe.chaine_pem()
+
+    def touch(self):
+        self.derniere_reception = datetime.datetime.utcnow()
+
+    def cache_expire(self) -> bool:
+        date_expiration = datetime.datetime.utcnow() - datetime.timedelta(minutes=10)
+        return self.derniere_reception < date_expiration
