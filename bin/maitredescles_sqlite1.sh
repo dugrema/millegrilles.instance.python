@@ -22,5 +22,7 @@ echo "Instance ID : $INSTANCE_ID"
 echo "MQ HOST : $MQ_HOST"
 export MG_MQ_HOST=$MQ_HOST
 export MG_NOEUD_ID=$INSTANCE_ID
+export DESACTIVER_DECHIFFRAGE=1
+printenv
 
 $PATH_MILLEGRILLES/bin/millegrilles_maitredescles
