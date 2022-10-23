@@ -1,11 +1,11 @@
 {
   "nom": "maitredescles_sqlite1",
-  "version": "2022.6.0",
+  "version": "2022.7.1",
   "securite": "4.secure",
   "dependances": [
     {
       "name": "maitredescles_sqlite1",
-      "image": "docker.maceroc.com/millegrilles_maitredescles:2022.6.0",
+      "image": "docker.maceroc.com/millegrilles_maitredescles:2022.7.0",
       "certificat": {
         "roles": ["maitredescles_sqlite1","maitredescles"],
         "domaines": ["MaitreDesCles"],
@@ -28,7 +28,7 @@
       },
       "constraints": ["node.labels.millegrilles.maitredescles == true"],
       "mounts": [
-        {"source": "maitredescles-sqlite1", "target":  "/var/opt/millegrilles/maitredescles", "type": "volume"}
+        {"source": "maitredescles-sqlite", "target":  "/var/opt/millegrilles/maitredescles", "type": "volume"}
       ],
       "configs": [
         {

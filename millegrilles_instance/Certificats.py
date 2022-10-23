@@ -51,7 +51,7 @@ def preparer_certificats_web(path_secrets: str):
     with open(path_cert_web, 'w') as fichier:
         fichier.write(certificat)
     with open(path_key_web, 'wb') as fichier:
-        fichier.write(clecertificat_genere.private_key_bytes())
+        fichier.write(clecertificat_genere.clecertificat.private_key_bytes())
 
     return path_cert_web, path_key_web
 

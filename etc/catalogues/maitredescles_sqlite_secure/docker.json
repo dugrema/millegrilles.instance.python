@@ -1,13 +1,13 @@
 {
-  "nom": "maitredescles_ca_partvolatil",
-  "version": "2022.7.0",
+  "nom": "maitredescles_sqlite_secure",
+  "version": "2022.7.2",
   "securite": "4.secure",
   "dependances": [
     {
-      "name": "maitredescles_ca_partvolatil",
+      "name": "maitredescles_sqlite_secure",
       "image": "docker.maceroc.com/millegrilles_maitredescles:2022.7.0",
       "certificat": {
-        "roles": ["maitredescles_connexion"],
+        "roles": ["maitredescles_sqlite_secure","maitredescles"],
         "domaines": ["MaitreDesCles"],
         "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
       },
@@ -23,12 +23,17 @@
         "MG_REDIS_URL": "rediss://client_rust@redis:6379#insecure",
         "MG_REDIS_PASSWORD_FILE": "/run/secrets/passwd.redis.txt",
         "RUST_LOG": "warn",
-        "MG_MAITREDESCLES_MODE": "CA_partition"
+        "MG_MAITREDESCLES_MODE": "sqlite",
+        "MG_SQLITE_PATH": "/var/opt/millegrilles/maitredescles",
+        "DESACTIVER_DECHIFFRAGE": "1"
       },
       "constraints": ["node.labels.millegrilles.maitredescles == true"],
+      "mounts": [
+        {"source": "maitredescles-sqlite", "target":  "/var/opt/millegrilles/maitredescles", "type": "volume"}
+      ],
       "configs": [
         {
-          "name": "pki.maitredescles_ca_partvolatil",
+          "name": "pki.maitredescles_sqlite_secure",
           "current": "cert",
           "filename": "/run/secrets/cert.pem"
         },
@@ -39,7 +44,7 @@
       ],
       "secrets": [
         {
-          "name": "pki.maitredescles_ca_partvolatil",
+          "name": "pki.maitredescles_sqlite_secure",
           "current": "key",
           "filename": "key.pem"
         },

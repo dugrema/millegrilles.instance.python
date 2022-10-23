@@ -55,6 +55,9 @@ class MqThread:
         reply_res.ajouter_rk(Constantes.SECURITE_PUBLIC, 'requete.instance.%s.%s' % (
             instance_id, ConstantesInstance.REQUETE_CONFIGURATION_ACME))
 
+        # Ecouter le certificat de maitre des cles
+        reply_res.ajouter_rk(niveau_securite, 'evenement.MaitreDesCles.certMaitreDesCles')
+
         # RK uniquement 3.protege
         if niveau_securite == Constantes.SECURITE_PROTEGE:
             reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
