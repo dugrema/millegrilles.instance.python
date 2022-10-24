@@ -49,7 +49,7 @@ class EntretienNginx:
             basic_auth = aiohttp.BasicAuth('admin', password_mq)
             self.__session = aiohttp.ClientSession(auth=basic_auth)
 
-    async def entretien(self):
+    async def entretien(self, producer):
         self.__logger.debug("entretien debut")
 
         try:
@@ -74,6 +74,21 @@ class EntretienNginx:
                         pass  # OK
                     elif reponse.status == 404:
                         self.__logger.warning("Erreur nginx https, fiche introuvable")
+                        # Tenter de charger la fiche
+                        idmg = self.__etat_instance.idmg
+                        reponse_fiche = await producer.executer_requete(
+                            {'idmg': idmg},
+                            'CoreTopologie',
+                            'ficheMillegrille',
+                            Constantes.SECURITE_PRIVE,
+                            timeout=10
+                        )
+                        fiche_parsed = reponse_fiche.parsed
+                        self.__logger.debug("Fiche chargee via requete : %s" % fiche_parsed)
+                        path_nginx = self.__etat_instance.configuration.path_nginx
+                        path_fiche_json = path.join(path_nginx, 'html', 'fiche.json')
+                        self.sauvegarder_fichier_data(path_fiche_json, fiche_parsed)
+
                 except ClientConnectorError:
                     self.__logger.exception("nginx n'est pas accessible")
 

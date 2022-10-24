@@ -614,7 +614,8 @@ class InstanceProtegee(InstanceDockerAbstract):
 
     async def entretien_nginx(self):
         if self.__entretien_nginx:
-            await self.__entretien_nginx.entretien()
+            producer = self.__rabbitmq_dao.get_producer()
+            await self.__entretien_nginx.entretien(producer)
 
     async def entretien_mq(self):
         if self.__entretien_rabbitmq:
