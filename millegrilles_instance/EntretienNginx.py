@@ -12,7 +12,7 @@ from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_instance.AcmeHandler import CommandeAcmeExtractCertificates, AcmeNonDisponibleException
-# from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname, OnionizeNonDisponibleException
+from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname, OnionizeNonDisponibleException
 
 
 class EntretienNginx:
@@ -58,7 +58,7 @@ class EntretienNginx:
 
             await self.verifier_certificat_web()
 
-            # await self.verifier_tor()
+            await self.verifier_tor()
 
             if self.__session is None:
                 await self.creer_session()
@@ -158,7 +158,7 @@ class EntretienNginx:
 
         return configuration_modifiee
 
-    def ajouter_fichier_configuration(self, nom_fichier: str, contenu: str, params: Optional[dict] = None):
+    def ajouter_fichier_configuration(self, nom_fichier: str, contenu: str, params: Optional[dict] = None) -> bool:
         path_nginx = self.__etat_instance.configuration.path_nginx
         path_nginx_modules = path.join(path_nginx, 'modules')
         if params is None:
@@ -178,8 +178,19 @@ class EntretienNginx:
         path_destination = path.join(path_nginx_modules, nom_fichier)
         contenu = contenu.format(**params)
 
+        changement_detecte = False
+        try:
+            with open(path_destination, 'r') as fichier_existant:
+                contenu_existant = fichier_existant.read()
+                if contenu_existant != contenu:
+                    changement_detecte = True
+        except FileNotFoundError:
+            changement_detecte = True
+
         with open(path_destination, 'w') as fichier_output:
             fichier_output.write(contenu)
+
+        return changement_detecte
 
     def sauvegarder_fichier_data(self, path_fichier: str, contenu: Union[str, bytes, dict], path_html=False):
         path_nginx = self.__etat_instance.configuration.path_nginx
@@ -250,13 +261,24 @@ class EntretienNginx:
             self.__logger.info("Redemarrer nginx avec le nouveau certificat web")
             await self.__etat_docker.redemarrer_nginx()
 
-    # async def verifier_tor(self):
-    #     commande = CommandeOnionizeGetHostname()
-    #     self.__etat_docker.ajouter_commande(commande)
-    #     try:
-    #         hostname = await commande.get_resultat()
-    #     except OnionizeNonDisponibleException:
-    #         self.__logger.debug("Service onionize non demarre")
-    #         return
-    #
-    #     self.__logger.debug("Adresse onionize : %s" % hostname)
+    async def verifier_tor(self):
+        commande = CommandeOnionizeGetHostname()
+        self.__etat_docker.ajouter_commande(commande)
+        try:
+            hostname = await commande.get_resultat()
+        except OnionizeNonDisponibleException:
+            self.__logger.debug("Service onionize non demarre")
+            return
+
+        self.__logger.debug("Adresse onionize : %s" % hostname)
+
+        # S'assurer que le module de configuration nginx pour TOR est configure
+        nom_fichier = 'onion.location'
+        contenu = """
+add_header "Onion-Location" "https://%s";
+""" % hostname
+        fichier_nouveau = self.ajouter_fichier_configuration(nom_fichier, contenu)
+
+        if fichier_nouveau is True:
+            await self.__etat_docker.redemarrer_nginx()
+
