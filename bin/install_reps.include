@@ -12,7 +12,7 @@ creer_repertoires() {
   sudo mkdir -p $PATH_MILLEGRILLES/issuer $PATH_LOGS
   sudo mkdir -p $PATH_MILLEGRILLES/configuration
   sudo mkdir -p $PATH_MILLEGRILLES/consignation
-  sudo mkdir -p $PATH_MILLEGRILLES/nginx
+  sudo mkdir -p $PATH_MILLEGRILLES/nginx/html
   sudo mkdir -p $PATH_MILLEGRILLES/secrets
   sudo mkdir -p $PATH_MILLEGRILLES/shared_secrets
   sudo mkdir -p $PATH_MILLEGRILLES/python
@@ -77,6 +77,10 @@ creer_comptes() {
     done
 
   done
+
+  # Ajouter groupe millegrilles au compte courant
+  COMPTE_COURANT=`whoami`
+  sudo adduser $COMPTE_COURANT $GROUP_MILLEGRILLES
 
   echo "[OK] Comptes millegrilles prets"
 }

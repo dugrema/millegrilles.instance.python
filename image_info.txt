@@ -10,5 +10,5 @@ BUILD=`cat build.txt`
 VERSION=$BRANCH.$BUILD
 echo $VERSION > version.txt
 
-URL_SERVEUR_DEV=mg-dev5.maple.maceroc.com
-PATH_SERVEUR_DEV=/home/mathieu/PycharmProjects/millegrilles.deployeur
+# URL_SERVEUR_DEV=mg-dev5.maple.maceroc.com
+# PATH_SERVEUR_DEV=/home/mathieu/PycharmProjects/millegrilles.deployeur
