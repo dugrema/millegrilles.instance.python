@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import tempfile
 import tarfile
 import io
 
