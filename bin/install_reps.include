@@ -37,6 +37,7 @@ creer_repertoires() {
 
   sudo chmod 2775 $PATH_MILLEGRILLES/nginx
   sudo chown mgnginx:millegrilles $PATH_MILLEGRILLES/nginx
+  sudo chown mginstance:millegrilles $PATH_MILLEGRILLES/nginx/html
 
   sudo chmod 2770 $PATH_MILLEGRILLES/secrets
   sudo chown mginstance:mgsecrets $PATH_MILLEGRILLES/secrets
