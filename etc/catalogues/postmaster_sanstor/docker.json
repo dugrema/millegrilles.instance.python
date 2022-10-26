@@ -1,5 +1,5 @@
 {
-  "nom": "postmaster",
+  "nom": "postmaster_sanstor",
   "version": "2022.8.0",
   "description": {
     "en": "Postmaster",
@@ -8,7 +8,7 @@
   "securite": "1.public",
   "dependances": [
     {
-      "name": "postmaster",
+      "name": "postmaster_sanstor",
       "image": "docker.maceroc.com/millegrilles_postmaster:2022.8.0",
       "certificat": {
         "roles": ["postmaster"],
@@ -24,7 +24,7 @@
           "MG_REDIS_URL": "rediss://client_rust@redis:6379#insecure",
           "MG_REDIS_PASSWORD_FILE": "/run/secrets/passwd.redis.txt",
           "MG_FICHIERS_URL": "https://fichiers:443",
-          "TOR_PROXY": "socks5h://onionize:9050"
+          "TOR_PROXY": ""
       },
       "constraints": ["node.labels.millegrilles.postmaster == true"],
       "configs": [
