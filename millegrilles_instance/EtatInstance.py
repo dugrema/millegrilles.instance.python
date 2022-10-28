@@ -69,7 +69,7 @@ class EtatInstance:
 
         self.__ip_address = get_ip()
         self.__hostname = get_hostname(fqdn=True)
-        self.__logger.debug("Nom domaine insance: %s" % self.__hostname)
+        self.__logger.debug("Nom domaine instance: %s" % self.__hostname)
 
         # Generer les certificats web self-signed au besoin
         path_cert_web, path_cle_web = preparer_certificats_web(self.__configuration.path_secrets)

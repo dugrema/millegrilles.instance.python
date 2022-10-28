@@ -40,7 +40,10 @@ def get_module_execution(etat_instance: EtatInstance):
 
     if securite == Constantes.SECURITE_SECURE:
         if expiration is None or expiration.get('expire') is True:
-            return InstanceDockerCertificatSecureExpire()
+            if etat_instance.docker_present is True:
+                return InstanceDockerCertificatSecureExpire()
+            else:
+                return InstanceCertificatSecureExpire()
         elif etat_instance.docker_present is True:
             return InstanceSecureDocker()
         return InstanceSecure()
@@ -459,7 +462,6 @@ class InstanceDockerCertificatSecureExpire(InstanceDockerAbstract):
     def get_config_modules(self) -> list:
         return CONFIG_MODULES_SECURE_EXPIRE
 
-
 class InstanceCertificatExpire(InstanceInstallation):
 
     def __init__(self):
@@ -475,6 +477,22 @@ class InstanceCertificatExpire(InstanceInstallation):
 
     def get_config_modules(self) -> list:
         return CONFIG_CERTIFICAT_EXPIRE
+
+
+class InstanceCertificatSecureExpire(InstanceCertificatExpire):
+
+    def __init__(self):
+        super().__init__()
+        self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        self._event_stop: Optional[Event] = None
+        self._etat_instance: Optional[EtatInstance] = None
+
+    async def setup(self, etat_instance: EtatInstance, etat_docker=None):
+        self.__logger.info("Setup InstanceCertificatSecureExpire")
+        await super().setup(etat_instance)
+
+    def get_config_modules(self) -> list:
+        return CONFIG_MODULES_SECURE_EXPIRE
 
 
 class InstanceProtegee(InstanceDockerAbstract):
