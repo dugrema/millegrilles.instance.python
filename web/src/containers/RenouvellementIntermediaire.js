@@ -11,7 +11,7 @@ export default function RenouvellementIntermediaire(props) {
 
   const { intermediairePem } = props.rootProps
   const infoClecertMillegrille = props.rootProps.infoClecertMillegrille
-  const certificatPem = infoClecertMillegrille.certificat
+  const certificatMillegrillePem = infoClecertMillegrille.certificat
 
   const [confirmation, setConfirmation] = useState('')
   const [erreur, setErreur] = useState('')
@@ -46,16 +46,16 @@ export default function RenouvellementIntermediaire(props) {
         :''
       }
 
-      {certificatPem?
+      {certificatMillegrillePem?
         <>
-          <p>Nouveau certificat instance</p>
-          <pre>{certificatPem}</pre>
+          <p>Certificat de la MilleGrille</p>
+          <pre>{certificatMillegrillePem}</pre>
         </>
       :''}
 
       <br/>
       <Button variant="secondary" onClick={()=>props.changerPage('Installation')}>Retour</Button>
-      <Button disabled={!(intermediairePem && certificatPem)}
+      <Button disabled={!(intermediairePem && certificatMillegrillePem)}
               onClick={()=>soumettreIntermediaire({...props, erreurCb, confirmationCb: setConfirmation})}>
         Soumettre
       </Button>
@@ -95,15 +95,19 @@ async function soumettreIntermediaire(props) {
   console.debug("soumettreIntermediaire proppys!\n%O", props)
 
   const { confirmationCb, erreurCb } = props
+  const rootProps = props.rootProps || {}
+  const {intermediairePem, infoClecertMillegrille} = rootProps
+  const info = rootProps.info || {}
+  const { idmg, securite } = info
 
-  const idmg = props.rootProps.idmg,
-        intermediairePem = props.rootProps.intermediairePem,
-        infoClecertMillegrille = props.rootProps.infoClecertMillegrille
+  // const idmg = props.rootProps.idmg,
+  //       intermediairePem = props.rootProps.intermediairePem,
+  //       infoClecertMillegrille = props.rootProps.infoClecertMillegrille
 
   var paramsInstallation = {
     idmg,
     // chainePem: [intermediairePem, infoClecertMillegrille.certificat],
-    securite: '3.protege',
+    securite: securite || '3.protege',
     certificatIntermediaire: intermediairePem,
     certificatMillegrille: infoClecertMillegrille.certificat,
   }

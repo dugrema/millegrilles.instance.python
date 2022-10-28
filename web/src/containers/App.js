@@ -158,6 +158,7 @@ function AfficherInformationNoeud(props) {
 
   console.debug("Props - %O", props)
 
+  const renouvellerActif = ['4.secure', '3.protege'].includes(securite)
   let certificatExpire, certificatJoursExpiration, intermediaireExpire
   const maintenant = new Date().getTime()
   const msJour = 24 * 60 * 60000
@@ -210,7 +211,7 @@ function AfficherInformationNoeud(props) {
         </Col>
       </Row>
     )
-    if(securite === '3.protege') {
+    if(renouvellerActif) {
       listeInfo.push(
         <Row key='validity_inter_end'>
           <Col sm={3}>Expiration intermediaire</Col>
@@ -232,6 +233,7 @@ function AfficherInformationNoeud(props) {
       // pret = false, 
       boutons = ''
   if(certificat) {
+
     if(intermediaireExpire) {
       etat = (
         <Alert variant="danger">
@@ -254,7 +256,7 @@ function AfficherInformationNoeud(props) {
       <Row>
         <Col>
           <Button href="/millegrilles">Acceder</Button>
-          <Button disabled={securite!=='3.protege'} variant="secondary" onClick={()=>props.changerPage('RenouvellementIntermediaire')}>Renouveller</Button>
+          <Button disabled={!renouvellerActif} variant="secondary" onClick={()=>props.changerPage('RenouvellementIntermediaire')}>Renouveller</Button>
         </Col>
       </Row>
     )
