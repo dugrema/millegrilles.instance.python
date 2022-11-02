@@ -165,8 +165,11 @@ async def nettoyer_configuration_expiree(etat_docker: EtatDockerInstanceSync):
     secret_a_supprimer = set()
     correspondance = config_datees['correspondance']
     for element_config in correspondance.values():
-        current_config = element_config['current']
-        set_names_courants = set([v['name'] for v in current_config.values()])
+        try:
+            current_config = element_config['current']
+            set_names_courants = set([v['name'] for v in current_config.values()])
+        except KeyError:
+            set_names_courants = set()
 
         for elem in element_config.values():
             for elem_config in elem.values():
