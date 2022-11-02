@@ -31,12 +31,13 @@ class WebServer:
 
         self.__webrunner: Optional[WebRunner] = None
         self.__webrunner_443: Optional[WebRunner] = None
+        self.__ipv6 = True
 
     def setup(self, configuration: Optional[dict] = None):
         self._charger_configuration(configuration)
         self._preparer_routes()
 
-        self.__webrunner = WebRunner(self.__etat_instance, self.__configuration, self.__app)
+        self.__webrunner = WebRunner(self.__etat_instance, self.__configuration, self.__app, ipv6=self.__ipv6)
 
     async def fermer(self):
         self.__stop_event.set()
@@ -264,7 +265,8 @@ class WebServer:
         #niveau_securite_initial = self.__etat_instance.niveau_securite
         #if niveau_securite_initial != Constantes.SECURITE_PROTEGE:
         if self.__etat_instance.doit_activer_443() is True:  # Pas encore initialise
-            self.__webrunner_443 = WebRunner(self.__etat_instance, self.__configuration, self.__app, port=443)
+            self.__webrunner_443 = WebRunner(self.__etat_instance, self.__configuration, self.__app,
+                                             ipv6=self.__ipv6, port=443)
 
         try:
             if self.__webrunner_443 is not None:
@@ -289,11 +291,14 @@ class WebServer:
 
 class WebRunner:
 
-    def __init__(self, etat_instance: EtatInstance, configuration: ConfigurationWeb, app, port: Optional[int] = None):
+    def __init__(self, etat_instance: EtatInstance, configuration: ConfigurationWeb, app,
+                 ipv6: Optional[bool] = False, port: Optional[int] = None):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self._etat_instance = etat_instance
         self._configuration = configuration
         self._runner = web.AppRunner(app)
+
+        self.__ipv6 = ipv6
 
         if port is not None:
             self._port = port
@@ -301,12 +306,18 @@ class WebRunner:
             self._port = self._configuration.port
 
         self.__site: Optional[web.TCPSite] = None
+        self.__site_ipv6: Optional[web.TCPSite] = None
 
     async def start(self):
         await self._runner.setup()
         ssl_context = self.charger_ssl()
+
         self.__site = web.TCPSite(self._runner, '0.0.0.0', self._port, ssl_context=ssl_context)
-        await self.__site.start()
+        if self.__ipv6 is True:
+            self.__site_ipv6 = web.TCPSite(self._runner, '::', self._port, ssl_context=ssl_context)
+            await asyncio.gather(self.__site.start(), self.__site_ipv6.start())
+        else:
+            await asyncio.gather(self.__site.start())
 
     async def stop(self):
         try:
