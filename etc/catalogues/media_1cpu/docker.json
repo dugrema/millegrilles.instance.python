@@ -1,6 +1,6 @@
 {
   "nom": "media_1cpu",
-  "version": "2022.8.0",
+  "version": "2022.8.1",
   "securite": "4.secure",
   "dependances": [
     {
@@ -31,7 +31,7 @@
       ],
       "configs": [
         {
-          "name": "pki.media",
+          "name": "pki.media_1cpu",
           "current": "cert",
           "filename": "/run/secrets/cert.pem"
         },
@@ -42,7 +42,7 @@
       ],
       "secrets": [
         {
-          "name": "pki.media",
+          "name": "pki.media_1cpu",
           "current": "key",
           "filename": "key.pem"
         },
