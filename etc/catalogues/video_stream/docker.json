@@ -1,0 +1,77 @@
+{
+  "nom": "video_stream",
+  "version": "2022.8.0",
+  "securite": "2.prive",
+  "dependances": [
+    {
+      "name": "video_stream",
+      "image": "docker.maceroc.com/millegrilles_media:2022.8.0",
+      "certificat": {
+        "roles": ["stream", "media"],
+        "exchanges": ["2.prive", "1.public"],
+        "dns": {"localhost": true, "hostnames": ["videostream"], "domain": true}
+      },
+      "env": {
+        "MG_MQ_URL": "amqps://mq:5673",
+        "MG_REDIS_HOST": "redis",
+        "MG_REDIS_PORT": "6379",
+        "MG_MQ_REDIS_PASSWD": "/run/secrets/passwd.redis.txt",
+        "MG_MQ_CERTFILE": "/run/secrets/cert.pem",
+        "MG_MQ_KEYFILE": "/run/secrets/key.pem",
+        "MG_MQ_CAFILE": "/run/secrets/millegrille.cert.pem",
+        "WEB_CERT": "/run/secrets/cert.pem",
+        "WEB_KEY": "/run/secrets/key.pem",
+        "SERVER_TYPE": "https",
+        "PATH_STAGING": "/var/opt/millegrilles/consignation/staging/media",
+        "DISABLE_Q_PROCESSING": 1
+      },
+      "constraints": ["node.labels.millegrilles.videostream == true"],
+      "mounts": [
+        {"source": "millegrilles-staging", "target": "/var/opt/millegrilles/consignation/staging", "type": "volume"}
+      ],
+      "configs": [
+        {
+          "name": "pki.video_stream",
+          "current": "cert",
+          "filename": "/run/secrets/cert.pem"
+        },
+        {
+          "name": "pki.millegrille",
+          "filename": "/run/secrets/millegrille.cert.pem"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "pki.video_stream",
+          "current": "key",
+          "filename": "key.pem"
+        },
+        {
+          "name": "passwd.redis",
+          "current": "password",
+          "filename": "passwd.redis.txt"
+        }
+      ],
+      "networks": [
+        {"target": "millegrille_net", "aliases": ["videostream"]},
+        {"target": "bridge"}
+      ],
+      "resources": {
+        "cpu_limit": 1000000000,
+        "mem_limit": 1000000000
+      },
+      "restart_policy": {
+        "condition": "on-failure",
+        "delay": 60000000000,
+        "max_attempts": 2
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      }
+    }
+  ],
+  "nginx": {
+    "conf": ["videostream.app.location.tls", "videostream.app.proxypass"]
+  }
+}
