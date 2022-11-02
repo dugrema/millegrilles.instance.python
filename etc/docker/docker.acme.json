@@ -24,5 +24,8 @@
   },
   "container_labels": {
     "acme": "true"
-  }
+  },
+  "networks": [
+    {"target": "bridge"}
+  ]
 }

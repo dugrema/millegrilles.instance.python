@@ -45,14 +45,15 @@
       {
         "published_port": 5673,
         "target_port": 5673,
-        "protocol": "tcp"
+        "protocol": "tcp",
+        "publish_mode": "host"
       }
     ]
   },
-  "networks": [{
-    "target": "millegrille_net",
-    "aliases": ["mq"]
-  }],
+  "networks": [
+    {"target": "millegrille_net", "aliases": ["mq"]},
+    {"target": "bridge"}
+  ],
   "labels": {
     "millegrille": "${IDMG}"
   },
