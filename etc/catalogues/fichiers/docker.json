@@ -1,6 +1,6 @@
 {
   "nom": "fichiers",
-  "version": "2022.8.2",
+  "version": "2022.8.3",
   "securite": "2.prive",
   "dependances": [
     {
@@ -16,7 +16,7 @@
         {"label": "fichiers_rsa", "type": "rsa", "size": 2048}
       ],
       "env": {
-        "MG_MQ_URL": "amqps://mq:5673",
+        "MG_MQ_URL": "amqps://${MQ_HOSTNAME}:${MQ_PORT}",
         "MG_REDIS_HOST": "redis",
         "MG_REDIS_PORT": "6379",
         "MG_MQ_CERTFILE": "/run/secrets/cert.pem",
