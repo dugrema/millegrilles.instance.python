@@ -1,6 +1,6 @@
 {
   "nom": "media",
-  "version": "2022.8.1",
+  "version": "2022.8.2",
   "securite": "4.secure",
   "dependances": [
     {
@@ -10,7 +10,7 @@
         "roles": ["media", "fichiers"],
         "domaines": ["GrosFichiers"],
         "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"],
-        "dns": {"localhost": true, "hostnames": ["media"], "domain": true}
+        "dns": {"localhost": true, "hostnames": ["media", "stream"], "domain": true}
       },
       "env": {
         "MG_MQ_URL": "amqps://mq:5673",
@@ -53,7 +53,7 @@
         }
       ],
       "networks": [
-        {"target": "millegrille_net", "aliases": ["media"]},
+        {"target": "millegrille_net", "aliases": ["media", "stream"]},
         {"target": "bridge"}
       ],
       "resources": {
@@ -72,6 +72,6 @@
     }
   ],
   "nginx": {
-    "conf": ["media.app.location.tls", "media.app.proxypass"]
+    "conf": ["stream.app.location.tls", "stream.app.proxypass"]
   }
 }

@@ -1,5 +1,5 @@
 location /stream_transfert {{
-  include /etc/nginx/conf.d/modules/videostream.app.proxypass;
+  include /etc/nginx/conf.d/modules/stream.app.proxypass;
   include /etc/nginx/conf.d/auth_tlsclient.include;
 
   include /etc/nginx/conf.d/component_proxyheaders.include;

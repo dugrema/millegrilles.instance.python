@@ -1,15 +1,15 @@
 {
-  "nom": "video_stream",
+  "nom": "stream",
   "version": "2022.8.0",
   "securite": "2.prive",
   "dependances": [
     {
-      "name": "video_stream",
+      "name": "stream",
       "image": "docker.maceroc.com/millegrilles_media:2022.8.0",
       "certificat": {
-        "roles": ["stream", "media"],
+        "roles": ["stream"],
         "exchanges": ["2.prive", "1.public"],
-        "dns": {"localhost": true, "hostnames": ["videostream"], "domain": true}
+        "dns": {"localhost": true, "hostnames": ["stream"], "domain": true}
       },
       "env": {
         "MG_MQ_URL": "amqps://mq:5673",
@@ -22,16 +22,15 @@
         "WEB_CERT": "/run/secrets/cert.pem",
         "WEB_KEY": "/run/secrets/key.pem",
         "SERVER_TYPE": "https",
-        "PATH_STAGING": "/var/opt/millegrilles/consignation/staging/media",
-        "DISABLE_Q_PROCESSING": 1
+        "PATH_STAGING": "/var/opt/millegrilles/consignation/staging/media"
       },
-      "constraints": ["node.labels.millegrilles.videostream == true"],
+      "constraints": ["node.labels.millegrilles.media == true"],
       "mounts": [
-        {"source": "millegrilles-staging", "target": "/var/opt/millegrilles/consignation/staging", "type": "volume"}
+        {"source": "millegrilles-staging", "target":  "/var/opt/millegrilles/consignation/staging", "type": "volume"}
       ],
       "configs": [
         {
-          "name": "pki.video_stream",
+          "name": "pki.media_1cpu",
           "current": "cert",
           "filename": "/run/secrets/cert.pem"
         },
@@ -42,7 +41,7 @@
       ],
       "secrets": [
         {
-          "name": "pki.video_stream",
+          "name": "pki.media_1cpu",
           "current": "key",
           "filename": "key.pem"
         },
@@ -53,7 +52,7 @@
         }
       ],
       "networks": [
-        {"target": "millegrille_net", "aliases": ["videostream"]},
+        {"target": "millegrille_net", "aliases": ["media", "stream"]},
         {"target": "bridge"}
       ],
       "resources": {
@@ -72,6 +71,6 @@
     }
   ],
   "nginx": {
-    "conf": ["videostream.app.location.tls", "videostream.app.proxypass"]
+    "conf": ["stream.app.location.tls", "stream.app.proxypass"]
   }
 }

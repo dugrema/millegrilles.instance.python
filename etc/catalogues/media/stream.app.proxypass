@@ -1,5 +1,5 @@
-set $upstream_video https://videostream:443;
-proxy_pass $upstream_video;
+set $upstream_fichiers https://stream:443;
+proxy_pass $upstream_fichiers;
 
 proxy_ssl_certificate         /run/secrets/nginx.cert.pem;
 proxy_ssl_certificate_key     /run/secrets/nginx.key.pem;
