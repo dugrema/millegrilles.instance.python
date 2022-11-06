@@ -346,6 +346,8 @@ class EtatDockerInstanceSync:
         params['__certificat_info'] = {'label_prefix': 'pki.%s' % nom_service}
         params['__password_info'] = {'label_prefix': 'passwd.%s' % nom_service}
         params['__instance_id'] = self.__etat_instance.instance_id
+        params['MQ_HOSTNAME'] = self.__etat_instance.mq_hostname
+        params['MQ_PORT'] = self.__etat_instance.mq_port
         if self.__etat_instance.idmg is not None:
             params['__idmg'] = self.__etat_instance.idmg
 
