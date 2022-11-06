@@ -7,7 +7,7 @@
       "name": "media",
       "image": "docker.maceroc.com/millegrilles_media:2022.8.0",
       "certificat": {
-        "roles": ["media", "fichiers"],
+        "roles": ["media", "fichiers", "stream"],
         "domaines": ["GrosFichiers"],
         "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"],
         "dns": {"localhost": true, "hostnames": ["media", "stream"], "domain": true}
