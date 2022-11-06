@@ -1,3 +1,4 @@
+import datetime
 import json
 import os
 
@@ -41,6 +42,10 @@ class EntretienNginx:
         self.__repertoire_configuration_pret = False
 
         etat_instance.set_entretien_nginx(self)
+
+        # Information de CoreTopologie pour la consignation de fichiers
+        self.__configuration_consignation: Optional[dict] = None
+        self.__date_changement_consignation: Optional[datetime.datetime] = None
 
     async def creer_session(self):
         if self.__etat_instance.configuration.instance_password_mq_path is not None:
@@ -92,10 +97,19 @@ class EntretienNginx:
                 except ClientConnectorError:
                     self.__logger.exception("nginx n'est pas accessible")
 
+            if self.__configuration_consignation is None:
+                await self.charger_configuration_consignation(producer)
+
         except Exception as e:
             self.__logger.exception("Erreur verification nginx https")
 
         self.__logger.debug("entretien fin")
+
+    async def charger_configuration_consignation(self, producer):
+        requete = dict()
+        reponse = await producer.executer_requete(requete, 'CoreTopologie', 'getConsignationFichiers', Constantes.SECURITE_PRIVE)
+        if reponse['ok'] is True:
+            pass
 
     async def preparer_nginx(self):
         self.__logger.info("Preparer nginx")
