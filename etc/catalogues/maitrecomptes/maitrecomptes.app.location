@@ -1,0 +1,42 @@
+# Verification de l'authentification
+# Invoque pour **chaque** appel a nginx sous une page prive/protegee
+location = /millegrilles/authentification/verifier {
+  include /etc/nginx/conf.d/modules/maitrecomptes.app.proxypass;
+  proxy_pass_request_body off; # no need to send the POST body
+
+  proxy_set_header  Content-Length "";
+  proxy_set_header  X-Real-IP $remote_addr;
+  proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header  X-Forwarded-Proto $scheme;
+  proxy_set_header  Host $host;
+  proxy_set_header  X-Hostname $hostname;
+
+  client_max_body_size 5m;  # Limite batch upload
+}
+
+location /millegrilles/authentification {
+  include /etc/nginx/conf.d/modules/maitrecomptes.app.proxypass;
+}
+
+# API millegrilles, proteger via auth plugin
+location /millegrilles/api {
+  include /etc/nginx/conf.d/modules/maitrecomptes.app.proxypass;
+  include /etc/nginx/conf.d/component_base_auth.include;
+}
+
+# Support socket.io, proteger via auth plugin
+location /millegrilles/socket.io {
+  include /etc/nginx/conf.d/modules/maitrecomptes.app.proxypass;
+  # socket.io est public, c'est la methode d'authentification
+  include /etc/nginx/conf.d/component_base.include;
+}
+
+# Application React - s'occupe de l'authentification (non protege)
+location /millegrilles {
+  include /etc/nginx/conf.d/modules/maitrecomptes.app.proxypass;
+  include /etc/nginx/conf.d/component_gzip.include;
+
+  proxy_set_header  X-Real-IP $remote_addr;
+  proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header  X-Forwarded-Proto $scheme;
+}

@@ -1,0 +1,27 @@
+# Verification de l'authentification TLS client
+location = /millegrilles/authentification/verifier_tlsclient {
+  # Blocker immediatement si le certificat n'est pas valide
+  if ( $ssl_client_verify != SUCCESS ) {return 403;}
+
+  # Transmettre la requete pour validation supplementaire
+  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
+  proxy_pass_request_body off; # no need to send the POST body
+
+  proxy_set_header  Content-Length "";
+  proxy_set_header  X-Real-IP $remote_addr;
+  proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header  X-Forwarded-Proto $scheme;
+  proxy_set_header  Host $host;
+  proxy_set_header  X-Hostname $hostname;
+  proxy_set_header  Content-Length "";
+
+  proxy_set_header VERIFIED           $ssl_client_verify;
+  proxy_set_header X-Client-Issuer-DN $ssl_client_i_dn;
+  proxy_set_header DN                 $ssl_client_s_dn;
+
+  # Fix me - trouver methode pour envoyer le certificat
+  #          (nodejs 16.16.0+ bloque \r\n dans valeur du header)
+  #proxy_method POST;
+  #proxy_pass_request_body on;
+  #proxy_set_body $ssl_client_cert;
+}

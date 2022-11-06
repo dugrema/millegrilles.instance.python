@@ -1,0 +1,114 @@
+{
+  "nom": "maitrecomptes",
+  "version": "2022.8.0",
+  "securite": "2.prive",
+  "dependances": [
+    {
+      "name": "maitrecomptes",
+      "image": "docker.maceroc.com/millegrilles_web:2022.8.0",
+      "certificat": {
+        "roles": [ "maitrecomptes" ],
+        "exchanges": [ "2.prive", "1.public" ],
+        "dns": { "localhost": true, "hostnames": [ "maitrecomptes" ], "domain": true }
+      },
+      "passwords": [ "maitrecomptessession" ],
+      "env": {
+        "MG_MQ_URL": "amqps://${MQ_HOSTNAME}:${MQ_PORT}",
+        "MG_MQ_CERTFILE": "/run/secrets/cert.pem",
+        "MG_MQ_KEYFILE": "/run/secrets/key.pem",
+        "MG_MQ_CAFILE": "/run/secrets/millegrille.cert.pem",
+        "WEB_CERT": "/run/secrets/webcert.pem",
+        "WEB_KEY": "/run/secrets/webkey.pem",
+        "MG_SESSION_PASSWORD": "/run/secrets/passwd.maitrecomptessession.txt",
+        "MG_REDIS_HOST": "redis",
+        "MG_REDIS_PORT": "6379",
+        "MG_MQ_REDIS_PASSWD": "/run/secrets/passwd.redis.txt",
+        "SERVER_TYPE": "spdy",
+        "HOST": "${HOSTNAME}",
+        "PORT": "443",
+        "DATA_FOLDER": "/var/opt/millegrilles/nginx/data"
+      },
+      "mounts": [
+        {
+          "source": "nginx-data",
+          "target": "/var/opt/millegrilles/nginx/data",
+          "type": "volume"
+        },
+        {
+          "source": "/var/opt/millegrilles/nginx/html",
+          "target": "/var/opt/millegrilles/nginx/html",
+          "type": "bind",
+          "read_only": true
+        }
+      ],
+      "constraints": [ "node.labels.millegrilles.web == true" ],
+      "configs": [
+        {
+          "name": "pki.maitrecomptes",
+          "current": "cert",
+          "filename": "/run/secrets/cert.pem"
+        },
+        {
+          "name": "pki.maitrecomptes",
+          "current": "cert",
+          "filename": "/run/secrets/webcert.pem"
+        },
+        {
+          "name": "pki.millegrille",
+          "filename": "/run/secrets/millegrille.cert.pem"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "pki.maitrecomptes",
+          "current": "key",
+          "filename": "key.pem"
+        },
+        {
+          "name": "pki.maitrecomptes",
+          "current": "key",
+          "filename": "webkey.pem"
+        },
+        {
+          "name": "passwd.maitrecomptessession",
+          "current": "password",
+          "filename": "passwd.maitrecomptessession.txt"
+        },
+        {
+          "name": "passwd.redis",
+          "current": "password",
+          "filename": "passwd.redis.txt"
+        }
+      ],
+      "networks": [
+        {
+          "target": "millegrille_net",
+          "aliases": [ "maitrecomptes" ]
+        }
+      ],
+      "labels": {
+        "millegrille": "${IDMG}"
+      },
+      "resources": {
+        "cpu_limit": 1000000000,
+        "mem_limit": 209715200
+      },
+      "restart_policy": {
+        "condition": "on-failure",
+        "delay": 5000000000,
+        "max_attempts": 1
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      }
+    }
+  ],
+  "nginx": {
+    "conf": [
+      "maitrecomptes.app.location",
+      "maitrecomptes.app.location.tls",
+      "maitrecomptes.app.proxypass"
+    ]
+  }
+}
