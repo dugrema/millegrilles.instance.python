@@ -1,6 +1,6 @@
 {
   "nom": "collections",
-  "version": "2022.8.1",
+  "version": "2022.8.2",
   "securite": "2.prive",
   "dependances": [
     {
@@ -12,6 +12,7 @@
         "dns": {"localhost": true, "hostnames": ["collections"], "domain": true}
       },
       "env": {
+        "MG_MQ_URL": "amqps://${MQ_HOSTNAME}:${MQ_PORT}",
         "MG_MQ_CERTFILE": "/run/secrets/cert.pem",
         "MG_MQ_KEYFILE": "/run/secrets/key.pem",
         "MG_MQ_CAFILE": "/run/secrets/millegrille.cert.pem",
