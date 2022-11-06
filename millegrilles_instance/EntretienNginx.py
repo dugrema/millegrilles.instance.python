@@ -46,6 +46,7 @@ class EntretienNginx:
         # Information de CoreTopologie pour la consignation de fichiers
         self.__configuration_consignation: Optional[dict] = None
         self.__date_changement_consignation: Optional[datetime.datetime] = None
+        self.__intervalle_verification_consignation = datetime.timedelta(minutes=15)
 
     async def creer_session(self):
         if self.__etat_instance.configuration.instance_password_mq_path is not None:
@@ -97,8 +98,13 @@ class EntretienNginx:
                 except ClientConnectorError:
                     self.__logger.exception("nginx n'est pas accessible")
 
-            if self.__configuration_consignation is None:
-                await self.charger_configuration_consignation(producer)
+            if self.__configuration_consignation is None or \
+                    self.__date_changement_consignation + self.__intervalle_verification_consignation < datetime.datetime.utcnow():
+                try:
+                    await self.charger_configuration_consignation(producer)
+                    self.__date_changement_consignation = datetime.datetime.utcnow()
+                except:
+                    self.__logger.exception("Erreur configuration URL consignation")
 
         except Exception as e:
             self.__logger.exception("Erreur verification nginx https")
@@ -108,8 +114,20 @@ class EntretienNginx:
     async def charger_configuration_consignation(self, producer):
         requete = dict()
         reponse = await producer.executer_requete(requete, 'CoreTopologie', 'getConsignationFichiers', Constantes.SECURITE_PRIVE)
-        if reponse['ok'] is True:
-            pass
+        reponse_parsed = reponse.parsed
+        if reponse_parsed['ok'] is True:
+            self.__configuration_consignation = reponse_parsed
+            # S'assurer que le module de configuration nginx pour TOR est configure
+            nom_fichier = 'fichiers.proxypass.name'
+            url_consignation = reponse_parsed['consignation_url']
+            contenu = """# Fichier genere par EntretienNginx
+set $upstream_fichiers %s;
+proxy_pass $upstream_fichiers;
+    """ % url_consignation
+            fichier_nouveau = self.ajouter_fichier_configuration(nom_fichier, contenu)
+
+            if fichier_nouveau is True:
+                await self.__etat_docker.redemarrer_nginx()
 
     async def preparer_nginx(self):
         self.__logger.info("Preparer nginx")

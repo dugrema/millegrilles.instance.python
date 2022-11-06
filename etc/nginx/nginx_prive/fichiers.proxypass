@@ -1,5 +1,4 @@
-set $upstream_fichiers https://{MQ_HOST}:444;
-proxy_pass $upstream_fichiers;
+include /etc/nginx/conf.d/modules/fichiers.proxypass.name;
 
 proxy_ssl_certificate         /run/secrets/nginx.cert.pem;
 proxy_ssl_certificate_key     /run/secrets/nginx.key.pem;

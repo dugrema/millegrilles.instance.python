@@ -1,5 +1,0 @@
-location /fichiers_transfert {{
-  include /etc/nginx/conf.d/modules/fichiers.proxypass;
-  include /etc/nginx/conf.d/auth_tlsclient.include;
-  include /etc/nginx/conf.d/component_fichiers.include;
-}}
