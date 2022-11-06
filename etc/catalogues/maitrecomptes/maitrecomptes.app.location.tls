@@ -4,7 +4,7 @@ location = /millegrilles/authentification/verifier_tlsclient {{
   if ( $ssl_client_verify != SUCCESS ) {{return 403;}}
 
   # Transmettre la requete pour validation supplementaire
-  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
+  include /etc/nginx/conf.d/modules/maitrecomptes.app.proxypass;
   proxy_pass_request_body off; # no need to send the POST body
 
   proxy_set_header  Content-Length "";
