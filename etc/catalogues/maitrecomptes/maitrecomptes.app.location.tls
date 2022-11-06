@@ -1,7 +1,7 @@
 # Verification de l'authentification TLS client
-location = /millegrilles/authentification/verifier_tlsclient {
+location = /millegrilles/authentification/verifier_tlsclient {{
   # Blocker immediatement si le certificat n'est pas valide
-  if ( $ssl_client_verify != SUCCESS ) {return 403;}
+  if ( $ssl_client_verify != SUCCESS ) {{return 403;}}
 
   # Transmettre la requete pour validation supplementaire
   include /etc/nginx/conf.d/modules/millegrilles.proxypass;
@@ -24,4 +24,4 @@ location = /millegrilles/authentification/verifier_tlsclient {
   #proxy_method POST;
   #proxy_pass_request_body on;
   #proxy_set_body $ssl_client_cert;
-}
+}}
