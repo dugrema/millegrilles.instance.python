@@ -48,7 +48,7 @@ location /messagerie/fichiers {{
 }}
 
 location /messagerie/streams {{
-  include /etc/nginx/conf.d/modules/media.app.proxypass;
+  include /etc/nginx/conf.d/modules/stream.app.proxypass;
 
   # Laisser collections confirmer que l'usager est actif, a acces au fichier
   auth_request      /messagerie/streams/verifier;
