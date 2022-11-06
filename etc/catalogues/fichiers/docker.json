@@ -1,6 +1,6 @@
 {
   "nom": "fichiers",
-  "version": "2022.8.4",
+  "version": "2022.8.5",
   "securite": "2.prive",
   "dependances": [
     {
@@ -84,5 +84,6 @@
         "replicas": 1
       }
     }
-  ]
+  ],
+  "nginx": {"conf": ["fichiers.location.tls"]}
 }
