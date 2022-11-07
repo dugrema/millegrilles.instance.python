@@ -1,6 +1,6 @@
 {
   "nom": "stream",
-  "version": "2022.8.1",
+  "version": "2022.8.2",
   "securite": "2.prive",
   "dependances": [
     {
@@ -12,7 +12,7 @@
         "dns": {"localhost": true, "hostnames": ["stream"], "domain": true}
       },
       "env": {
-        "MG_MQ_URL": "amqps://mq:5673",
+        "MG_MQ_URL": "amqps://${MQ_HOSTNAME}:${MQ_PORT}",
         "MG_REDIS_HOST": "redis",
         "MG_REDIS_PORT": "6379",
         "MG_MQ_REDIS_PASSWD": "/run/secrets/passwd.redis.txt",
