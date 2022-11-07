@@ -1,0 +1,8 @@
+ssl_certificate       /run/secrets/nginx.cert.pem;
+ssl_certificate_key   /run/secrets/nginx.key.pem;
+ssl_stapling          off;
+ssl_stapling_verify   off;
+
+ssl_client_certificate /usr/share/nginx/files/certs/millegrille.cert.pem;
+ssl_verify_client      on;
+ssl_verify_depth       1;
