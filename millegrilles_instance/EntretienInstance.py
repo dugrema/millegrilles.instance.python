@@ -88,6 +88,14 @@ CONFIG_CERTIFICAT_EXPIRE = [
 ]
 
 
+CONFIG_MODULES_SECURES = [
+    'docker.certissuer.json',
+    'docker.acme.json',
+    'docker.nginx.json',
+    'docker.redis.json',
+]
+
+
 CONFIG_MODULES_PROTEGES = [
     'docker.certissuer.json',
     'docker.acme.json',
@@ -674,23 +682,25 @@ class InstanceSecureDocker(InstanceDockerAbstract):
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_services),
             TacheEntretien(datetime.timedelta(seconds=120), self.entretien_topologie),
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_applications),
+            TacheEntretien(datetime.timedelta(seconds=30), self.entretien_nginx),
         ]
         self._taches_entretien.extend(taches_entretien)
 
         self.__event_setup_initial_certificats: Optional[Event] = None
         self.__event_setup_initial_passwords: Optional[Event] = None
-
+        self.__entretien_nginx: Optional[EntretienNginx] = None
         self.__rabbitmq_dao: Optional[RabbitMQDao] = None
 
         self.__setup_catalogues_complete = False
 
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
-        self.__logger.info("Setup InstanceProtegee")
+        self.__logger.info("Setup InstanceSecureDocker")
         self._etat_instance = etat_instance
         self._etat_docker = etat_docker
 
         self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
+        self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
 
         await super().setup(etat_instance, etat_docker)
 
@@ -758,7 +768,7 @@ class InstanceSecureDocker(InstanceDockerAbstract):
 
         configuration = await self.get_configuration_certificats()
         producer = self.__rabbitmq_dao.get_producer()
-        await generer_certificats_modules(producer, self._etat_instance.client_session, self._etat_instance, configuration, None)
+        await generer_certificats_modules(producer, self._etat_instance.client_session, self._etat_instance, configuration, self._etat_docker)
         self.__logger.debug("entretien_certificats fin")
         self.__event_setup_initial_certificats.set()
 
@@ -788,8 +798,13 @@ class InstanceSecureDocker(InstanceDockerAbstract):
 
         await self._etat_docker.emettre_presence(producer)
 
+    async def entretien_nginx(self):
+        if self.__entretien_nginx:
+            producer = self.__rabbitmq_dao.get_producer()
+            await self.__entretien_nginx.entretien(producer)
+
     def get_config_modules(self) -> list:
-        return CONFIG_MODULES_PRIVES
+        return CONFIG_MODULES_SECURES
 
 
 class InstancePriveeDocker(InstanceDockerAbstract):

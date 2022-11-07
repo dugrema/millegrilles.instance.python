@@ -11,7 +11,6 @@ from aiohttp.web_request import BaseRequest
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages.CleCertificat import CleCertificat
-from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 

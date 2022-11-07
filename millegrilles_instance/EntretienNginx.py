@@ -188,6 +188,8 @@ proxy_pass $upstream_fichiers;
 
         if niveau_securite == Constantes.SECURITE_PROTEGE:
             repertoire_src_nginx = path.join(path_src_nginx, 'nginx_protege')
+        elif niveau_securite == Constantes.SECURITE_SECURE:
+            repertoire_src_nginx = path.join(path_src_nginx, 'nginx_secure')
         elif niveau_securite == Constantes.SECURITE_PRIVE:
             repertoire_src_nginx = path.join(path_src_nginx, 'nginx_prive')
         elif niveau_securite == Constantes.SECURITE_PUBLIC:
