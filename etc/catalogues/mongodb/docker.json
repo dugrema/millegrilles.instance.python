@@ -1,0 +1,180 @@
+{
+  "nom": "mongodb",
+  "version": "2022.8.0",
+  "securite": "4.secure",
+  "dependances": [
+    {
+      "name": "mongo",
+      "image": "mongo:4.4",
+      "hostname": "mongo",
+      "certificat": {
+        "roles": [
+          "mongo"
+        ],
+        "dns": {
+          "localhost": true,
+          "hostnames": [
+            "mongo"
+          ],
+          "domain": true
+        },
+        "combiner_keycert": true
+      },
+      "passwords": [
+        "mongo"
+      ],
+      "args": [
+        "mongod",
+        "--tlsMode",
+        "requireTLS",
+        "--tlsCertificateKeyFile",
+        "/run/secrets/mongo.key_cert.pem",
+        "--tlsCAFile",
+        "/run/secrets/millegrille.cert.pem"
+      ],
+      "env": {
+        "MONGO_INITDB_ROOT_USERNAME": "admin",
+        "MONGO_INITDB_ROOT_PASSWORD_FILE": "/run/secrets/mongo.root.password"
+      },
+      "mounts": [
+        {
+          "source": "mongo-data",
+          "target": "/data/db",
+          "type": "volume"
+        }
+      ],
+      "constraints": [
+        "node.labels.millegrilles.database == true"
+      ],
+      "configs": [
+        {
+          "name": "pki.mongo",
+          "current": "cert",
+          "filename": "/run/secrets/mongo.cert.pem"
+        },
+        {
+          "name": "pki.millegrille",
+          "filename": "/run/secrets/millegrille.cert.pem"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "pki.mongo",
+          "current": "key",
+          "filename": "mongo.key_cert.pem"
+        },
+        {
+          "name": "passwd.mongo",
+          "current": "password",
+          "filename": "mongo.root.password"
+        }
+      ],
+      "networks": [
+        {
+          "target": "millegrille_net",
+          "aliases": [
+            "mongo"
+          ]
+        }
+      ],
+      "labels": {
+        "millegrille": "${IDMG}"
+      },
+      "resources": {
+        "cpu_limit": 2000000000,
+        "mem_limit": 1073741824
+      },
+      "restart_policy": {
+        "condition": "any",
+        "delay": 5000000000,
+        "max_attempts": 1000
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      }
+    },
+    {
+      "name": "midcompte",
+      "image": "docker.maceroc.com/millegrilles_midcompte_python:2022.8.0",
+      "certificat": {
+        "roles": [
+          "midcompte"
+        ],
+        "dns": {
+          "localhost": true,
+          "hostnames": [
+            "midcompte"
+          ],
+          "domain": true
+        },
+        "combiner_keycert": true
+      },
+      "constraints": [
+        "node.labels.millegrilles.midcompte == true"
+      ],
+      "configs": [
+        {
+          "name": "pki.millegrille",
+          "filename": "/run/secrets/pki.millegrille"
+        },
+        {
+          "name": "pki.midcompte",
+          "current": "cert",
+          "filename": "/run/secrets/pki.midcompte.cert"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "pki.midcompte",
+          "current": "key",
+          "filename": "pki.midcompte.key"
+        },
+        {
+          "name": "passwd.mongo",
+          "current": "password",
+          "filename": "passwd.mongo.txt"
+        },
+        {
+          "name": "passwd.mqadmin",
+          "current": "password",
+          "filename": "passwd.mqadmin.txt"
+        }
+      ],
+      "endpoint_spec": {
+        "mode": "vip",
+        "ports": [
+          {
+            "published_port": 2444,
+            "target_port": 2444,
+            "protocol": "tcp"
+          }
+        ]
+      },
+      "networks": [
+        {
+          "target": "millegrille_net",
+          "aliases": [
+            "midcompte"
+          ]
+        }
+      ],
+      "labels": {
+        "millegrille": "${IDMG}"
+      },
+      "resources": {
+        "cpu_limit": 500000000,
+        "mem_limit": 100000000
+      },
+      "restart_policy": {
+        "condition": "any",
+        "delay": 5000000000,
+        "max_attempts": 1000
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      }
+    }
+  ]
+}
