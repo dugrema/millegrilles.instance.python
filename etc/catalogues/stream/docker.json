@@ -1,6 +1,6 @@
 {
   "nom": "stream",
-  "version": "2022.8.2",
+  "version": "2022.8.3",
   "securite": "2.prive",
   "dependances": [
     {
@@ -22,7 +22,8 @@
         "WEB_CERT": "/run/secrets/cert.pem",
         "WEB_KEY": "/run/secrets/key.pem",
         "SERVER_TYPE": "https",
-        "PATH_STAGING": "/var/opt/millegrilles/consignation/staging/media"
+        "PATH_STAGING": "/var/opt/millegrilles/consignation/staging/media",
+        "DISABLE_Q_PROCESSING": "1"
       },
       "constraints": ["node.labels.millegrilles.media == true"],
       "mounts": [
