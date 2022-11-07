@@ -1,6 +1,6 @@
 {
   "nom": "messagerie_web",
-  "version": "2022.8.1",
+  "version": "2022.8.2",
   "description": {
     "en": "Messaging web",
     "fr": "Messagerie web"
@@ -16,6 +16,7 @@
         "dns": {"localhost": true, "hostnames": ["messagerie"], "domain": true}
       },
       "env": {
+        "MG_MQ_URL": "amqps://${MQ_HOSTNAME}:${MQ_PORT}",
         "MG_MQ_CERTFILE": "/run/secrets/cert.pem",
         "MG_MQ_KEYFILE": "/run/secrets/key.pem",
         "MG_MQ_CAFILE": "/run/secrets/millegrille.cert.pem",
@@ -25,8 +26,7 @@
         "HOST": "${HOSTNAME}",
         "PORT": "443",
         "MG_REDIS_HOST": "redis",
-        "MG_REDIS_PORT": "6379",
-        "MG_CONSIGNATION_URL": "https://fichiers:443/fichiers_transfert"
+        "MG_REDIS_PORT": "6379"
       },
       "mounts": [
         {"source": "millegrilles-staging", "target": "/var/opt/millegrilles/consignation", "type": "volume"}
