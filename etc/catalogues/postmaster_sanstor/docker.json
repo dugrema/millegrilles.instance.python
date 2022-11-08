@@ -1,6 +1,6 @@
 {
   "nom": "postmaster_sanstor",
-  "version": "2022.8.1",
+  "version": "2022.8.2",
   "description": {
     "en": "Postmaster",
     "fr": "Postmaster"
@@ -15,8 +15,8 @@
         "exchanges": ["1.public"]
       },
       "env": {
-          "MG_MQ_HOST": "mq",
-          "MG_MQ_PORT": "5673",
+          "MG_MQ_HOST": "${MQ_HOSTNAME}",
+          "MG_MQ_PORT": "${MQ_PORT}",
           "CERTFILE": "/run/secrets/cert.pem",
           "KEYFILE": "/run/secrets/key.pem",
           "CAFILE": "/run/secrets/millegrille.cert.pem",

@@ -1,6 +1,6 @@
 {
   "nom": "relaiweb",
-  "version": "2022.8.0",
+  "version": "2022.8.1",
   "description": {
     "en": "Web relay for commands",
     "fr": "Relai web pour commandes"
@@ -20,7 +20,8 @@
         "CA_PEM": "/run/secrets/pki.millegrille",
         "CERT_PEM": "/run/secrets/pki.relaiweb.cert",
         "KEY_PEM": "/run/secrets/pki.relaiweb.key",
-        "MQ_HOSTNAME": "mq"
+        "MQ_HOSTNAME": "${MQ_HOSTNAME}",
+        "MQ_PORT": "${MQ_PORT}"
       },
       "configs": [
         {

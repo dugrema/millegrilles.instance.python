@@ -1,0 +1,12 @@
+{
+  "log-driver": "syslog",
+  "log-opts": {
+    "syslog-address": "tcp://localhost:514",
+    "tag": "{{.Name}}.{{.ID}}"
+  },
+  "data-root": "/mnt/XXXX/docker",
+  "experimental": true,
+  "ipv6": true,
+  "fixed-cidr-v6": "2001:db8:1::/64",
+  "ip6tables": true
+}
