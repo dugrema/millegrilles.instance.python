@@ -1,6 +1,6 @@
 {
   "nom": "messagerie_backend",
-  "version": "2022.7.0",
+  "version": "2022.8.0",
   "description": {
     "en": "Messaging (middleware)",
     "fr": "Messagerie (middleware)"
@@ -9,20 +9,19 @@
   "dependances": [
     {
       "name": "messagerie_backend",
-      "image": "docker.maceroc.com/millegrilles_messagerie:2022.7.0",
+      "image": "docker.maceroc.com/millegrilles_messagerie:2022.8.0",
       "certificat": {
         "roles": ["messagerie_backend"],
         "domaines": ["Messagerie"],
         "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
       },
       "env": {
-        "MG_MQ_HOST": "mq",
-        "MG_MQ_PORT": "5673",
+        "MG_MQ_HOST": "${MQ_HOSTNAME}",
+        "MG_MQ_PORT": "${MQ_PORT}",
         "CERTFILE": "/run/secrets/cert.pem",
         "KEYFILE": "/run/secrets/key.pem",
         "CAFILE": "/run/secrets/millegrille.cert.pem",
         "MG_MONGO_HOST": "mongo",
-        "MG_FICHIERS_URL": "https://fichiers:443",
         "MG_REDIS_URL": "rediss://client_rust@redis:6379#insecure",
         "MG_REDIS_PASSWORD_FILE": "/run/secrets/passwd.redis.txt",
         "RUST_LOG": "warn,millegrilles_messagerie=info"
