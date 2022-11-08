@@ -63,7 +63,7 @@ async def get_topologie_consignation(messages_thread):
     action = 'getConsignationFichiers'
     requete = {}
     producer = messages_thread.get_producer()
-    reponse = await producer.executer_requete(requete, 'CoreTopologie', action=action, exchange=Constantes.SECURITE_PRIVE)
+    reponse = await producer.executer_requete(requete, 'CoreTopologie', action=action, exchange=Constantes.SECURITE_PUBLIC)
     contenu = json.dumps(reponse.parsed, indent=2)
     logger.info("Reponse recue : %s", contenu)
 
