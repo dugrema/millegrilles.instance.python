@@ -1,11 +1,11 @@
 {
   "nom": "stream",
-  "version": "2022.8.4",
+  "version": "2022.8.5",
   "securite": "2.prive",
   "dependances": [
     {
       "name": "stream",
-      "image": "docker.maceroc.com/millegrilles_media:2022.8.1",
+      "image": "docker.maceroc.com/millegrilles_media:2022.8.2",
       "certificat": {
         "roles": ["stream"],
         "exchanges": ["2.prive", "1.public"],
