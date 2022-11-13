@@ -806,6 +806,9 @@ class InstanceSecureDocker(InstanceDockerAbstract):
     def get_config_modules(self) -> list:
         return CONFIG_MODULES_SECURES
 
+    def sauvegarder_nginx_data(self, nom_fichier: str, contenu: Union[bytes, str, dict], path_html=False):
+        self.__entretien_nginx.sauvegarder_fichier_data(nom_fichier, contenu, path_html)
+
 
 class InstancePriveeDocker(InstanceDockerAbstract):
 
