@@ -1,6 +1,6 @@
 {
-  "nom": "mongodb",
-  "version": "2022.8.0",
+  "nom": "mongo",
+  "version": "2022.8.4",
   "securite": "4.secure",
   "dependances": [
     {
@@ -176,5 +176,6 @@
         "replicas": 1
       }
     }
-  ]
+  ],
+  "nginx": {"conf": ["midcompte.proxypass", "midcompte.location.tls"]}
 }
