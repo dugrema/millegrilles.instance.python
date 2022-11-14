@@ -1,6 +1,6 @@
 {
   "name": "core",
-  "image": "docker.maceroc.com/millegrilles_core:2022.8.1",
+  "image": "docker.maceroc.com/millegrilles_core:2022.8.2",
   "certificat": {
     "roles": ["core"],
     "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"],
