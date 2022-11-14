@@ -1,11 +1,11 @@
 {
   "nom": "maitrecomptes",
-  "version": "2022.8.3",
+  "version": "2022.8.4",
   "securite": "2.prive",
   "dependances": [
     {
       "name": "maitrecomptes",
-      "image": "docker.maceroc.com/millegrilles_web:2022.8.0",
+      "image": "docker.maceroc.com/millegrilles_web:2022.8.1",
       "certificat": {
         "roles": [ "maitrecomptes" ],
         "exchanges": [ "2.prive", "1.public" ],
@@ -26,7 +26,8 @@
         "SERVER_TYPE": "spdy",
         "HOST": "${HOSTNAME}",
         "PORT": "443",
-        "DATA_FOLDER": "/var/opt/millegrilles/nginx/data"
+        "DATA_FOLDER": "/var/opt/millegrilles/nginx/data",
+        "DESACTIVER_IP_LOCK": "1"
       },
       "mounts": [
         {
