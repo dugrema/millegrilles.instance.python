@@ -1,0 +1,6 @@
+error_page 401 = @error401;
+
+# If the user is not logged in, redirect them to the login URL
+location @error401 {{
+  return 307 https://$http_host/installation;
+}}
