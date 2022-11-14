@@ -1,0 +1,11 @@
+Configuration ACME
+
+docker container ls | grep acme
+docker exec -it __CNTID__ sh
+
+cd acme.sh
+export CLOUDNS_SUB_AUTH_ID='1409'
+export CLOUDNS_AUTH_PASSWORD='XXXPASSXXX'
+
+acme.sh --issue --dns dns_cloudns -d prive.maple.maceroc.com \
+-d *.prive.maple.maceroc.com -d docker.maceroc.com -d mg-dev1.maple.maceroc.com -d mg-dev2.maple.maceroc.com
