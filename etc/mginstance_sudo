@@ -1,2 +1,3 @@
 mginstance ALL = NOPASSWD:/usr/local/bin/millegrilles_backup_staging.sh, \
-                 NOPASSWD:/usr/local/bin/millegrilles_backup_staging_cleanup.sh
+                 NOPASSWD:/usr/local/bin/millegrilles_backup_staging_cleanup.sh, \
+                 NOPASSWD:/usr/local/bin/mgsnapshot.sh

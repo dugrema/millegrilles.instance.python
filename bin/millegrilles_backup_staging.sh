@@ -1,13 +1,20 @@
 #!/bin/env bash
 
-DEST_BACKUP=/var/opt/millegrilles_backup
-VOL_CONSIGNATION=/var/lib/docker/volumes/millegrilles-consignation/_data/backup/transactions
+VOLS=/var/lib/docker/volumes
+TRANSACTIONS="$VOLS/millegrilles-consignation/_data/backup/transactions"
+CONSIGNATION="$VOLS/millegrilles-consignation/_data/local"
+APPS="$VOLS/millegrilles_backup/_data/_ARCHIVES"
 
-rm -rf "$DEST_BACKUP/archive.2"
-mv "$DEST_BACKUP/archive.1" "$DEST_BACKUP/archive.2"
-mv "$DEST_BACKUP/courant" "$DEST_BACKUP/archive.1"
+if [ -z $1 ]; then
+  echo "Fournir repertoire work"
+  exit 1
+fi
 
-mkdir -p "$DEST_BACKUP/courant"
+REP_WORK=$1
+STAGING="$REP_WORK/staging"
 
-cd "$VOL_CONSIGNATION"
-tar -cf "$DEST_BACKUP/courant/transactions.tar" ./*
+mkdir -p "$STAGING"
+
+cp -rl "$TRANSACTIONS" "$STAGING/"
+cp -rl "$CONSIGNATION" "$STAGING/"
+cp -rl "$APPS" "$STAGING/"
