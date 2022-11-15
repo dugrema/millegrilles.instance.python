@@ -57,7 +57,7 @@ class ConfigurationInstance:
         self.path_certificat_web: Optional[str] = None
         self.path_cle_web: Optional[str] = None
 
-        self.docker_image_backup = 'docker.maceroc.com/millegrilles_messages_python:2022.8.2'
+        self.docker_image_backup = 'docker.maceroc.com/millegrilles_messages_python:2022.8.3'
 
     def get_env(self) -> dict:
         """
