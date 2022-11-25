@@ -12,3 +12,5 @@ resultat = cle_publique.verify(signature, message)
 print("Resultat verification : %s" % resultat)
 
 
+# b4:3a:39:69:1d:bb:bf:d8:04:02:76:63:92:38:e3:cb:b4:0c:93:ed:b9:30:5e:46:80:53:93:b1:55:f6:e3:6d
+# b4:3a:39:69:1d:bb:bf:d8:04:02:76:63:92:38:e3:cb:b4:0c:93:ed:b9:30:5e:46:80:53:93:b1:55:f6:e3:6d
