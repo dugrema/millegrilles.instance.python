@@ -41,8 +41,8 @@ async def run_tests(messages_thread, stop_event):
 
     logger.info("emettre requetes backup")
 
-    await relai_get(messages_thread)
-    # await relai_post(messages_thread)
+    # await relai_get(messages_thread)
+    await relai_challenge(messages_thread)
 
     stop_event.set()
 
@@ -58,11 +58,14 @@ async def relai_get(messages_thread):
     logger.info("Reponse recue : %s", contenu)
 
 
-async def relai_post(messages_thread):
-    action = 'post'
-    commande = {'url': 'https://mg-int1.maple.maceroc.com/fiche.json'}
+async def relai_challenge(messages_thread):
+    action = 'challengeAppareil'
+    commande = {
+        'uuid_appareil': 'rpi-pico-e6614104035e0f2b',
+        'challenge': [1, 2, 3, 4],
+    }
     producer = messages_thread.get_producer()
-    reponse = await producer.executer_commande(commande, 'relaiweb', action=action, exchange=Constantes.SECURITE_PUBLIC)
+    reponse = await producer.executer_commande(commande, 'SenseursPassifs', action=action, exchange=Constantes.SECURITE_PRIVE)
     contenu = json.dumps(reponse.parsed, indent=2)
     logger.info("Reponse recue : %s", contenu)
 
