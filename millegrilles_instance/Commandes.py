@@ -80,6 +80,8 @@ class CommandHandler:
                 if Constantes.ROLE_CORE in roles:
                     if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
                         return await self.transmettre_catalogue(producer)
+                elif action == ConstantesInstance.COMMANDE_SIGNER_PUBLICKEY_DOMAINE:
+                    return await self.signer_publickey_roledomaine(message)
 
             if self._etat_instance.niveau_securite == Constantes.SECURITE_SECURE:
                 securite_effectif = Constantes.SECURITE_PROTEGE
@@ -114,6 +116,8 @@ class CommandHandler:
                     return await self.signer_csr(message)
                 elif action == ConstantesInstance.COMMANDE_SIGNER_COMPTE_USAGER:
                     return await self.signer_compte_usager(message)
+                elif action == ConstantesInstance.COMMANDE_SIGNER_PUBLICKEY_DOMAINE:
+                    return await self.signer_publickey_roledomaine(message)
 
             if reponse is None:
                 reponse = {'ok': False, 'err': 'Commande inconnue ou acces refuse'}
@@ -263,6 +267,15 @@ class CommandHandler:
         if Constantes.ROLE_CORE not in message.certificat.get_roles:
             return {'ok': False, 'err': 'Acces refuse'}
         elif Constantes.DOMAINE_CORE_MAITREDESCOMPTES not in message.certificat.get_domaines:
+            return {'ok': False, 'err': 'Acces refuse'}
+
+        # Faire le relai de la signature vers certissuer
+        reponse = await signer_certificat_usager_via_secure(self._etat_instance, message.parsed)
+
+        return {'ok': True, 'certificat': reponse['certificat']}
+
+    async def signer_publickey_roledomaine(self, message: MessageWrapper):
+        if Constantes.SECURITE_SECURE not in message.certificat.get_exchanges or message.certificat.get_domaines is None:
             return {'ok': False, 'err': 'Acces refuse'}
 
         # Faire le relai de la signature vers certissuer
