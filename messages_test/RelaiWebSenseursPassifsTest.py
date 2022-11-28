@@ -62,7 +62,7 @@ async def relai_challenge(messages_thread):
     action = 'challengeAppareil'
     commande = {
         'uuid_appareil': 'rpi-pico-e6614104035e0f2b',
-        'challenge': [1, 2, 3, 4],
+        'challenge': [2, 2, 1, 3],
     }
     producer = messages_thread.get_producer()
     reponse = await producer.executer_commande(commande, 'SenseursPassifs', action=action, exchange=Constantes.SECURITE_PRIVE)
