@@ -1,6 +1,6 @@
 {
   "nom": "senseurspassifs_relai",
-  "version": "2022.8.4",
+  "version": "2022.8.5",
   "description": {
     "en": "Senseurs Passifs Relay (web)",
     "fr": "Senseurs Passifs Relai (web)"
@@ -9,7 +9,7 @@
   "dependances": [
     {
       "name": "senseurspassifs_relai",
-      "image": "docker.maceroc.com/millegrilles_senseurspassifs_python:x86_64_2022.8.0",
+      "image": "docker.maceroc.com/millegrilles_senseurspassifs_python:2022.8.0",
       "args": ["-m", "senseurspassifs_relai_web", "--verbose"],
       "certificat": {
         "roles": ["senseurspassifs_relai"],
@@ -21,7 +21,7 @@
         "CERT_PEM": "/run/secrets/cert.pem",
         "KEY_PEM": "/run/secrets/key.pem",
         "CA_PEM": "/run/secrets/millegrille.cert.pem",
-        "PORT": "443",
+        "WEB_PORT": "443",
         "MG_REDIS_HOST": "redis",
         "MG_REDIS_PORT": "6379"
       },
