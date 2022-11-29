@@ -1,0 +1,83 @@
+{
+  "nom": "senseurspassifs_relai",
+  "version": "2022.8.0",
+  "description": {
+    "en": "Senseurs Passifs Relay (web)",
+    "fr": "Senseurs Passifs Relai (web)"
+  },
+  "securite": "2.prive",
+  "dependances": [
+    {
+      "name": "senseurspassifs_relai",
+      "image": "docker.maceroc.com/midcompte:2022.8.5",
+      "certificat": {
+        "roles": ["senseurspassifs_relai"],
+        "dns": {"localhost": true, "hostnames": ["senseurspassifs_relai"], "domain": true},
+        "exchanges": ["2.prive", "1.public"]
+      },
+      "env": {
+        "MG_MQ_CERTFILE": "/run/secrets/cert.pem",
+        "MG_MQ_KEYFILE": "/run/secrets/key.pem",
+        "MG_MQ_CAFILE": "/run/secrets/millegrille.cert.pem",
+        "WEB_CERT": "/run/secrets/cert.pem",
+        "WEB_KEY": "/run/secrets/key.pem",
+        "SERVER_TYPE": "spdy",
+        "HOST": "${HOSTNAME_DOMAINE}",
+        "PORT": "443",
+        "MG_REDIS_HOST": "redis",
+        "MG_REDIS_PORT": "6379"
+      },
+      "configs": [
+        {
+          "name": "pki.senseurspassifs_relai",
+          "current": "cert",
+          "filename": "/run/secrets/cert.pem"
+        },
+        {
+          "name": "pki.millegrille",
+          "filename": "/run/secrets/millegrille.cert.pem"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "pki.senseurspassifs_relai",
+          "current": "key",
+          "filename": "key.pem"
+        },
+        {
+          "name": "passwd.redis",
+          "current": "password",
+          "filename": "passwd.redis.txt"
+        }
+      ],
+      "networks": [
+        {
+          "target": "millegrille_net",
+          "aliases": [
+            "senseurspassifs_relai"
+          ]
+        }
+      ],
+      "labels": {
+        "url": "https://${HOSTNAME}/senseurspassifs",
+        "securite": "3.protege"
+      },
+      "resources": {
+        "cpu_limit": 500000000,
+        "mem_limit": 73741824
+      },
+      "restart_policy": {
+        "condition": "on-failure",
+        "delay": 60000000000,
+        "max_attempts": 1000
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      }
+    }
+  ],
+  "nginx": {
+    "conf": ["senseurspassifs_relai.app.location"]
+  }
+}
