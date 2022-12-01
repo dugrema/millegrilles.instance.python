@@ -1,6 +1,6 @@
 {
   "nom": "senseurspassifs_web",
-  "version": "2022.8.0",
+  "version": "2022.8.3",
   "description": {
     "en": "Senseurs Passifs (web)",
     "fr": "Senseurs Passifs (web)"
@@ -16,16 +16,17 @@
         "exchanges": ["2.prive", "1.public"]
       },
       "env": {
+        "MG_MQ_URL": "amqps://${MQ_HOSTNAME}:${MQ_PORT}",
         "MG_MQ_CERTFILE": "/run/secrets/cert.pem",
         "MG_MQ_KEYFILE": "/run/secrets/key.pem",
         "MG_MQ_CAFILE": "/run/secrets/millegrille.cert.pem",
         "WEB_CERT": "/run/secrets/cert.pem",
         "WEB_KEY": "/run/secrets/key.pem",
         "SERVER_TYPE": "spdy",
-        "HOST": "${HOSTNAME_DOMAINE}",
         "PORT": "443",
         "MG_REDIS_HOST": "redis",
-        "MG_REDIS_PORT": "6379"
+        "MG_REDIS_PORT": "6379",
+        "MG_MQ_REDIS_PASSWD": "/run/secrets/passwd.redis.txt"
       },
       "configs": [
         {
@@ -56,7 +57,8 @@
           "aliases": [
             "senseurspassifs_web"
           ]
-        }
+        },
+        {"target": "bridge"}
       ],
       "labels": {
         "url": "https://${HOSTNAME}/senseurspassifs",
@@ -64,7 +66,7 @@
       },
       "resources": {
         "cpu_limit": 500000000,
-        "mem_limit": 73741824
+        "mem_limit": 120000000
       },
       "restart_policy": {
         "condition": "on-failure",
