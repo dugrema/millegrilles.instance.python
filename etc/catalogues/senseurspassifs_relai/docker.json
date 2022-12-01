@@ -1,6 +1,6 @@
 {
   "nom": "senseurspassifs_relai",
-  "version": "2022.8.5",
+  "version": "2022.8.6",
   "description": {
     "en": "Senseurs Passifs Relay (web)",
     "fr": "Senseurs Passifs Relai (web)"
@@ -17,7 +17,8 @@
         "exchanges": ["2.prive", "1.public"]
       },
       "env": {
-        "MQ_HOSTNAME": "mq",
+        "MQ_HOSTNAME": "${MQ_HOSTNAME}",
+        "MQ_PORT": "${MQ_PORT}",
         "CERT_PEM": "/run/secrets/cert.pem",
         "KEY_PEM": "/run/secrets/key.pem",
         "CA_PEM": "/run/secrets/millegrille.cert.pem",
