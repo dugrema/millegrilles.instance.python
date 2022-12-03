@@ -61,7 +61,7 @@ async def relai_get(messages_thread):
 async def relai_challenge(messages_thread):
     action = 'challengeAppareil'
     commande = {
-        'uuid_appareil': 'rpi-pico-e6614103e74d8821',
+        'uuid_appareil': 'rpi-pico-e6614104033e722b',
         'challenge': [2, 2, 1, 3],
     }
     producer = messages_thread.get_producer()
