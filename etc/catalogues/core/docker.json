@@ -1,6 +1,6 @@
 {
   "nom": "core",
-  "version": "2022.8.2",
+  "version": "2022.8.3",
   "securite": "4.secure",
   "dependances": [
     {
