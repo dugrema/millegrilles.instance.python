@@ -6,3 +6,4 @@ docker volume rm \
 
 sudo rm -rf /var/opt/millegrilles
 
+mgmaint.sh
