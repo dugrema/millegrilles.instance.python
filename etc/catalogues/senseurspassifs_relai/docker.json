@@ -1,6 +1,6 @@
 {
   "nom": "senseurspassifs_relai",
-  "version": "2022.8.7",
+  "version": "2022.9.0",
   "description": {
     "en": "Senseurs Passifs Relay (web)",
     "fr": "Senseurs Passifs Relai (web)"
@@ -9,7 +9,7 @@
   "dependances": [
     {
       "name": "senseurspassifs_relai",
-      "image": "docker.maceroc.com/millegrilles_senseurspassifs_python:2022.8.1",
+      "image": "docker.maceroc.com/millegrilles_senseurspassifs_python:2022.9.0",
       "args": ["-m", "senseurspassifs_relai_web", "--verbose"],
       "certificat": {
         "roles": ["senseurspassifs_relai"],
