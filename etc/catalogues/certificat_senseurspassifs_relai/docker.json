@@ -1,6 +1,6 @@
 {
   "nom": "certificat_senseurspassifs_relai",
-  "version": "2022.9.0",
+  "version": "2022.9.1",
   "description": {
     "en": "SenseursPassifs relai (certificate)",
     "fr": "SenseursPassifs relai (certificat)"
@@ -8,7 +8,7 @@
   "securite": "2.prive",
   "dependances": [
     {
-      "name": "certificat_senseurspassifs_hub",
+      "name": "certificat_senseurspassifs_relai",
       "certificat": {
         "roles": ["senseurspassifs_relai"],
         "dns": {"localhost": true, "hostnames": ["senseurspassifs_relai"], "domain": true},
