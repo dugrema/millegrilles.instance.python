@@ -387,7 +387,9 @@ async def demander_nouveau_certificat(producer: MessageProducerFormatteur, etat_
 
         certificat = reponse['certificat']
     else:
-        message_reponse = await producer.executer_commande(configuration, 'CorePki', 'signerCsr', exchange=niveau_securite)
+        # Demander un nouveau certificat. Timeout long (60 secondes).
+        message_reponse = await producer.executer_commande(
+            configuration, 'CorePki', 'signerCsr', exchange=niveau_securite, timeout=60)
         reponse = message_reponse.parsed
         certificat = reponse['certificat']
 
