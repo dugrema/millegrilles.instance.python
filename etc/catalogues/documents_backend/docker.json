@@ -1,0 +1,73 @@
+{
+  "nom": "documents_backend",
+  "version": "2022.9.2",
+  "description": {
+    "en": "Documents (back-end)",
+    "fr": "Documents (back-end)"
+  },
+  "securite": "3.protege",
+  "dependances": [
+    {
+      "name": "documents_backend",
+      "image": "docker.maceroc.com/millegrilles_documents_backend:x86_64_2022.9.0",
+      "certificat": {
+        "roles": ["documents_backend"],
+        "domaines": ["Documents"],
+        "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
+      },
+      "env": {
+        "MG_MQ_HOST": "${MQ_HOSTNAME}",
+        "MG_MQ_PORT": "${MQ_PORT}",
+        "CERTFILE": "/run/secrets/cert.pem",
+        "KEYFILE": "/run/secrets/key.pem",
+        "CAFILE": "/run/secrets/millegrille.cert.pem",
+        "MG_MONGO_HOST": "mongo",
+        "RUST_LOG": "warn,millegrilles_documents=info"
+      },
+      "constraints": [
+        "node.labels.millegrilles.documents == true"
+      ],
+      "configs": [
+        {
+          "name": "pki.documents_backend",
+          "current": "cert",
+          "filename": "/run/secrets/cert.pem"
+        },
+        {
+          "name": "pki.millegrille",
+          "filename": "/run/secrets/millegrille.cert.pem"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "pki.documents_backend",
+          "current": "key",
+          "filename": "key.pem"
+        },
+        {
+          "name": "passwd.redis",
+          "current": "password",
+          "filename": "passwd.redis.txt"
+        }
+      ],
+      "networks": [
+        {
+          "target": "millegrille_net"
+        }
+      ],
+      "resources": {
+        "cpu_limit": 500000000,
+        "mem_limit": 120000000
+      },
+      "restart_policy": {
+        "condition": "on-failure",
+        "delay": 60000000000,
+        "max_attempts": 2
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      }
+    }
+  ]
+}

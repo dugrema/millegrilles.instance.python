@@ -1,0 +1,17 @@
+location = /documents/initSession {{
+  include /etc/nginx/conf.d/modules/documents.app.proxypass;
+  proxy_pass_request_body off;
+  proxy_set_header X-Original-URI $request_uri;
+  include /etc/nginx/conf.d/auth.include;
+}}
+
+location /documents {{
+  include /etc/nginx/conf.d/modules/documents.app.proxypass;
+
+  include /etc/nginx/conf.d/auth.include;
+
+  include /etc/nginx/conf.d/component_proxyheaders.include;
+  include /etc/nginx/conf.d/component_gzip.include;
+  proxy_read_timeout 15m;
+  client_max_body_size 64k;
+}}
