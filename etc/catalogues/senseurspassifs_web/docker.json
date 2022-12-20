@@ -1,6 +1,6 @@
 {
   "nom": "senseurspassifs_web",
-  "version": "2022.9.0",
+  "version": "2022.9.1",
   "description": {
     "en": "Senseurs Passifs (web)",
     "fr": "Senseurs Passifs (web)"
@@ -66,7 +66,7 @@
       },
       "resources": {
         "cpu_limit": 500000000,
-        "mem_limit": 120000000
+        "mem_limit": 210000000
       },
       "restart_policy": {
         "condition": "on-failure",

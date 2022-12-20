@@ -1,6 +1,6 @@
 {
   "nom": "senseurspassifs_relai",
-  "version": "2022.9.2",
+  "version": "2022.9.3",
   "description": {
     "en": "Senseurs Passifs Relay (web)",
     "fr": "Senseurs Passifs Relai (web)"
@@ -63,7 +63,8 @@
       ],
       "labels": {
         "url": "https://${HOSTNAME}/senseurspassifs_relai",
-        "securite": "2.prive"
+        "securite": "2.prive",
+        "supporte_usagers": "false"
       },
       "resources": {
         "cpu_limit": 500000000,
