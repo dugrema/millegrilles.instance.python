@@ -9,7 +9,7 @@
   "dependances": [
     {
       "name": "senseurspassifs_relai",
-      "image": "docker.maceroc.com/millegrilles_senseurspassifs_python:2022.9.4",
+      "image": "docker.maceroc.com/millegrilles_senseurspassifs_python:2022.9.3",
       "args": ["-m", "senseurspassifs_relai_web", "--verbose"],
       "certificat": {
         "roles": ["senseurspassifs_relai"],
