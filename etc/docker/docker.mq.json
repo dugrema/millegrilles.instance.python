@@ -1,6 +1,6 @@
 {
   "name": "mq",
-  "image": "docker.maceroc.com/mg_rabbitmq:3.11-management_2",
+  "image": "docker.maceroc.com/mg_rabbitmq:3.11-management_3",
   "certificat": {"roles": ["mq"], "dns": {"localhost": true, "hostnames": ["mq"], "domain": true}},
   "passwords": ["mqadmin"],
   "env": {
@@ -59,7 +59,7 @@
   },
   "resources": {
     "cpu_limit": 3000000000,
-    "mem_limit": 2000000000
+    "mem_limit": 2100000000
   },
   "restart_policy": {
     "condition": "any",
