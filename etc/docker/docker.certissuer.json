@@ -24,7 +24,7 @@
   },
   "resources": {
     "cpu_limit": 500000000,
-    "mem_limit": 50000000
+    "mem_limit": 150000000
   },
   "restart_policy": {
     "condition": "on-failure",

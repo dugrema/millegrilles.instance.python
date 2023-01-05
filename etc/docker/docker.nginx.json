@@ -70,8 +70,8 @@
     "aliases": ["nginx"]
   }],
   "resources": {
-    "cpu_limit": 1000000000,
-    "mem_limit": 15000000
+    "cpu_limit": 3000000000,
+    "mem_limit": 30000000
   },
   "restart_policy": {
     "condition": "on-failure",
