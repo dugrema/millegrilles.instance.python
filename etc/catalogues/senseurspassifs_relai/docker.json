@@ -1,6 +1,6 @@
 {
   "nom": "senseurspassifs_relai",
-  "version": "2022.9.4",
+  "version": "2023.0.0",
   "description": {
     "en": "Senseurs Passifs Relay (web)",
     "fr": "Senseurs Passifs Relai (web)"
@@ -68,7 +68,7 @@
       },
       "resources": {
         "cpu_limit": 500000000,
-        "mem_limit": 73741824
+        "mem_limit": 150000000
       },
       "restart_policy": {
         "condition": "on-failure",
