@@ -1,6 +1,6 @@
 {
   "nom": "mongo",
-  "version": "2022.8.11",
+  "version": "2023.0.0",
   "securite": "4.secure",
   "dependances": [
     {
@@ -81,8 +81,8 @@
         "millegrille": "${IDMG}"
       },
       "resources": {
-        "cpu_limit": 2000000000,
-        "mem_limit": 1073741824
+        "cpu_limit": 3000000000,
+        "mem_limit": 2000000000
       },
       "restart_policy": {
         "condition": "any",
