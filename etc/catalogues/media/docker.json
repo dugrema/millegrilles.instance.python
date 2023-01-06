@@ -1,16 +1,15 @@
 {
   "nom": "media",
-  "version": "2022.8.5",
+  "version": "2023.0.0",
   "securite": "4.secure",
   "dependances": [
     {
       "name": "media",
-      "image": "docker.maceroc.com/millegrilles_media:2022.8.2",
+      "image": "docker.maceroc.com/millegrilles_media:2023.0.1",
       "certificat": {
-        "roles": ["media", "fichiers", "stream"],
+        "roles": ["media", "fichiers"],
         "domaines": ["GrosFichiers"],
-        "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"],
-        "dns": {"localhost": true, "hostnames": ["media", "stream"], "domain": true}
+        "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
       },
       "env": {
         "MG_MQ_URL": "amqps://${MQ_HOSTNAME}:${MQ_PORT}",
@@ -23,7 +22,8 @@
         "WEB_CERT": "/run/secrets/cert.pem",
         "WEB_KEY": "/run/secrets/key.pem",
         "SERVER_TYPE": "https",
-        "PATH_STAGING": "/var/opt/millegrilles/consignation/staging/media"
+        "PATH_STAGING": "/var/opt/millegrilles/consignation/staging/media",
+        "MODE_OPERATION": "media"
       },
       "constraints": ["node.labels.millegrilles.media == true"],
       "mounts": [
@@ -53,7 +53,7 @@
         }
       ],
       "networks": [
-        {"target": "millegrille_net", "aliases": ["media", "stream"]},
+        {"target": "millegrille_net"},
         {"target": "bridge"}
       ],
       "resources": {

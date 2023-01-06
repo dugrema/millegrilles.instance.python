@@ -1,11 +1,11 @@
 {
   "nom": "stream",
-  "version": "2022.8.5",
+  "version": "2023.0.0",
   "securite": "2.prive",
   "dependances": [
     {
       "name": "stream",
-      "image": "docker.maceroc.com/millegrilles_media:2022.8.2",
+      "image": "docker.maceroc.com/millegrilles_media:2023.9.1",
       "certificat": {
         "roles": ["stream"],
         "exchanges": ["2.prive", "1.public"],
@@ -23,7 +23,7 @@
         "WEB_KEY": "/run/secrets/key.pem",
         "SERVER_TYPE": "https",
         "PATH_STAGING": "/var/opt/millegrilles/consignation/staging/media",
-        "DISABLE_Q_PROCESSING": "1"
+        "MODE_OPERATION": "stream"
       },
       "constraints": ["node.labels.millegrilles.media == true"],
       "mounts": [
@@ -53,7 +53,7 @@
         }
       ],
       "networks": [
-        {"target": "millegrille_net", "aliases": ["media", "stream"]},
+        {"target": "millegrille_net", "aliases": ["stream"]},
         {"target": "bridge"}
       ],
       "resources": {
