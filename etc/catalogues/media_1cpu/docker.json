@@ -70,8 +70,5 @@
         "replicas": 1
       }
     }
-  ],
-  "nginx": {
-    "conf": ["stream.app.location.tls", "stream.app.proxypass"]
-  }
+  ]
 }
