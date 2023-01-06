@@ -1,6 +1,6 @@
 {
   "nom": "stream",
-  "version": "2023.0.1",
+  "version": "2023.0.2",
   "securite": "2.prive",
   "dependances": [
     {
