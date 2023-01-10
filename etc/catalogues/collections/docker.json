@@ -1,11 +1,11 @@
 {
   "nom": "collections",
-  "version": "2023.0.4",
+  "version": "2023.0.5",
   "securite": "2.prive",
   "dependances": [
     {
       "name": "collections",
-      "image": "docker.maceroc.com/millegrilles_collections:2023.0.2",
+      "image": "docker.maceroc.com/millegrilles_collections:2023.0.3",
       "certificat": {
         "roles": ["collections"],
         "exchanges": ["2.prive", "1.public"],
@@ -54,7 +54,10 @@
           "filename": "passwd.redis.txt"
         }
       ],
-      "networks": [{"target": "millegrille_net", "aliases": ["collections"]}],
+      "networks": [
+        {"target": "millegrille_net", "aliases": ["collections"]},
+        {"target": "bridge"}
+      ],
       "resources": {
         "cpu_limit": 1000000000,
         "mem_limit": 250000000
