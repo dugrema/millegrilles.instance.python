@@ -1,7 +1,14 @@
-# Configuration du cache NGINX pour les fichiers
+# Configuration du cache NGINX pour serveur prive/streaming dans le cloud
 proxy_cache_path /cache
                  levels=1:2
                  keys_zone=cache_fichiers:2m
-                 max_size=2g
-                 inactive=4320m
+                 max_size=5g
+                 inactive=1080m
+                 use_temp_path=off;
+
+proxy_cache_path /cachestreams
+                 levels=1:2
+                 keys_zone=cache_streams:2m
+                 max_size=20g
+                 inactive=1080m
                  use_temp_path=off;
