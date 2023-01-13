@@ -6,7 +6,7 @@ location /senseurspassifs_relai/ws {{
 
   include /etc/nginx/conf.d/component_proxyheaders.include;
   include /etc/nginx/conf.d/component_gzip.include;
-  proxy_read_timeout 5m;
+  proxy_read_timeout 6h;
   client_max_body_size 64k;
 
   proxy_ssl_certificate         /run/secrets/nginx.cert.pem;
