@@ -42,7 +42,8 @@ async def run_tests(messages_thread, stop_event):
     logger.info("emettre requetes backup")
 
     # await resolve_idmg(messages_thread)
-    await requete_fiche(messages_thread)
+    # await requete_fiche(messages_thread)
+    await requete_fiche_locale(messages_thread)
 
     stop_event.set()
 
@@ -65,6 +66,16 @@ async def requete_fiche(messages_thread):
     reponse = await producer.executer_requete(requete, 'CoreTopologie', action=action, exchange=Constantes.SECURITE_PRIVE)
     contenu = json.dumps(reponse.parsed, indent=2)
     logger.info("Reponse recue : %s", contenu)
+
+
+async def requete_fiche_locale(messages_thread):
+    action = 'ficheMillegrille'
+    requete = {'idmg': 'zeYncRqEqZ6eTEmUZ8whJFuHG796eSvCTWE4M432izXrp22bAtwGm7Jf'}
+    producer = messages_thread.get_producer()
+    reponse = await producer.executer_requete(requete, 'CoreTopologie', action=action, exchange=Constantes.SECURITE_PRIVE)
+    contenu = json.dumps(reponse.parsed, indent=2)
+    logger.info("Reponse recue : %s", contenu)
+
 
 async def callback_reply_q(message, messages_module):
     logger.info("Message recu : %s" % message)
