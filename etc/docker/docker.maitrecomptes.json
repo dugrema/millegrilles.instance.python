@@ -1,6 +1,6 @@
 {
   "name": "maitrecomptes",
-  "image": "docker.maceroc.com/millegrilles_web:2022.8.0",
+  "image": "docker.maceroc.com/millegrilles_web:2023.0.0",
   "certificat": {
     "roles": ["maitrecomptes"],
     "exchanges": ["2.prive", "1.public"],
