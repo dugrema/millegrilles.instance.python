@@ -99,6 +99,7 @@ class EntretienNginx:
                     self.__logger.exception("nginx n'est pas accessible")
 
             if self.__configuration_consignation is None or \
+                    self.__date_changement_consignation is None or \
                     self.__date_changement_consignation + self.__intervalle_verification_consignation < datetime.datetime.utcnow():
                 try:
                     await self.charger_configuration_consignation(producer)
