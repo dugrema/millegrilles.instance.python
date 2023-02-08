@@ -43,7 +43,9 @@ async def run_tests(messages_thread, stop_event):
 
     # await resolve_idmg(messages_thread)
     # await requete_fiche(messages_thread)
-    await requete_fiche_locale(messages_thread)
+    # await requete_fiche_locale(messages_thread)
+    # await requete_consignation_fichiers(messages_thread)
+    await requete_configuration_fichiers(messages_thread)
 
     stop_event.set()
 
@@ -73,6 +75,24 @@ async def requete_fiche_locale(messages_thread):
     requete = {'idmg': 'zeYncRqEqZ6eTEmUZ8whJFuHG796eSvCTWE4M432izXrp22bAtwGm7Jf'}
     producer = messages_thread.get_producer()
     reponse = await producer.executer_requete(requete, 'CoreTopologie', action=action, exchange=Constantes.SECURITE_PRIVE)
+    contenu = json.dumps(reponse.parsed, indent=2)
+    logger.info("Reponse recue : %s", contenu)
+
+
+async def requete_consignation_fichiers(messages_thread):
+    action = 'getConsignationFichiers'
+    requete = {"primaire": True}
+    producer = messages_thread.get_producer()
+    reponse = await producer.executer_requete(requete, 'CoreTopologie', action=action, exchange=Constantes.SECURITE_PRIVE)
+    contenu = json.dumps(reponse.parsed, indent=2)
+    logger.info("Reponse recue : %s", contenu)
+
+
+async def requete_configuration_fichiers(messages_thread):
+    action = 'getConfigurationFichiers'
+    requete = {}
+    producer = messages_thread.get_producer()
+    reponse = await producer.executer_requete(requete, 'CoreTopologie', action=action, exchange=Constantes.SECURITE_PROTEGE)
     contenu = json.dumps(reponse.parsed, indent=2)
     logger.info("Reponse recue : %s", contenu)
 
