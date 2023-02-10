@@ -1,3 +1,10 @@
+location /fichiers_transfert/(backup|data) {{
+  include /etc/nginx/conf.d/modules/fichiers.proxypass;
+  include /etc/nginx/conf.d/auth_tlsclient.include;
+  include /etc/nginx/conf.d/component_proxyheaders.include;
+  include /etc/nginx/conf.d/component_gzip.include;
+}}
+
 location /fichiers_transfert {{
   include /etc/nginx/conf.d/modules/fichiers.proxypass;
   include /etc/nginx/conf.d/auth_tlsclient.include;
