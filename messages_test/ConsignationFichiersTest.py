@@ -43,7 +43,8 @@ async def run_tests(messages_thread, stop_event):
     logger.info("emettre requetes grosfichiers")
 
     # await get_configuration(messages_thread)
-    await get_topologie_consignation(messages_thread)
+    #await get_topologie_consignation(messages_thread)
+    await get_configuration_fichiers(messages_thread)
 
     stop_event.set()
 
@@ -55,6 +56,15 @@ async def get_configuration(messages_thread):
     requete = {}
     producer = messages_thread.get_producer()
     reponse = await producer.executer_requete(requete, 'fichiers', action=action, exchange=Constantes.SECURITE_PRIVE)
+    contenu = json.dumps(reponse.parsed, indent=2)
+    logger.info("Reponse recue : %s", contenu)
+
+
+async def get_configuration_fichiers(messages_thread):
+    action = 'getConfigurationFichiers'
+    requete = {}
+    producer = messages_thread.get_producer()
+    reponse = await producer.executer_requete(requete, 'CoreTopologie', action=action, exchange=Constantes.SECURITE_PROTEGE)
     contenu = json.dumps(reponse.parsed, indent=2)
     logger.info("Reponse recue : %s", contenu)
 
