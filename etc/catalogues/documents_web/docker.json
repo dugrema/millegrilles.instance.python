@@ -1,6 +1,6 @@
 {
   "nom": "documents_web",
-  "version": "2023.2.0",
+  "version": "2023.2.1",
   "securite": "2.prive",
   "dependances": [
     {
@@ -49,7 +49,10 @@
           "filename": "passwd.redis.txt"
         }
       ],
-      "networks": [{"target": "millegrille_net", "aliases": ["documents"]}],
+      "networks": [
+        {"target": "millegrille_net", "aliases": ["documents"]},
+        {"target": "bridge"}
+      ],
       "resources": {
         "cpu_limit": 1000000000,
         "mem_limit": 250000000
