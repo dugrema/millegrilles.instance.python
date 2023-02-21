@@ -306,6 +306,9 @@ proxy_pass $upstream_fichiers;
             if cert_courant.not_valid_before < enveloppe_acme.enveloppe.not_valid_before:
                 self.__logger.info("Fichier certificat ACME plus recent que le certificat courant, on l'applique")
                 remplacer = True
+            elif cert_courant.is_root_ca:
+                self.__logger.info("Fichier certificat local est self-signed, on applique le cert ACME")
+                remplacer = True
 
         if remplacer is True:
             self.__logger.info("Remplacer le certificat web nginx")

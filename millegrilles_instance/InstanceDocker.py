@@ -138,7 +138,11 @@ class EtatDockerInstanceSync:
         :return:
         """
         enveloppe = clecertificat.enveloppe
-        date_debut = enveloppe.not_valid_before.strftime('%Y%m%d%H%M%S')
+        if enveloppe.is_root_ca is True:
+            # Certificat self-signed, s'assurer que la date est vieille
+            date_debut = '20000101000000'
+        else:
+            date_debut = enveloppe.not_valid_before.strftime('%Y%m%d%H%M%S')
         label_certificat = 'pki.%s.cert.%s' % (nom_module, date_debut)
         label_cle = 'pki.%s.key.%s' % (nom_module, date_debut)
         pem_certificat = '\n'.join(enveloppe.chaine_pem())
