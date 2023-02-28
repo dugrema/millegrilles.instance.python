@@ -1,6 +1,6 @@
 {
   "nom": "postmaster",
-  "version": "2022.8.2",
+  "version": "2023.2.0",
   "description": {
     "en": "Postmaster",
     "fr": "Postmaster"
@@ -9,7 +9,7 @@
   "dependances": [
     {
       "name": "postmaster",
-      "image": "docker.maceroc.com/millegrilles_postmaster:2022.8.0",
+      "image": "docker.maceroc.com/millegrilles_postmaster:2023.2.0",
       "certificat": {
         "roles": ["postmaster"],
         "exchanges": ["1.public"]
@@ -23,7 +23,6 @@
           "RUST_LOG": "warn,millegrilles_postmaster=info",
           "MG_REDIS_URL": "rediss://client_rust@redis:6379#insecure",
           "MG_REDIS_PASSWORD_FILE": "/run/secrets/passwd.redis.txt",
-          "MG_FICHIERS_URL": "https://fichiers:443",
           "TOR_PROXY": "socks5h://onionize:9050"
       },
       "constraints": ["node.labels.millegrilles.postmaster == true"],

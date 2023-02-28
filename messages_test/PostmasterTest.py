@@ -40,6 +40,7 @@ async def run_tests(messages_thread, stop_event):
     await messages_thread.attendre_pret()
 
     await requete_configuration_notifications(messages_thread)
+    # await commande_retirer_subscription_webpush(messages_thread)
 
     stop_event.set()
 
@@ -54,6 +55,17 @@ async def requete_configuration_notifications(messages_thread):
     contenu = json.dumps(reponse.parsed, indent=2)
     logger.info("Reponse recue : %s", contenu)
 
+
+async def commande_retirer_subscription_webpush(messages_thread):
+    action = 'retirerSubscriptionWebpush'
+    commande = {
+        'endpoint': 'https://updates.push.services.mozilla.com/wpush/v2/gAAAAABj_OaruH3GDfgMLxbaojYl2W6C1ylUW1ncr678Kc14dLx_q4aZUdwclcW8L0eZLxESZbLbJ39bUJ531msbyoxErKh0iBVYv38pf1cZeaX2Tv6FHMHaL4kfbnpe4sXDPhPq99jHp8t8_PP68iv2aPokVAJ06aS5pTaH-MewsAcXoM5RyS4',
+        'user_id': 'z2i3Xjx6am4DsNjyLTGKS5yfTU8jzBWNYq8aZQu1jnuxERfEnNs',
+    }
+    producer = messages_thread.get_producer()
+    reponse = await producer.executer_commande(commande, 'Messagerie', action=action, exchange=Constantes.SECURITE_PUBLIC)
+    contenu = json.dumps(reponse.parsed, indent=2)
+    logger.info("Reponse recue : %s", contenu)
 
 async def callback_reply_q(message, messages_module):
     logger.info("Message recu : %s" % message)
