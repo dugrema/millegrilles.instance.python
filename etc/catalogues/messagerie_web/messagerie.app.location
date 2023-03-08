@@ -53,18 +53,27 @@ location /messagerie/streams {{
   # Laisser collections confirmer que l'usager est actif, a acces au fichier
   auth_request      /messagerie/streams/verifier;
 
-  # Ces transferts doivent etre bloques (utiliser /upload de collections a la place)
-  if ($request_method !~ GET|OPTIONS) {{
+  if ($request_method !~ GET|OPTIONS|HEAD) {{
     return 405;
   }}
 
-  # Rewrite pour consignation.grosfichiers
+  # Rewrite vers application streams
   rewrite ^(/messagerie/streams/)(.*)$ /stream_transfert/$2 break;
 
   # Override header verified, aucun check SSL requis (cert nginx uniquement)
-  proxy_set_header  VERIFIED INTERNAL;
-  proxy_set_header  Host              $host;
-  proxy_set_header  X-Hostname        $hostname;
+  proxy_set_header VERIFIED INTERNAL;
+  proxy_set_header Host              $host;
+  proxy_set_header X-Hostname        $hostname;
+
+  proxy_cache       cache_streams;
+  proxy_cache_lock  on;
+  proxy_cache_lock_timeout 2m;
+
+  proxy_cache_key   $uri$slice_range;
+  proxy_cache_valid 200 206 6h;
+  proxy_cache_valid 202 3s;
+  proxy_cache_valid 404 15s;
+  proxy_cache_valid 401 403 500 502 503 504 5s;
 }}
 
 location /messagerie/upload {{
