@@ -1,6 +1,6 @@
 {
   "nom": "messagerie_web",
-  "version": "2023.0.0",
+  "version": "2023.2.0",
   "description": {
     "en": "Messaging web",
     "fr": "Messagerie web"
@@ -9,7 +9,7 @@
   "dependances": [
     {
       "name": "messagerie_web",
-      "image": "docker.maceroc.com/millegrilles_messagerie_web:2022.8.2",
+      "image": "docker.maceroc.com/millegrilles_messagerie_web:2023.2.0",
       "certificat": {
         "roles": ["messagerie_web"],
         "exchanges": ["2.prive", "1.public"],
@@ -54,7 +54,10 @@
           "filename": "passwd.redis.txt"
         }
       ],
-      "networks": [{"target": "millegrille_net", "aliases": ["messagerie"]}],
+      "networks": [
+        {"target": "millegrille_net", "aliases": ["messagerie"]},
+        {"target": "bridge"}
+      ],
       "resources": {
         "cpu_limit": 1000000000,
         "mem_limit": 250000000
