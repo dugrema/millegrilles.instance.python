@@ -15,6 +15,11 @@ def cpu_usage():
     load_avg = [round(l*100)/100 for l in list(psutil.getloadavg())]
     print("CPU ", load_avg)
     print("Disk IO", psutil.disk_io_counters())
+    # print("CPU times ", psutil.cpu_times())
+    # print("CPU times pct ", psutil.cpu_times_percent(interval=5))
+    print("Temp ", psutil.sensors_temperatures())
+    print("Fans ", psutil.sensors_fans())
+    print("Battery ", psutil.sensors_battery())
 
 
 if __name__ == '__main__':

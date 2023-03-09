@@ -6,6 +6,7 @@ import logging
 import json
 import psutil
 
+from apcaccess import status as apc
 from asyncio import Event
 from json.decoder import JSONDecodeError
 from typing import Optional
@@ -51,6 +52,8 @@ class EtatInstance:
         self.__csr_genere: Optional[CleCsrGenere] = None
 
         self.__entretien_nginx: Optional[EntretienNginx] = None
+
+        self._apc_info = None
 
         # Liste de listeners qui sont appeles sur changement de configuration
         self.__config_listeners = list()
@@ -155,6 +158,23 @@ class EtatInstance:
         maitredescles_expire = [v.fingerprint for v in self.__certificats_maitredescles.values() if v.cache_expire()]
         for fingerprint in maitredescles_expire:
             del self.__certificats_maitredescles[fingerprint]
+
+        self.apc_info()
+
+    def apc_info(self):
+        """
+        Charge l'information du UPS de type APC.
+        L'option se desactive automatiquement au premier echec
+        """
+        if self._apc_info is False:
+            return
+        try:
+            resultat = apc.get(timeout=3)
+            parsed = apc.parse(resultat, strip_units=True)
+            self._apc_info = parsed
+        except Exception as e:
+            self.__logger.warning("UPS de type APC non accessible, desactiver (erreur %s)" % e)
+            self._apc_info = False
 
     def set_docker_present(self, etat: bool):
         self.__docker_present = etat
@@ -326,8 +346,18 @@ class EtatInstance:
         info_updatee['ip_detectee'] = self.ip_address
         info_updatee['instance_id'] = self.instance_id
         info_updatee['securite'] = self.niveau_securite
-        info_updatee['disk'] = self.partition_usage()
-        info_updatee['load_average'] = [round(l*100)/100 for l in list(psutil.getloadavg())]
+
+        try:
+            info_updatee['disk'] = self.partition_usage()
+            info_updatee['load_average'] = [round(l*100)/100 for l in list(psutil.getloadavg())]
+            info_updatee['system_temperature'] = psutil.sensors_temperatures()
+            info_updatee['system_fans'] = psutil.sensors_fans()
+            info_updatee['system_battery'] = psutil.sensors_battery()
+
+            if self._apc_info:
+                info_updatee['apc'] = self._apc_info
+        except Exception:
+            self.__logger.exception("Erreur lecture information systeme")
 
         # Faire la liste des applications installees
         liste_applications = await self.get_liste_configurations()
