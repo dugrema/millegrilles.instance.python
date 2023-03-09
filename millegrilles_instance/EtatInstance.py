@@ -4,6 +4,7 @@ import aiohttp
 import datetime
 import logging
 import json
+import psutil
 
 from asyncio import Event
 from json.decoder import JSONDecodeError
@@ -302,6 +303,16 @@ class EtatInstance:
     async def generer_passwords(self, etat_docker, passwords: list):
         await generer_passwords(self, etat_docker, passwords)
 
+    def partition_usage(self):
+        partitions = psutil.disk_partitions()
+        reponse = list()
+        for p in partitions:
+            if 'rw' in p.opts and '/boot' not in p.mountpoint:
+                usage = psutil.disk_usage(p.mountpoint)
+                reponse.append(
+                    {'mountpoint': p.mountpoint, 'free': usage.free, 'used': usage.used, 'total': usage.total})
+        return reponse
+
     async def emettre_presence(self, producer: MessageProducerFormatteur, info: Optional[dict] = None):
         self.__logger.info("Emettre presence")
         if info is not None:
@@ -315,6 +326,8 @@ class EtatInstance:
         info_updatee['ip_detectee'] = self.ip_address
         info_updatee['instance_id'] = self.instance_id
         info_updatee['securite'] = self.niveau_securite
+        info_updatee['disk'] = self.partition_usage()
+        info_updatee['load_average'] = [round(l*100)/100 for l in list(psutil.getloadavg())]
 
         # Faire la liste des applications installees
         liste_applications = await self.get_liste_configurations()
