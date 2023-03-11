@@ -62,8 +62,8 @@ async def emettre_notifications(messages_thread, notifications: EmetteurNotifica
     <p>Check bein ca!</p>
     """
     await notifications.emettre_notification(producer, contenu, 'Un test de notifications')
-    #await notifications.emettre_notification(producer, contenu, 'Un test de notifications 2')
-    #await notifications.emettre_notification(producer, contenu, 'Un test de notifications 3')
+    await notifications.emettre_notification(producer, contenu, 'Un test de notifications 2')
+    # await notifications.emettre_notification(producer, contenu, 'Un test de notifications 3')
 
 
 async def callback_reply_q(message, messages_module):
