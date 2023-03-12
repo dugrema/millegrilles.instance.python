@@ -480,6 +480,8 @@ class EtatSysteme:
         self.__derniere_notification_disk: Optional[datetime.datetime] = None
         self.__derniere_notification_cpu: Optional[datetime.datetime] = None
 
+        self.__notification_apc_offline: Optional[datetime.datetime] = None
+
     @property
     def etat(self):
         return self.__etat
@@ -488,7 +490,7 @@ class EtatSysteme:
         # Charger information UPS APC (si disponible)
 
         await asyncio.gather(
-            asyncio.to_thread(self.apc_info),
+            self.apc_info(producer),
             asyncio.to_thread(self.maj_info_systeme)
         )
 
@@ -508,7 +510,7 @@ class EtatSysteme:
 
         self.__etat = info_systeme
 
-    def apc_info(self):
+    async def apc_info(self, producer=None):
         """
         Charge l'information du UPS de type APC.
         L'option se desactive automatiquement au premier echec
@@ -516,9 +518,29 @@ class EtatSysteme:
         if self.__apc_info is False:
             return
         try:
-            resultat = apc.get(timeout=3)
+            resultat = await asyncio.to_thread(apc.get, timeout=3)
             parsed = apc.parse(resultat, strip_units=True)
             self.__apc_info = parsed
+
+            # Detecter besoin notification
+            if producer is not None:
+                try:
+                    etat_ups = parsed['STATUS']
+                except KeyError:
+                    pass
+                else:
+                    try:
+                        if self.__notification_apc_offline is None:
+                            if etat_ups.startswith('ONLINE') is False:
+                                # Etat UPS offline ou deconnecte
+                                await self.emettre_notification_apc(producer, offline=True)
+                        else:
+                            if etat_ups.startswith('ONLINE') is True:
+                                # Etat UPS ONLINE a nouveau
+                                await self.emettre_notification_apc(producer, offline=False)
+                    except Exception:
+                        self.__logger.exception("Erreur notification APC UPS")
+
         except Exception as e:
             self.__logger.warning("UPS de type APC non accessible, desactiver (erreur %s)" % e)
             self.__apc_info = False
@@ -647,3 +669,43 @@ CPU usage : {load_average}
 
         self.__derniere_notification_cpu = datetime.datetime.utcnow()
         await self.__etat_instance.emettre_notification(producer, contenu, subject=subject, niveau=niveau)
+
+    async def emettre_notification_apc(self, producer, offline: bool):
+
+        etat_apc = self.__apc_info
+        info = {
+            'instance_id': self.__etat_instance.instance_id,
+            'nom_domaine': self.__etat_instance.nom_domaine,
+        }
+        info.update(etat_apc)
+
+        if offline is True:
+            self.__notification_apc_offline = datetime.datetime.utcnow()
+
+            subject = '[WARN] %s UPS offline' % info['nom_domaine']
+            # Emettre notification offline
+            contenu = """
+<p>APC UPS offline sur {nom_domaine}</p>
+<br/>
+<p>STATUS {STATUS}</p>
+<p>Temps restant (minutes) {TIMELEFT}</p>
+<p>Raison {LASTXFER}</p>
+<p>Duree {TONBATT}</p>
+<p>Nombre de transferts {NUMXFERS}</p>
+"""
+            await self.__etat_instance.emettre_notification(producer, contenu, subject=subject, niveau='warn')
+        else:
+            # Reset notification
+            self.__notification_apc_offline = None
+
+            subject = '[WARN] %s UPS restored (online)' % info['nom_domaine']
+            # Emettre notification offline
+            contenu = """
+<p>APC UPS restored (online) sur {nom_domaine}</p>
+<br/>
+<p>STATUS {STATUS}</p>
+<p>Raison {LASTXFER}</p>
+<p>Duree {TONBATT}</p>
+<p>Nombre de transferts {NUMXFERS}</p>
+"""
+            await self.__etat_instance.emettre_notification(producer, contenu, subject=subject, niveau='warn')
