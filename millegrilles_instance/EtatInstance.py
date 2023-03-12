@@ -476,6 +476,7 @@ class EtatSysteme:
 
         self.__etat = dict()
 
+        self.__notif_demarrage_envoyee = False
         self.__derniere_notification_disk: Optional[datetime.datetime] = None
 
     @property
@@ -537,6 +538,8 @@ class EtatSysteme:
         :return:
         """
         now = datetime.datetime.utcnow()
+        if self.__notif_demarrage_envoyee is False:
+            await self.__notification_demarrage(producer)
         if self.__derniere_notification_disk is None or now > self.__derniere_notification_disk + EtatSysteme.CONST_INTERVALLE_NOTIFICATIONS_INFO:
             await self.__notifications_disk(producer)
 
@@ -562,14 +565,48 @@ class EtatSysteme:
             if pct < 0.05:
                 # Warning
                 self.__logger.warning("Disk %s < 5%%" % mountpoint)
-                notifications.append('<p>Disk/partition %s : il reste moins de 5%% d''espace libre.</p>' % mountpoint)
+                notifications.append('<p>Disk/partition "%s" : il reste moins de 5%% d''espace libre.</p>' % mountpoint)
                 if niveau != 'warn':
                     niveau = 'warn'
             elif pct < 0.1:
                 # Info
                 self.__logger.info("Disk %s < 10%%" % mountpoint)
-                notifications.append('<p>Disk/partition %s : il reste moins de 10%% d''espace libre.</p>' % mountpoint)
+                notifications.append('<p>Disk/partition "%s" : il reste moins de 10%% d''espace libre.</p>' % mountpoint)
+
+        subject = '[%s] %s Disk usage' % (niveau, self.__etat_instance.hostname)
 
         if len(notifications) > 0:
+            info = {
+                'instance_id': self.__etat_instance.instance_id,
+                'nom_domaine': self.__etat_instance.nom_domaine,
+            }
+            contenu = """
+<p>Faible espace disque disponible<p>
+<p>Serveur {nom_domaine}</p>
+<p>Instance id {instance_id}</p>
+<br/>
+""".format(**info)
+            contenu += '\n'.join(notifications)
+
             self.__derniere_notification_disk = datetime.datetime.utcnow()
-            await self.__etat_instance.emettre_notification(producer, '\n'.join(notifications), niveau=niveau)
+            await self.__etat_instance.emettre_notification(producer, contenu, subject=subject, niveau=niveau)
+
+    async def __notification_demarrage(self, producer):
+        info = {
+            'instance_id': self.__etat_instance.instance_id,
+            'nom_domaine': self.__etat_instance.nom_domaine,
+            'ip_detectee': self.__etat_instance.ip_address,
+            'securite': self.__etat_instance.niveau_securite,
+        }
+
+        subject = '[info] %s Demarrage' % info['nom_domaine']
+        contenu = """
+<p>Demarrage de {nom_domaine}</p>
+<br/>
+<p>Instance {instance_id}</p>
+<p>IP detectee {ip_detectee}</p>
+<p>Securite {securite}</p>
+""".format(**info)
+
+        self.__notif_demarrage_envoyee = True
+        await self.__etat_instance.emettre_notification(producer, contenu, subject=subject, niveau='info')
