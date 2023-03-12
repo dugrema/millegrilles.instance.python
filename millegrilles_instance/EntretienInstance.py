@@ -148,10 +148,16 @@ class InstanceAbstract:
         #setup_dir_apps(etat_instance)
 
         # Entretien etat_instance (certificats cache du validateur)
-        self._taches_entretien.append(TacheEntretien(datetime.timedelta(seconds=30), self._etat_instance.entretien))
+        self._taches_entretien.append(TacheEntretien(
+            datetime.timedelta(seconds=30), self._etat_instance.entretien, self.get_producer))
 
         # Ajouter listener de changement de configuration. Demarre l'execution des taches d'entretien/installation.
         self._etat_instance.ajouter_listener(self.declencher_run)
+
+    async def get_producer(self, timeout=5):
+        if self._gestionnaire_applications is None:
+            return
+        return await self._gestionnaire_applications.get_producer(timeout)
 
     async def fermer(self):
         self.__logger.info("Fermerture InstanceInstallation")
@@ -272,15 +278,21 @@ class InstanceDockerAbstract:
         self._etat_instance = etat_instance
         self._etat_docker = etat_docker
 
+        self._gestionnaire_applications = GestionnaireApplications(etat_instance, etat_docker)
+
         # Entretien etat_instance (certificats cache du validateur)
-        self._taches_entretien.append(TacheEntretien(datetime.timedelta(seconds=30), self._etat_instance.entretien))
+        self._taches_entretien.append(TacheEntretien(
+            datetime.timedelta(seconds=30), self._etat_instance.entretien, self.get_producer))
 
         # Ajouter listener de changement de configuration. Demarre l'execution des taches d'entretien/installation.
         self._etat_instance.ajouter_listener(self.declencher_run)
 
-        self._gestionnaire_applications = GestionnaireApplications(etat_instance, etat_docker)
-
         await etat_docker.initialiser_docker()
+
+    async def get_producer(self, timeout=5):
+        if self._gestionnaire_applications is None:
+            return
+        return await self._gestionnaire_applications.get_producer(timeout)
 
     async def fermer(self):
         self.__logger.info("Fermerture InstanceInstallation")
@@ -469,6 +481,7 @@ class InstanceDockerCertificatSecureExpire(InstanceDockerAbstract):
 
     def get_config_modules(self) -> list:
         return CONFIG_MODULES_SECURE_EXPIRE
+
 
 class InstanceCertificatExpire(InstanceInstallation):
 

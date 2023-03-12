@@ -1,5 +1,6 @@
 import os
 
+import asyncio
 import aiohttp
 import datetime
 import logging
@@ -26,7 +27,7 @@ from millegrilles_instance.EntretienNginx import EntretienNginx
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 from millegrilles_messages.messages.ValidateurCertificats import ValidateurCertificatCache
 from millegrilles_messages.messages.ValidateurMessage import ValidateurMessage
-
+from millegrilles_messages.messages.Notifications import EmetteurNotifications
 
 class EtatInstance:
 
@@ -34,6 +35,7 @@ class EtatInstance:
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__configuration = configuration
         self.__client_session = aiohttp.ClientSession()
+        self.__etat_systeme = EtatSysteme(self)
 
         self.__ip_address: Optional[str] = None
         self.__hostname: Optional[str] = None
@@ -53,8 +55,6 @@ class EtatInstance:
 
         self.__entretien_nginx: Optional[EntretienNginx] = None
 
-        self._apc_info = None
-
         # Liste de listeners qui sont appeles sur changement de configuration
         self.__config_listeners = list()
         self.__formatteur_message: Optional[FormatteurMessageMilleGrilles] = None
@@ -67,6 +67,8 @@ class EtatInstance:
         self.__attente_rotation_maitredescles: Optional[datetime.datetime] = None
 
         self.__certificats_maitredescles: dict[str, CacheCertificat] = dict()
+
+        self.__emetteur_notifications: Optional[EmetteurNotifications] = None
 
     async def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
@@ -98,6 +100,8 @@ class EtatInstance:
 
         # Exporter configuration pour modules dependants
         self.maj_configuration_json()
+
+        self.__emetteur_notifications = EmetteurNotifications(self.__certificat_millegrille, 'Instance %s' % self.__hostname)
 
         if self.__clecertificat is not None:
             signateur = SignateurTransactionSimple(self.__clecertificat)
@@ -151,7 +155,7 @@ class EtatInstance:
     def etat(self):
         pass
 
-    async def entretien(self):
+    async def entretien(self, get_producer=None):
         if self.__validateur_certificats is not None:
             await self.__validateur_certificats.entretien()
 
@@ -159,22 +163,16 @@ class EtatInstance:
         for fingerprint in maitredescles_expire:
             del self.__certificats_maitredescles[fingerprint]
 
-        self.apc_info()
+        if get_producer is not None:
+            producer = await get_producer()
+        else:
+            self.__logger.info("EtatInstance.entretien Producer mq est None")
+            producer = None
 
-    def apc_info(self):
-        """
-        Charge l'information du UPS de type APC.
-        L'option se desactive automatiquement au premier echec
-        """
-        if self._apc_info is False:
-            return
         try:
-            resultat = apc.get(timeout=3)
-            parsed = apc.parse(resultat, strip_units=True)
-            self._apc_info = parsed
-        except Exception as e:
-            self.__logger.warning("UPS de type APC non accessible, desactiver (erreur %s)" % e)
-            self._apc_info = False
+            await self.__etat_systeme.entretien(producer)
+        except Exception:
+            self.__logger.exception('Erreur entretien systeme')
 
     def set_docker_present(self, etat: bool):
         self.__docker_present = etat
@@ -323,15 +321,15 @@ class EtatInstance:
     async def generer_passwords(self, etat_docker, passwords: list):
         await generer_passwords(self, etat_docker, passwords)
 
-    def partition_usage(self):
-        partitions = psutil.disk_partitions()
-        reponse = list()
-        for p in partitions:
-            if 'rw' in p.opts and '/boot' not in p.mountpoint:
-                usage = psutil.disk_usage(p.mountpoint)
-                reponse.append(
-                    {'mountpoint': p.mountpoint, 'free': usage.free, 'used': usage.used, 'total': usage.total})
-        return reponse
+    # def partition_usage(self):
+    #     partitions = psutil.disk_partitions()
+    #     reponse = list()
+    #     for p in partitions:
+    #         if 'rw' in p.opts and '/boot' not in p.mountpoint:
+    #             usage = psutil.disk_usage(p.mountpoint)
+    #             reponse.append(
+    #                 {'mountpoint': p.mountpoint, 'free': usage.free, 'used': usage.used, 'total': usage.total})
+    #     return reponse
 
     async def emettre_presence(self, producer: MessageProducerFormatteur, info: Optional[dict] = None):
         self.__logger.info("Emettre presence")
@@ -347,17 +345,8 @@ class EtatInstance:
         info_updatee['instance_id'] = self.instance_id
         info_updatee['securite'] = self.niveau_securite
 
-        try:
-            info_updatee['disk'] = self.partition_usage()
-            info_updatee['load_average'] = [round(l*100)/100 for l in list(psutil.getloadavg())]
-            info_updatee['system_temperature'] = psutil.sensors_temperatures()
-            info_updatee['system_fans'] = psutil.sensors_fans()
-            info_updatee['system_battery'] = psutil.sensors_battery()
-
-            if self._apc_info:
-                info_updatee['apc'] = self._apc_info
-        except Exception:
-            self.__logger.exception("Erreur lecture information systeme")
+        # Ajouter etat systeme
+        info_updatee.update(self.__etat_systeme.etat)
 
         # Faire la liste des applications installees
         liste_applications = await self.get_liste_configurations()
@@ -420,6 +409,12 @@ class EtatInstance:
 
         return True
 
+    async def emettre_notification(self, producer, contenu, subject: Optional[str] = None, niveau='info'):
+        if subject is None:
+            subject = '[%s] %s' % (niveau, self.__hostname)
+
+        await self.__emetteur_notifications.emettre_notification(producer, contenu, subject, niveau)
+
 
 def load_fichier_config(path_fichier: str) -> Optional[str]:
     try:
@@ -464,3 +459,109 @@ class CacheCertificat:
     def cache_expire(self) -> bool:
         date_expiration = datetime.datetime.utcnow() - datetime.timedelta(minutes=10)
         return self.derniere_reception < date_expiration
+
+
+class EtatSysteme:
+
+    def __init__(self, etat_instance: EtatInstance):
+        self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        self.__etat_instance = etat_instance
+
+        self.__apc_info = None
+
+        self.__etat = dict()
+
+        self.__derniere_notification_disk: Optional[datetime.datetime] = None
+
+    @property
+    def etat(self):
+        return self.__etat
+
+    async def entretien(self, producer=None):
+        # Charger information UPS APC (si disponible)
+
+        await asyncio.gather(
+            asyncio.to_thread(self.apc_info),
+            asyncio.to_thread(self.maj_info_systeme)
+        )
+
+        if producer is not None:
+            await self.emettre_notifications(producer)
+
+    def maj_info_systeme(self):
+        info_systeme = dict()
+        info_systeme['disk'] = self.partition_usage()
+        info_systeme['load_average'] = [round(l * 100) / 100 for l in list(psutil.getloadavg())]
+        info_systeme['system_temperature'] = psutil.sensors_temperatures()
+        info_systeme['system_fans'] = psutil.sensors_fans()
+        info_systeme['system_battery'] = psutil.sensors_battery()
+
+        if self.__apc_info:
+            info_systeme['apc'] = self.__apc_info
+
+        self.__etat = info_systeme
+
+    def apc_info(self):
+        """
+        Charge l'information du UPS de type APC.
+        L'option se desactive automatiquement au premier echec
+        """
+        if self.__apc_info is False:
+            return
+        try:
+            resultat = apc.get(timeout=3)
+            parsed = apc.parse(resultat, strip_units=True)
+            self.__apc_info = parsed
+        except Exception as e:
+            self.__logger.warning("UPS de type APC non accessible, desactiver (erreur %s)" % e)
+            self.__apc_info = False
+
+    def partition_usage(self):
+        partitions = psutil.disk_partitions()
+        reponse = list()
+        for p in partitions:
+            if 'rw' in p.opts and '/boot' not in p.mountpoint:
+                usage = psutil.disk_usage(p.mountpoint)
+                reponse.append(
+                    {'mountpoint': p.mountpoint, 'free': usage.free, 'used': usage.used, 'total': usage.total})
+        return reponse
+
+    async def emettre_notifications(self, producer):
+        """
+        Emet des notifications systeme au besoin
+        :return:
+        """
+        await self.__notifications_disk(producer)
+
+    async def __notifications_disk(self, producer):
+        """
+        Verifier espace disque
+        """
+        try:
+            disk_info = self.__etat['disk']
+        except KeyError:
+            # Pas d'information disk
+            return
+
+        notifications = list()
+        niveau = 'info'
+
+        for disk in disk_info:
+            # Calculer pourcentage
+            mountpoint = disk['mountpoint']
+            free = disk['free']
+            total = disk['total']
+            pct = free / total
+            if pct < 0.05:
+                # Warning
+                self.__logger.warning("Disk %s < 5%%" % mountpoint)
+                notifications.append('<p>Disk/partition %s : il reste moins de 5%% d''espace libre.</p>' % mountpoint)
+                if niveau != 'warn':
+                    niveau = 'warn'
+            elif pct < 0.1:
+                # Info
+                self.__logger.info("Disk %s < 10%%" % mountpoint)
+                notifications.append('<p>Disk/partition %s : il reste moins de 10%% d''espace libre.</p>' % mountpoint)
+
+        if len(notifications) > 0:
+            await self.__etat_instance.emettre_notification(producer, '\n'.join(notifications), niveau=niveau)

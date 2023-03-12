@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import logging
 import json
@@ -94,6 +95,20 @@ class GestionnaireApplications:
     async def backup_applications(self):
         if self.__etat_docker is not None:
             await self.__etat_docker.backup_applications()
+
+    async def get_producer(self, timeout=5):
+        if self.__rabbitmq_dao is None:
+            return
+        producer = self.__rabbitmq_dao.get_producer()
+        if producer is None:
+            return None
+        pret = producer.producer_pret()
+        if pret.is_set() is False:
+            try:
+                await asyncio.wait_for(pret.wait(), timeout)
+            except asyncio.TimeoutError:
+                return None
+        return producer
 
     # async def get_liste_configurations(self) -> list:
     #     """
