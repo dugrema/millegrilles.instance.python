@@ -29,6 +29,7 @@ from millegrilles_messages.messages.ValidateurCertificats import ValidateurCerti
 from millegrilles_messages.messages.ValidateurMessage import ValidateurMessage
 from millegrilles_messages.messages.Notifications import EmetteurNotifications
 
+
 class EtatInstance:
 
     def __init__(self, configuration: ConfigurationInstance):
@@ -463,6 +464,10 @@ class CacheCertificat:
 
 class EtatSysteme:
 
+    CONST_INTERVALLE_NOTIFICATIONS_INFO = datetime.timedelta(hours=24)
+    CONST_INTERVALLE_NOTIFICATIONS_WARN = datetime.timedelta(hours=12)
+    CONST_INTERVALLE_NOTIFICATIONS_ERROR = datetime.timedelta(minutes=15)
+
     def __init__(self, etat_instance: EtatInstance):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__etat_instance = etat_instance
@@ -531,7 +536,9 @@ class EtatSysteme:
         Emet des notifications systeme au besoin
         :return:
         """
-        await self.__notifications_disk(producer)
+        now = datetime.datetime.utcnow()
+        if self.__derniere_notification_disk is None or now > self.__derniere_notification_disk + EtatSysteme.CONST_INTERVALLE_NOTIFICATIONS_INFO:
+            await self.__notifications_disk(producer)
 
     async def __notifications_disk(self, producer):
         """
@@ -564,4 +571,5 @@ class EtatSysteme:
                 notifications.append('<p>Disk/partition %s : il reste moins de 10%% d''espace libre.</p>' % mountpoint)
 
         if len(notifications) > 0:
+            self.__derniere_notification_disk = datetime.datetime.utcnow()
             await self.__etat_instance.emettre_notification(producer, '\n'.join(notifications), niveau=niveau)
