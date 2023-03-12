@@ -478,6 +478,7 @@ class EtatSysteme:
 
         self.__notif_demarrage_envoyee = False
         self.__derniere_notification_disk: Optional[datetime.datetime] = None
+        self.__derniere_notification_cpu: Optional[datetime.datetime] = None
 
     @property
     def etat(self):
@@ -542,6 +543,8 @@ class EtatSysteme:
             await self.__notification_demarrage(producer)
         if self.__derniere_notification_disk is None or now > self.__derniere_notification_disk + EtatSysteme.CONST_INTERVALLE_NOTIFICATIONS_INFO:
             await self.__notifications_disk(producer)
+        if self.__derniere_notification_cpu is None or now > self.__derniere_notification_disk + EtatSysteme.CONST_INTERVALLE_NOTIFICATIONS_WARN:
+            await self.__notification_cpu(producer)
 
     async def __notifications_disk(self, producer):
         """
@@ -610,3 +613,37 @@ class EtatSysteme:
 
         self.__notif_demarrage_envoyee = True
         await self.__etat_instance.emettre_notification(producer, contenu, subject=subject, niveau='info')
+
+    async def __notification_cpu(self, producer):
+
+        try:
+            load_average = self.__etat['load_average']
+        except KeyError:
+            return  # Aucune info CPU
+
+        niveau = None
+        if load_average[2] > 5.0:
+            niveau = 'warn'
+        elif load_average[2] > 15.0:
+            niveau = 'error'
+
+        if niveau is None:
+            return
+
+        info = {
+            'instance_id': self.__etat_instance.instance_id,
+            'nom_domaine': self.__etat_instance.nom_domaine,
+            'load_average': load_average,
+        }
+
+        subject = '[%s] %s CPU usage eleve' % (niveau, info['nom_domaine'])
+        contenu = """
+<p>Utilisation CPU elevee sur {nom_domaine}</p>
+<br/>
+CPU usage : {load_average}
+<br/>
+<p>Instance {instance_id}</p>
+""".format(**info)
+
+        self.__derniere_notification_cpu = datetime.datetime.utcnow()
+        await self.__etat_instance.emettre_notification(producer, contenu, subject=subject, niveau=niveau)
