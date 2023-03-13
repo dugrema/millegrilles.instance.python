@@ -1,6 +1,6 @@
 {
   "nom": "messagerie_web",
-  "version": "2023.2.2",
+  "version": "2023.2.3",
   "description": {
     "en": "Messaging web",
     "fr": "Messagerie web"
@@ -9,7 +9,7 @@
   "dependances": [
     {
       "name": "messagerie_web",
-      "image": "docker.maceroc.com/millegrilles_messagerie_web:2023.2.1",
+      "image": "docker.maceroc.com/millegrilles_messagerie_web:2023.2.2",
       "certificat": {
         "roles": ["messagerie_web"],
         "exchanges": ["2.prive", "1.public"],
