@@ -102,7 +102,11 @@ class EtatInstance:
         # Exporter configuration pour modules dependants
         self.maj_configuration_json()
 
-        self.__emetteur_notifications = EmetteurNotifications(self.__certificat_millegrille, 'Instance %s' % self.__hostname)
+        try:
+            self.__emetteur_notifications = EmetteurNotifications(self.__certificat_millegrille, 'Instance %s' % self.__hostname)
+        except AttributeError as e:
+            self.__logger.warning("Emetteur de notification non disponible (certificats pas pret) : %s" % e)
+            self.__emetteur_notifications = None
 
         if self.__clecertificat is not None:
             signateur = SignateurTransactionSimple(self.__clecertificat)
@@ -411,10 +415,13 @@ class EtatInstance:
         return True
 
     async def emettre_notification(self, producer, contenu, subject: Optional[str] = None, niveau='info'):
-        if subject is None:
-            subject = '[%s] %s' % (niveau, self.__hostname)
+        if self.__emetteur_notifications is not None:
+            if subject is None:
+                subject = '[%s] %s' % (niveau, self.__hostname)
 
-        await self.__emetteur_notifications.emettre_notification(producer, contenu, subject, niveau)
+            await self.__emetteur_notifications.emettre_notification(producer, contenu, subject, niveau)
+        else:
+            self.__logger.debug("Emetteur notification offline, notification ignoree : %s" % contenu)
 
 
 def load_fichier_config(path_fichier: str) -> Optional[str]:
