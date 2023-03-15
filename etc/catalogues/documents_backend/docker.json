@@ -1,6 +1,6 @@
 {
   "nom": "documents_backend",
-  "version": "2022.9.3",
+  "version": "2023.2.0",
   "description": {
     "en": "Documents (back-end)",
     "fr": "Documents (back-end)"
@@ -9,7 +9,7 @@
   "dependances": [
     {
       "name": "documents_backend",
-      "image": "docker.maceroc.com/millegrilles_documents_backend:2022.9.0",
+      "image": "docker.maceroc.com/millegrilles_documents_backend:2023.2.0",
       "certificat": {
         "roles": ["documents_backend"],
         "domaines": ["Documents"],

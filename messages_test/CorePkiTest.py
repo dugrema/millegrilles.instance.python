@@ -50,7 +50,7 @@ async def run_tests(messages_thread, stop_event):
 
 async def get_certificat(messages_thread):
     action = 'infoCertificat'
-    requete = {'fingerprint': 'z2i3Xjx5gSQPuhSrurVrn1pkF2dTdNAoKChgD6DVKpUkdqYrjD9'}
+    requete = {'fingerprint': 'z2i3XjxJLcG4rMrGWb563XwJtkoT3kBrsxnR8amp5Uc6N3SvenZ'}
     producer = messages_thread.get_producer()
     reponse = await producer.executer_requete(requete, 'CorePki', action=action, exchange=Constantes.SECURITE_PRIVE)
     contenu = json.dumps(reponse.parsed, indent=2)
