@@ -1,6 +1,6 @@
 {
   "nom": "documents_backend",
-  "version": "2023.2.0",
+  "version": "2023.2.1",
   "description": {
     "en": "Documents (back-end)",
     "fr": "Documents (back-end)"
@@ -9,7 +9,7 @@
   "dependances": [
     {
       "name": "documents_backend",
-      "image": "docker.maceroc.com/millegrilles_documents_backend:2023.2.0",
+      "image": "docker.maceroc.com/millegrilles_documents_backend:2023.2.1",
       "certificat": {
         "roles": ["documents_backend"],
         "domaines": ["Documents"],
@@ -56,8 +56,8 @@
         }
       ],
       "resources": {
-        "cpu_limit": 500000000,
-        "mem_limit": 120000000
+        "cpu_limit": 1000000000,
+        "mem_limit": 250000000
       },
       "restart_policy": {
         "condition": "on-failure",
