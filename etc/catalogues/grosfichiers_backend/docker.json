@@ -1,11 +1,11 @@
 {
   "nom": "grosfichiers_backend",
-  "version": "2023.0.1",
+  "version": "2023.2.0",
   "securite": "4.secure",
   "dependances": [
     {
       "name": "grosfichiers_backend",
-      "image": "docker.maceroc.com/millegrilles_grosfichiers:2023.0.1",
+      "image": "docker.maceroc.com/millegrilles_grosfichiers:2023.2.0",
       "certificat": {
         "roles": ["grosfichiers"],
         "domaines": ["GrosFichiers"],
@@ -48,7 +48,7 @@
       "networks": [{"target": "millegrille_net"}],
       "resources": {
         "cpu_limit": 1000000000,
-        "mem_limit": 120000000
+        "mem_limit": 250000000
       },
       "restart_policy": {
         "condition": "on-failure",
