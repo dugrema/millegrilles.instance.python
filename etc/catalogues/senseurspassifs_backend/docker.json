@@ -1,6 +1,6 @@
 {
   "nom": "senseurspassifs_backend",
-  "version": "2023.0.2",
+  "version": "2023.2.0",
   "description": {
     "en": "Senseurs Passifs (back-end)",
     "fr": "Senseurs Passifs (back-end)"
@@ -9,7 +9,7 @@
   "dependances": [
     {
       "name": "senseurspassifs_backend",
-      "image": "docker.maceroc.com/millegrilles_senseurspassifs:2023.0.5",
+      "image": "docker.maceroc.com/millegrilles_senseurspassifs:2023.2.0",
       "certificat": {
         "roles": ["senseurspassifs"],
         "domaines": ["SenseursPassifs"],
@@ -56,8 +56,8 @@
         }
       ],
       "resources": {
-        "cpu_limit": 500000000,
-        "mem_limit": 120000000
+        "cpu_limit": 1000000000,
+        "mem_limit": 250000000
       },
       "restart_policy": {
         "condition": "on-failure",
