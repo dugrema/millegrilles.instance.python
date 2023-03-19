@@ -2,10 +2,10 @@ location /landing/public {{
   set $upstream_{appname} https://landing_web:443;
   proxy_pass $upstream_{appname};
 
-  # include /etc/nginx/conf.d/auth.include;
-
   include /etc/nginx/conf.d/component_proxyheaders.include;
   include /etc/nginx/conf.d/component_gzip.include;
+  include /etc/nginx/conf.d/component_cors.include;
+
   proxy_read_timeout 15m;
   client_max_body_size 5M;
 }}
