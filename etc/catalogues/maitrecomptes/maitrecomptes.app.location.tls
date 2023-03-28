@@ -7,13 +7,14 @@ location = /millegrilles/authentification/verifier_tlsclient {{
   include /etc/nginx/conf.d/modules/maitrecomptes.app.proxypass;
   proxy_pass_request_body off; # no need to send the POST body
 
-  proxy_set_header  Content-Length "";
+  client_max_body_size 200m;
+
+  # proxy_set_header  Content-Length "";
   proxy_set_header  X-Real-IP $remote_addr;
   proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
   proxy_set_header  X-Forwarded-Proto $scheme;
   proxy_set_header  Host $host;
   proxy_set_header  X-Hostname $hostname;
-  proxy_set_header  Content-Length "";
 
   proxy_set_header VERIFIED           $ssl_client_verify;
   proxy_set_header X-Client-Issuer-DN $ssl_client_i_dn;
