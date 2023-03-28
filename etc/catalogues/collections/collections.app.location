@@ -86,14 +86,14 @@ location /collections/streams {{
   proxy_cache_valid 401 403 500 502 503 504 5s;
 }}
 
-location /collections/upload {{
+location /collections/fichiers/upload {{
   include /etc/nginx/conf.d/modules/collections.app.proxypass;
 
   include /etc/nginx/conf.d/auth.include;
   include /etc/nginx/conf.d/component_proxyheaders.include;
 
   proxy_read_timeout 5m;
-  client_max_body_size 5m;
+  client_max_body_size 101m;
 }}
 
 location /collections {{
