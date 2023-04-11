@@ -1,11 +1,11 @@
 {
   "nom": "media",
-  "version": "2023.3.1",
+  "version": "2023.4.0",
   "securite": "4.secure",
   "dependances": [
     {
       "name": "media",
-      "image": "docker.maceroc.com/millegrilles_media:2023.3.1",
+      "image": "docker.maceroc.com/millegrilles_media:2023.4.0",
       "certificat": {
         "roles": ["media", "fichiers"],
         "domaines": ["GrosFichiers"],
