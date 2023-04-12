@@ -1,11 +1,11 @@
 {
   "nom": "collections",
-  "version": "2023.4.3",
+  "version": "2023.4.4",
   "securite": "2.prive",
   "dependances": [
     {
       "name": "collections",
-      "image": "docker.maceroc.com/millegrilles_collections:2023.4.3",
+      "image": "docker.maceroc.com/millegrilles_collections:2023.4.4",
       "certificat": {
         "roles": ["collections"],
         "exchanges": ["2.prive", "1.public"],
