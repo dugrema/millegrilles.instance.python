@@ -11,7 +11,7 @@ location = /millegrilles/authentification/verifier {{
   proxy_set_header  Host $host;
   proxy_set_header  X-Hostname $hostname;
 
-  client_max_body_size 5m;  # Limite batch upload
+  client_max_body_size 101m;  # Limite batch upload
 }}
 
 location /millegrilles/authentification {{
