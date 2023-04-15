@@ -16,5 +16,5 @@ include /etc/nginx/conf.d/component_proxyheaders.include;
 #proxy_cache_valid 404 3s;
 #proxy_cache_valid 401 403 500 502 503 504 5s;
 
-proxy_read_timeout 60s;
+proxy_read_timeout 20m;
 client_max_body_size 200m;  # Limite batch upload
