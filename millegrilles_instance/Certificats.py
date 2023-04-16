@@ -220,7 +220,7 @@ async def renouveler_certificat_instance_protege(producer: MessageProducerFormat
 
     # Signer avec notre certificat (instance), requis par le certissuer
     formatteur_message = etat_instance.formatteur_message
-    message_signe, _uuid = formatteur_message.signer_message(commande)
+    message_signe, _uuid = formatteur_message.signer_message(Constantes.KIND_DOCUMENT, commande)
 
     logger.debug("Demande de signature de certificat pour instance protegee => %s\n%s" % (message_signe, csr_str))
     url_issuer = etat_instance.certissuer_url
@@ -316,7 +316,7 @@ async def generer_nouveau_certificat(producer: MessageProducerFormatteur,
 
     # Signer avec notre certificat (instance), requis par le certissuer
     formatteur_message = etat_instance.formatteur_message
-    message_signe, _uuid = formatteur_message.signer_message(configuration)
+    message_signe, _uuid = formatteur_message.signer_message(Constantes.KIND_DOCUMENT, configuration)
 
     logger.debug("Demande de signature de certificat pour %s => %s\n%s" % (nom_module, message_signe, csr_str))
     url_issuer = etat_instance.certissuer_url
@@ -376,7 +376,7 @@ async def demander_nouveau_certificat(producer: MessageProducerFormatteur, etat_
 
         # Signer avec notre certificat (instance), requis par le certissuer
         formatteur_message = etat_instance.formatteur_message
-        message_signe, _uuid = formatteur_message.signer_message(commande)
+        message_signe, _uuid = formatteur_message.signer_message(Constantes.KIND_DOCUMENT, commande)
 
         url_issuer = etat_instance.certissuer_url
         path_csr = path.join(url_issuer, 'renouvelerInstance')
