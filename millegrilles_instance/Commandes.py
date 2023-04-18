@@ -168,8 +168,9 @@ class CommandHandler:
 
     async def sauvegarder_fiche_publique(self, message: MessageWrapper):
         self.__logger.debug("Sauvegarder fiche publique")
-        parsed = message.parsed
-        self._entretien_instance.sauvegarder_nginx_data('fiche.json', parsed, path_html=True)
+        # parsed = message.parsed
+        contenu = message.contenu
+        self._entretien_instance.sauvegarder_nginx_data('fiche.json', contenu, path_html=True)
         return {'ok': True}
 
     async def get_application_configuration(self, message: MessageWrapper):
