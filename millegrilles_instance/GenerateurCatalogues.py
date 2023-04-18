@@ -9,6 +9,7 @@ import tempfile
 from os import listdir, path, mkdir, unlink
 from base64 import b64encode
 
+from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.messages.FormatteurMessages import SignateurTransactionSimple, FormatteurMessageMilleGrilles
 
@@ -116,10 +117,10 @@ class Generateur:
 
     def signer(self, contenu: dict, domaine_action: str, action: str = None):
         message_signe, uuid_enveloppe = self._formatteur.signer_message(
-            contenu, domaine_action, ajouter_chaine_certs=True, action=action)
+            Constantes.KIND_COMMANDE, contenu, domaine_action, ajouter_chaine_certs=True, action=action)
 
         # Ajouter certificat _millegrille
-        message_signe['_millegrille'] = self.__cert_millegrille
+        message_signe['millegrille'] = self.__cert_millegrille
 
         return message_signe
 
