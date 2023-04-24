@@ -5,11 +5,11 @@ IMAGE="docker.maceroc.com/mg_mongo_express:0.54_0"
 sudo cp mongoexpress.server /var/opt/millegrilles/nginx/modules
 
 # Noms variables
-PASSWD_MONGO=passwd.mongo.20230416213544
-CERT_MONGO=pki.mongo.cert.20230416220738
-KEY_MONGO=pki.mongo.key.20230416220738
-CERT_WEB=pki.web.cert.20230311000000
-KEY_WEB=pki.web.key.20230311000000
+PASSWD_MONGO=passwd.mongo.20230420160225
+CERT_MONGO=pki.mongo.cert.20230420160202
+KEY_MONGO=pki.mongo.key.20230420160202
+CERT_WEB=pki.web.cert.20000101000000
+KEY_WEB=pki.web.key.20000101000000
 
 # Constantes
 MOTDEPASSE='dummymongo1234'
