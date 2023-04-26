@@ -1,6 +1,6 @@
 {
   "name": "midcompte",
-  "image": "docker.maceroc.com/millegrilles_midcompte_python:2023.5.0",
+  "image": "docker.maceroc.com/millegrilles_midcompte_python:2023.5.1",
   "certificat": {"roles": ["midcompte"], "dns": {"localhost": true, "hostnames": ["midcompte"], "domain": true}, "combiner_keycert": true},
   "constraints": ["node.labels.millegrilles.midcompte == true"],
   "configs": [
