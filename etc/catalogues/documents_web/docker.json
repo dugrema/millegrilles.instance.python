@@ -1,11 +1,11 @@
 {
   "nom": "documents_web",
-  "version": "2023.2.1",
+  "version": "2023.5.0",
   "securite": "2.prive",
   "dependances": [
     {
       "name": "documents_web",
-      "image": "docker.maceroc.com/millegrilles_documents_web:2023.2.0",
+      "image": "docker.maceroc.com/millegrilles_documents_web:2023.5.0",
       "certificat": {
         "roles": ["documents_web"],
         "exchanges": ["2.prive", "1.public"],
