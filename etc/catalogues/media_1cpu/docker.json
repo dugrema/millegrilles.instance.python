@@ -1,11 +1,11 @@
 {
   "nom": "media_1cpu",
-  "version": "2023.5.0",
+  "version": "2023.5.1",
   "securite": "4.secure",
   "dependances": [
     {
       "name": "media_1cpu",
-      "image": "docker.maceroc.com/millegrilles_media:2023.5.0",
+      "image": "docker.maceroc.com/millegrilles_media:2023.5.1",
       "certificat": {
         "roles": ["media", "fichiers"],
         "domaines": ["GrosFichiers"],
