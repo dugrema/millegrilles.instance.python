@@ -1,6 +1,6 @@
 {
   "nom": "postmaster",
-  "version": "2023.2.0",
+  "version": "2023.5.0",
   "description": {
     "en": "Postmaster",
     "fr": "Postmaster"
@@ -9,7 +9,7 @@
   "dependances": [
     {
       "name": "postmaster",
-      "image": "docker.maceroc.com/millegrilles_postmaster:2023.2.0",
+      "image": "docker.maceroc.com/millegrilles_postmaster:2023.5.0",
       "certificat": {
         "roles": ["postmaster"],
         "exchanges": ["1.public"]
