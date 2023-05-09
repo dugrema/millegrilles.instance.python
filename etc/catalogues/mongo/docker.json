@@ -1,6 +1,6 @@
 {
   "nom": "mongo",
-  "version": "2023.5.1",
+  "version": "2023.5.2",
   "securite": "4.secure",
   "dependances": [
     {
@@ -96,7 +96,7 @@
     },
     {
       "name": "midcompte",
-      "image": "docker.maceroc.com/millegrilles_midcompte_python:2023.5.1",
+      "image": "docker.maceroc.com/millegrilles_midcompte_python:2023.5.3",
       "certificat": {
         "roles": [
           "midcompte"
