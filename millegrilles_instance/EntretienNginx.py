@@ -89,11 +89,12 @@ class EntretienNginx:
                             Constantes.SECURITE_PRIVE,
                             timeout=10
                         )
-                        fiche_parsed = reponse_fiche.parsed
-                        self.__logger.debug("Fiche chargee via requete : %s" % fiche_parsed)
+                        # fiche_parsed = reponse_fiche.parsed
+                        fiche_contenu = reponse_fiche.contenu
+                        self.__logger.debug("Fiche chargee via requete : %s" % fiche_contenu)
                         path_nginx = self.__etat_instance.configuration.path_nginx
                         path_fiche_json = path.join(path_nginx, 'html', 'fiche.json')
-                        self.sauvegarder_fichier_data(path_fiche_json, fiche_parsed)
+                        self.sauvegarder_fichier_data(path_fiche_json, fiche_contenu)
 
                 except ClientConnectorError:
                     self.__logger.exception("nginx n'est pas accessible")
