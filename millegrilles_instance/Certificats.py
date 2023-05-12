@@ -76,8 +76,12 @@ async def generer_certificats_modules(producer: MessageProducerFormatteur, clien
 
             # Ok, verifier si le certificat doit etre renouvele
             detail_expiration = enveloppe.calculer_expiration()
+            roles = enveloppe.get_roles
+            #if 'maitredescles' in roles:
+            #    logger.error("!!! Certiticats.generer_certificats_modules HACK MaitreDesCles !!!!")
+            #    detail_expiration['renouveler'] = True
+
             if detail_expiration['expire'] is True or detail_expiration['renouveler'] is True:
-                roles = enveloppe.get_roles
                 if 'maitredescles' in roles:
                     # Verifier si on est en cours de rotation d'un certificat de maitre des cles
                     # Il faut laisser le temps aux cles de finir d'etre rechiffrees
@@ -85,6 +89,30 @@ async def generer_certificats_modules(producer: MessageProducerFormatteur, clien
                         clecertificat = await generer_nouveau_certificat(
                             producer, client_session, etat_instance, nom_module, value)
                         sauvegarder = True
+
+                        if detail_expiration['expire'] is not True:
+                            # Rotation du certificat qui n'est pas expire
+                            # Emettre une commande de rotation pour le maitre des cles, attendre reponse
+                            commande = {
+                                'certificat': clecertificat.enveloppe.chaine_pem(),
+                            }
+                            try:
+                                reponse = await producer.executer_commande(
+                                    commande, 'MaitreDesCles', 'rotationCertificat',
+                                    exchange='3.protege',
+                                    partition=enveloppe.fingerprint
+                                )
+                            except Exception as e:
+                                if detail_expiration['expire'] is True:
+                                    # Pas le choix - le certificat est expire, on force la rotation
+                                    logger.error(
+                                        "generer_certificats_modules Erreur rotation cle certificat (FORCE) : %s" % e)
+                                else:
+                                    # Skip, la rotation a ecohoue. On va ressayer plus tard.
+                                    logger.warning(
+                                        "generer_certificats_modules Erreur rotation cle certificat (SKIP) : %s" % e)
+                                    continue
+
                         etat_instance.set_rotation_maitredescles()
                 else:
                     clecertificat = await generer_nouveau_certificat(producer, client_session, etat_instance, nom_module, value)
