@@ -1,11 +1,11 @@
 {
   "nom": "maitredescles_partition",
-  "version": "2023.5.1",
+  "version": "2023.6.0",
   "securite": "4.secure",
   "dependances": [
     {
       "name": "maitredescles_partition",
-      "image": "docker.maceroc.com/millegrilles_maitredescles:2023.5.1",
+      "image": "docker.maceroc.com/millegrilles_maitredescles:2023.6.0",
       "certificat": {
         "roles": ["maitredescles"],
         "domaines": ["MaitreDesCles"],
