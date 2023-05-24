@@ -417,7 +417,7 @@ class EtatInstance:
     async def emettre_notification(self, producer, contenu, subject: Optional[str] = None, niveau='info'):
         if self.__emetteur_notifications is not None:
             if subject is None:
-                subject = '[%s] %s' % (niveau, self.__hostname)
+                subject = self.__hostname
 
             await self.__emetteur_notifications.emettre_notification(producer, contenu, subject, niveau)
         else:
@@ -605,7 +605,7 @@ class EtatSysteme:
                 self.__logger.info("Disk %s < 10%%" % mountpoint)
                 notifications.append('<p>Disk/partition "%s" : il reste moins de 10%% d''espace libre.</p>' % mountpoint)
 
-        subject = '[%s] %s Disk usage' % (niveau, self.__etat_instance.hostname)
+        subject = '%s Disk usage' % self.__etat_instance.hostname
 
         if len(notifications) > 0:
             info = {
@@ -631,7 +631,7 @@ class EtatSysteme:
             'securite': self.__etat_instance.niveau_securite,
         }
 
-        subject = '[info] %s Demarrage' % info['nom_domaine']
+        subject = '%s Demarrage' % info['nom_domaine']
         contenu = """
 <p>Demarrage de {nom_domaine}</p>
 <br/>
@@ -665,7 +665,7 @@ class EtatSysteme:
             'load_average': load_average,
         }
 
-        subject = '[%s] %s CPU usage eleve' % (niveau, info['nom_domaine'])
+        subject = '%s CPU usage eleve' % info['nom_domaine']
         contenu = """
 <p>Utilisation CPU elevee sur {nom_domaine}</p>
 <br/>
@@ -689,7 +689,7 @@ CPU usage : {load_average}
         if offline is True:
             self.__notification_apc_offline = datetime.datetime.utcnow()
 
-            subject = '[WARN] %s UPS offline' % info['nom_domaine']
+            subject = '%s UPS offline' % info['nom_domaine']
             # Emettre notification offline
             contenu = """
 <p>APC UPS offline sur {nom_domaine}</p>
@@ -705,7 +705,7 @@ CPU usage : {load_average}
             # Reset notification
             self.__notification_apc_offline = None
 
-            subject = '[WARN] %s UPS restored (online)' % info['nom_domaine']
+            subject = '%s UPS restored (online)' % info['nom_domaine']
             # Emettre notification offline
             contenu = """
 <p>APC UPS restored (online) sur {nom_domaine}</p>
