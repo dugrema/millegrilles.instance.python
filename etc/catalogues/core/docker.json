@@ -1,11 +1,11 @@
 {
   "nom": "core",
-  "version": "2023.6.1",
+  "version": "2023.6.2",
   "securite": "4.secure",
   "dependances": [
     {
       "name": "core",
-      "image": "docker.maceroc.com/millegrilles_core:2023.6.1",
+      "image": "docker.maceroc.com/millegrilles_core:2023.6.2",
       "certificat": {
         "roles": ["core"],
         "exchanges": ["4.secure", "3.protege", "2.prive", "1.public" ],
