@@ -1,6 +1,6 @@
 {
   "name": "nginx",
-  "image": "docker.maceroc.com/millegrilles_nginx:2023.3.0",
+  "image": "docker.maceroc.com/millegrilles_nginx:2023.6.0",
   "certificat": {"roles": ["nginx"], "dns": {"localhost": true, "hostnames": ["nginx"], "domain": true}},
   "env": {
     "ONIONSERVICE_NAME": "nginx",
