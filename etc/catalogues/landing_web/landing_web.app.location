@@ -27,7 +27,7 @@ location /landing/public {{
 
 location /landing {{
   include /etc/nginx/conf.d/modules/landing_web.app.proxypass;
-  #set $upstream_{appname} https://mg-dev1.maple.maceroc.com:3046;  # DEV
+  #set $upstream_{appname} https://SERVER:3046;  # DEV
   #proxy_pass $upstream_{appname};
 
   include /etc/nginx/conf.d/auth.include;

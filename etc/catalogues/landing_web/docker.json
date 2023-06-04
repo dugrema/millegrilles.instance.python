@@ -80,6 +80,6 @@
     }
   ],
   "nginx": {
-    "conf": ["landing_web.app.location"]
+    "conf": ["landing_web.app.location", "landing_web.app.proxypass"]
   }
 }
