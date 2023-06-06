@@ -6,7 +6,7 @@ location /landing/protectionpublique {{
   client_max_body_size 101m;  # 5mb + 5k
 }}
 
-location /landing/public/fichiers {
+location /landing/public/fichiers {{
   include /etc/nginx/conf.d/modules/landing_web.app.proxypass;
 
   include /etc/nginx/conf.d/component_proxyheaders.include;
@@ -23,7 +23,7 @@ location /landing/public/fichiers {
   # Retourner l'identificateur usager
   proxy_set_header  Host              $host;
   proxy_set_header  X-Hostname        $hostname;
-}
+}}
 
 location /landing/public {{
   include /etc/nginx/conf.d/modules/landing_web.app.proxypass;
