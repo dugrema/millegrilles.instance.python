@@ -1,6 +1,6 @@
 {
   "nom": "landing_web",
-  "version": "2023.3.3",
+  "version": "2023.6.0",
   "description": {
     "en": "Landing (web)",
     "fr": "Landing (web)"
@@ -9,7 +9,7 @@
   "dependances": [
     {
       "name": "landing_web",
-      "image": "docker.maceroc.com/millegrilles_landing_web:2023.3.0",
+      "image": "docker.maceroc.com/millegrilles_landing_web:2023.6.0",
       "certificat": {
         "roles": ["landing_web"],
         "dns": {"localhost": true, "hostnames": ["landing_web"], "domain": true},
