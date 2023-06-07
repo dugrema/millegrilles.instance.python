@@ -98,6 +98,8 @@ location /collections/fichiers/upload {{
 
 location /collections {{
   include /etc/nginx/conf.d/modules/collections.app.proxypass;
+#set $upstream_collections https://__SERVER__:3038;
+#proxy_pass $upstream_collections;
 
   include /etc/nginx/conf.d/auth.include;
 

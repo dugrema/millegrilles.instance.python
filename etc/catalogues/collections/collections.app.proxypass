@@ -1,4 +1,5 @@
 set $upstream_collections https://collections:443;
+#set $upstream_collections https://__SERVER__:3037;
 proxy_pass $upstream_collections;
 
 proxy_ssl_certificate         /run/secrets/nginx.cert.pem;
