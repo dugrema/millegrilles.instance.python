@@ -75,6 +75,7 @@ location /collections/streams {{
   proxy_set_header  X-Hostname        $hostname;
 
   # Cache de streams du proxy.
+  slice 30m;
   proxy_cache       cache_streams;
   proxy_cache_lock  on;
   proxy_cache_lock_timeout 2m;

@@ -1,6 +1,6 @@
 {
   "nom": "collections",
-  "version": "2023.6.1",
+  "version": "2023.6.2",
   "securite": "2.prive",
   "dependances": [
     {
