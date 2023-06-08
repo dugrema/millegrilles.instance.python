@@ -1,6 +1,6 @@
 {
   "name": "mq",
-  "image": "docker.maceroc.com/mg_rabbitmq:3.11-management_3",
+  "image": "docker.maceroc.com/mg_rabbitmq:3.12-management_0",
   "certificat": {"roles": ["mq"], "dns": {"localhost": true, "hostnames": ["mq"], "domain": true}},
   "passwords": ["mqadmin"],
   "env": {
