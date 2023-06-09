@@ -1,28 +1,34 @@
 {
   "nom": "mongoexpress",
-  "version": "2023.0.0",
+  "version": "2023.6.2",
   "securite": "3.protege",
   "dependances": [
     {
       "name": "mongoexpress",
-      "image": "docker.maceroc.com/mg_mongo_express:0.54_0",
+      "image": "docker.maceroc.com/mg_mongo_express:1.0.0-alpha_0",
       "certificat": {"roles": ["mongoexpress"], "dns": {"hostnames": ["mongoexpress"]}},
       "generateur": ["mongoexpress"],
       "env": {
+        "ME_CONFIG_MONGODB_ENABLE_ADMIN": "true",
+
+        "ME_CONFIG_BASICAUTH": "true",
         "ME_CONFIG_BASICAUTH_USERNAME": "mongo",
-        "ME_CONFIG_MONGODB_ADMINUSERNAME": "admin",
-        "MONGODB_ADMINPASSWORD_FILE": "/run/secrets/mongo.password.txt",
         "ME_CONFIG_BASICAUTH_PASSWORD_FILE": "/run/secrets/web.password.txt",
+
+        "ME_CONFIG_MONGODB_ADMINUSERNAME": "admin",
+        "ME_CONFIG_MONGODB_ADMINPASSWORD_FILE": "/run/secrets/mongo.password.txt",
+
         "VCAP_APP_PORT": "443",
-        "ME_CONFIG_SITE_SSL_ENABLED": "'true'",
+        "ME_CONFIG_SITE_SSL_ENABLED": "true",
         "ME_CONFIG_SITE_SSL_CRT_PATH": "/run/secrets/web.cert.pem",
         "ME_CONFIG_SITE_SSL_KEY_PATH": "/run/secrets/web.key.pem",
+
         "ME_CONFIG_MONGODB_SERVER": "mongo",
         "ME_CONFIG_MONGODB_SSL": "true",
-        "ME_CONFIG_MONGODB_KEY": "/run/secrets/key.pem",
-        "ME_CONFIG_MONGODB_CERT": "/run/secrets/cert.pem",
-        "ME_CONFIG_MONGODB_CACERT": "/run/secrets/millegrille.cert.pem",
-        "ME_CONFIG_MONGODB_SSLVALIDATE": "'true'"
+        "ME_CONFIG_MONGODB_SSLVALIDATE": "true",
+        "ME_CONFIG_MONGODB_KEY_FILE": "/run/secrets/key.pem",
+        "ME_CONFIG_MONGODB_CERT_FILE": "/run/secrets/cert.pem",
+        "ME_CONFIG_MONGODB_CA_FILE": "/run/secrets/millegrille.cert.pem"
       },
       "constraints": ["node.labels.millegrilles.mongoexpress == true"],
       "configs": [
