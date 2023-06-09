@@ -20,4 +20,8 @@ pip3 install $URL_MGMESSAGES
 
 pip3 install -r requirements.txt
 
+# Fix pour cryptography
+# https://stackoverflow.com/questions/74981558/error-updating-python3-pip-attributeerror-module-lib-has-no-attribute-openss
+python3 -m pip install -U pyOpenSSL cryptography
+
 echo "[INFO] Fin configuration venv python3"
