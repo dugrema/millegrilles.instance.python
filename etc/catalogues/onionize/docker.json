@@ -1,11 +1,11 @@
 {
   "nom": "onionize",
-  "version": "2022.8.0",
+  "version": "2023.6.0",
   "securite": "1.public",
   "dependances": [
     {
       "name": "onionize",
-      "image": "docker.maceroc.com/onionize:release-0.3_0",
+      "image": "docker.maple.maceroc.com:5000/onionize:release-0.3_0",
       "config": {
         "name": "onionize",
         "mounts": [

@@ -1,11 +1,11 @@
 {
   "nom": "mongoexpress",
-  "version": "2023.6.2",
+  "version": "2023.6.3",
   "securite": "3.protege",
   "dependances": [
     {
       "name": "mongoexpress",
-      "image": "docker.maceroc.com/mg_mongo_express:1.0.0-alpha_0",
+      "image": "docker.maple.maceroc.com:5000/mg_mongo_express:1.0.0-alpha_0",
       "certificat": {"roles": ["mongoexpress"], "dns": {"hostnames": ["mongoexpress"]}},
       "generateur": ["mongoexpress"],
       "env": {

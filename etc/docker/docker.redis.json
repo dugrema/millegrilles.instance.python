@@ -1,6 +1,6 @@
 {
   "name": "redis",
-  "image": "docker.maceroc.com/mg_redis:7.0_0",
+  "image": "docker.maple.maceroc.com:5000/mg_redis:7.0_0",
   "certificat": {"roles": ["redis"], "dns": {"localhost": true, "hostnames": ["redis"], "domain": true}},
   "passwords": ["redis"],
   "mounts": [{"source": "mg-redis", "target":  "/data", "type": "volume"}],
