@@ -177,14 +177,16 @@ class WebServer:
         return await configurer_idmg(self.__etat_instance, contenu)
 
     async def handle_changer_domaine(self, request: web.Request):
-        contenu = await request.json()
-        self.__logger.debug("handle_changer_domaine contenu\n%s" % json.dumps(contenu, indent=2))
+        enveloppe_message = await request.json()
+        self.__logger.debug("handle_changer_domaine contenu\n%s" % json.dumps(enveloppe_message, indent=2))
 
         # Valider message - delegation globale
-        enveloppe = await self.__etat_instance.validateur_message.verifier(contenu)
+        enveloppe = await self.__etat_instance.validateur_message.verifier(enveloppe_message)
         if enveloppe.get_delegation_globale != Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
             self.__logger.error("Requete handle_configurer_mq() avec certificat sans delegation globale")
             return web.HTTPForbidden()
+
+        contenu = json.loads(enveloppe_message['contenu'])
 
         # Conserver hostname
         hostname = contenu['hostname']
@@ -194,14 +196,16 @@ class WebServer:
         return web.json_response({'ok': True}, headers=headers_cors())
 
     async def handle_configurer_mq(self, request: web.Request):
-        contenu = await request.json()
-        self.__logger.debug("handle_configurer_mq contenu\n%s" % json.dumps(contenu, indent=2))
+        enveloppe_message = await request.json()
 
         # Valider message - delegation globale
-        enveloppe = await self.__etat_instance.validateur_message.verifier(contenu)
+        enveloppe = await self.__etat_instance.validateur_message.verifier(enveloppe_message)
         if enveloppe.get_delegation_globale != Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
             self.__logger.error("Requete handle_configurer_mq() avec certificat sans delegation globale")
             return web.HTTPForbidden()
+
+        contenu = json.loads(enveloppe_message['contenu'])
+        self.__logger.debug("handle_configurer_mq contenu\n%s" % json.dumps(contenu, indent=2))
 
         config_dict = {
             'mq_host': contenu['host'],
