@@ -22,20 +22,20 @@ class GestionnaireApplications:
         self.__rabbitmq_dao = None
 
         # Initialiser le prochain backup
-        self.__prochain_backup_applications = datetime.datetime.now(tz=pytz.UTC) + datetime.timedelta(seconds=30)
-        self.__intervalle_backup_applications = datetime.timedelta(days=1)  # Intervalle backup suivants
+        # self.__prochain_backup_applications = datetime.datetime.now(tz=pytz.UTC) + datetime.timedelta(seconds=30)
+        # self.__intervalle_backup_applications = datetime.timedelta(days=1)  # Intervalle backup suivants
 
     def set_rabbitmq_dao(self, rabbitmq_dao):
         self.__rabbitmq_dao = rabbitmq_dao
 
     async def entretien(self):
         self.__logger.debug("entretien")
-        date_courante = datetime.datetime.now(tz=pytz.UTC)
-        if self.__prochain_backup_applications < date_courante:
-            try:
-                await self.backup_applications()
-            finally:
-                self.__prochain_backup_applications = datetime.datetime.now(tz=pytz.UTC) + self.__intervalle_backup_applications
+        # date_courante = datetime.datetime.now(tz=pytz.UTC)
+        # if self.__prochain_backup_applications < date_courante:
+        #     try:
+        #         await self.backup_applications()
+        #     finally:
+        #         self.__prochain_backup_applications = datetime.datetime.now(tz=pytz.UTC) + self.__intervalle_backup_applications
 
     async def installer_application(self, configuration: dict, reinstaller=False):
         path_docker_apps = self.__etat_instance.configuration.path_docker_apps
@@ -92,9 +92,9 @@ class GestionnaireApplications:
             await self.__etat_instance.emettre_presence(producer)
             return {'ok': True}
 
-    async def backup_applications(self):
-        if self.__etat_docker is not None:
-            await self.__etat_docker.backup_applications()
+    # async def backup_applications(self):
+    #     if self.__etat_docker is not None:
+    #         await self.__etat_docker.backup_applications()
 
     async def get_producer(self, timeout=5):
         if self.__rabbitmq_dao is None:
