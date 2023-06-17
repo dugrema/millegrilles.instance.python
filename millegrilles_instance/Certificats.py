@@ -63,8 +63,10 @@ async def generer_certificats_modules(producer: MessageProducerFormatteur, clien
     for nom_module, value in configuration.items():
         logger.debug("generer_certificats_modules() Verification certificat %s" % nom_module)
 
-        nom_certificat = 'pki.%s.cert' % nom_module
-        nom_cle = 'pki.%s.cle' % nom_module
+        nom_local_certificat = value.get('nom') or nom_module
+
+        nom_certificat = 'pki.%s.cert' % nom_local_certificat
+        nom_cle = 'pki.%s.cle' % nom_local_certificat
         path_certificat = path.join(path_secrets, nom_certificat)
         path_cle = path.join(path_secrets, nom_cle)
         combiner_keycert = value.get('combiner_keycert') or False
@@ -87,7 +89,7 @@ async def generer_certificats_modules(producer: MessageProducerFormatteur, clien
                     # Il faut laisser le temps aux cles de finir d'etre rechiffrees
                     if detail_expiration['expire'] is True or etat_instance.is_rotation_maitredescles() is False:
                         clecertificat = await generer_nouveau_certificat(
-                            producer, client_session, etat_instance, nom_module, value)
+                            producer, client_session, etat_instance, nom_local_certificat, value)
                         sauvegarder = True
 
                         if detail_expiration['expire'] is not True:
@@ -115,12 +117,12 @@ async def generer_certificats_modules(producer: MessageProducerFormatteur, clien
 
                         etat_instance.set_rotation_maitredescles()
                 else:
-                    clecertificat = await generer_nouveau_certificat(producer, client_session, etat_instance, nom_module, value)
+                    clecertificat = await generer_nouveau_certificat(producer, client_session, etat_instance, nom_local_certificat, value)
                     sauvegarder = True
 
         except FileNotFoundError:
-            logger.info("Certificat %s non trouve, on le genere" % nom_module)
-            clecertificat = await generer_nouveau_certificat(producer, client_session, etat_instance, nom_module, value)
+            logger.info("Certificat %s non trouve, on le genere" % nom_local_certificat)
+            clecertificat = await generer_nouveau_certificat(producer, client_session, etat_instance, nom_local_certificat, value)
             sauvegarder = True
 
         # Verifier si le certificat et la cle sont stocke dans docker
@@ -136,7 +138,7 @@ async def generer_certificats_modules(producer: MessageProducerFormatteur, clien
                 fichier.write(cert_str)
 
         if etat_docker is not None:
-            await etat_docker.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
+            await etat_docker.assurer_clecertificat(nom_local_certificat, clecertificat, combiner_keycert)
 
 
 async def generer_certificats_modules_satellites(producer: MessageProducerFormatteur, etat_instance,

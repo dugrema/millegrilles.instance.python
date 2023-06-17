@@ -1,12 +1,21 @@
 {
   "nom": "solr",
-  "version": "2023.6.1",
+  "version": "2023.6.6",
   "securite": "4.secure",
   "dependances": [
     {
       "name": "solr-zookeeper",
       "image": "zookeeper:3.8",
       "hostname": "solrzookeeper",
+      "certificat": {
+        "nom": "solr_zookeeper",
+        "roles": ["solrzookeeper"],
+        "dns": {
+          "localhost": true,
+          "hostnames": ["solrzookeeper"],
+          "domain": true
+        }
+      },
       "mounts": [
         {
           "source": "solr-zookeeper-data",
@@ -20,6 +29,24 @@
       ],
       "constraints": [
         "node.labels.millegrilles.solr == true"
+      ],
+      "configs": [
+        {
+          "name": "pki.millegrille",
+          "filename": "/run/secrets/pki.millegrille.cert"
+        },
+        {
+          "name": "pki.solr_zookeeper",
+          "current": "cert",
+          "filename": "/run/secrets/cert.pem"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "pki.solr_zookeeper",
+          "current": "key",
+          "filename": "key.pem"
+        }
       ],
       "networks": [
         {
@@ -56,6 +83,7 @@
         }
       ],
       "certificat": {
+        "nom": "solr",
         "roles": ["solr"],
         "dns": {
           "localhost": true,
@@ -93,6 +121,66 @@
       "resources": {
         "cpu_limit": 2000000000,
         "mem_limit": 2500000000
+      },
+      "restart_policy": {
+        "condition": "any",
+        "delay": 5000000000,
+        "max_attempts": 1000
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      }
+    },
+    {
+      "name": "solr-relai",
+      "image": "ubuntu",
+      "args": ["/usr/bin/sleep", "9999"],
+      "hostname": "solrrelai",
+      "certificat": {
+        "nom": "solr_relai",
+        "roles": ["solrrelai"],
+        "exchanges": ["4.secure","3.protege","2.prive","1.public"]
+      },
+      "mounts": [
+        {
+          "source": "millegrilles-staging",
+          "target": "/var/staging",
+          "type": "volume"
+        }
+      ],
+      "constraints": [
+        "node.labels.millegrilles.solr == true"
+      ],
+      "configs": [
+        {
+          "name": "pki.millegrille",
+          "filename": "/run/secrets/pki.millegrille.cert"
+        },
+        {
+          "name": "pki.solr_relai",
+          "current": "cert",
+          "filename": "/run/secrets/cert.pem"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "pki.solr_relai",
+          "current": "key",
+          "filename": "key.pem"
+        }
+      ],
+      "networks": [
+        {
+          "target": "millegrille_net"
+        }
+      ],
+      "labels": {
+        "millegrille": "${IDMG}"
+      },
+      "resources": {
+        "cpu_limit": 1000000000,
+        "mem_limit": 100000000
       },
       "restart_policy": {
         "condition": "any",

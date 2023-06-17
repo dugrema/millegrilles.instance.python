@@ -572,7 +572,7 @@ class EtatSysteme:
             await self.__notification_demarrage(producer)
         if self.__derniere_notification_disk is None or now > self.__derniere_notification_disk + EtatSysteme.CONST_INTERVALLE_NOTIFICATIONS_INFO:
             await self.__notifications_disk(producer)
-        if self.__derniere_notification_cpu is None or now > self.__derniere_notification_disk + EtatSysteme.CONST_INTERVALLE_NOTIFICATIONS_WARN:
+        if self.__derniere_notification_cpu is None or now > self.__derniere_notification_cpu + EtatSysteme.CONST_INTERVALLE_NOTIFICATIONS_WARN:
             await self.__notification_cpu(producer)
 
     async def __notifications_disk(self, producer):
