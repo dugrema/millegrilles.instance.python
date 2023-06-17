@@ -14,3 +14,4 @@ docker service update -d --publish-add published=3039,target=443,mode=host messa
 docker service update -d --publish-add published=3029,target=443,mode=host media
 docker service update -d --publish-add published=3030,target=443,mode=host media
 docker service update -d --publish-add 10443:443 mongoexpress
+docker service update -d --publish-add 8983:8983 solr
