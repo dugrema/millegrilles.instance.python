@@ -134,8 +134,7 @@
     },
     {
       "name": "solr-relai",
-      "image": "ubuntu",
-      "args": ["/usr/bin/sleep", "9999"],
+      "image": "docker.maple.maceroc.com:5000/millegrilles_grosfichiers:2023.6.5",
       "hostname": "solrrelai",
       "certificat": {
         "nom": "solr_relai",
