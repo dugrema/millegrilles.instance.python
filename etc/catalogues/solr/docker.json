@@ -142,13 +142,6 @@
         "roles": ["solrrelai"],
         "exchanges": ["4.secure","3.protege","2.prive","1.public"]
       },
-      "mounts": [
-        {
-          "source": "millegrilles-staging",
-          "target": "/var/staging",
-          "type": "volume"
-        }
-      ],
       "constraints": [
         "node.labels.millegrilles.solr == true"
       ],
