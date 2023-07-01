@@ -1,11 +1,11 @@
 {
   "nom": "grosfichiers_backend",
-  "version": "2023.6.6",
+  "version": "2023.6.7",
   "securite": "4.secure",
   "dependances": [
     {
       "name": "grosfichiers_backend",
-      "image": "docker.maple.maceroc.com:5000/millegrilles_grosfichiers:2023.6.5",
+      "image": "docker.maple.maceroc.com:5000/millegrilles_grosfichiers:2023.6.6",
       "certificat": {
         "roles": ["grosfichiers"],
         "domaines": ["GrosFichiers"],
@@ -53,7 +53,7 @@
       "restart_policy": {
         "condition": "on-failure",
         "delay": 60000000000,
-        "max_attempts": 2
+        "max_attempts": 5
       },
       "mode": {
         "mode": "replicated",
