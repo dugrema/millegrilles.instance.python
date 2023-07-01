@@ -1,11 +1,12 @@
 {
-  "nom": "media_1cpu",
+  "nom": "media_novideo",
   "version": "2023.6.4",
   "securite": "4.secure",
   "dependances": [
     {
-      "name": "media_1cpu",
+      "name": "media_novideo",
       "image": "docker.maple.maceroc.com:5000/millegrilles_media_python:2023.6.3",
+      "args": ["-m", "millegrilles_media", "--verbose", "--novideo"],
       "certificat": {
         "roles": ["media"],
         "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
@@ -27,7 +28,7 @@
       ],
       "configs": [
         {
-          "name": "pki.media_1cpu",
+          "name": "pki.media_novideo",
           "current": "cert",
           "filename": "/run/secrets/cert.pem"
         },
@@ -38,7 +39,7 @@
       ],
       "secrets": [
         {
-          "name": "pki.media_1cpu",
+          "name": "pki.media_novideo",
           "current": "key",
           "filename": "key.pem"
         },
@@ -54,7 +55,7 @@
       ],
       "resources": {
         "cpu_limit": 1000000000,
-        "mem_limit": 1000000000
+        "mem_limit": 500000000
       },
       "restart_policy": {
         "condition": "on-failure",
@@ -63,7 +64,7 @@
       },
       "mode": {
         "mode": "replicated",
-        "replicas": 1
+        "replicas": 2
       }
     }
   ]
