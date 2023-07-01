@@ -1,33 +1,29 @@
 {
   "nom": "media",
-  "version": "2023.6.1",
+  "version": "2023.6.3",
   "securite": "4.secure",
   "dependances": [
     {
       "name": "media",
-      "image": "docker.maple.maceroc.com:5000/millegrilles_media:2023.6.0",
+      "image": "docker.maple.maceroc.com:5000/millegrilles_media_python:2023.6.0",
       "certificat": {
-        "roles": ["media", "fichiers"],
-        "domaines": ["GrosFichiers"],
+        "roles": ["media"],
         "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
       },
       "env": {
-        "MG_MQ_URL": "amqps://${MQ_HOSTNAME}:${MQ_PORT}",
-        "MG_REDIS_HOST": "redis",
-        "MG_REDIS_PORT": "6379",
-        "MG_MQ_REDIS_PASSWD": "/run/secrets/passwd.redis.txt",
-        "MG_MQ_CERTFILE": "/run/secrets/cert.pem",
-        "MG_MQ_KEYFILE": "/run/secrets/key.pem",
-        "MG_MQ_CAFILE": "/run/secrets/millegrille.cert.pem",
-        "WEB_CERT": "/run/secrets/cert.pem",
-        "WEB_KEY": "/run/secrets/key.pem",
-        "SERVER_TYPE": "https",
-        "PATH_STAGING": "/var/opt/millegrilles/consignation/staging/media",
-        "MODE_OPERATION": "media"
+        "CA_PEM": "/run/secrets/millegrille.cert.pem",
+        "CERT_PEM": "/run/secrets/cert.pem",
+        "KEY_PEM": "/run/secrets/key.pem",
+        "MQ_HOSTNAME": "${MQ_HOSTNAME}",
+        "MQ_PORT": "${MQ_PORT}",
+        "DIR_STAGING": "/var/opt/millegrilles/staging/media",
+        "REDIS_HOSTNAME": "redis",
+        "REDIS_PORT": "6379",
+        "REDIS_PASSWORD_PATH": "media"
       },
       "constraints": ["node.labels.millegrilles.media == true"],
       "mounts": [
-        {"source": "millegrilles-staging", "target":  "/var/opt/millegrilles/consignation/staging", "type": "volume"}
+        {"source": "millegrilles-staging", "target":  "/var/opt/millegrilles/staging", "type": "volume"}
       ],
       "configs": [
         {
@@ -63,7 +59,7 @@
       "restart_policy": {
         "condition": "on-failure",
         "delay": 60000000000,
-        "max_attempts": 2
+        "max_attempts": 5
       },
       "mode": {
         "mode": "replicated",
