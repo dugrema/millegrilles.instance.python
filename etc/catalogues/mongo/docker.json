@@ -1,6 +1,6 @@
 {
   "nom": "mongo",
-  "version": "2023.6.0",
+  "version": "2023.6.1",
   "securite": "4.secure",
   "dependances": [
     {
@@ -96,7 +96,7 @@
     },
     {
       "name": "midcompte",
-      "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2023.6.0",
+      "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2023.6.3",
       "certificat": {
         "roles": [
           "midcompte"
@@ -119,19 +119,19 @@
       "configs": [
         {
           "name": "pki.millegrille",
-          "filename": "/run/secrets/pki.millegrille"
+          "filename": "/run/secrets/pki.millegrille.cert"
         },
         {
           "name": "pki.midcompte",
           "current": "cert",
-          "filename": "/run/secrets/pki.midcompte.cert"
+          "filename": "/run/secrets/cert.pem"
         }
       ],
       "secrets": [
         {
           "name": "pki.midcompte",
           "current": "key",
-          "filename": "pki.midcompte.key"
+          "filename": "key.pem"
         },
         {
           "name": "passwd.mongo",
