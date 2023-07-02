@@ -2,23 +2,26 @@
   "name": "midcompte",
   "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2023.6.3",
   "certificat": {"roles": ["midcompte"], "dns": {"localhost": true, "hostnames": ["midcompte"], "domain": true}, "combiner_keycert": true},
+  "env": {
+
+  },
   "constraints": ["node.labels.millegrilles.midcompte == true"],
   "configs": [
     {
       "name": "pki.millegrille",
-      "filename": "/run/secrets/pki.millegrille"
+      "filename": "/run/secrets/pki.millegrille.cert"
     },
     {
       "name": "pki.midcompte",
       "current": "cert",
-      "filename": "/run/secrets/pki.midcompte.cert"
+      "filename": "/run/secrets/cert.pem"
     }
   ],
   "secrets": [
     {
       "name": "pki.midcompte",
       "current": "key",
-      "filename": "pki.midcompte.key"
+      "filename": "key.pem"
     },
     {
       "name": "passwd.mongo",
@@ -61,4 +64,4 @@
     "mode": "replicated",
     "replicas": 1
   }
-}
+},
