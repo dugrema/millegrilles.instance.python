@@ -1,6 +1,6 @@
 {
   "nom": "solr",
-  "version": "2023.6.13",
+  "version": "2023.6.14",
   "securite": "4.secure",
   "dependances": [
     {
@@ -135,6 +135,7 @@
     {
       "name": "solr_relai",
       "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2023.6.3",
+      "args": ["-m", "millegrilles_solr", "--verbose"],
       "hostname": "solrrelai",
       "certificat": {
         "nom": "solr_relai",
