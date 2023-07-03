@@ -46,6 +46,8 @@ location /millegrilles/socket.io {{
 # Application React - s'occupe de l'authentification (non protege)
 location /millegrilles {{
   include /etc/nginx/conf.d/modules/millegrilles.proxypass;
+#set $upstream_millegrilles https://thinkcentre1.maple.maceroc.com:3002;
+#proxy_pass $upstream_millegrilles;
   include /etc/nginx/conf.d/component_gzip.include;
 
   proxy_set_header  X-Real-IP $remote_addr;
