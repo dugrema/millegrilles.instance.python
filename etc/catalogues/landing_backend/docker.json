@@ -1,6 +1,6 @@
 {
   "nom": "landing_backend",
-  "version": "2023.6.2",
+  "version": "2023.7.0",
   "description": {
     "en": "Landing page (back-end)",
     "fr": "Landing page (back-end)"
@@ -9,7 +9,7 @@
   "dependances": [
     {
       "name": "landing_backend",
-      "image": "docker.maple.maceroc.com:5000/millegrilles_landing_backend:2023.6.1",
+      "image": "docker.maple.maceroc.com:5000/millegrilles_landing_backend:2023.7.0",
       "certificat": {
         "roles": ["landing"],
         "domaines": ["Landing"],
