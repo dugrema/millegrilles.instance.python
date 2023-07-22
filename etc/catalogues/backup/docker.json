@@ -1,11 +1,12 @@
 {
   "nom": "backup",
-  "version": "2023.7.0",
+  "version": "2023.7.2",
   "securite": "2.prive",
   "dependances": [
     {
       "name": "backup",
-      "image": "docker.maple.maceroc.com:5000/millegrilles_media_python:2023.7.0",
+      "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2023.7.0",
+      "args": ["-m", "millegrilles_backup"],
       "certificat": {
         "roles": ["backup"],
         "exchanges": ["2.prive", "1.public"]
