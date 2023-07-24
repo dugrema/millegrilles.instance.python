@@ -1,6 +1,6 @@
 {
   "nom": "messagerie_backend",
-  "version": "2023.7.0",
+  "version": "2023.7.1",
   "description": {
     "en": "Messaging (middleware)",
     "fr": "Messagerie (middleware)"
@@ -9,7 +9,7 @@
   "dependances": [
     {
       "name": "messagerie_backend",
-      "image": "docker.maple.maceroc.com:5000/millegrilles_messagerie:2023.7.0",
+      "image": "docker.maple.maceroc.com:5000/millegrilles_messagerie:2023.7.1",
       "certificat": {
         "roles": ["messagerie_backend"],
         "domaines": ["Messagerie"],
