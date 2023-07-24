@@ -1,6 +1,6 @@
 {
   "nom": "mongo",
-  "version": "2023.7.1",
+  "version": "2023.7.2",
   "securite": "4.secure",
   "dependances": [
     {
