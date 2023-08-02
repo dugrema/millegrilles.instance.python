@@ -1,11 +1,11 @@
 {
   "nom": "fichiers",
-  "version": "2023.7.4",
+  "version": "2023.7.5",
   "securite": "2.prive",
   "dependances": [
     {
       "name": "fichiers",
-      "image": "docker.maple.maceroc.com:5000/millegrilles_fichiers:2023.7.4",
+      "image": "docker.maple.maceroc.com:5000/millegrilles_fichiers:2023.7.5",
       "certificat": {
         "roles": ["fichiers"],
         "exchanges": ["2.prive", "1.public"],
