@@ -15,7 +15,7 @@ LOGGING_FORMAT = '%(asctime)s %(threadName)s %(levelname)s: %(message)s'
 
 async def main():
     logger.info("Debut main()")
-    stop_event = Event()
+    stop_event = asyncio.Event()
 
     # Preparer resources consumer
     reply_res = RessourcesConsommation(callback_reply_q)
@@ -32,20 +32,21 @@ async def main():
     ]
 
     # Execution de la loop avec toutes les tasks
-    await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
+    await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
 
 
 async def run_tests(messages_thread, stop_event):
     # Demarrer test (attendre connexion prete)
+    logger.info("run tests attendre pret")
     await messages_thread.attendre_pret()
 
-    logger.info("emettre requetes backup")
+    logger.info("run tests emettre messages")
 
     # await resolve_idmg(messages_thread)
     # await requete_fiche(messages_thread)
-    # await requete_fiche_locale(messages_thread)
+    await requete_fiche_locale(messages_thread)
     # await requete_consignation_fichiers(messages_thread)
-    await requete_configuration_fichiers(messages_thread)
+    # await requete_configuration_fichiers(messages_thread)
 
     stop_event.set()
 
@@ -106,5 +107,6 @@ if __name__ == '__main__':
     logging.basicConfig(format=LOGGING_FORMAT, level=logging.WARN)
     logging.getLogger(__name__).setLevel(logging.DEBUG)
     logging.getLogger('millegrilles').setLevel(logging.DEBUG)
+    logging.getLogger('millegrilles_messages').setLevel(logging.DEBUG)
 
     asyncio.run(main())
