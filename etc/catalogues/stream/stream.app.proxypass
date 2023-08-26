@@ -1,4 +1,5 @@
 set $upstream_fichiers https://stream:443;
+#set $upstream_fichiers https://[SERVEUR]:3029;
 proxy_pass $upstream_fichiers;
 
 proxy_ssl_certificate         /run/secrets/nginx.cert.pem;
