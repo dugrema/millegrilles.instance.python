@@ -73,6 +73,8 @@ location /collections/streams {{
   proxy_set_header VERIFIED INTERNAL;
   proxy_set_header  Host              $host;
   proxy_set_header  X-Hostname        $hostname;
+  # Range est requis pour slice
+  proxy_set_header  Range $slice_range;
 
   # Cache de streams du proxy.
   slice 5m;
