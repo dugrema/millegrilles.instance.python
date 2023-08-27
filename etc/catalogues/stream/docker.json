@@ -1,6 +1,6 @@
 {
   "nom": "stream",
-  "version": "2023.8.0",
+  "version": "2023.8.1",
   "securite": "2.prive",
   "dependances": [
     {
@@ -12,6 +12,9 @@
         "dns": {"localhost": true, "hostnames": ["stream"], "domain": true}
       },
       "env": {
+        "CA_PEM": "/run/secrets/pki.millegrille.cert",
+        "CERT_PEM": "/run/secrets/cert.pem",
+        "KEY_PEM": "/run/secrets/key.pem",
         "MQ_URL": "https://mq:5673",
         "MG_REDIS_HOST": "redis",
         "MG_REDIS_PORT": "6379",
@@ -29,7 +32,7 @@
           "filename": "/run/secrets/cert.pem"
         },
         {
-          "name": "pki.millegrille",
+          "name": "pki.millegrille.cert",
           "filename": "/run/secrets/millegrille.cert.pem"
         }
       ],
