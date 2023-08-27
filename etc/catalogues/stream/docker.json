@@ -1,6 +1,6 @@
 {
   "nom": "stream",
-  "version": "2023.8.4",
+  "version": "2023.8.5",
   "securite": "2.prive",
   "dependances": [
     {
@@ -16,7 +16,8 @@
         "CA_PEM": "/run/secrets/pki.millegrille.cert",
         "CERT_PEM": "/run/secrets/cert.pem",
         "KEY_PEM": "/run/secrets/key.pem",
-        "MQ_URL": "https://mq:5673",
+        "MQ_HOSTNAME": "${MQ_HOSTNAME}",
+        "MQ_PORT": "${MQ_PORT}",
         "MG_REDIS_HOST": "redis",
         "MG_REDIS_PORT": "6379",
         "REDIS_PASSWORD_PATH": "/run/secrets/passwd.redis.txt",
