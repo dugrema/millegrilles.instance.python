@@ -136,14 +136,22 @@ class EtatInstance:
             params_courants.update(configuration)
 
         try:
-            self.__host_mq = params_courants['mq_host']
+            # Verifier si on a un override
+            self.__host_mq = os.environ['MQ_HOST']
         except KeyError:
-            pass
+            try:
+                self.__host_mq = params_courants['mq_host']
+            except KeyError:
+                pass
 
         try:
-            self.__port_mq = params_courants['mq_port']
+            # Verifier si on a un override
+            self.__port_mq = os.environ['MQ_PORT']
         except KeyError:
-            pass
+            try:
+                self.__port_mq = params_courants['mq_port']
+            except KeyError:
+                pass
 
         with open(config_json_path, 'w') as fichier:
             json.dump(params_courants, fichier, indent=2)
