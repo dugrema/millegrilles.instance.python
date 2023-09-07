@@ -83,7 +83,7 @@ location /collections/streams {{
   #proxy_cache_lock_timeout 2m;
 
   proxy_cache_key   $uri$slice_range;
-  proxy_cache_valid 200 206 6h;
+  proxy_cache_valid 200 206 3h;
   proxy_cache_valid 202 204 1s;
   proxy_cache_valid 404 15s;
   proxy_cache_valid 401 403 500 502 503 504 5s;
