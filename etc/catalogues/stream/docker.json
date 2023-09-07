@@ -1,11 +1,11 @@
 {
   "nom": "stream",
-  "version": "2023.8.8",
+  "version": "2023.9.0",
   "securite": "2.prive",
   "dependances": [
     {
       "name": "stream",
-      "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2023.8.2",
+      "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2023.9.0",
       "args": ["-m", "millegrilles_streaming", "--verbose"],
       "certificat": {
         "roles": ["stream"],
