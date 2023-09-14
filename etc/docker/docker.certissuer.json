@@ -1,6 +1,6 @@
 {
   "name": "certissuer",
-  "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2023.8.2",
+  "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2023.9.0",
   "args": ["-m", "millegrilles_certissuer", "--verbose"],
   "constraints": [
     "node.labels.millegrilles.certissuer == true"
