@@ -50,6 +50,8 @@ EVENEMENT_PRESENCE_INSTANCE = 'presence'
 CONFIG_NOMFICHIER_ACME = 'acme.json'
 CONFIG_NOMFICHIER_CONFIGURATION = 'config.json'
 
+INTERVALLE_VERIFIER_CERTIFICATS = 3600
+
 
 class RedemarrageException(BaseException):
     pass

@@ -18,10 +18,12 @@ from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.CleCertificat import CleCertificat
-from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_messages.GenerateursSecrets import GenerateurEd25519, GenerateurRsa
 from millegrilles_messages.docker import DockerCommandes
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
+
+from millegrilles_instance import Constantes as ContantesInstance
+from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 
 
 logger = logging.getLogger(__name__)
@@ -866,7 +868,8 @@ class GenerateurCertificatsHandler:
 
             self.__logger.debug("thread_entretien Fin entretien")
             try:
-                await asyncio.wait_for(self.__etat_instance.stop_event.wait(), timeout=1200)
+                await asyncio.wait_for(self.__etat_instance.stop_event.wait(),
+                                       timeout=ContantesInstance.INTERVALLE_VERIFIER_CERTIFICATS)
             except asyncio.TimeoutError:
                 pass  # OK
 
