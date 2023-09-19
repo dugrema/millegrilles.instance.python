@@ -16,6 +16,7 @@ from typing import Optional
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa
+from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_messages.GenerateursSecrets import GenerateurEd25519, GenerateurRsa
@@ -759,9 +760,10 @@ class CommandeSignatureModule(CommandeSignature):
 
 class CommandeRotationMaitredescles(CommandeSignatureModule):
 
-    def __init__(self, etat_instance, etat_docker, expire: bool, nom_module: str, configuration: Optional[dict] = None):
+    def __init__(self, etat_instance, etat_docker, nom_module: str, configuration: Optional[dict] = None,
+                 enveloppe_courante: Optional[EnveloppeCertificat] = None):
         super().__init__(etat_instance, etat_docker, nom_module, configuration)
-        self.__expire = expire
+        self.__enveloppe_courante = enveloppe_courante
 
     async def _run(self):
         producer = await self._etat_instance.get_producer()
@@ -776,15 +778,15 @@ class CommandeRotationMaitredescles(CommandeSignatureModule):
         # Executer une rotation du certificat - le maitre des cles va chiffrer la cle symmetrique pour
         # ce nouveau certificat. Permet de continuer au demarrage avec le nouveau certificat sans
         # interruptions.
-        if self.__expire is not True:
-            enveloppe = clecertificat.enveloppe
+        if self.__enveloppe_courante:
+            fingerprint = self.__enveloppe_courante.fingerprint
             commande = {
                 'certificat': clecertificat.enveloppe.chaine_pem(),
             }
             reponse = await producer.executer_commande(
                 commande, 'MaitreDesCles', 'rotationCertificat',
                 exchange='3.protege',
-                partition=enveloppe.fingerprint
+                partition=fingerprint
             )
             if reponse.parsed['ok'] is False:
                 raise Exception('erreur de rotation du certificat de maitre des cles')
@@ -968,8 +970,12 @@ class GenerateurCertificatsHandler:
                     expire = detail_expiration.get('expire')
                     if expire is None:
                         expire = True
+                    if expire is not True:
+                        enveloppe_requete = enveloppe
+                    else:
+                        enveloppe_requete = None
                     commande = CommandeRotationMaitredescles(
-                        self.__etat_instance, self.__etat_docker, expire, nom_module, value)
+                        self.__etat_instance, self.__etat_docker, nom_module, value, enveloppe_requete)
                 else:
                     commande = CommandeSignatureModule(self.__etat_instance, self.__etat_docker, nom_module, value)
                 await self.__q_signer.put(commande)
