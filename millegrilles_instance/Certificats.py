@@ -247,7 +247,7 @@ async def nettoyer_configuration_expiree(etat_docker: EtatDockerInstanceSync):
 
 
 async def renouveler_certificat_instance_protege(
-        producer: MessageProducerFormatteur, client_session: ClientSession, etat_instance) -> CleCertificat:
+        producer: Optional[MessageProducerFormatteur], client_session: ClientSession, etat_instance) -> CleCertificat:
 
     instance_id = etat_instance.instance_id
 
@@ -275,9 +275,12 @@ async def renouveler_certificat_instance_protege(
 
         logger.debug("Reponse certissuer certificat protege\n%s" % ''.join(certificat))
         return clecertificat
-    except (ClientConnectorError, ClientResponseError):
+    except (ClientConnectorError, ClientResponseError) as e:
         logger.exception("Certissuer local non disponible, fallback CorePki")
-        return await renouveler_certificat_satellite(producer, etat_instance)
+        if producer is not None:
+            return await renouveler_certificat_satellite(producer, etat_instance)
+        # MQ (producer) non disponible
+        raise e
 
 
 async def renouveler_certificat_satellite(producer: MessageProducerFormatteur, etat_instance) -> CleCertificat:
@@ -324,7 +327,7 @@ async def renouveler_certificat_satellite(producer: MessageProducerFormatteur, e
     return clecertificat
 
 
-async def generer_nouveau_certificat(producer: MessageProducerFormatteur,
+async def generer_nouveau_certificat(producer: Optional[MessageProducerFormatteur],
                                      client_session: ClientSession,
                                      etat_instance,
                                      nom_module: str,
@@ -363,12 +366,16 @@ async def generer_nouveau_certificat(producer: MessageProducerFormatteur,
             reponse = await resp.json()
 
         certificat = reponse['certificat']
-    except (ClientConnectorError, ClientResponseError):
+    except (ClientConnectorError, ClientResponseError) as e:
         logger.exception("Certissuer local non disponible, fallback CorePki")
-        message_reponse = await producer.executer_commande(
-            configuration, 'CorePki', 'signerCsr', exchange=Constantes.SECURITE_PUBLIC)
-        reponse = message_reponse.parsed
-        certificat = reponse['certificat']
+        if producer is not None:
+            message_reponse = await producer.executer_commande(
+                configuration, 'CorePki', 'signerCsr', exchange=Constantes.SECURITE_PUBLIC)
+            reponse = message_reponse.parsed
+            certificat = reponse['certificat']
+        else:
+            # Producer (MQ) non disponible
+            raise e
 
     # Confirmer correspondance entre certificat et cle
     clecertificat = CleCertificat.from_pems(clecsr.get_pem_cle(), ''.join(certificat))
@@ -658,7 +665,11 @@ class CommandeSignatureInstance(CommandeSignature):
         super().__init__(etat_instance, etat_docker)
 
     async def _run(self):
-        producer = await self._etat_instance.get_producer()
+        try:
+            producer = await self._etat_instance.get_producer()
+        except asyncio.TimeoutError:
+            self.__logger.info("CommandeSignatureInstance Producer (MQ) non dispomible, utiliser certissuer")
+            producer = None
 
         try:
             clecertificat = await renouveler_certificat_instance_protege(
@@ -731,6 +742,7 @@ class CommandeSignatureInstance(CommandeSignature):
 class CommandeSignatureModule(CommandeSignature):
 
     def __init__(self, etat_instance, etat_docker, nom_module: str, configuration: Optional[dict] = None):
+        self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         super().__init__(etat_instance, etat_docker)
         self._nom_module = nom_module
         self._configuration = configuration
@@ -740,7 +752,12 @@ class CommandeSignatureModule(CommandeSignature):
         return self._configuration['module']
 
     async def _run(self):
-        producer = await self._etat_instance.get_producer()
+        try:
+            producer = await self._etat_instance.get_producer(timeout=0.5)
+        except Exception as e:
+            self.__logger.info("Producer (MQ) non disponible, utiliser MQ")
+            producer = None
+
         client_session = self._etat_instance.client_session
 
         value = self._configuration or dict()
@@ -950,13 +967,13 @@ class GenerateurCertificatsHandler:
             path_certificat = path.join(path_secrets, nom_certificat)
             path_cle = path.join(path_secrets, nom_cle)
 
-            roles = None
             doit_generer = False
             detail_expiration = dict()
+            roles = list()
             try:
                 clecertificat = CleCertificat.from_files(path_cle, path_certificat)
                 enveloppe = clecertificat.enveloppe
-                roles = enveloppe.get_roles
+                roles = enveloppe.get_roles or roles
 
                 # Ok, verifier si le certificat doit etre renouvele
                 detail_expiration = enveloppe.calculer_expiration()
