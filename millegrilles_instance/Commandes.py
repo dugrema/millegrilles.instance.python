@@ -6,15 +6,18 @@ from cryptography.x509.extensions import ExtensionNotFound
 from os import listdir, path
 from typing import Optional
 
-from millegrilles_instance.EtatInstance import EtatInstance
-from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
-from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_messages.messages.MessagesModule import MessageWrapper
+from millegrilles_messages.messages.MessagesThread import MessagesThread
+
+from millegrilles_instance import Constantes as ConstantesInstance
+from millegrilles_instance.EtatInstance import EtatInstance
+from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance.EntretienApplications import GestionnaireApplications
 from millegrilles_instance.AcmeHandler import CommandeAcmeIssue
 from millegrilles_instance.Certificats import signer_certificat_instance_secure, signer_certificat_usager_via_secure
+
 
 class CommandHandler:
 
@@ -25,6 +28,7 @@ class CommandHandler:
         self._etat_instance = etat_instance
         self._etat_docker = etat_docker
         self._gestionnaire_applications = gestionnaire_applications
+        self.__messages_thread = None
 
     async def executer_commande(self, producer: MessageProducerFormatteur, message: MessageWrapper):
         reponse = None

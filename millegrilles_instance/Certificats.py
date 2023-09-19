@@ -583,13 +583,24 @@ class CommandeSignature:
         self.__exception = exception
 
     @property
+    def result(self):
+        return self.__result
+
     async def done(self, timeout=120):
         await asyncio.wait_for(self.__event_done.wait(), timeout=timeout)
         if self.__exception:
             raise self.__exception
-        return self.__result
+        return self._result
 
-    async def run(self):
+    async def run_command(self):
+        try:
+            self.__result = await self._run()
+        except Exception as e:
+            self.__exception = e
+
+        self.__event_done.set()
+
+    async def _run(self):
         raise NotImplementedError('must implement')
 
 
@@ -620,14 +631,14 @@ def sauvegarder_clecert(path_secrets: pathlib.Path, nom_module: str, clecertific
     try:
         path_cle.rename(path_cle_old)
     except OSError as e:
-        if e.errno == errno.ENONET:
+        if e.errno == errno.ENOENT:
             pass  # Fichier original n'existe pas - sauvegarder le nouveau
         else:
             raise e
     try:
         path_certificat.rename(path_certificat_old)
     except OSError as e:
-        if e.errno == errno.ENONET:
+        if e.errno == errno.ENOENT:
             pass  # Fichier original n'existe pas - sauvegarder le nouveau
         else:
             raise e
@@ -643,13 +654,12 @@ class CommandeSignatureInstance(CommandeSignature):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         super().__init__(etat_instance, etat_docker)
 
-    async def run(self):
+    async def _run(self):
         producer = await self._etat_instance.get_producer()
 
         # Determiner niveau de securite de l'instance
         niveau = self.get_niveau()
 
-        clecertificat = None
         try:
             clecertificat = await renouveler_certificat_instance_protege(
                 producer, self._etat_instance.client_session, self._etat_instance)
@@ -669,12 +679,11 @@ class CommandeSignatureInstance(CommandeSignature):
         if clecertificat is not None:
             await self.sauvegarder_clecert(clecertificat)
 
-            # self.__logger.info("CommandeSignatureInstance.run Nouveau certificat d'instance installe - redemarrer")
-            # await self._etat_instance.stop()
-
             # Reload configuration avec le nouveau certificat
             self.__logger.info("CommandeSignatureInstance.run Nouveau certificat d'instance installe - reload configuration")
             await self._etat_instance.reload_configuration()
+
+            return clecertificat
 
     def get_niveau(self):
         clecertificat_courant: CleCertificat = self._etat_instance.clecertificat
@@ -711,14 +720,14 @@ class CommandeSignatureInstance(CommandeSignature):
         try:
             path_cle.rename(path_cle_old)
         except OSError as e:
-            if e.errno == errno.ENONET:
+            if e.errno == errno.ENOENT:
                 pass  # Fichier original n'existe pas - sauvegarder le nouveau
             else:
                 raise e
         try:
             path_certificat.rename(path_certificat_old)
         except OSError as e:
-            if e.errno == errno.ENONET:
+            if e.errno == errno.ENOENT:
                 pass  # Fichier original n'existe pas - sauvegarder le nouveau
             else:
                 raise e
@@ -739,7 +748,7 @@ class CommandeSignatureModule(CommandeSignature):
     def nom_module(self):
         return self.__configuration['module']
 
-    async def run(self):
+    async def _run(self):
         producer = await self._etat_instance.get_producer()
         client_session = self._etat_instance.client_session
 
@@ -757,13 +766,15 @@ class CommandeSignatureModule(CommandeSignature):
             await self._etat_docker.assurer_clecertificat(
                 nom_local_certificat, clecertificat, combiner_keycert)
 
+        return clecertificat
+
 
 class CommandeRotationMaitredescles(CommandeSignatureModule):
 
     def __init__(self, etat_instance, etat_docker, nom_module: str, configuration: Optional[dict] = None):
         super().__init__(etat_instance, etat_docker, nom_module, configuration)
 
-    async def run(self):
+    async def _run(self):
         raise NotImplementedError('must implement')
 
 
@@ -892,11 +903,11 @@ class GenerateurCertificatsHandler:
 
     async def __signer(self, commande: CommandeSignature):
         try:
-            await commande.run()
+            await commande.run_command()
         except Exception as e:
             commande.exception = e
         finally:
-            commande.set_done()
+            commande.set_done()  # S'assurer que done est set, e.g. apres exception
 
     async def generer_commandes_modules(self):
         configuration = await self.__get_configuration_modules()
@@ -935,3 +946,8 @@ class GenerateurCertificatsHandler:
                 else:
                     commande = CommandeSignatureModule(self.__etat_instance, self.__etat_docker, nom_module, value)
                 await self.__q_signer.put(commande)
+
+    async def demander_signature(self, nom_module: str, params: Optional[dict] = None, timeout=120):
+        commande = CommandeSignatureModule(self.__etat_instance, self.__etat_docker, nom_module, params)
+        await self.__q_signer.put(commande)
+        return await commande.done(timeout)

@@ -46,57 +46,83 @@ class MqThread:
 
         self.__messages_thread = messages_thread
 
+    # def get_routing_keys(self):
+    #     return [
+    #         # f'evenement.{Constantes.DOMAINE_GROSFICHIERS}.{Constantes.EVENEMENT_GROSFICHIERS_CHANGEMENT_CONSIGNATION_PRIMAIRE}',
+    #         # 'evenement.GrosFichiers.changementConsignation',
+    #         'evenement.global.%s' % Constantes.EVENEMENT_CEDULE,
+    #     ]
+    #
+    # def configurer_consumers(self, messages_thread: MessagesThread):
+    #     instance_id = self.__etat_instance.clecertificat.enveloppe.subject_common_name
+    #     self.__messages_thread = messages_thread
+
     def creer_ressources_consommation(self, messages_thread: MessagesThread):
         instance_id = self.__etat_instance.instance_id
+
         niveau_securite = self.__etat_instance.niveau_securite
-        reply_res = RessourcesConsommation(self.callback_reply_q)
-
-        # RK Public pour toutes les instances
-        reply_res.ajouter_rk(Constantes.SECURITE_PUBLIC, 'requete.instance.%s.%s' % (
-            instance_id, ConstantesInstance.REQUETE_CONFIGURATION_ACME))
-
-        # Ecouter le certificat de maitre des cles
-        reply_res.ajouter_rk(niveau_securite, 'evenement.MaitreDesCles.certMaitreDesCles')
 
         # RK uniquement 3.protege
-        if niveau_securite == Constantes.SECURITE_PROTEGE:
-            reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
-
         if niveau_securite == Constantes.SECURITE_SECURE:
             # Downgrade securite a 3.protege pour recevoir les commandes
             niveau_securite_ajuste = Constantes.SECURITE_PROTEGE
         else:
             niveau_securite_ajuste = niveau_securite
 
-        # RK globaux (meme niveau que l'instance - sauf 4.secure qui est downgrade a 3.protege)
-        reply_res.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
+        # Configuration thread pour messages d'installation
+        res_installation = RessourcesConsommation(
+            self.callback_reply_q, channel_separe=True, est_asyncio=True, actif=True)
+
+        res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_INSTALLER))
-        reply_res.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
+        res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER))
-        reply_res.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
+        res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_DEMARRER))
-        reply_res.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
+        res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_ARRETER))
-        reply_res.ajouter_rk(niveau_securite_ajuste, 'requete.instance.%s.%s' % (
+        res_installation.ajouter_rk(niveau_securite_ajuste, 'requete.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_REQUETE_CONFIG))
-        reply_res.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
+        res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER))
-        reply_res.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
-            instance_id, ConstantesInstance.COMMANDE_CONFIGURER_DOMAINE))
+
+        # Configuration thread pour messages de signature de certificats
+        res_signature = RessourcesConsommation(
+            self.callback_reply_q, channel_separe=True, est_asyncio=True, actif=True, auto_delete=True, exclusive=True)
 
         # Commandes sur niveau 4.secure
-        if niveau_securite == Constantes.SECURITE_SECURE:
-            reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_CSR)
-            reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_COMPTE_USAGER)
-            reply_res.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_PUBLICKEY_DOMAINE)
+        # if niveau_securite == Constantes.SECURITE_SECURE:
+        #     res_signature.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_CSR)
+        #     res_signature.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_COMPTE_USAGER)
+        #     res_signature.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_PUBLICKEY_DOMAINE)
+
+        # Configuration thread pour messages de configuration
+        res_configuration = RessourcesConsommation(
+            self.callback_reply_q, channel_separe=True, est_asyncio=True, actif=True)
+
+        # Ecouter le certificat de maitre des cles
+        res_configuration.ajouter_rk(niveau_securite, 'evenement.MaitreDesCles.certMaitreDesCles')
 
         # RK globaux sur exchange 1.public
-        reply_res.ajouter_rk(Constantes.SECURITE_PUBLIC, 'evenement.CoreTopologie.%s' % ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE)
+        res_configuration.ajouter_rk(Constantes.SECURITE_PUBLIC, 'evenement.CoreTopologie.%s' % ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE)
 
-        # q1 = RessourcesConsommation(callback_q_1, 'CoreBackup/tada')
+        # RK Public pour toutes les instances
+        res_configuration.ajouter_rk(Constantes.SECURITE_PUBLIC, 'requete.instance.%s.%s' % (
+            instance_id, ConstantesInstance.REQUETE_CONFIGURATION_ACME))
+
+        # RK globaux (meme niveau que l'instance - sauf 4.secure qui est downgrade a 3.protege)
+        res_configuration.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
+            instance_id, ConstantesInstance.COMMANDE_CONFIGURER_DOMAINE))
+
+        if niveau_securite == Constantes.SECURITE_PROTEGE:
+            res_configuration.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
+
+        reply_res = RessourcesConsommation(self.callback_reply_q)
 
         messages_thread.set_reply_ressources(reply_res)
-        # messages_thread.ajouter_consumer(q1)
+        messages_thread.ajouter_consumer(res_installation)
+        # messages_thread.ajouter_consumer(res_signature)
+        messages_thread.ajouter_consumer(res_configuration)
 
     async def run(self):
 
