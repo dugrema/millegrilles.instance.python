@@ -667,8 +667,8 @@ class CommandeSignatureInstance(CommandeSignature):
     async def _run(self):
         try:
             producer = await self._etat_instance.get_producer()
-        except asyncio.TimeoutError:
-            self.__logger.info("CommandeSignatureInstance Producer (MQ) non dispomible, utiliser certissuer")
+        except Exception as e:
+            self.__logger.info("Producer (MQ) non disponible, utiliser MQ")
             producer = None
 
         try:
