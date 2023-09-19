@@ -20,8 +20,7 @@ from millegrilles_instance.RabbitMQDao import RabbitMQDao
 from millegrilles_instance.EntretienCatalogues import EntretienCatalogues
 from millegrilles_instance.EntretienApplications import GestionnaireApplications
 from millegrilles_instance.Certificats import generer_certificats_modules, generer_passwords, \
-    nettoyer_configuration_expiree, renouveler_certificat_instance_protege, generer_certificats_modules_satellites, \
-    renouveler_certificat_satellite
+    nettoyer_configuration_expiree, generer_certificats_modules_satellites
 
 logger = logging.getLogger(__name__)
 
@@ -528,7 +527,7 @@ class InstanceProtegee(InstanceDockerAbstract):
         taches_entretien = [
             TacheEntretien(datetime.timedelta(minutes=60), self.entretien_catalogues),
             TacheEntretien(datetime.timedelta(days=1), self.docker_initialisation),
-            TacheEntretien(datetime.timedelta(minutes=2), self.entretien_certificats),
+            # TacheEntretien(datetime.timedelta(minutes=2), self.entretien_certificats),
             TacheEntretien(datetime.timedelta(minutes=360), self.entretien_passwords),
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_services),
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_nginx),
@@ -540,7 +539,7 @@ class InstanceProtegee(InstanceDockerAbstract):
 
         # self.__client_session = aiohttp.ClientSession()
 
-        self.__event_setup_initial_certificats: Optional[Event] = None
+        # self.__event_setup_initial_certificats: Optional[Event] = None
         self.__event_setup_initial_passwords: Optional[Event] = None
         self.__entretien_nginx: Optional[EntretienNginx] = None
         self.__entretien_rabbitmq: Optional[EntretienRabbitMq] = None
@@ -555,7 +554,7 @@ class InstanceProtegee(InstanceDockerAbstract):
         self._etat_instance = etat_instance
         self._etat_docker = etat_docker
 
-        self.__event_setup_initial_certificats = Event()
+        # self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
 
         self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
@@ -572,7 +571,7 @@ class InstanceProtegee(InstanceDockerAbstract):
         Declence immediatement l'execution de l'entretien. Utile lors de changement de configuration.
         :return:
         """
-        self.__event_setup_initial_certificats.clear()
+        # self.__event_setup_initial_certificats.clear()
         self.__event_setup_initial_passwords.clear()
 
         await self._etat_docker.redemarrer_nginx()
@@ -581,7 +580,7 @@ class InstanceProtegee(InstanceDockerAbstract):
 
     async def fermer(self):
         await super().fermer()
-        self.__event_setup_initial_certificats.set()
+        # self.__event_setup_initial_certificats.set()
         self.__event_setup_initial_passwords.set()
 
     async def run(self):
@@ -638,7 +637,7 @@ class InstanceProtegee(InstanceDockerAbstract):
                                           configuration, self._etat_docker)
         await nettoyer_configuration_expiree(self._etat_docker)
         self.__logger.debug("entretien_certificats fin")
-        self.__event_setup_initial_certificats.set()
+        # self.__event_setup_initial_certificats.set()
 
     async def entretien_passwords(self):
         self.__logger.debug("entretien_passwords debut")
@@ -649,7 +648,7 @@ class InstanceProtegee(InstanceDockerAbstract):
 
     async def entretien_services(self):
         self.__logger.debug("entretien_services attente certificats et passwords")
-        await asyncio.wait_for(self.__event_setup_initial_certificats.wait(), 50)
+        await asyncio.wait_for(self._etat_instance.generateur_certificats.event_entretien_initial.wait(), 50)
         await asyncio.wait_for(self.__event_setup_initial_passwords.wait(), 10)
 
         await super().entretien_services()
@@ -693,7 +692,7 @@ class InstanceSecureDocker(InstanceDockerAbstract):
 
         taches_entretien = [
             TacheEntretien(datetime.timedelta(days=1), self.docker_initialisation),
-            TacheEntretien(datetime.timedelta(minutes=2), self.entretien_certificats),
+            # TacheEntretien(datetime.timedelta(minutes=2), self.entretien_certificats),
             TacheEntretien(datetime.timedelta(minutes=360), self.entretien_passwords),
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_services),
             TacheEntretien(datetime.timedelta(seconds=120), self.entretien_topologie),
@@ -702,7 +701,7 @@ class InstanceSecureDocker(InstanceDockerAbstract):
         ]
         self._taches_entretien.extend(taches_entretien)
 
-        self.__event_setup_initial_certificats: Optional[Event] = None
+        # self.__event_setup_initial_certificats: Optional[Event] = None
         self.__event_setup_initial_passwords: Optional[Event] = None
         self.__entretien_nginx: Optional[EntretienNginx] = None
         self.__rabbitmq_dao: Optional[RabbitMQDao] = None
@@ -714,7 +713,7 @@ class InstanceSecureDocker(InstanceDockerAbstract):
         self._etat_instance = etat_instance
         self._etat_docker = etat_docker
 
-        self.__event_setup_initial_certificats = Event()
+        # self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
         self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
 
@@ -728,7 +727,7 @@ class InstanceSecureDocker(InstanceDockerAbstract):
         Declence immediatement l'execution de l'entretien. Utile lors de changement de configuration.
         :return:
         """
-        self.__event_setup_initial_certificats.clear()
+        # self.__event_setup_initial_certificats.clear()
         self.__event_setup_initial_passwords.clear()
 
         await self._etat_docker.redemarrer_nginx()
@@ -737,7 +736,7 @@ class InstanceSecureDocker(InstanceDockerAbstract):
 
     async def fermer(self):
         await super().fermer()
-        self.__event_setup_initial_certificats.set()
+        # self.__event_setup_initial_certificats.set()
         self.__event_setup_initial_passwords.set()
 
     async def run(self):
@@ -786,7 +785,7 @@ class InstanceSecureDocker(InstanceDockerAbstract):
         producer = self.__rabbitmq_dao.get_producer()
         await generer_certificats_modules(producer, self._etat_instance.client_session, self._etat_instance, configuration, self._etat_docker)
         self.__logger.debug("entretien_certificats fin")
-        self.__event_setup_initial_certificats.set()
+        # self.__event_setup_initial_certificats.set()
 
     async def entretien_passwords(self):
         self.__logger.debug("entretien_passwords debut")
@@ -797,7 +796,7 @@ class InstanceSecureDocker(InstanceDockerAbstract):
 
     async def entretien_services(self):
         self.__logger.debug("entretien_services attente certificats et passwords")
-        await asyncio.wait_for(self.__event_setup_initial_certificats.wait(), 50)
+        # await asyncio.wait_for(self.__event_setup_initial_certificats.wait(), 50)
         await asyncio.wait_for(self.__event_setup_initial_passwords.wait(), 10)
 
         await super().entretien_services()
@@ -834,7 +833,7 @@ class InstancePriveeDocker(InstanceDockerAbstract):
 
         taches_entretien = [
             TacheEntretien(datetime.timedelta(days=1), self.docker_initialisation),
-            TacheEntretien(datetime.timedelta(minutes=2), self.entretien_certificats),
+            # TacheEntretien(datetime.timedelta(minutes=2), self.entretien_certificats),
             TacheEntretien(datetime.timedelta(minutes=360), self.entretien_passwords),
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_services),
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_nginx),
@@ -843,7 +842,7 @@ class InstancePriveeDocker(InstanceDockerAbstract):
         ]
         self._taches_entretien.extend(taches_entretien)
 
-        self.__event_setup_initial_certificats: Optional[Event] = None
+        # self.__event_setup_initial_certificats: Optional[Event] = None
         self.__event_setup_initial_passwords: Optional[Event] = None
         self.__entretien_nginx: Optional[EntretienNginx] = None
 
@@ -856,7 +855,7 @@ class InstancePriveeDocker(InstanceDockerAbstract):
         self._etat_instance = etat_instance
         self._etat_docker = etat_docker
 
-        self.__event_setup_initial_certificats = Event()
+        # self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
 
         self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
@@ -871,7 +870,7 @@ class InstancePriveeDocker(InstanceDockerAbstract):
         Declence immediatement l'execution de l'entretien. Utile lors de changement de configuration.
         :return:
         """
-        self.__event_setup_initial_certificats.clear()
+        # self.__event_setup_initial_certificats.clear()
         self.__event_setup_initial_passwords.clear()
 
         await self._etat_docker.redemarrer_nginx()
@@ -880,7 +879,7 @@ class InstancePriveeDocker(InstanceDockerAbstract):
 
     async def fermer(self):
         await super().fermer()
-        self.__event_setup_initial_certificats.set()
+        # self.__event_setup_initial_certificats.set()
         self.__event_setup_initial_passwords.set()
 
     async def run(self):
@@ -897,9 +896,9 @@ class InstancePriveeDocker(InstanceDockerAbstract):
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")
 
-        if self.__event_setup_initial_certificats.is_set() is False:
-            # Ajouter attente d'initialisation thread RabbitMQ
-            await asyncio.sleep(3)
+        # if self.__event_setup_initial_certificats.is_set() is False:
+        #     # Ajouter attente d'initialisation thread RabbitMQ
+        #     await asyncio.sleep(3)
 
         await self.__rabbitmq_dao.attendre_pret(10)
         producer = self.__rabbitmq_dao.get_producer()
@@ -923,7 +922,7 @@ class InstancePriveeDocker(InstanceDockerAbstract):
             configuration = await self.get_configuration_certificats()
             await generer_certificats_modules_satellites(producer, self._etat_instance, None, configuration)
             self.__logger.debug("entretien_certificats fin")
-            self.__event_setup_initial_certificats.set()
+            # self.__event_setup_initial_certificats.set()
         else:
             self.__logger.info("entretien_certificats() Producer MQ n'est pas pret, skip entretien")
 
@@ -932,7 +931,7 @@ class InstancePriveeDocker(InstanceDockerAbstract):
         await generer_certificats_modules_satellites(producer, self._etat_instance, self._etat_docker, configuration)
         await nettoyer_configuration_expiree(self._etat_docker)
         self.__logger.debug("entretien_certificats fin")
-        self.__event_setup_initial_certificats.set()
+        # self.__event_setup_initial_certificats.set()
 
     async def entretien_passwords(self):
         self.__logger.debug("entretien_passwords debut")
@@ -943,7 +942,7 @@ class InstancePriveeDocker(InstanceDockerAbstract):
 
     async def entretien_services(self):
         self.__logger.debug("entretien_services attente certificats et passwords")
-        await asyncio.wait_for(self.__event_setup_initial_certificats.wait(), 50)
+        # await asyncio.wait_for(self.__event_setup_initial_certificats.wait(), 50)
         await asyncio.wait_for(self.__event_setup_initial_passwords.wait(), 10)
 
         await super().entretien_services()
@@ -988,14 +987,14 @@ class InstancePrivee(InstanceAbstract):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
 
         taches_entretien = [
-            TacheEntretien(datetime.timedelta(minutes=2), self.entretien_certificats),
+            # TacheEntretien(datetime.timedelta(minutes=2), self.entretien_certificats),
             TacheEntretien(datetime.timedelta(minutes=360), self.entretien_passwords),
             TacheEntretien(datetime.timedelta(seconds=120), self.entretien_topologie),
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_applications),
         ]
         self._taches_entretien.extend(taches_entretien)
 
-        self.__event_setup_initial_certificats: Optional[Event] = None
+        # self.__event_setup_initial_certificats: Optional[Event] = None
         self.__event_setup_initial_passwords: Optional[Event] = None
         self.__entretien_nginx: Optional[EntretienNginx] = None
 
@@ -1007,7 +1006,7 @@ class InstancePrivee(InstanceAbstract):
         self.__logger.info("Setup InstanceProtegee")
         self._etat_instance = etat_instance
 
-        self.__event_setup_initial_certificats = Event()
+        # self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
 
         self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
@@ -1051,9 +1050,9 @@ class InstancePrivee(InstanceAbstract):
     async def entretien_certificats(self):
         self.__logger.debug("entretien_certificats debut")
 
-        if self.__event_setup_initial_certificats.is_set() is False:
-            # Ajouter attente d'initialisation thread RabbitMQ
-            await asyncio.sleep(3)
+        # if self.__event_setup_initial_certificats.is_set() is False:
+        #     # Ajouter attente d'initialisation thread RabbitMQ
+        #     await asyncio.sleep(3)
 
         await self.__rabbitmq_dao.attendre_pret(10)
         producer = self.__rabbitmq_dao.get_producer()
@@ -1108,14 +1107,14 @@ class InstanceSecure(InstanceAbstract):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
 
         taches_entretien = [
-            TacheEntretien(datetime.timedelta(minutes=2), self.entretien_certificats),
+            # TacheEntretien(datetime.timedelta(minutes=2), self.entretien_certificats),
             TacheEntretien(datetime.timedelta(minutes=360), self.entretien_passwords),
             TacheEntretien(datetime.timedelta(seconds=120), self.entretien_topologie),
             TacheEntretien(datetime.timedelta(seconds=30), self.entretien_applications),
         ]
         self._taches_entretien.extend(taches_entretien)
 
-        self.__event_setup_initial_certificats: Optional[Event] = None
+        # self.__event_setup_initial_certificats: Optional[Event] = None
         self.__event_setup_initial_passwords: Optional[Event] = None
         self.__entretien_nginx: Optional[EntretienNginx] = None
 
@@ -1127,7 +1126,7 @@ class InstanceSecure(InstanceAbstract):
         self.__logger.info("Setup InstanceProtegee")
         self._etat_instance = etat_instance
 
-        self.__event_setup_initial_certificats = Event()
+        # self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
 
         self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
@@ -1168,44 +1167,44 @@ class InstanceSecure(InstanceAbstract):
         if self._gestionnaire_applications is not None:
             await self._gestionnaire_applications.entretien()
 
-    async def entretien_certificats(self):
-        self.__logger.debug("entretien_certificats debut")
-
-        # Verifier certificat d'instance
-        # enveloppe_instance = self._etat_instance.clecertificat.enveloppe
-        # expiration_instance = enveloppe_instance.calculer_expiration()
-        # if expiration_instance['expire'] is True:
-        #     self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
-        #     # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
-        #     await self._etat_instance.stop()
-        # #elif expiration_instance['renouveler'] is True:
-        # else:
-        #     self.__logger.fatal(' **** DEBUG **** ')
-        #     self.__logger.info("Certificat d'instance peut etre renouvele")
-        #     producer = self.__rabbitmq_dao.get_producer()
-        #     clecertificat = await renouveler_certificat_instance_protege(producer,
-        #                                                                  self._etat_instance.client_session,
-        #                                                                  self._etat_instance)
-        #     # Sauvegarder nouveau certificat
-        #     path_secrets = self._etat_instance.configuration.path_secrets
-        #     nom_certificat = 'pki.instance.cert'
-        #     nom_cle = 'pki.instance.key'
-        #     path_certificat = path.join(path_secrets, nom_certificat)
-        #     path_cle = path.join(path_secrets, nom_cle)
-        #     cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
-        #     with open(path_cle, 'wb') as fichier:
-        #         fichier.write(clecertificat.private_key_bytes())
-        #     with open(path_certificat, 'w') as fichier:
-        #         fichier.write(cert_str)
-        #
-        #     # Reload configuration avec le nouveau certificat
-        #     await self._etat_instance.reload_configuration()
-
-        configuration = await self.get_configuration_certificats()
-        producer = self.__rabbitmq_dao.get_producer()
-        await generer_certificats_modules(producer, self._etat_instance.client_session, self._etat_instance, configuration, None)
-        self.__logger.debug("entretien_certificats fin")
-        self.__event_setup_initial_certificats.set()
+    # async def entretien_certificats(self):
+    #     self.__logger.debug("entretien_certificats debut")
+    #
+    #     # Verifier certificat d'instance
+    #     # enveloppe_instance = self._etat_instance.clecertificat.enveloppe
+    #     # expiration_instance = enveloppe_instance.calculer_expiration()
+    #     # if expiration_instance['expire'] is True:
+    #     #     self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
+    #     #     # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
+    #     #     await self._etat_instance.stop()
+    #     # #elif expiration_instance['renouveler'] is True:
+    #     # else:
+    #     #     self.__logger.fatal(' **** DEBUG **** ')
+    #     #     self.__logger.info("Certificat d'instance peut etre renouvele")
+    #     #     producer = self.__rabbitmq_dao.get_producer()
+    #     #     clecertificat = await renouveler_certificat_instance_protege(producer,
+    #     #                                                                  self._etat_instance.client_session,
+    #     #                                                                  self._etat_instance)
+    #     #     # Sauvegarder nouveau certificat
+    #     #     path_secrets = self._etat_instance.configuration.path_secrets
+    #     #     nom_certificat = 'pki.instance.cert'
+    #     #     nom_cle = 'pki.instance.key'
+    #     #     path_certificat = path.join(path_secrets, nom_certificat)
+    #     #     path_cle = path.join(path_secrets, nom_cle)
+    #     #     cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
+    #     #     with open(path_cle, 'wb') as fichier:
+    #     #         fichier.write(clecertificat.private_key_bytes())
+    #     #     with open(path_certificat, 'w') as fichier:
+    #     #         fichier.write(cert_str)
+    #     #
+    #     #     # Reload configuration avec le nouveau certificat
+    #     #     await self._etat_instance.reload_configuration()
+    #
+    #     configuration = await self.get_configuration_certificats()
+    #     producer = self.__rabbitmq_dao.get_producer()
+    #     await generer_certificats_modules(producer, self._etat_instance.client_session, self._etat_instance, configuration, None)
+    #     self.__logger.debug("entretien_certificats fin")
+    #     self.__event_setup_initial_certificats.set()
 
     async def entretien_passwords(self):
         self.__logger.debug("entretien_passwords debut")

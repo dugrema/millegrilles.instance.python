@@ -782,6 +782,8 @@ class GenerateurCertificatsHandler:
         # Fonction qui retourne un dict des modules pour entretien
         self.__get_configuration_modules = None
 
+        self.__event_setup_initial_certificats = asyncio.Event()
+
     def set_configuration_modules_getter(self, getter):
         self.__get_configuration_modules = getter
 
@@ -793,12 +795,19 @@ class GenerateurCertificatsHandler:
     def etat_docker(self, etat_docker):
         self.__etat_docker = etat_docker
 
+    @property
+    def event_entretien_initial(self):
+        return self.__event_setup_initial_certificats
+
     async def threads(self):
         tasks = [
             asyncio.create_task(self.thread_entretien()),
             asyncio.create_task(self.thread_signature()),
         ]
-        await asyncio.gather(*tasks)
+        try:
+            await asyncio.gather(*tasks)
+        finally:
+            self.__event_setup_initial_certificats.set()  # Liberer event pour fermeture
 
     async def thread_entretien(self):
         """
@@ -818,9 +827,11 @@ class GenerateurCertificatsHandler:
                 except Exception:
                     self.__logger.exception("thread_entretien Erreur entretien_repertoire_secrets")
 
+            self.__event_setup_initial_certificats.set()
+
             self.__logger.debug("thread_entretien Fin entretien")
             try:
-                await asyncio.wait_for(self.__etat_instance.stop_event.wait(), timeout=900)
+                await asyncio.wait_for(self.__etat_instance.stop_event.wait(), timeout=1200)
             except asyncio.TimeoutError:
                 pass  # OK
 
@@ -917,8 +928,7 @@ class GenerateurCertificatsHandler:
                 self.__logger.debug("generer_commandes_modules Certificat %s non trouve, on le genere" % nom_module)
                 doit_generer = True
 
-            # if doit_generer:  # TODO DEBUG
-            if True:
+            if doit_generer:
                 self.__logger.info("generer_commandes_modules Generer nouveau certificat pour %s" % nom_module)
                 if 'maitredescles' in roles:
                     commande = CommandeRotationMaitredescles(self.__etat_instance, self.__etat_docker, nom_module, value)
