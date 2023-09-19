@@ -622,8 +622,13 @@ class CommandeSignatureInstance(CommandeSignature):
 
         if clecertificat is not None:
             await self.sauvegarder_clecert(clecertificat)
-            self.__logger.info("CommandeSignatureInstance.run Nouveau certificat d'instance installe - redemarrer")
-            await self._etat_instance.stop()
+
+            # self.__logger.info("CommandeSignatureInstance.run Nouveau certificat d'instance installe - redemarrer")
+            # await self._etat_instance.stop()
+
+            # Reload configuration avec le nouveau certificat
+            self.__logger.info("CommandeSignatureInstance.run Nouveau certificat d'instance installe - reload configuration")
+            await self._etat_instance.reload_configuration()
 
     def get_niveau(self):
         clecertificat_courant: CleCertificat = self._etat_instance.clecertificat
