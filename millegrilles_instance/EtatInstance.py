@@ -16,8 +16,7 @@ from os import path, listdir
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance import Constantes as ConstantesInstance
-from millegrilles_instance.Certificats import preparer_certificats_web, generer_certificats_modules, generer_passwords, \
-    generer_certificats_modules_satellites
+from millegrilles_instance.Certificats import preparer_certificats_web, generer_passwords
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_messages.IpUtils import get_ip, get_hostname
 from millegrilles_messages.messages.CleCertificat import CleCertificat
@@ -348,14 +347,14 @@ class EtatInstance:
         else:
             raise Exception("Stop event non disponible")
 
-    async def generer_certificats_module(self, producer: MessageProducerFormatteur, etat_docker, nom_module: str, configuration: dict):
-        config = {nom_module: configuration}
-        await generer_certificats_modules(producer, self.__client_session, self, config, etat_docker)
+    # async def generer_certificats_module(self, producer: MessageProducerFormatteur, etat_docker, nom_module: str, configuration: dict):
+    #     config = {nom_module: configuration}
+    #     await generer_certificats_modules(producer, self.__client_session, self, config, etat_docker)
 
-    async def generer_certificats_module_satellite(self, producer: MessageProducerFormatteur,
-                                                   etat_docker, nom_module: str, configuration: dict):
-        config = {nom_module: configuration}
-        await generer_certificats_modules_satellites(producer, self, etat_docker, config)
+    # async def generer_certificats_module_satellite(self, producer: MessageProducerFormatteur,
+    #                                                etat_docker, nom_module: str, configuration: dict):
+    #     config = {nom_module: configuration}
+    #     await generer_certificats_modules_satellites(producer, self, etat_docker, config)
 
     async def generer_passwords(self, etat_docker, passwords: list):
         await generer_passwords(self, etat_docker, passwords)

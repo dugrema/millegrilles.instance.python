@@ -552,10 +552,12 @@ class EtatDockerInstanceSync:
                 except KeyError:
                     self.__logger.info("generer_valeurs Generer certificat/secret pour %s" % nom_application)
                     if self.__etat_instance.niveau_securite in [Constantes.SECURITE_PROTEGE, Constantes.SECURITE_SECURE]:
-                        clecertificat = await self.__etat_instance.generer_certificats_module(producer, self, nom_application, certificat)
+                        raise NotImplementedError('todo')
+                        # clecertificat = await self.__etat_instance.generer_certificats_module(producer, self, nom_application, certificat)
                     else:
-                        clecertificat = await self.__etat_instance.generer_certificats_module_satellite(
-                            producer, self, nom_application, certificat)
+                        raise NotImplementedError('todo')
+                        # clecertificat = await self.__etat_instance.generer_certificats_module_satellite(
+                        #     producer, self, nom_application, certificat)
                     # Importer toutes les cles dans docker
                     if self.__docker_initialise is True and clecertificat is not None:
                         await self.assurer_clecertificat(nom_application, clecertificat)

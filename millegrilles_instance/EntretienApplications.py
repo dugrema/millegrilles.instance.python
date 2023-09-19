@@ -151,7 +151,8 @@ async def installer_application_sansdocker(etat_instance: EtatInstance, producer
             path_cert = path.join(path_secrets, 'pki.%s.cert' % nom_application)
             path_cle = path.join(path_secrets, 'pki.%s.cle' % nom_application)
             if path.exists(path_cert) is False or path.exists(path_cle) is False:
-                await etat_instance.generer_certificats_module_satellite(producer, None, nom_application, certificat)
+                raise NotImplementedError('todo ou obsolete?')
+                # await etat_instance.generer_certificats_module_satellite(producer, None, nom_application, certificat)
 
         except KeyError:
             pass
