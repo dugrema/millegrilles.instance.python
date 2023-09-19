@@ -657,9 +657,6 @@ class CommandeSignatureInstance(CommandeSignature):
     async def _run(self):
         producer = await self._etat_instance.get_producer()
 
-        # Determiner niveau de securite de l'instance
-        niveau = self.get_niveau()
-
         try:
             clecertificat = await renouveler_certificat_instance_protege(
                 producer, self._etat_instance.client_session, self._etat_instance)
@@ -685,16 +682,6 @@ class CommandeSignatureInstance(CommandeSignature):
 
             return clecertificat
 
-    def get_niveau(self):
-        clecertificat_courant: CleCertificat = self._etat_instance.clecertificat
-        exchanges = clecertificat_courant.get_exchanges
-        niveaux = [Constantes.SECURITE_SECURE, Constantes.SECURITE_PROTEGE, Constantes.SECURITE_PRIVE, Constantes.SECURITE_PUBLIC]
-        for niveau in niveaux:
-            if niveau in exchanges:
-                return niveau
-
-        raise Exception('certificat courant sans niveau de securite')
-
     async def sauvegarder_clecert(self, clecertificat: CleCertificat):
         path_secrets = pathlib.Path(self._etat_instance.configuration.path_secrets)
         nom_certificat = 'pki.instance.cert'
@@ -707,7 +694,8 @@ class CommandeSignatureInstance(CommandeSignature):
         path_cle_work = pathlib.Path(str(path_cle) + '.work')
         path_certificat_work = pathlib.Path(str(path_certificat) + '.work')
 
-        # Conserver le contenu dans des fichiers .work - permet de reduire risque de perte de certificat sur renouvellement
+        # Conserver le contenu dans des fichiers .work.
+        # Permet de reduire risque de perte de certificat sur renouvellement
         with open(path_cle_work, 'wb') as fichier:
             fichier.write(clecertificat.private_key_bytes())
         with open(path_certificat_work, 'w') as fichier:
@@ -741,19 +729,19 @@ class CommandeSignatureModule(CommandeSignature):
 
     def __init__(self, etat_instance, etat_docker, nom_module: str, configuration: Optional[dict] = None):
         super().__init__(etat_instance, etat_docker)
-        self.__nom_module = nom_module
-        self.__configuration = configuration
+        self._nom_module = nom_module
+        self._configuration = configuration
 
     @property
     def nom_module(self):
-        return self.__configuration['module']
+        return self._configuration['module']
 
     async def _run(self):
         producer = await self._etat_instance.get_producer()
         client_session = self._etat_instance.client_session
 
-        value = self.__configuration or dict()
-        nom_local_certificat = value.get('nom') or self.__nom_module
+        value = self._configuration or dict()
+        nom_local_certificat = value.get('nom') or self._nom_module
 
         clecertificat = await generer_nouveau_certificat(
             producer, client_session, self._etat_instance, nom_local_certificat, value)
@@ -771,11 +759,45 @@ class CommandeSignatureModule(CommandeSignature):
 
 class CommandeRotationMaitredescles(CommandeSignatureModule):
 
-    def __init__(self, etat_instance, etat_docker, nom_module: str, configuration: Optional[dict] = None):
+    def __init__(self, etat_instance, etat_docker, expire: bool, nom_module: str, configuration: Optional[dict] = None):
         super().__init__(etat_instance, etat_docker, nom_module, configuration)
+        self.__expire = expire
 
     async def _run(self):
-        raise NotImplementedError('must implement')
+        producer = await self._etat_instance.get_producer()
+        client_session = self._etat_instance.client_session
+
+        value = self._configuration or dict()
+        nom_local_certificat = value.get('nom') or self._nom_module
+
+        clecertificat = await generer_nouveau_certificat(
+            producer, client_session, self._etat_instance, nom_local_certificat, value)
+
+        # Executer une rotation du certificat - le maitre des cles va chiffrer la cle symmetrique pour
+        # ce nouveau certificat. Permet de continuer au demarrage avec le nouveau certificat sans
+        # interruptions.
+        if self.__expire is not True:
+            enveloppe = clecertificat.enveloppe
+            commande = {
+                'certificat': clecertificat.enveloppe.chaine_pem(),
+            }
+            reponse = await producer.executer_commande(
+                commande, 'MaitreDesCles', 'rotationCertificat',
+                exchange='3.protege',
+                partition=enveloppe.fingerprint
+            )
+            if reponse.parsed['ok'] is False:
+                raise Exception('erreur de rotation du certificat de maitre des cles')
+
+        path_secrets = pathlib.Path(self._etat_instance.configuration.path_secrets)
+        sauvegarder_clecert(path_secrets, nom_local_certificat, clecertificat)
+
+        if self._etat_docker:
+            combiner_keycert = value.get('combiner_keycert') or False
+            await self._etat_docker.assurer_clecertificat(
+                nom_local_certificat, clecertificat, combiner_keycert)
+
+        return clecertificat
 
 
 class GenerateurCertificatsHandler:
@@ -859,7 +881,8 @@ class GenerateurCertificatsHandler:
                     result: CommandeSignature = d.result()
                     await self.__signer(result)
                     if result.exception:
-                        self.__logger.error("thread_signature Erreur execution commande %s : %s" % (result.__class__, result.exception))
+                        self.__logger.exception("thread_signature Erreur execution commande %s",
+                                                result.__class__, exc_info=result.exception)
 
         for p in pending:
             p.cancel()
@@ -924,7 +947,7 @@ class GenerateurCertificatsHandler:
 
             roles = None
             doit_generer = False
-
+            detail_expiration = dict()
             try:
                 clecertificat = CleCertificat.from_files(path_cle, path_certificat)
                 enveloppe = clecertificat.enveloppe
@@ -942,7 +965,11 @@ class GenerateurCertificatsHandler:
             if doit_generer:
                 self.__logger.info("generer_commandes_modules Generer nouveau certificat pour %s" % nom_module)
                 if 'maitredescles' in roles:
-                    commande = CommandeRotationMaitredescles(self.__etat_instance, self.__etat_docker, nom_module, value)
+                    expire = detail_expiration.get('expire')
+                    if expire is None:
+                        expire = True
+                    commande = CommandeRotationMaitredescles(
+                        self.__etat_instance, self.__etat_docker, expire, nom_module, value)
                 else:
                     commande = CommandeSignatureModule(self.__etat_instance, self.__etat_docker, nom_module, value)
                 await self.__q_signer.put(commande)
