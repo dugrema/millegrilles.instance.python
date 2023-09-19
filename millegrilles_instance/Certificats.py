@@ -718,6 +718,12 @@ class GenerateurCertificatsHandler:
         # Queue de certificats a signer
         self.__q_signer = asyncio.Queue(maxsize=20)
 
+        # Fonction qui retourne un dict des modules pour entretien
+        self.__get_configuration_modules = None
+
+    def set_configuration_modules_getter(self, getter):
+        self.__get_configuration_modules = getter
+
     @property
     def etat_docker(self):
         return self.__etat_docker
@@ -747,7 +753,7 @@ class GenerateurCertificatsHandler:
 
             if self.__etat_docker is not None:
                 try:
-                    await self.entretien_docker()
+                    await self.entretien_modules()
                 except Exception:
                     self.__logger.exception("thread_entretien Erreur entretien_repertoire_secrets")
 
@@ -786,18 +792,21 @@ class GenerateurCertificatsHandler:
         except Exception:
             self.__logger.exception("entretien_repertoire_secrets Erreur entretien certificat instance")
 
-        # Verifier certificats de modules
+    async def entretien_modules(self):
+        configuration = await self.__get_configuration_modules()
 
-        pass
+        if self.__etat_docker is not None:
+            # Verifier certificats de modules
 
-    async def entretien_docker(self):
-        if self.__etat_docker is None:
-            raise Exception('etat_docker is None')
+            # Entretien config/secrets
+            try:
+                await nettoyer_configuration_expiree(self.__etat_docker)
+            except Exception:
+                self.__logger.exception('entretien_docker Erreur nettoyer_configuration_expiree')
 
-        try:
-            await nettoyer_configuration_expiree(self.__etat_docker)
-        except Exception:
-            self.__logger.exception('entretien_docker Erreur nettoyer_configuration_expiree')
+        else:
+            # Mode repertoire secrets uniquement
+            pass
 
     async def entretien_certificat_instance(self):
         enveloppe_instance = self.__etat_instance.clecertificat.enveloppe

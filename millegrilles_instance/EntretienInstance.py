@@ -285,6 +285,7 @@ class InstanceDockerAbstract:
             datetime.timedelta(seconds=30), self._etat_instance.entretien, self.get_producer))
 
         self._etat_instance.set_producer(self.get_producer)
+        self._etat_instance.generateur_certificats.set_configuration_modules_getter(self.get_configuration_certificats)
 
         # Ajouter listener de changement de configuration. Demarre l'execution des taches d'entretien/installation.
         self._etat_instance.ajouter_listener(self.declencher_run)
