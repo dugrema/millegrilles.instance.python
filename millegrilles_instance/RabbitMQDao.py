@@ -87,8 +87,8 @@ class MqThread:
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER))
 
         # Configuration thread pour messages de signature de certificats
-        res_signature = RessourcesConsommation(
-            self.callback_reply_q, channel_separe=True, est_asyncio=True, actif=True, auto_delete=True, exclusive=True)
+        # res_signature = RessourcesConsommation(
+        #     self.callback_reply_q, channel_separe=True, est_asyncio=True, actif=True, auto_delete=True, exclusive=True)
 
         # Commandes sur niveau 4.secure
         # if niveau_securite == Constantes.SECURITE_SECURE:

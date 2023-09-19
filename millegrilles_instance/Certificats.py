@@ -590,7 +590,7 @@ class CommandeSignature:
         await asyncio.wait_for(self.__event_done.wait(), timeout=timeout)
         if self.__exception:
             raise self.__exception
-        return self._result
+        return self.__result
 
     async def run_command(self):
         try:
@@ -947,7 +947,7 @@ class GenerateurCertificatsHandler:
                     commande = CommandeSignatureModule(self.__etat_instance, self.__etat_docker, nom_module, value)
                 await self.__q_signer.put(commande)
 
-    async def demander_signature(self, nom_module: str, params: Optional[dict] = None, timeout=120):
+    async def demander_signature(self, nom_module: str, params: Optional[dict] = None, timeout=45):
         commande = CommandeSignatureModule(self.__etat_instance, self.__etat_docker, nom_module, params)
         await self.__q_signer.put(commande)
         return await commande.done(timeout)
