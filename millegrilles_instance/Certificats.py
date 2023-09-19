@@ -363,7 +363,7 @@ async def generer_nouveau_certificat(producer: MessageProducerFormatteur,
     except (ClientConnectorError, ClientResponseError):
         logger.exception("Certissuer local non disponible, fallback CorePki")
         message_reponse = await producer.executer_commande(
-            configuration, 'CorePki', 'signerCsr', exchange=etat_instance.niveau_securite)
+            configuration, 'CorePki', 'signerCsr', exchange=Constantes.SECURITE_PUBLIC)
         reponse = message_reponse.parsed
         certificat = reponse['certificat']
 
@@ -588,7 +588,7 @@ class CommandeSignature:
             raise self.__exception
         return self.__result
 
-    async def run(self, producer=None):
+    async def run(self):
         raise NotImplementedError('must implement')
 
 
@@ -598,27 +598,28 @@ class CommandeSignatureInstance(CommandeSignature):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         super().__init__(etat_instance)
 
-    async def run(self, producer=None):
+    async def run(self):
         producer = await self._etat_instance.get_producer()
 
         # Determiner niveau de securite de l'instance
         niveau = self.get_niveau()
 
         clecertificat = None
-        if niveau in [Constantes.SECURITE_SECURE, Constantes.SECURITE_PROTEGE]:
-            # Tenter de generer le certificat avec le certissuer local en premier
+        try:
+            clecertificat = await renouveler_certificat_instance_protege(
+                producer, self._etat_instance.client_session, self._etat_instance)
+        except Exception as e:
+            self.__logger.error("ERREUR renouvellement instance - emettre notification")
             try:
-                clecertificat = await renouveler_certificat_instance_protege(
-                    producer, self._etat_instance.client_session, self._etat_instance)
-            except asyncio.TimeoutError:
-                self.__logger.warning(
-                    "CommandeSignatureInstance.run Timeout utilisation certissuer local, fallback sur CorePki")
+                nom_instance = self._etat_instance.nom_domaine or self._etat_instance.instance_id
+                contenu = "<p>Erreur de renouvellement de l'instance %s</p><br/><p>Cause:</p><pre>%s</pre>" % (nom_instance, e)
+                subject = 'ECHEC Renouvellement certificat %s' % nom_instance
+                await self._etat_instance.emettre_notification(producer, contenu, subject)
             except Exception:
-                self.__logger.exception("CommandeSignatureInstance.run Erreur utilisation certissuer local, fallback sur CorePki")
+                self.__logger.exception("Erreur emission notification renouvellement certificat instance")
 
-        if clecertificat is None:
-            self.__logger.info("CommandeSignatureInstance.run Demander certificat instance via CorPki.signerCsr")
-            clecertificat = await renouveler_certificat_satellite(producer, self._etat_instance)
+            # Re-emettre erreur
+            raise e
 
         if clecertificat is not None:
             await self.sauvegarder_clecert(clecertificat)
@@ -692,7 +693,16 @@ class CommandeSignatureModule(CommandeSignature):
     def nom_module(self):
         return self.__nom_module
 
-    async def run(self, producer=None):
+    async def run(self):
+        raise NotImplementedError('must implement')
+
+
+class CommandeRotationMaitredescles(CommandeSignatureModule):
+
+    def __init__(self, etat_instance, nom_module: str):
+        super().__init__(etat_instance, nom_module)
+
+    async def run(self):
         raise NotImplementedError('must implement')
 
 
@@ -802,7 +812,7 @@ class GenerateurCertificatsHandler:
 
     async def __signer(self, commande: CommandeSignature):
         try:
-            await commande.run(self.__etat_instance)
+            await commande.run()
         except Exception as e:
             commande.exception = e
         finally:

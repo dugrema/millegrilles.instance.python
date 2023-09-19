@@ -904,19 +904,19 @@ class InstancePriveeDocker(InstanceDockerAbstract):
         producer = self.__rabbitmq_dao.get_producer()
 
         # Verifier certificat d'instance
-        enveloppe_instance = self._etat_instance.clecertificat.enveloppe
-        expiration_instance = enveloppe_instance.calculer_expiration()
-        if expiration_instance['expire'] is True:
-            self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
-            # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
-            await self._etat_instance.stop()
-        elif expiration_instance['renouveler'] is True:
-            # else:
-            self.__logger.info("Certificat d'instance peut etre renouvele")
-            await renouveler_certificat_satellite(producer, self._etat_instance)
-            # Redemarrer instance
-            self._etat_instance.set_redemarrer(True)
-            await self._etat_instance.reload_configuration()
+        # enveloppe_instance = self._etat_instance.clecertificat.enveloppe
+        # expiration_instance = enveloppe_instance.calculer_expiration()
+        # if expiration_instance['expire'] is True:
+        #     self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
+        #     # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
+        #     await self._etat_instance.stop()
+        # elif expiration_instance['renouveler'] is True:
+        #     # else:
+        #     self.__logger.info("Certificat d'instance peut etre renouvele")
+        #     await renouveler_certificat_satellite(producer, self._etat_instance)
+        #     # Redemarrer instance
+        #     self._etat_instance.set_redemarrer(True)
+        #     await self._etat_instance.reload_configuration()
 
         if producer is not None:
             configuration = await self.get_configuration_certificats()
@@ -1058,27 +1058,27 @@ class InstancePrivee(InstanceAbstract):
         producer = self.__rabbitmq_dao.get_producer()
 
         # Verifier certificat d'instance
-        enveloppe_instance = self._etat_instance.clecertificat.enveloppe
-        expiration_instance = enveloppe_instance.calculer_expiration()
-        if expiration_instance['expire'] is True:
-            self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
-            # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
-            await self._etat_instance.stop()
-        elif expiration_instance['renouveler'] is True:
+        # enveloppe_instance = self._etat_instance.clecertificat.enveloppe
+        # expiration_instance = enveloppe_instance.calculer_expiration()
+        # if expiration_instance['expire'] is True:
+        #     self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
+        #     # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
+        #     await self._etat_instance.stop()
+        # elif expiration_instance['renouveler'] is True:
+        # # else:
+        #     self.__logger.info("Certificat d'instance peut etre renouvele")
+        #     await renouveler_certificat_satellite(producer, self._etat_instance)
+        #     # Redemarrer instance
+        #     self._etat_instance.set_redemarrer(True)
+        #     await self._etat_instance.reload_configuration()
+        #
+        # if producer is not None:
+        #     configuration = await self.get_configuration_certificats()
+        #     await generer_certificats_modules_satellites(producer, self._etat_instance, None, configuration)
+        #     self.__logger.debug("entretien_certificats fin")
+        #     self.__event_setup_initial_certificats.set()
         # else:
-            self.__logger.info("Certificat d'instance peut etre renouvele")
-            await renouveler_certificat_satellite(producer, self._etat_instance)
-            # Redemarrer instance
-            self._etat_instance.set_redemarrer(True)
-            await self._etat_instance.reload_configuration()
-
-        if producer is not None:
-            configuration = await self.get_configuration_certificats()
-            await generer_certificats_modules_satellites(producer, self._etat_instance, None, configuration)
-            self.__logger.debug("entretien_certificats fin")
-            self.__event_setup_initial_certificats.set()
-        else:
-            self.__logger.info("entretien_certificats() Producer MQ n'est pas pret, skip entretien")
+        #     self.__logger.info("entretien_certificats() Producer MQ n'est pas pret, skip entretien")
 
     async def entretien_passwords(self):
         self.__logger.debug("entretien_passwords debut")
