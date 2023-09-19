@@ -1,8 +1,10 @@
 import asyncio
 import base64
 import datetime
+import errno
 import logging
 import math
+import pathlib
 import secrets
 
 from aiohttp import ClientSession
@@ -241,7 +243,8 @@ async def nettoyer_configuration_expiree(etat_docker: EtatDockerInstanceSync):
     pass
 
 
-async def renouveler_certificat_instance_protege(producer: MessageProducerFormatteur, client_session: ClientSession, etat_instance) -> CleCertificat:
+async def renouveler_certificat_instance_protege(
+        producer: MessageProducerFormatteur, client_session: ClientSession, etat_instance) -> CleCertificat:
 
     instance_id = etat_instance.instance_id
 
@@ -298,7 +301,7 @@ async def renouveler_certificat_satellite(producer: MessageProducerFormatteur, e
     path_cle = path.join(path_secrets, nom_cle)
 
     # Emettre commande de signature, attendre resultat
-    message_reponse = await producer.executer_commande(configuration, 'CorePki', 'signerCsr', exchange=niveau_securite)
+    message_reponse = await producer.executer_commande(configuration, 'CorePki', 'signerCsr', exchange=Constantes.SECURITE_PUBLIC)
     reponse = message_reponse.parsed
 
     certificat = reponse['certificat']
@@ -308,7 +311,6 @@ async def renouveler_certificat_satellite(producer: MessageProducerFormatteur, e
     if clecertificat.cle_correspondent() is False:
         raise Exception("Erreur cert/cle ne correspondent pas")
 
-    cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
     with open(path_cle, 'wb') as fichier:
         fichier.write(clecertificat.private_key_bytes())
     with open(path_certificat, 'w') as fichier:
@@ -562,10 +564,22 @@ def generer_password(type_generateur='password', size: int = None):
 
 class CommandeSignature:
 
-    def __init__(self):
+    def __init__(self, etat_instance):
+        self._etat_instance = etat_instance
         self.__event_done = asyncio.Event()
         self.__exception = None
         self.__result = None
+
+    def set_done(self):
+        self.__event_done.set()
+
+    @property
+    def exception(self):
+        return self.__exception
+
+    @exception.setter
+    def exception(self, exception):
+        self.__exception = exception
 
     @property
     async def done(self, timeout=120):
@@ -573,6 +587,108 @@ class CommandeSignature:
         if self.__exception:
             raise self.__exception
         return self.__result
+
+    async def run(self, producer=None):
+        raise NotImplementedError('must implement')
+
+
+class CommandeSignatureInstance(CommandeSignature):
+
+    def __init__(self, etat_instance):
+        self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        super().__init__(etat_instance)
+
+    async def run(self, producer=None):
+        producer = await self._etat_instance.get_producer()
+
+        # Determiner niveau de securite de l'instance
+        niveau = self.get_niveau()
+
+        clecertificat = None
+        if niveau in [Constantes.SECURITE_SECURE, Constantes.SECURITE_PROTEGE]:
+            # Tenter de generer le certificat avec le certissuer local en premier
+            try:
+                clecertificat = await renouveler_certificat_instance_protege(
+                    producer, self._etat_instance.client_session, self._etat_instance)
+            except asyncio.TimeoutError:
+                self.__logger.warning(
+                    "CommandeSignatureInstance.run Timeout utilisation certissuer local, fallback sur CorePki")
+            except Exception:
+                self.__logger.exception("CommandeSignatureInstance.run Erreur utilisation certissuer local, fallback sur CorePki")
+
+        if clecertificat is None:
+            self.__logger.info("CommandeSignatureInstance.run Demander certificat instance via CorPki.signerCsr")
+            clecertificat = await renouveler_certificat_satellite(producer, self._etat_instance)
+
+        if clecertificat is not None:
+            await self.sauvegarder_clecert(clecertificat)
+            self.__logger.info("CommandeSignatureInstance.run Nouveau certificat d'instance installe - redemarrer")
+            await self._etat_instance.stop()
+
+    def get_niveau(self):
+        clecertificat_courant: CleCertificat = self._etat_instance.clecertificat
+        exchanges = clecertificat_courant.get_exchanges
+        niveaux = [Constantes.SECURITE_SECURE, Constantes.SECURITE_PROTEGE, Constantes.SECURITE_PRIVE, Constantes.SECURITE_PUBLIC]
+        for niveau in niveaux:
+            if niveau in exchanges:
+                return niveau
+
+        raise Exception('certificat courant sans niveau de securite')
+
+    async def sauvegarder_clecert(self, clecertificat: CleCertificat):
+        path_secrets = pathlib.Path(self._etat_instance.configuration.path_secrets)
+        nom_certificat = 'pki.instance.cert'
+        nom_cle = 'pki.instance.key'
+        path_certificat = pathlib.Path(path_secrets, nom_certificat)
+        path_cle = pathlib.Path(path_secrets, nom_cle)
+
+        path_cle_old = pathlib.Path(str(path_cle) + '.old')
+        path_certificat_old = pathlib.Path(str(path_certificat) + '.old')
+        path_cle_work = pathlib.Path(str(path_cle) + '.work')
+        path_certificat_work = pathlib.Path(str(path_certificat) + '.work')
+
+        # Conserver le contenu dans des fichiers .work - permet de reduire risque de perte de certificat sur renouvellement
+        with open(path_cle_work, 'wb') as fichier:
+            fichier.write(clecertificat.private_key_bytes())
+        with open(path_certificat_work, 'w') as fichier:
+            cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
+            fichier.write(cert_str)
+
+        # Preparation a la sauvegarde - rotation de old avec courant
+        path_cle_old.unlink(missing_ok=True)
+        path_certificat_old.unlink(missing_ok=True)
+        try:
+            path_cle.rename(path_cle_old)
+        except OSError as e:
+            if e.errno == errno.ENONET:
+                pass  # Fichier original n'existe pas - sauvegarder le nouveau
+            else:
+                raise e
+        try:
+            path_certificat.rename(path_certificat_old)
+        except OSError as e:
+            if e.errno == errno.ENONET:
+                pass  # Fichier original n'existe pas - sauvegarder le nouveau
+            else:
+                raise e
+
+        # Sauvegarder les nouveaux certificats
+        path_cle_work.rename(path_cle)
+        path_certificat_work.rename(path_certificat)
+
+
+class CommandeSignatureModule(CommandeSignature):
+
+    def __init__(self, etat_instance, nom_module: str):
+        super().__init__(etat_instance)
+        self.__nom_module = nom_module
+
+    @property
+    def nom_module(self):
+        return self.__nom_module
+
+    async def run(self, producer=None):
+        raise NotImplementedError('must implement')
 
 
 class GenerateurCertificatsHandler:
@@ -598,6 +714,7 @@ class GenerateurCertificatsHandler:
     async def threads(self):
         tasks = [
             asyncio.create_task(self.thread_entretien()),
+            asyncio.create_task(self.thread_signature()),
         ]
         await asyncio.gather(*tasks)
 
@@ -625,14 +742,34 @@ class GenerateurCertificatsHandler:
             except asyncio.TimeoutError:
                 pass  # OK
 
-    async def entretien_repertoire_secrets(self):
-        try:
-            producer = await self.__etat_instance.get_producer(timeout=10)
-        except Exception:
-            self.__logger.warning("entretien_repertoire_secrets MQ non disponible")
-            producer = None
+    async def thread_signature(self):
+        pending = {asyncio.create_task(self.__etat_instance.stop_event.wait())}
 
+        while self.__etat_instance.stop_event.is_set() is False:
+            pending.add(asyncio.create_task(self.__q_signer.get()))
+            done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+            for d in done:
+                if d.exception():
+                    self.__logger.exception("thread_signature Erreur task : %s" % d.exception())
+                else:
+                    result: CommandeSignature = d.result()
+                    await self.__signer(result)
+                    if result.exception:
+                        self.__logger.error("thread_signature Erreur execution commande %s : %s" % (result.__class__, result.exception))
+
+        for p in pending:
+            p.cancel()
+            try:
+                await p
+            except asyncio.CancelledError:
+                pass  # OK
+
+    async def entretien_repertoire_secrets(self):
         # Detecter expiration certificat instance
+        try:
+            await self.entretien_certificat_instance()
+        except Exception:
+            self.__logger.exception("entretien_repertoire_secrets Erreur entretien certificat instance")
 
         # Verifier certificats de modules
 
@@ -647,3 +784,24 @@ class GenerateurCertificatsHandler:
         except Exception:
             self.__logger.exception('entretien_docker Erreur nettoyer_configuration_expiree')
 
+    async def entretien_certificat_instance(self):
+        enveloppe_instance = self.__etat_instance.clecertificat.enveloppe
+        expiration_instance = enveloppe_instance.calculer_expiration()
+        if expiration_instance.get('expire') is True:
+            self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
+            # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
+            await self.__etat_instance.stop()
+        elif expiration_instance.get('renouveler') is True:
+            self.__logger.info("Certificat d'instance peut etre renouvele")
+            await self.__q_signer.put(CommandeSignatureInstance(self.__etat_instance))
+
+    async def __signer(self, commande: CommandeSignature):
+        try:
+            await commande.run(self.__etat_instance)
+        except Exception as e:
+            commande.exception = e
+        finally:
+            commande.set_done()
+
+    async def sauvegarder_certificat(self, commande: CommandeSignature, reponse: dict):
+        pass
