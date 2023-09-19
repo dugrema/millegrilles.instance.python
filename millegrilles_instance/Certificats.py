@@ -564,8 +564,9 @@ def generer_password(type_generateur='password', size: int = None):
 
 class CommandeSignature:
 
-    def __init__(self, etat_instance):
+    def __init__(self, etat_instance, etat_docker):
         self._etat_instance = etat_instance
+        self._etat_docker = etat_docker
         self.__event_done = asyncio.Event()
         self.__exception = None
         self.__result = None
@@ -592,11 +593,55 @@ class CommandeSignature:
         raise NotImplementedError('must implement')
 
 
+def sauvegarder_clecert(path_secrets: pathlib.Path, nom_module: str, clecertificat: CleCertificat,
+                        combiner_keycert=False):
+    nom_certificat = f'pki.{nom_module}.cert'
+    nom_cle = f'pki.{nom_module}.cle'
+    path_certificat = pathlib.Path(path_secrets, nom_certificat)
+    path_cle = pathlib.Path(path_secrets, nom_cle)
+
+    path_cle_old = pathlib.Path(str(path_cle) + '.old')
+    path_certificat_old = pathlib.Path(str(path_certificat) + '.old')
+    path_cle_work = pathlib.Path(str(path_cle) + '.work')
+    path_certificat_work = pathlib.Path(str(path_certificat) + '.work')
+
+    # Conserver le contenu dans des fichiers .work - permet de reduire risque de perte de certificat sur renouvellement
+    cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
+    with open(path_cle_work, 'wb') as fichier:
+        fichier.write(clecertificat.private_key_bytes())
+        if combiner_keycert is True:
+            fichier.write(cert_str.encode('utf-8'))
+    with open(path_certificat_work, 'w') as fichier:
+        fichier.write(cert_str)
+
+    # Preparation a la sauvegarde - rotation de old avec courant
+    path_cle_old.unlink(missing_ok=True)
+    path_certificat_old.unlink(missing_ok=True)
+    try:
+        path_cle.rename(path_cle_old)
+    except OSError as e:
+        if e.errno == errno.ENONET:
+            pass  # Fichier original n'existe pas - sauvegarder le nouveau
+        else:
+            raise e
+    try:
+        path_certificat.rename(path_certificat_old)
+    except OSError as e:
+        if e.errno == errno.ENONET:
+            pass  # Fichier original n'existe pas - sauvegarder le nouveau
+        else:
+            raise e
+
+    # Sauvegarder les nouveaux certificats
+    path_cle_work.rename(path_cle)
+    path_certificat_work.rename(path_certificat)
+
+
 class CommandeSignatureInstance(CommandeSignature):
 
-    def __init__(self, etat_instance):
+    def __init__(self, etat_instance, etat_docker):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        super().__init__(etat_instance)
+        super().__init__(etat_instance, etat_docker)
 
     async def run(self):
         producer = await self._etat_instance.get_producer()
@@ -685,22 +730,38 @@ class CommandeSignatureInstance(CommandeSignature):
 
 class CommandeSignatureModule(CommandeSignature):
 
-    def __init__(self, etat_instance, nom_module: str):
-        super().__init__(etat_instance)
+    def __init__(self, etat_instance, etat_docker, nom_module: str, configuration: Optional[dict] = None):
+        super().__init__(etat_instance, etat_docker)
         self.__nom_module = nom_module
+        self.__configuration = configuration
 
     @property
     def nom_module(self):
-        return self.__nom_module
+        return self.__configuration['module']
 
     async def run(self):
-        raise NotImplementedError('must implement')
+        producer = await self._etat_instance.get_producer()
+        client_session = self._etat_instance.client_session
+
+        value = self.__configuration or dict()
+        nom_local_certificat = value.get('nom') or self.__nom_module
+
+        clecertificat = await generer_nouveau_certificat(
+            producer, client_session, self._etat_instance, nom_local_certificat, value)
+
+        path_secrets = pathlib.Path(self._etat_instance.configuration.path_secrets)
+        sauvegarder_clecert(path_secrets, nom_local_certificat, clecertificat)
+
+        if self._etat_docker:
+            combiner_keycert = value.get('combiner_keycert') or False
+            await self._etat_docker.assurer_clecertificat(
+                nom_local_certificat, clecertificat, combiner_keycert)
 
 
 class CommandeRotationMaitredescles(CommandeSignatureModule):
 
-    def __init__(self, etat_instance, nom_module: str):
-        super().__init__(etat_instance, nom_module)
+    def __init__(self, etat_instance, etat_docker, nom_module: str, configuration: Optional[dict] = None):
+        super().__init__(etat_instance, etat_docker, nom_module, configuration)
 
     async def run(self):
         raise NotImplementedError('must implement')
@@ -793,20 +854,19 @@ class GenerateurCertificatsHandler:
             self.__logger.exception("entretien_repertoire_secrets Erreur entretien certificat instance")
 
     async def entretien_modules(self):
-        configuration = await self.__get_configuration_modules()
+
+        # Verifier certificats de modules
+        try:
+            await self.generer_commandes_modules()
+        except Exception:
+            self.__logger.exception("entretien_docker Erreur generer_commandes_modules")
 
         if self.__etat_docker is not None:
-            # Verifier certificats de modules
-
             # Entretien config/secrets
             try:
                 await nettoyer_configuration_expiree(self.__etat_docker)
             except Exception:
                 self.__logger.exception('entretien_docker Erreur nettoyer_configuration_expiree')
-
-        else:
-            # Mode repertoire secrets uniquement
-            pass
 
     async def entretien_certificat_instance(self):
         enveloppe_instance = self.__etat_instance.clecertificat.enveloppe
@@ -817,7 +877,7 @@ class GenerateurCertificatsHandler:
             await self.__etat_instance.stop()
         elif expiration_instance.get('renouveler') is True:
             self.__logger.info("Certificat d'instance peut etre renouvele")
-            await self.__q_signer.put(CommandeSignatureInstance(self.__etat_instance))
+            await self.__q_signer.put(CommandeSignatureInstance(self.__etat_instance, self.__etat_docker))
 
     async def __signer(self, commande: CommandeSignature):
         try:
@@ -827,5 +887,41 @@ class GenerateurCertificatsHandler:
         finally:
             commande.set_done()
 
-    async def sauvegarder_certificat(self, commande: CommandeSignature, reponse: dict):
-        pass
+    async def generer_commandes_modules(self):
+        configuration = await self.__get_configuration_modules()
+
+        # Verifier certificats de module dans le repertoire secret. Generer commandes si necessaire.
+        path_secrets = self.__etat_instance.configuration.path_secrets
+        for nom_module, value in configuration.items():
+            self.__logger.debug("generer_commandes_modules Verification certificat %s" % nom_module)
+
+            nom_certificat = 'pki.%s.cert' % nom_module
+            nom_cle = 'pki.%s.cle' % nom_module
+            path_certificat = path.join(path_secrets, nom_certificat)
+            path_cle = path.join(path_secrets, nom_cle)
+
+            roles = None
+            doit_generer = False
+
+            try:
+                clecertificat = CleCertificat.from_files(path_cle, path_certificat)
+                enveloppe = clecertificat.enveloppe
+                roles = enveloppe.get_roles
+
+                # Ok, verifier si le certificat doit etre renouvele
+                detail_expiration = enveloppe.calculer_expiration()
+                if detail_expiration['expire'] is True or detail_expiration['renouveler'] is True:
+                    doit_generer = True
+
+            except FileNotFoundError:
+                self.__logger.debug("generer_commandes_modules Certificat %s non trouve, on le genere" % nom_module)
+                doit_generer = True
+
+            # if doit_generer:  # TODO DEBUG
+            if True:
+                self.__logger.info("generer_commandes_modules Generer nouveau certificat pour %s" % nom_module)
+                if 'maitredescles' in roles:
+                    commande = CommandeRotationMaitredescles(self.__etat_instance, self.__etat_docker, nom_module, value)
+                else:
+                    commande = CommandeSignatureModule(self.__etat_instance, self.__etat_docker, nom_module, value)
+                await self.__q_signer.put(commande)
