@@ -61,6 +61,7 @@ class EtatInstance:
         self.__formatteur_message: Optional[FormatteurMessageMilleGrilles] = None
         self.__validateur_certificats: Optional[ValidateurCertificatCache] = None
         self.__validateur_message: Optional[ValidateurMessage] = None
+        self.__generateur_certificats = None
 
         self.__stop_event: Optional[Event] = None
         self.__redemarrer = False
@@ -71,8 +72,14 @@ class EtatInstance:
 
         self.__emetteur_notifications: Optional[EmetteurNotifications] = None
 
+        self.__producer_set_event = None
+        self.__producer_cb = None
+
     async def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
+
+        if self.__producer_set_event is None:
+            self.__producer_set_event = asyncio.Event()
 
         self.__ip_address = get_ip()
         self.__hostname = get_hostname(fqdn=True)
@@ -209,6 +216,13 @@ class EtatInstance:
             env_cache = CacheCertificat(certificat)
             self.__certificats_maitredescles[fingerprint] = env_cache
 
+    async def get_producer(self, timeout=5):
+        if self.__producer_cb is None:
+            await asyncio.wait_for(self.__producer_set_event.wait(), timeout=timeout)
+        if self.__producer_cb is not None:
+            return await self.__producer_cb(timeout)
+        return None
+
     @property
     def stop_event(self):
         return self.__stop_event
@@ -282,6 +296,10 @@ class EtatInstance:
     def set_entretien_nginx(self, entretien_nginx):
         self.__entretien_nginx = entretien_nginx
 
+    def set_producer(self, producer_cb):
+        self.__producer_cb = producer_cb
+        self.__producer_set_event.set()
+
     @property
     def client_session(self):
         return self.__client_session
@@ -301,6 +319,14 @@ class EtatInstance:
     @property
     def validateur_message(self):
         return self.__validateur_message
+
+    @property
+    def generateur_certificats(self):
+        return self.__generateur_certificats
+
+    @generateur_certificats.setter
+    def generateur_certificats(self, generateur_certificats):
+        self.__generateur_certificats = generateur_certificats
 
     def doit_activer_443(self):
         """

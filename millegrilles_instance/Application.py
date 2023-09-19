@@ -4,7 +4,6 @@ import argparse
 import asyncio
 import logging
 import signal
-import sys
 
 from asyncio import Event
 from asyncio.exceptions import TimeoutError
@@ -18,7 +17,7 @@ from millegrilles_instance.WebServer import WebServer
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance.EntretienInstance import get_module_execution
-from millegrilles_instance import Constantes as ConstantesInstance
+from millegrilles_instance.Certificats import GenerateurCertificatsHandler
 
 
 async def initialiser_application():
@@ -38,7 +37,6 @@ async def initialiser_application():
 
     signal.signal(signal.SIGINT, app.exit_gracefully)
     signal.signal(signal.SIGTERM, app.exit_gracefully)
-    # signal.signal(signal.SIGHUP, app.reload_configuration)
 
     await app.preparer_environnement()
 
@@ -105,6 +103,8 @@ class ApplicationInstance:
         await self.__etat_instance.reload_configuration()  # Genere les certificats sur premier acces
 
         self.__etat_instance.ajouter_listener(self.changer_etat_execution)
+
+        self.__etat_instance.generateur_certificats = GenerateurCertificatsHandler(self.__etat_instance)
 
         self.__web_server = WebServer(self.__etat_instance)
         self.__web_server.setup()
@@ -201,13 +201,12 @@ class ApplicationInstance:
         :return:
         """
         self.__loop = asyncio.get_event_loop()
-        # self._stop_event = Event()
-        # self.__etat_instance.set_stop_event(self._stop_event)
 
         tasks = [
             asyncio.create_task(self.entretien(), name="Entretien app"),
-            self.__web_server.run(self._stop_event),
-            self.__fermer_cleanup(),
+            asyncio.create_task(self.__web_server.run(self._stop_event)),
+            asyncio.create_task(self.__fermer_cleanup()),
+            asyncio.create_task(self.__etat_instance.generateur_certificats.threads()),
         ]
 
         if self.__docker_etat is not None:
@@ -215,10 +214,22 @@ class ApplicationInstance:
 
         # Execution de la loop avec toutes les tasks
         try:
-            await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
+            done, pending = await asyncio.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
             self.__logger.info("Fin d'au moins une task application - cleanup")
         finally:
             await self.fermer()
+
+        self.__logger.info("Attente fermeture toutes les threads (10 secondes max)")
+        done, pending = await asyncio.wait(pending, timeout=10)
+
+        for d in done:
+            if d.exception():
+                self.__logger.warning("Erreur fermeture - exception %s" % d.exception())
+
+        if len(pending) > 0:
+            for p in pending:
+                p.cancel()
+                await p
 
         self.__logger.info("Fin application.executer")
 

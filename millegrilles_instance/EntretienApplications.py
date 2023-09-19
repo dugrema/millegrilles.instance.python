@@ -98,16 +98,24 @@ class GestionnaireApplications:
 
     async def get_producer(self, timeout=5):
         if self.__rabbitmq_dao is None:
-            return
+            raise Exception('producer non disponible (rabbitmq non initialie)')
         producer = self.__rabbitmq_dao.get_producer()
-        if producer is None:
-            return None
+
+        date_debut = datetime.datetime.utcnow()
+        intervalle = datetime.timedelta(seconds=timeout)
+        while producer is None:
+            await asyncio.sleep(0.5)
+            if datetime.datetime.utcnow() - intervalle > date_debut:
+                raise Exception('producer non disponible (aucune connection)')
+            producer = self.__rabbitmq_dao.get_producer()
+
         pret = producer.producer_pret()
         if pret.is_set() is False:
             try:
                 await asyncio.wait_for(pret.wait(), timeout)
             except asyncio.TimeoutError:
-                return None
+                raise Exception('producer non disponible (timeout sur pret)')
+
         return producer
 
     # async def get_liste_configurations(self) -> list:

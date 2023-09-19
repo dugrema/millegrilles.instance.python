@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import datetime
 import logging
@@ -557,4 +558,92 @@ def generer_password(type_generateur='password', size: int = None):
         raise ValueError('Type de generateur inconnu : %s' % type_generateur)
 
     return valeur
+
+
+class CommandeSignature:
+
+    def __init__(self):
+        self.__event_done = asyncio.Event()
+        self.__exception = None
+        self.__result = None
+
+    @property
+    async def done(self, timeout=120):
+        await asyncio.wait_for(self.__event_done.wait(), timeout=timeout)
+        if self.__exception:
+            raise self.__exception
+        return self.__result
+
+
+class GenerateurCertificatsHandler:
+
+    def __init__(self, etat_instance):
+        self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        self.__etat_instance = etat_instance
+        self.__etat_docker = None
+        self.__derniere_notification: Optional[datetime.datetime] = None
+        self.__intervalle_notifications = datetime.timedelta(hours=12)
+
+        # Queue de certificats a signer
+        self.__q_signer = asyncio.Queue(maxsize=20)
+
+    @property
+    def etat_docker(self):
+        return self.__etat_docker
+
+    @etat_docker.setter
+    def etat_docker(self, etat_docker):
+        self.__etat_docker = etat_docker
+
+    async def threads(self):
+        tasks = [
+            asyncio.create_task(self.thread_entretien()),
+        ]
+        await asyncio.gather(*tasks)
+
+    async def thread_entretien(self):
+        """
+        Entretien des certificats. Gerer le repertoire de secrets et docker (si disponible).
+        """
+        while self.__etat_instance.stop_event.is_set() is False:
+            self.__logger.debug("thread_entretien Debut entretien")
+
+            try:
+                await self.entretien_repertoire_secrets()
+            except Exception:
+                self.__logger.exception("thread_entretien Erreur entretien_repertoire_secrets")
+
+            if self.__etat_docker is not None:
+                try:
+                    await self.entretien_docker()
+                except Exception:
+                    self.__logger.exception("thread_entretien Erreur entretien_repertoire_secrets")
+
+            self.__logger.debug("thread_entretien Fin entretien")
+            try:
+                await asyncio.wait_for(self.__etat_instance.stop_event.wait(), timeout=900)
+            except asyncio.TimeoutError:
+                pass  # OK
+
+    async def entretien_repertoire_secrets(self):
+        try:
+            producer = await self.__etat_instance.get_producer(timeout=10)
+        except Exception:
+            self.__logger.warning("entretien_repertoire_secrets MQ non disponible")
+            producer = None
+
+        # Detecter expiration certificat instance
+
+        # Verifier certificats de modules
+
+        pass
+
+    async def entretien_docker(self):
+        if self.__etat_docker is None:
+            raise Exception('etat_docker is None')
+
+        try:
+            await nettoyer_configuration_expiree(self.__etat_docker)
+        except Exception:
+            self.__logger.exception('entretien_docker Erreur nettoyer_configuration_expiree')
 
