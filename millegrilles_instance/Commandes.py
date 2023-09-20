@@ -76,6 +76,11 @@ class CommandHandler:
                         if Constantes.ROLE_CORE in roles:
                             return await self.sauvegarder_fiche_publique(message)
 
+                if action == ConstantesInstance.EVENEMENT_TOPOLOGIE_MODIFICATION_CONSIGNATION:
+                    if exchange == Constantes.SECURITE_PUBLIC and Constantes.SECURITE_PUBLIC in exchanges:
+                        if Constantes.ROLE_CORE in roles:
+                            return await self._etat_instance.entretien_nginx.charger_configuration_consignation(producer)
+
             if exchange == Constantes.SECURITE_PUBLIC and delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
                 if action == ConstantesInstance.REQUETE_CONFIGURATION_ACME:
                     return await self.get_configuration_acme(message)

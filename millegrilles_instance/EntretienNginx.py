@@ -119,13 +119,7 @@ class EntretienNginx:
         reponse_parsed = reponse.parsed
         if reponse_parsed['ok'] is True:
             self.__configuration_consignation = reponse_parsed
-            # S'assurer que le module de configuration nginx pour TOR est configure
-            instance_id = reponse_parsed['instance_id']
-            if self.__etat_instance.instance_id == instance_id:
-                # Local
-                url_consignation = 'https://fichiers:443'
-            else:
-                url_consignation = reponse_parsed['consignation_url']
+            url_consignation = reponse_parsed['consignation_url']
 
             nom_fichier = 'fichiers.proxypass.name'
             contenu = """# Fichier genere par EntretienNginx

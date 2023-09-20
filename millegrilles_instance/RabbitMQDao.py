@@ -114,6 +114,9 @@ class MqThread:
         res_configuration.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_CONFIGURER_DOMAINE))
 
+        res_configuration.ajouter_rk(Constantes.SECURITE_PUBLIC, 'evenement.CoreTopologie.%s' % (
+            ConstantesInstance.EVENEMENT_TOPOLOGIE_MODIFICATION_CONSIGNATION))
+
         if niveau_securite == Constantes.SECURITE_PROTEGE:
             res_configuration.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
 
