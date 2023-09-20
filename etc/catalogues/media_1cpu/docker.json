@@ -1,11 +1,11 @@
 {
   "nom": "media_1cpu",
-  "version": "2023.9.1",
+  "version": "2023.9.2",
   "securite": "4.secure",
   "dependances": [
     {
       "name": "media_1cpu",
-      "image": "docker.maple.maceroc.com:5000/millegrilles_media_python:2023.9.1",
+      "image": "docker.maple.maceroc.com:5000/millegrilles_media_python:2023.9.2",
       "certificat": {
         "roles": ["media"],
         "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]

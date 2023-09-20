@@ -1,7 +1,7 @@
 include /etc/nginx/conf.d/modules/fichiers.proxypass.name;
 # Proxypass name contient la configuration upstream
 # Exemple:
-#   set $upstream_fichiers https://fichiers:443;
+#   set $upstream_fichiers https://fichiers:1443;
 #   proxy_pass $upstream_fichiers;
 
 proxy_ssl_certificate         /run/secrets/nginx.cert.pem;
