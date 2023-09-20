@@ -27,10 +27,10 @@ creer_repertoires() {
 
   sudo chmod 2770 $PATH_LOGS
   sudo chown mginstance:millegrilles $PATH_MILLEGRILLES
-  sudo chmod 750 $PATH_MILLEGRILLES
+  sudo chmod 770 $PATH_MILLEGRILLES
 
-  sudo chmod 750 $PATH_MILLEGRILLES/issuer
-  sudo chown mgissuer:millegrilles $PATH_MILLEGRILLES/issuer
+  # sudo chmod 750 $PATH_MILLEGRILLES/issuer
+  # sudo chown mgissuer:millegrilles $PATH_MILLEGRILLES/issuer
 
   sudo chmod 2750 $PATH_MILLEGRILLES/consignation
   sudo chown mgfichiers:millegrilles $PATH_MILLEGRILLES/consignation
