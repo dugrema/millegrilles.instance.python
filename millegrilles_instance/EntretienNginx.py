@@ -1,6 +1,7 @@
 import datetime
 import json
 import os
+import urllib3
 
 import aiohttp
 import logging
@@ -118,8 +119,16 @@ class EntretienNginx:
         reponse = await producer.executer_requete(requete, 'CoreTopologie', 'getConsignationFichiers', Constantes.SECURITE_PRIVE)
         reponse_parsed = reponse.parsed
         if reponse_parsed['ok'] is True:
-            self.__configuration_consignation = reponse_parsed
+            instance_id_consignation = reponse_parsed['instance_id']
             url_consignation = reponse_parsed['consignation_url']
+
+            if self.__etat_instance.instance_id == instance_id_consignation:
+                self.__configuration_consignation = reponse_parsed
+                url_parsed = urllib3.util.parse_url(url_consignation)
+                port = url_parsed.port or 443
+                if port == 444:
+                    self.__logger.info("Override url consignation avec port 444 - utilisation mapping interne docker pour nginx: https://fichiers:1443")
+                    url_consignation = 'https://fichiers:1443'  # Passe interne via docker
 
             nom_fichier = 'fichiers.proxypass.name'
             contenu = """# Fichier genere par EntretienNginx
