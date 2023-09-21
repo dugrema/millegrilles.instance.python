@@ -1,6 +1,6 @@
 {
   "nom": "docker-registry",
-  "version": "2023.9.1",
+  "version": "2023.9.3",
   "securite": "2.prive",
   "dependances": [
     {
@@ -9,8 +9,9 @@
       "config": {
         "name": "docker-registry",
         "env": {
-          "ENV REGISTRY_HTTP_TLS_CERTIFICATE": "/run/secrets/webcert.pem",
-          "REGISTRY_HTTP_TLS_KEY": "/run/secrets/webkey.pem"
+          "REGISTRY_HTTP_TLS_CERTIFICATE": "/run/secrets/webcert.pem",
+          "REGISTRY_HTTP_TLS_KEY": "/run/secrets/webkey.pem",
+          "REGISTRY_HTTP_ADDR": ":5000"
         },
         "mounts": [
           {"source": "acme-certificates", "target": "/opt/registry/secrets", "type": "volume", "read_only": true},
