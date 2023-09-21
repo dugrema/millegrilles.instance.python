@@ -1,6 +1,6 @@
 {
   "nom": "solr",
-  "version": "2023.9.2",
+  "version": "2023.9.3",
   "securite": "4.secure",
   "dependances": [
     {
@@ -72,7 +72,7 @@
       }
     },
     {
-      "name": "solr",
+      "name": "solr_server",
       "image": "docker.maple.maceroc.com:5000/mg_solr:9.2_0",
       "hostname": "solr",
       "mounts": [
@@ -83,7 +83,7 @@
         }
       ],
       "certificat": {
-        "nom": "solr",
+        "nom": "solr_server",
         "roles": ["solr"],
         "dns": {
           "localhost": true,
@@ -100,14 +100,14 @@
           "filename": "/run/secrets/pki.millegrille.cert"
         },
         {
-          "name": "pki.solr",
+          "name": "pki.solr_server",
           "current": "cert",
           "filename": "/run/secrets/cert.pem"
         }
       ],
       "secrets": [
         {
-          "name": "pki.solr",
+          "name": "pki.solr_server",
           "current": "key",
           "filename": "key.pem"
         }
