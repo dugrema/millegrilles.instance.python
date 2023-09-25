@@ -1,2 +1,2 @@
-set $upstream_coupdoeil https://coupdoeil:443;
+set $upstream_coupdoeil https://coupdoeil:1443;
 proxy_pass $upstream_coupdoeil;
