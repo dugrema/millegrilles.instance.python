@@ -147,7 +147,7 @@ class WebServer:
             resultat = await installer_instance(self.__etat_instance, request, headers_response=headers)
 
             if self.__webrunner_443 is not None:
-                self.__logger.info("Desactiver server instance sur port 443 pour demarrer nginx")
+                self.__logger.info("Desactiver server_coupdoeil instance sur port 443 pour demarrer nginx")
 
                 self.__logger.warning("Installation, redemarrer (peut pas arreter port 443 pour nginx)")
                 # await self.__etat_instance.reload_configuration()
