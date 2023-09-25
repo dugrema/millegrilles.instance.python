@@ -104,6 +104,7 @@ CONFIG_MODULES_PROTEGES = [
     'docker.mongo.json',
     'docker.midcompte.json',
     'docker.core.json',
+    'docker.webauth.json',
     'docker.maitrecomptes.json',
     'docker.coupdoeil.json',
 ]
@@ -113,6 +114,7 @@ CONFIG_MODULES_PRIVES = [
     'docker.nginx.json',
     'docker.redis.json',
     'docker.acme.json',
+    'docker.webauth.json',
 ]
 
 
@@ -120,6 +122,7 @@ CONFIG_MODULES_PUBLICS = [
     'docker.nginx.json',
     'docker.redis.json',
     'docker.acme.json',
+    'docker.webauth.json',
 ]
 
 
