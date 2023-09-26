@@ -80,8 +80,10 @@ location /millegrilles/socket.io {
   auth_request      /auth/verifier_usager_noauth;
   auth_request_set  $auth_x_user_name        $upstream_http_x_user_name;
   auth_request_set  $auth_x_user_id          $upstream_http_x_user_id;
-  proxy_set_header  X-User-Name       $auth_x_user_name;
-  proxy_set_header  X-User-Id         $auth_x_user_id;
+  auth_request_set  $auth_x_auth             $upstream_http_x_auth;
+  proxy_set_header  X-User-Name              $auth_x_user_name;
+  proxy_set_header  X-User-Id                $auth_x_user_id;
+  proxy_set_header  X-Auth                   $auth_x_auth;
 
   include /etc/nginx/conf.d/modules/millegrilles.proxypass;
   # socket.io est public, c'est la methode d'authentification
