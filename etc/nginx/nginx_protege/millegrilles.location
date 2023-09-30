@@ -1,23 +1,5 @@
 # Verification de l'authentification
 # Invoque pour **chaque** appel a nginx sous une page prive/protegee
-location = /millegrilles/authentification/verifier {
-  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
-  proxy_pass_request_body off; # no need to send the POST body
-
-  proxy_set_header  Content-Length "";
-  proxy_set_header  X-Real-IP $remote_addr;
-  proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
-  proxy_set_header  X-Forwarded-Proto $scheme;
-  proxy_set_header  Host $host;
-  proxy_set_header  X-Hostname $hostname;
-
-  client_max_body_size 101m;  # Limite batch upload
-}
-
-location /millegrilles/authentification {
-  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
-}
-
 location = /auth/verifier_usager {
   include /etc/nginx/conf.d/modules/webauth.proxypass;
   proxy_pass_request_body off; # no need to send the PUT/POST body
@@ -43,7 +25,7 @@ location = /auth/verifier_usager_noauth {
   proxy_set_header  Host $host;
   proxy_set_header  X-Hostname $hostname;
 
-  client_max_body_size 101m;  # Limite batch upload
+  client_max_body_size 32k;
 }
 
 location /auth {
@@ -56,18 +38,6 @@ location /auth {
   proxy_set_header  X-Hostname $hostname;
 }
 
-#location = /millegrilles/authentification/verifier_public {
-#  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
-#  proxy_pass_request_body off; # no need to send the POST body
-#
-#  proxy_set_header  Content-Length "";
-#  proxy_set_header  X-Real-IP $remote_addr;
-#  proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
-#  proxy_set_header  X-Forwarded-Proto $scheme;
-#  proxy_set_header  Host $host;
-#  proxy_set_header  X-Hostname $hostname;
-#}
-
 # API millegrilles, proteger via auth plugin
 location /millegrilles/api {
   include /etc/nginx/conf.d/modules/millegrilles.proxypass;
@@ -76,7 +46,8 @@ location /millegrilles/api {
 
 # Support socket.io, proteger via auth plugin
 location /millegrilles/socket.io {
-  # Passer parametres d'authentification si presents - retourne toujours Status 200
+  # Utiliser noauth pour toujours recuperer 200.
+  # Requis pour initialisation avec maitre des comptes.
   auth_request      /auth/verifier_usager_noauth;
   auth_request_set  $auth_x_user_name        $upstream_http_x_user_name;
   auth_request_set  $auth_x_user_id          $upstream_http_x_user_id;
@@ -92,9 +63,9 @@ location /millegrilles/socket.io {
 
 # Application React - s'occupe de l'authentification (non protege)
 location /millegrilles {
-#  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
-set $upstream_millegrilles https://thinkcentre1.maple.maceroc.com:3002;
-proxy_pass $upstream_millegrilles;
+  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
+#set $upstream_millegrilles https://thinkcentre1.maple.maceroc.com:3002;
+#proxy_pass $upstream_millegrilles;
   include /etc/nginx/conf.d/component_gzip.include;
 
   proxy_set_header  X-Real-IP $remote_addr;

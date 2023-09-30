@@ -1,6 +1,6 @@
 {
   "name": "maitrecomptes",
-  "image": "docker.maple.maceroc.com:5000/millegrilles_web:2023.8.0",
+  "image": "docker.maple.maceroc.com:5000/millegrilles_maitrecomptes_python:2023.9.0",
   "certificat": {
     "roles": ["maitrecomptes"],
     "exchanges": ["2.prive", "1.public"],
@@ -8,25 +8,16 @@
   },
   "passwords": ["maitrecomptessession"],
   "env": {
-    "MG_MQ_URL": "amqps://mq:5673",
-    "MG_MQ_CERTFILE": "/run/secrets/cert.pem",
-    "MG_MQ_KEYFILE": "/run/secrets/key.pem",
-    "MG_MQ_CAFILE": "/run/secrets/millegrille.cert.pem",
-    "WEB_CERT": "/run/secrets/webcert.pem",
-    "WEB_KEY": "/run/secrets/webkey.pem",
-    "MG_SESSION_PASSWORD": "/run/secrets/passwd.maitrecomptessession.txt",
-    "MG_REDIS_HOST": "redis",
-    "MG_REDIS_PORT": "6379",
-    "MG_MQ_REDIS_PASSWD": "/run/secrets/passwd.redis.txt",
-    "SERVER_TYPE": "spdy",
-    "HOST": "${HOSTNAME}",
-    "PORT": "443",
-    "DATA_FOLDER": "/var/opt/millegrilles/nginx/data"
+    "MQ_HOSTNAME": "${MQ_HOSTNAME}",
+    "MQ_PORT": "${MQ_PORT}",
+    "REDIS_HOSTNAME": "redis",
+    "REDIS_PORT": "6379",
+    "REDIS_PASSWORD_PATH": "/run/secrets/passwd.redis.txt",
+    "CERT_PEM": "/run/secrets/cert.pem",
+    "KEY_PEM": "/run/secrets/key.pem",
+    "CA_PEM": "/run/secrets/millegrille.cert.pem",
+    "WEB_PORT": "1443"
   },
-  "mounts": [
-    {"source": "nginx-data", "target":  "/var/opt/millegrilles/nginx/data", "type": "volume"},
-    {"source": "/var/opt/millegrilles/nginx/html", "target":  "/var/opt/millegrilles/nginx/html", "type": "bind", "read_only":  true}
-  ],
   "constraints": [
     "node.labels.millegrilles.web == true"
   ],
@@ -55,11 +46,6 @@
       "filename": "webkey.pem"
     },
     {
-      "name": "passwd.maitrecomptessession",
-      "current": "password",
-      "filename": "passwd.maitrecomptessession.txt"
-    },
-    {
       "name": "passwd.redis",
       "current": "password",
       "filename": "passwd.redis.txt"
@@ -74,7 +60,7 @@
   },
   "resources": {
     "cpu_limit": 1000000000,
-    "mem_limit": 250000000
+    "mem_limit": 150000000
   },
   "restart_policy": {
     "condition": "on-failure",
