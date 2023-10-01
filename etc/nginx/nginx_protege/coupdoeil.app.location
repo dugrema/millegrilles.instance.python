@@ -1,8 +1,3 @@
-location /coupdoeil {{
-    include /etc/nginx/conf.d/modules/coupdoeil.proxypass;
-    include /etc/nginx/conf.d/component_base_auth.include;
-}}
-
 location /coupdoeil/initSession {{
     include /etc/nginx/conf.d/modules/coupdoeil.proxypass;
     include /etc/nginx/conf.d/component_base_auth.include;
