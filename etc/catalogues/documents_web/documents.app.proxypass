@@ -1,4 +1,4 @@
-set $upstream_{appname} https://documents:443;
+set $upstream_{appname} https://documents:1443;
 proxy_pass $upstream_{appname};
 
 proxy_ssl_certificate         /run/secrets/nginx.cert.pem;

@@ -1,6 +1,6 @@
 {
   "nom": "senseurspassifs_web",
-  "version": "2023.9.3",
+  "version": "2023.9.4",
   "description": {
     "en": "Senseurs Passifs (web)",
     "fr": "Senseurs Passifs (web)"
@@ -16,17 +16,15 @@
         "exchanges": ["2.prive", "1.public"]
       },
       "env": {
-        "MG_MQ_URL": "amqps://${MQ_HOSTNAME}:${MQ_PORT}",
-        "MG_MQ_CERTFILE": "/run/secrets/cert.pem",
-        "MG_MQ_KEYFILE": "/run/secrets/key.pem",
-        "MG_MQ_CAFILE": "/run/secrets/millegrille.cert.pem",
-        "WEB_CERT": "/run/secrets/cert.pem",
-        "WEB_KEY": "/run/secrets/key.pem",
-        "SERVER_TYPE": "spdy",
-        "PORT": "443",
-        "MG_REDIS_HOST": "redis",
-        "MG_REDIS_PORT": "6379",
-        "MG_MQ_REDIS_PASSWD": "/run/secrets/passwd.redis.txt"
+        "MQ_HOSTNAME": "${MQ_HOSTNAME}",
+        "MQ_PORT": "${MQ_PORT}",
+        "REDIS_HOSTNAME": "redis",
+        "REDIS_PORT": "6379",
+        "REDIS_PASSWORD_PATH": "/run/secrets/passwd.redis.txt",
+        "CERT_PEM": "/run/secrets/cert.pem",
+        "KEY_PEM": "/run/secrets/key.pem",
+        "CA_PEM": "/run/secrets/millegrille.cert.pem",
+        "WEB_PORT": "1443"
       },
       "configs": [
         {

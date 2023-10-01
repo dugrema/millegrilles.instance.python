@@ -1,6 +1,6 @@
 {
   "nom": "maitrecomptes",
-  "version": "2023.9.0",
+  "version": "2023.9.1",
   "securite": "2.prive",
   "dependances": [
     {
@@ -13,21 +13,15 @@
       },
       "passwords": [ "maitrecomptessession" ],
       "env": {
-        "MG_MQ_URL": "amqps://${MQ_HOSTNAME}:${MQ_PORT}",
-        "MG_MQ_CERTFILE": "/run/secrets/cert.pem",
-        "MG_MQ_KEYFILE": "/run/secrets/key.pem",
-        "MG_MQ_CAFILE": "/run/secrets/millegrille.cert.pem",
-        "WEB_CERT": "/run/secrets/webcert.pem",
-        "WEB_KEY": "/run/secrets/webkey.pem",
-        "MG_SESSION_PASSWORD": "/run/secrets/passwd.maitrecomptessession.txt",
-        "MG_REDIS_HOST": "redis",
-        "MG_REDIS_PORT": "6379",
-        "MG_MQ_REDIS_PASSWD": "/run/secrets/passwd.redis.txt",
-        "SERVER_TYPE": "spdy",
-        "HOST": "${HOSTNAME}",
-        "PORT": "443",
-        "DATA_FOLDER": "/var/opt/millegrilles/nginx/data",
-        "DESACTIVER_IP_LOCK": "1"
+        "MQ_HOSTNAME": "${MQ_HOSTNAME}",
+        "MQ_PORT": "${MQ_PORT}",
+        "REDIS_HOSTNAME": "redis",
+        "REDIS_PORT": "6379",
+        "REDIS_PASSWORD_PATH": "/run/secrets/passwd.redis.txt",
+        "CERT_PEM": "/run/secrets/cert.pem",
+        "KEY_PEM": "/run/secrets/key.pem",
+        "CA_PEM": "/run/secrets/millegrille.cert.pem",
+        "WEB_PORT": "1443"
       },
       "mounts": [
         {
