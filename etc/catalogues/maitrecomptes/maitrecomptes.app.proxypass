@@ -1,5 +1,5 @@
-set $upstream https://maitrecomptes:443;
-proxy_pass $upstream;
+set $upstream_maitredescomptes https://maitrecomptes:443;
+proxy_pass $upstream_maitredescomptes;
 
 proxy_ssl_certificate         /run/secrets/nginx.cert.pem;
 proxy_ssl_certificate_key     /run/secrets/nginx.key.pem;
