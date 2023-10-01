@@ -1,0 +1,39 @@
+# Verification de l'authentification
+# Invoque pour **chaque** appel a nginx sous une page prive/protegee
+location = /auth/verifier_usager {
+  include /etc/nginx/conf.d/modules/webauth.proxypass;
+  proxy_pass_request_body off; # no need to send the PUT/POST body
+
+  proxy_set_header  Content-Length "";
+  proxy_set_header  X-Real-IP $remote_addr;
+  proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header  X-Forwarded-Proto $scheme;
+  proxy_set_header  Host $host;
+  proxy_set_header  X-Hostname $hostname;
+
+  client_max_body_size 101m;  # Limite batch upload
+}
+
+location = /auth/verifier_usager_noauth {
+  include /etc/nginx/conf.d/modules/webauth.proxypass;
+  proxy_pass_request_body off; # no need to send the PUT/POST body
+
+  proxy_set_header  Content-Length "";
+  proxy_set_header  X-Real-IP $remote_addr;
+  proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header  X-Forwarded-Proto $scheme;
+  proxy_set_header  Host $host;
+  proxy_set_header  X-Hostname $hostname;
+
+  client_max_body_size 32k;
+}
+
+location /auth {
+  include /etc/nginx/conf.d/modules/webauth.proxypass;
+
+  proxy_set_header  X-Real-IP $remote_addr;
+  proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header  X-Forwarded-Proto $scheme;
+  proxy_set_header  Host $host;
+  proxy_set_header  X-Hostname $hostname;
+}
