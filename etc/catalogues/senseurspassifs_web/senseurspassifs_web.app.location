@@ -1,6 +1,15 @@
+location /senseurspassifs/socket.io {
+  set $upstream https://senseurspassifs_web:1443;
+#set $upstream https://[SERVER]:4013;
+  proxy_pass $upstream;
+  include /etc/nginx/conf.d/component_base_auth.include;
+  client_max_body_size 64k;
+}
+
 location /senseurspassifs {{
-  set $upstream_{appname} https://senseurspassifs_web:443;
-  proxy_pass $upstream_{appname};
+  set $upstream https://senseurspassifs_web:1443;
+#set $upstream https://[SERVER]:3014;
+  proxy_pass $upstream;
 
   include /etc/nginx/conf.d/auth.include;
 
