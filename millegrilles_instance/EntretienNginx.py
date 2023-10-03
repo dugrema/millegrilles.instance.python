@@ -236,7 +236,11 @@ proxy_pass $upstream_fichiers;
         })
 
         path_destination = path.join(path_nginx_modules, nom_fichier)
-        contenu = contenu.format(**params)
+        try:
+            contenu = contenu.format(**params)
+        except (KeyError, ValueError):
+            self.__logger.exception("Erreur configuration fichier %s\n%s\n" % (nom_fichier, contenu))
+            return False
 
         changement_detecte = False
         try:
