@@ -1,3 +1,10 @@
+location /collections/socket.io {{
+  include /etc/nginx/conf.d/modules/collections.app.proxypass;
+#set $upstream_collections https://__SERVER__:4037;
+#proxy_pass $upstream_collections;
+  include /etc/nginx/conf.d/component_base_auth.include;
+}}
+
 location = /collections/initSession {{
   include /etc/nginx/conf.d/modules/collections.app.proxypass;
   proxy_pass_request_body off;
@@ -5,23 +12,10 @@ location = /collections/initSession {{
   include /etc/nginx/conf.d/auth.include;
 }}
 
-location = /collections/fichiers/verifier {{
-  include /etc/nginx/conf.d/modules/collections.app.proxypass;
-  proxy_pass_request_body off;
-  proxy_set_header X-Original-URI $request_uri;
-}}
-
-location = /collections/streams/verifier {{
-  include /etc/nginx/conf.d/modules/collections.app.proxypass;
-  proxy_pass_request_body off;
-  proxy_set_header X-Original-URI $request_uri;
-}}
-
 location /collections/fichiers {{
   include /etc/nginx/conf.d/modules/fichiers.proxypass;
 
-  # Laisser collections confirmer que l'usager est actif, a acces au fichier
-  auth_request      /collections/fichiers/verifier;
+  include /etc/nginx/conf.d/component_base_auth.include;
 
   # consignation.fichiers supporte les transfert avec PUT/POST/DELETE
   # Ces transferts doivent etre bloques (utiliser /upload de collections a la place)
@@ -31,11 +25,6 @@ location /collections/fichiers {{
 
   # Rewrite pour consignation.grosfichiers
   rewrite ^(/collections/fichiers/)(.*)$ /fichiers_transfert/$2 break;
-
-  # Override header verified, aucun check SSL requis (cert nginx uniquement)
-  proxy_set_header VERIFIED INTERNAL;
-  proxy_set_header  Host              $host;
-  proxy_set_header  X-Hostname        $hostname;
 
   # Cache de fichiers du proxy
   proxy_cache       cache_fichiers;
@@ -57,8 +46,7 @@ location /collections/fichiers {{
 location /collections/streams {{
   include /etc/nginx/conf.d/modules/stream.app.proxypass;
 
-  # Laisser collections confirmer que l'usager est actif, a acces au fichier
-  auth_request      /collections/streams/verifier;
+  auth_request      /auth/verifier_fuuid_jwt;
 
   # consignation.fichiers supporte les transfert avec PUT/POST/DELETE
   # Ces transferts doivent etre bloques (utiliser /upload de collections a la place)
@@ -69,10 +57,19 @@ location /collections/streams {{
   # Rewrite pour consignation.grosfichiers
   rewrite ^(/collections/streams/)(.*)$ /stream_transfert/$2 break;
 
-  # Override header verified, aucun check SSL requis (cert nginx uniquement)
-  proxy_set_header VERIFIED INTERNAL;
-  proxy_set_header  Host              $host;
-  proxy_set_header  X-Hostname        $hostname;
+  # Retourner l'identificateur user_id avec etat auth (0 ou 1). user_name est optionnel.
+  auth_request_set  $auth_x_user_id    $upstream_http_x_user_id;
+  auth_request_set  $auth_x_user_name  $upstream_http_x_user_name;
+  auth_request_set  $auth_x_auth       $upstream_http_x_auth;
+
+  proxy_set_header  X-Hostname   $hostname;
+  proxy_set_header  X-User-Name  $auth_x_user_name;
+  proxy_set_header  X-User-Id    $auth_x_user_id;
+  proxy_set_header  X-Auth       $auth_x_auth;
+  proxy_set_header  X-Original-URI $request_uri;  # Passthrough du jwt au besoin
+
+  include /etc/nginx/conf.d/component_proxyheaders.include;
+
   # Range est requis pour slice
   proxy_set_header  Range $slice_range;
 
