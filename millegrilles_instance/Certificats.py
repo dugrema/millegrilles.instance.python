@@ -379,6 +379,7 @@ async def generer_nouveau_certificat(producer: Optional[MessageProducerFormatteu
                 logger.exception("generer_nouveau_certificat ERRERUR Generation certificat %s : echec creation certificat en https et mq" % nom_module)
                 raise e
         else:
+            logger.warning("generer_nouveau_certificat Echec genere certificat en https et producer MQ est None")
             # Producer (MQ) non disponible
             raise e
 
@@ -758,9 +759,13 @@ class CommandeSignatureModule(CommandeSignature):
 
     async def _run(self):
         try:
-            producer = await self._etat_instance.get_producer(timeout=0.5)
+            producer = await self._etat_instance.get_producer(timeout=5)
+            if producer is None:
+                # Attente initiale de MQ
+                await asyncio.sleep(2)
+                producer = await self._etat_instance.get_producer(timeout=2)
         except Exception as e:
-            self.__logger.info("Producer (MQ) non disponible, utiliser https local")
+            self.__logger.exception("Producer (MQ) non disponible, utiliser https local")
             producer = None
 
         client_session = self._etat_instance.client_session
