@@ -1,6 +1,6 @@
 # API millegrilles, proteger via auth plugin
 location /millegrilles/api {{
-  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
+  include /etc/nginx/conf.d/modules/maitrecomptes.app.proxypass;
   include /etc/nginx/conf.d/component_base_auth.include;
 }}
 
@@ -16,14 +16,14 @@ location /millegrilles/socket.io {{
   proxy_set_header  X-User-Id                $auth_x_user_id;
   proxy_set_header  X-Auth                   $auth_x_auth;
 
-  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
+  include /etc/nginx/conf.d/modules/maitrecomptes.app.proxypass;
   # socket.io est public, c'est la methode d'authentification
   include /etc/nginx/conf.d/component_base.include;
 }}
 
 # Application React - s'occupe de l'authentification (non protege)
 location /millegrilles {{
-  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
+  include /etc/nginx/conf.d/modules/maitrecomptes.app.proxypass;
 #set $upstream_millegrilles https://[SERVER]:3002;
 #proxy_pass $upstream_millegrilles;
   include /etc/nginx/conf.d/component_gzip.include;

@@ -1,6 +1,6 @@
 {
   "nom": "maitrecomptes",
-  "version": "2023.9.2",
+  "version": "2023.9.3",
   "securite": "2.prive",
   "dependances": [
     {
