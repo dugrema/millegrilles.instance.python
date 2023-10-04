@@ -1,4 +1,4 @@
-set $upstream_maitredescomptes https://maitrecomptes:443;
+set $upstream_maitredescomptes https://maitrecomptes:1443;
 proxy_pass $upstream_maitredescomptes;
 
 proxy_ssl_certificate         /run/secrets/nginx.cert.pem;

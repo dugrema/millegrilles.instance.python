@@ -1,6 +1,6 @@
 {
   "nom": "maitrecomptes",
-  "version": "2023.9.1",
+  "version": "2023.9.2",
   "securite": "2.prive",
   "dependances": [
     {
@@ -103,7 +103,6 @@
   "nginx": {
     "conf": [
       "maitrecomptes.app.location",
-      "maitrecomptes.app.location.tls",
       "maitrecomptes.app.proxypass"
     ]
   }
