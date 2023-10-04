@@ -1,6 +1,6 @@
 # Verification de l'authentification TLS client
-location = /auth/verifier_client_tls {
-  if ( $ssl_client_verify != SUCCESS ) {return 403;}
+location = /auth/verifier_client_tls {{
+  if ( $ssl_client_verify != SUCCESS ) {{return 403;}}
   include /etc/nginx/conf.d/modules/webauth.proxypass;
   proxy_pass_request_body off; # no need to send the PUT/POST body
 
@@ -17,4 +17,4 @@ location = /auth/verifier_client_tls {
   proxy_set_header X-SSL-CERT $ssl_client_escaped_cert;
 
   client_max_body_size 200m;  # Limite batch upload
-}
+}}
