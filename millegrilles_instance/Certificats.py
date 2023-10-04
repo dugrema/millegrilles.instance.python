@@ -357,7 +357,7 @@ async def generer_nouveau_certificat(producer: Optional[MessageProducerFormatteu
     formatteur_message = etat_instance.formatteur_message
     message_signe, _uuid = formatteur_message.signer_message(Constantes.KIND_DOCUMENT, configuration)
 
-    logger.debug("Demande de signature de certificat pour %s => %s\n%s" % (nom_module, message_signe, csr_str))
+    logger.debug("generer_nouveau_certificat Demande de signature de certificat pour %s => %s\n%s" % (nom_module, message_signe, csr_str))
     url_issuer = etat_instance.certissuer_url
     path_csr = path.join(url_issuer, 'signerModule')
     try:
@@ -367,12 +367,17 @@ async def generer_nouveau_certificat(producer: Optional[MessageProducerFormatteu
 
         certificat = reponse['certificat']
     except (ClientConnectorError, ClientResponseError) as e:
-        logger.exception("Certissuer local non disponible, fallback CorePki")
+        logger.warning("generer_nouveau_certificat Certissuer local non disponible, fallback CorePki (Erreur https : %s)" % str(e))
         if producer is not None:
-            message_reponse = await producer.executer_commande(
-                configuration, 'CorePki', 'signerCsr', exchange=Constantes.SECURITE_PUBLIC)
-            reponse = message_reponse.parsed
-            certificat = reponse['certificat']
+            try:
+                message_reponse = await producer.executer_commande(
+                    configuration, 'CorePki', 'signerCsr', exchange=Constantes.SECURITE_PUBLIC)
+                reponse = message_reponse.parsed
+                certificat = reponse['certificat']
+                logger.info("generer_nouveau_certificat Certificat %s recu via MQ pour" % nom_module)
+            except Exception as e:
+                logger.exception("generer_nouveau_certificat ERRERUR Generation certificat %s : echec creation certificat en https et mq" % nom_module)
+                raise e
         else:
             # Producer (MQ) non disponible
             raise e
@@ -382,7 +387,7 @@ async def generer_nouveau_certificat(producer: Optional[MessageProducerFormatteu
     if clecertificat.cle_correspondent() is False:
         raise Exception("Erreur cert/cle ne correspondent pas")
 
-    logger.debug("Reponse certissuer certificat %s\n%s" % (nom_module, ''.join(certificat)))
+    logger.info("generer_nouveau_certificat Reponse certissuer certificat %s\n%s" % (nom_module, ''.join(certificat)))
     return clecertificat
 
 
@@ -755,7 +760,7 @@ class CommandeSignatureModule(CommandeSignature):
         try:
             producer = await self._etat_instance.get_producer(timeout=0.5)
         except Exception as e:
-            self.__logger.info("Producer (MQ) non disponible, utiliser MQ")
+            self.__logger.info("Producer (MQ) non disponible, utiliser https local")
             producer = None
 
         client_session = self._etat_instance.client_session
