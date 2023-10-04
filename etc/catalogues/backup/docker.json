@@ -1,6 +1,6 @@
 {
   "nom": "backup",
-  "version": "2023.9.1",
+  "version": "2023.9.2",
   "securite": "2.prive",
   "dependances": [
     {
