@@ -13,6 +13,9 @@ from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 
 
+LOGGER = logging.getLogger(__name__)
+
+
 class GestionnaireApplications:
 
     def __init__(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
@@ -138,6 +141,7 @@ class GestionnaireApplications:
 
 
 async def installer_application_sansdocker(etat_instance: EtatInstance, producer: MessageProducerFormatteur, configuration: dict):
+    """ Installe un certificat d'application sur une instance sans docker (e.g. RPi) """
     nom_application = configuration['nom']
     dependances = configuration['dependances']
     path_secrets = etat_instance.configuration.path_secrets
@@ -151,8 +155,11 @@ async def installer_application_sansdocker(etat_instance: EtatInstance, producer
             path_cert = path.join(path_secrets, 'pki.%s.cert' % nom_application)
             path_cle = path.join(path_secrets, 'pki.%s.cle' % nom_application)
             if path.exists(path_cert) is False or path.exists(path_cle) is False:
-                raise NotImplementedError('todo ou obsolete?')
-                # await etat_instance.generer_certificats_module_satellite(producer, None, nom_application, certificat)
+                LOGGER.info("generer_valeurs Generer certificat/secret pour %s" % nom_application)
+                clecertificat = await etat_instance.generateur_certificats.demander_signature(
+                    nom_application, certificat)
+                if clecertificat is None:
+                    raise Exception("generer_valeurs Erreur creation certificat %s" % nom_application)
 
         except KeyError:
             pass
