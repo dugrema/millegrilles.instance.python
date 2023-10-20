@@ -73,6 +73,7 @@ class EtatInstance:
 
         self.__producer_set_event = None
         self.__producer_cb = None
+        self.__attente_renouvellement_certificat = False
 
     async def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
@@ -175,6 +176,9 @@ class EtatInstance:
         pass
 
     async def entretien(self, get_producer=None):
+        if self.attente_renouvellement_certificat is True:
+            return  # Rien a faire
+
         if self.__validateur_certificats is not None:
             await self.__validateur_certificats.entretien()
 
@@ -326,6 +330,14 @@ class EtatInstance:
     @generateur_certificats.setter
     def generateur_certificats(self, generateur_certificats):
         self.__generateur_certificats = generateur_certificats
+
+    @property
+    def attente_renouvellement_certificat(self):
+        return self.__attente_renouvellement_certificat
+
+    @attente_renouvellement_certificat.setter
+    def attente_renouvellement_certificat(self, value):
+        self.__attente_renouvellement_certificat = value
 
     def doit_activer_443(self):
         """

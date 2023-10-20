@@ -949,9 +949,14 @@ class GenerateurCertificatsHandler:
         enveloppe_instance = self.__etat_instance.clecertificat.enveloppe
         expiration_instance = enveloppe_instance.calculer_expiration()
         if expiration_instance.get('expire') is True:
-            self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
+            if self.__etat_instance.attente_renouvellement_certificat:
+                self.__logger.info("entretien_certificat_instance Attente de renouvellement du certificat")
+                return  # Rien a faire, on attend
+
+            self.__logger.error("Certificat d'instance expire (%s), on redemarre l'instance en mode d'attente de renouvellement manuel")
             # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
             await self.__etat_instance.stop()
+
         elif expiration_instance.get('renouveler') is True:
             self.__logger.info("Certificat d'instance peut etre renouvele")
             await self.__q_signer.put(CommandeSignatureInstance(self.__etat_instance, self.__etat_docker))

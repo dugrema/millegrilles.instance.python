@@ -454,7 +454,6 @@ class InstanceInstallationAvecDocker(InstanceDockerAbstract):
         # makedirs(path_certissuer, 0o700, exist_ok=True)
 
 
-
 class InstanceDockerCertificatProtegeExpire(InstanceDockerAbstract):
 
     def __init__(self):
@@ -466,6 +465,7 @@ class InstanceDockerCertificatProtegeExpire(InstanceDockerAbstract):
 
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
         self.__logger.info("Setup InstanceCertificatProtegeExpire")
+        etat_instance.attente_renouvellement_certificat = True
         await super().setup(etat_instance, etat_docker)
 
     def get_config_modules(self) -> list:
@@ -483,6 +483,7 @@ class InstanceDockerCertificatSecureExpire(InstanceDockerAbstract):
 
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
         self.__logger.info("Setup InstanceDockerCertificatSecureExpire")
+        etat_instance.attente_renouvellement_certificat = True
         await super().setup(etat_instance, etat_docker)
 
     def get_config_modules(self) -> list:
@@ -500,6 +501,7 @@ class InstanceCertificatExpire(InstanceInstallation):
 
     async def setup(self, etat_instance: EtatInstance, etat_docker=None):
         self.__logger.info("Setup InstanceCertificatExpire")
+        etat_instance.attente_renouvellement_certificat = True
         await super().setup(etat_instance)
 
     def get_config_modules(self) -> list:
@@ -602,46 +604,6 @@ class InstanceProtegee(InstanceDockerAbstract):
         # Tache de copier des fichiers .xz inclus localement pour coupdoeil
         await self.__entretien_catalogues.entretien()
         await super().entretien_catalogues()
-
-    # async def entretien_certificats(self):
-    #     self.__logger.debug("entretien_certificats debut")
-    #
-    #     # Verifier certificat d'instance
-    #     # enveloppe_instance = self._etat_instance.clecertificat.enveloppe
-    #     # expiration_instance = enveloppe_instance.calculer_expiration()
-    #     # if expiration_instance['expire'] is True:
-    #     #     self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
-    #     #     # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
-    #     #     await self._etat_instance.stop()
-    #     # elif expiration_instance['renouveler'] is True:
-    #     # #else:
-    #     #     self.__logger.info("Certificat d'instance peut etre renouvele")
-    #     #     producer = self.__rabbitmq_dao.get_producer()
-    #     #     clecertificat = await renouveler_certificat_instance_protege(producer,
-    #     #                                                                  self._etat_instance.client_session,
-    #     #                                                                  self._etat_instance)
-    #     #     # Sauvegarder nouveau certificat
-    #     #     path_secrets = self._etat_instance.configuration.path_secrets
-    #     #     nom_certificat = 'pki.instance.cert'
-    #     #     nom_cle = 'pki.instance.key'
-    #     #     path_certificat = path.join(path_secrets, nom_certificat)
-    #     #     path_cle = path.join(path_secrets, nom_cle)
-    #     #     cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
-    #     #     with open(path_cle, 'wb') as fichier:
-    #     #         fichier.write(clecertificat.private_key_bytes())
-    #     #     with open(path_certificat, 'w') as fichier:
-    #     #         fichier.write(cert_str)
-    #     #
-    #     #     # Reload configuration avec le nouveau certificat
-    #     #     await self._etat_instance.reload_configuration()
-    #
-    #     configuration = await self.get_configuration_certificats()
-    #     producer = self.__rabbitmq_dao.get_producer()
-    #     await generer_certificats_modules(producer, self._etat_instance.client_session, self._etat_instance,
-    #                                       configuration, self._etat_docker)
-    #     await nettoyer_configuration_expiree(self._etat_docker)
-    #     self.__logger.debug("entretien_certificats fin")
-    #     # self.__event_setup_initial_certificats.set()
 
     async def entretien_passwords(self):
         self.__logger.debug("entretien_passwords debut")
@@ -753,43 +715,6 @@ class InstanceSecureDocker(InstanceDockerAbstract):
 
         # Execution de la loop avec toutes les tasks
         await asyncio.tasks.wait(tasks, return_when=asyncio.tasks.FIRST_COMPLETED)
-
-    # async def entretien_certificats(self):
-    #     self.__logger.debug("entretien_certificats debut")
-    #
-    #     # Verifier certificat d'instance
-    #     # enveloppe_instance = self._etat_instance.clecertificat.enveloppe
-    #     # expiration_instance = enveloppe_instance.calculer_expiration()
-    #     # if expiration_instance['expire'] is True:
-    #     #     self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
-    #     #     # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
-    #     #     await self._etat_instance.stop()
-    #     # elif expiration_instance['renouveler'] is True:
-    #     #     self.__logger.info("Certificat d'instance peut etre renouvele")
-    #     #     producer = self.__rabbitmq_dao.get_producer()
-    #     #     clecertificat = await renouveler_certificat_instance_protege(producer,
-    #     #                                                                  self._etat_instance.client_session,
-    #     #                                                                  self._etat_instance)
-    #     #     # Sauvegarder nouveau certificat
-    #     #     path_secrets = self._etat_instance.configuration.path_secrets
-    #     #     nom_certificat = 'pki.instance.cert'
-    #     #     nom_cle = 'pki.instance.key'
-    #     #     path_certificat = path.join(path_secrets, nom_certificat)
-    #     #     path_cle = path.join(path_secrets, nom_cle)
-    #     #     cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
-    #     #     with open(path_cle, 'wb') as fichier:
-    #     #         fichier.write(clecertificat.private_key_bytes())
-    #     #     with open(path_certificat, 'w') as fichier:
-    #     #         fichier.write(cert_str)
-    #     #
-    #     #     # Reload configuration avec le nouveau certificat
-    #     #     await self._etat_instance.reload_configuration()
-    #
-    #     configuration = await self.get_configuration_certificats()
-    #     producer = self.__rabbitmq_dao.get_producer()
-    #     await generer_certificats_modules(producer, self._etat_instance.client_session, self._etat_instance, configuration, self._etat_docker)
-    #     self.__logger.debug("entretien_certificats fin")
-    #     # self.__event_setup_initial_certificats.set()
 
     async def entretien_passwords(self):
         self.__logger.debug("entretien_passwords debut")
@@ -906,21 +831,6 @@ class InstancePriveeDocker(InstanceDockerAbstract):
 
         await self.__rabbitmq_dao.attendre_pret(10)
         producer = self.__rabbitmq_dao.get_producer()
-
-        # Verifier certificat d'instance
-        # enveloppe_instance = self._etat_instance.clecertificat.enveloppe
-        # expiration_instance = enveloppe_instance.calculer_expiration()
-        # if expiration_instance['expire'] is True:
-        #     self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
-        #     # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
-        #     await self._etat_instance.stop()
-        # elif expiration_instance['renouveler'] is True:
-        #     # else:
-        #     self.__logger.info("Certificat d'instance peut etre renouvele")
-        #     await renouveler_certificat_satellite(producer, self._etat_instance)
-        #     # Redemarrer instance
-        #     self._etat_instance.set_redemarrer(True)
-        #     await self._etat_instance.reload_configuration()
 
         if producer is not None:
             configuration = await self.get_configuration_certificats()
@@ -1061,29 +971,6 @@ class InstancePrivee(InstanceAbstract):
         await self.__rabbitmq_dao.attendre_pret(10)
         producer = self.__rabbitmq_dao.get_producer()
 
-        # Verifier certificat d'instance
-        # enveloppe_instance = self._etat_instance.clecertificat.enveloppe
-        # expiration_instance = enveloppe_instance.calculer_expiration()
-        # if expiration_instance['expire'] is True:
-        #     self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
-        #     # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
-        #     await self._etat_instance.stop()
-        # elif expiration_instance['renouveler'] is True:
-        # # else:
-        #     self.__logger.info("Certificat d'instance peut etre renouvele")
-        #     await renouveler_certificat_satellite(producer, self._etat_instance)
-        #     # Redemarrer instance
-        #     self._etat_instance.set_redemarrer(True)
-        #     await self._etat_instance.reload_configuration()
-        #
-        # if producer is not None:
-        #     configuration = await self.get_configuration_certificats()
-        #     await generer_certificats_modules_satellites(producer, self._etat_instance, None, configuration)
-        #     self.__logger.debug("entretien_certificats fin")
-        #     self.__event_setup_initial_certificats.set()
-        # else:
-        #     self.__logger.info("entretien_certificats() Producer MQ n'est pas pret, skip entretien")
-
     async def entretien_passwords(self):
         self.__logger.debug("entretien_passwords debut")
         liste_noms_passwords = await self.get_configuration_passwords()
@@ -1171,45 +1058,6 @@ class InstanceSecure(InstanceAbstract):
         if self._gestionnaire_applications is not None:
             await self._gestionnaire_applications.entretien()
 
-    # async def entretien_certificats(self):
-    #     self.__logger.debug("entretien_certificats debut")
-    #
-    #     # Verifier certificat d'instance
-    #     # enveloppe_instance = self._etat_instance.clecertificat.enveloppe
-    #     # expiration_instance = enveloppe_instance.calculer_expiration()
-    #     # if expiration_instance['expire'] is True:
-    #     #     self.__logger.error("Certificat d'instance expire (%s), on met l'instance en mode d'attente")
-    #     #     # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
-    #     #     await self._etat_instance.stop()
-    #     # #elif expiration_instance['renouveler'] is True:
-    #     # else:
-    #     #     self.__logger.fatal(' **** DEBUG **** ')
-    #     #     self.__logger.info("Certificat d'instance peut etre renouvele")
-    #     #     producer = self.__rabbitmq_dao.get_producer()
-    #     #     clecertificat = await renouveler_certificat_instance_protege(producer,
-    #     #                                                                  self._etat_instance.client_session,
-    #     #                                                                  self._etat_instance)
-    #     #     # Sauvegarder nouveau certificat
-    #     #     path_secrets = self._etat_instance.configuration.path_secrets
-    #     #     nom_certificat = 'pki.instance.cert'
-    #     #     nom_cle = 'pki.instance.key'
-    #     #     path_certificat = path.join(path_secrets, nom_certificat)
-    #     #     path_cle = path.join(path_secrets, nom_cle)
-    #     #     cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
-    #     #     with open(path_cle, 'wb') as fichier:
-    #     #         fichier.write(clecertificat.private_key_bytes())
-    #     #     with open(path_certificat, 'w') as fichier:
-    #     #         fichier.write(cert_str)
-    #     #
-    #     #     # Reload configuration avec le nouveau certificat
-    #     #     await self._etat_instance.reload_configuration()
-    #
-    #     configuration = await self.get_configuration_certificats()
-    #     producer = self.__rabbitmq_dao.get_producer()
-    #     await generer_certificats_modules(producer, self._etat_instance.client_session, self._etat_instance, configuration, None)
-    #     self.__logger.debug("entretien_certificats fin")
-    #     self.__event_setup_initial_certificats.set()
-
     async def entretien_passwords(self):
         self.__logger.debug("entretien_passwords debut")
         liste_noms_passwords = await self.get_configuration_passwords()
@@ -1266,25 +1114,3 @@ async def charger_configuration_application(path_configuration: str) -> list:
                 logger.error("Fichier de module manquant : %s" % path_fichier)
 
     return configuration
-
-
-# def setup_catalogues(etat_instance: EtatInstance):
-#     setup_dir_apps(etat_instance)
-#
-#     path_configuration = etat_instance.configuration.path_configuration
-#     path_docker_catalogues = path.join(path_configuration, 'docker')
-#
-#     repertoire_src_catalogues = path.abspath('../etc/docker')
-#     for fichier in listdir(repertoire_src_catalogues):
-#         path_fichier_src = path.join(repertoire_src_catalogues, fichier)
-#         path_fichier_dest = path.join(path_docker_catalogues, fichier)
-#         if path.exists(path_fichier_dest) is False:
-#             with open(path_fichier_src, 'r') as fichier_src:
-#                 with open(path_fichier_dest, 'w') as fichier_dest:
-#                     fichier_dest.write(fichier_src.read())
-#
-#
-# def setup_dir_apps(etat_instance: EtatInstance):
-#     path_configuration = etat_instance.configuration.path_configuration
-#     path_docker_catalogues = path.join(path_configuration, 'docker')
-#     makedirs(path_docker_catalogues, 0o750, exist_ok=True)
