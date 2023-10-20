@@ -148,6 +148,7 @@ class InstanceAbstract:
         self._etat_instance = etat_instance
 
         #setup_dir_apps(etat_instance)
+        self._etat_instance.set_producer(self.get_producer)
 
         # Entretien etat_instance (certificats cache du validateur)
         self._taches_entretien.append(TacheEntretien(
