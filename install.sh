@@ -14,10 +14,13 @@ if [ -n "${DEV}" ]; then
   export DEV=${DEV}
 fi
 
+sudo echo "[INFO] Verification sudo"
+
 # Executer le script d'installation de base sans docker
 ${REP_BIN}/install_instance.sh
 ${REP_BIN}/install_fixes.sh
 
-if [ -n "${DOCKER}" ]; then
-  ${REP_BIN}/install_docker.sh
-fi
+# Note : docker est maintenant gere via python dans mginstance
+#if [ -n "${DOCKER}" ]; then
+#  ${REP_BIN}/install_docker.sh
+#fi
