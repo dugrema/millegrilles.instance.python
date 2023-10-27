@@ -1,4 +1,6 @@
 #!/bin/env bash
+. etc/config.env
+
 set -e
 
 echo "[INFO] Copier fichier web"
@@ -33,5 +35,10 @@ echo "Copier python instance"
 sudo mkdir -p ${PATH_VAR_CONFIGURATION_PYTHON}
 sudo cp -rv ${PATH_DIR_INSTANCE} ${PATH_VAR_CONFIGURATION_PYTHON}
 sudo chown -R mginstance:millegrilles ${PATH_VAR_CONFIGURATION_PYTHON}
+
+if [ -n "${MG_PIP_PACKAGE_URL}" ]; then
+  echo "Mettre a jour millegrilles-messages avec ${MG_PIP_PACKAGE_URL}"
+  sudo -i -u mginstance bash -c ". /var/opt/millegrilles/venv/bin/activate; pip3 install ${MG_PIP_PACKAGE_URL}"
+fi
 
 echo "[INFO] Fichier configurations copies OK"
