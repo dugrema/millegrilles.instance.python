@@ -1,6 +1,6 @@
 {
   "name": "webauth",
-  "image": "docker.maple.maceroc.com:5000/millegrilles_webauth_python:2023.10.0",
+  "image": "docker.maple.maceroc.com:5000/millegrilles_webauth_python:2023.10.1",
   "certificat": {
     "roles": ["webauth"],
     "exchanges": ["1.public"],
