@@ -7,7 +7,7 @@ export REP_ETC REP_BIN
 
 # Charger les variables, paths, users/groups
 source ${REP_ETC}/config.env
-source ${REP_ETC}/versions.env
+# source ${REP_ETC}/versions.env
 source ${REP_BIN}/install_reps.include
 
 if [ -n "${DEV}" ]; then
