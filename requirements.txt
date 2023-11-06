@@ -2,3 +2,7 @@ aiohttp>=3.8.1,<4
 docker>=4.4.0
 psutil
 apcaccess>=0.0.13,<1
+
+-i https://millegrilles.mdugre.info/python/dist
+millegrilles_messages
+# millegrilles_messages @ https://millegrilles.mdugre.info/python/dist/millegrilles_messages-2023.10.1.tar.gz
