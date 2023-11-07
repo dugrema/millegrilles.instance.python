@@ -1,7 +1,7 @@
 {
   "nom": "media",
-  "version": "2023.10.1",
-  "securite": "4.secure",
+  "version": "2023.11.0",
+  "securite": "3.protege",
   "dependances": [
     {
       "name": "media",

@@ -1,11 +1,11 @@
 {
   "nom": "senseurspassifs_backend",
-  "version": "2023.11.1",
+  "version": "2023.11.2",
   "description": {
     "en": "Senseurs Passifs (back-end)",
     "fr": "Senseurs Passifs (back-end)"
   },
-  "securite": "2.prive",
+  "securite": "3.protege",
   "dependances": [
     {
       "name": "senseurspassifs_backend",

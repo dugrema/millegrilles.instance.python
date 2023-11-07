@@ -1,11 +1,11 @@
 {
   "nom": "landing_backend",
-  "version": "2023.11.1",
+  "version": "2023.11.2",
   "description": {
     "en": "Landing page (back-end)",
     "fr": "Landing page (back-end)"
   },
-  "securite": "2.prive",
+  "securite": "3.protege",
   "dependances": [
     {
       "name": "landing_backend",

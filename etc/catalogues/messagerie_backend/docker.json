@@ -1,11 +1,11 @@
 {
   "nom": "messagerie_backend",
-  "version": "2023.11.1",
+  "version": "2023.11.2",
   "description": {
     "en": "Messaging (middleware)",
     "fr": "Messagerie (middleware)"
   },
-  "securite": "4.secure",
+  "securite": "3.protege",
   "dependances": [
     {
       "name": "messagerie_backend",

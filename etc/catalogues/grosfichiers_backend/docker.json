@@ -1,7 +1,7 @@
 {
   "nom": "grosfichiers_backend",
-  "version": "2023.11.1",
-  "securite": "4.secure",
+  "version": "2023.11.2",
+  "securite": "3.protege",
   "dependances": [
     {
       "name": "grosfichiers_backend",
