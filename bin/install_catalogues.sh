@@ -36,9 +36,7 @@ sudo mkdir -p ${PATH_VAR_CONFIGURATION_PYTHON}
 sudo cp -rv ${PATH_DIR_INSTANCE} ${PATH_VAR_CONFIGURATION_PYTHON}
 sudo chown -R mginstance:millegrilles ${PATH_VAR_CONFIGURATION_PYTHON}
 
-if [ -n "${MG_PIP_PACKAGE_URL}" ]; then
-  echo "Mettre a jour millegrilles-messages avec ${MG_PIP_PACKAGE_URL}"
-  sudo -i -u mginstance bash -c ". /var/opt/millegrilles/venv/bin/activate; pip3 install ${MG_PIP_PACKAGE_URL}"
-fi
+echo "Mettre a jour millegrilles-messages avec ${MG_PIP_PACKAGE_URL}"
+sudo -i -u mginstance bash -c ". /var/opt/millegrilles/venv/bin/activate; pip3 install --upgrade -i https://millegrilles.mdugre.info/python/dist millegrilles_messages"
 
 echo "[INFO] Fichier configurations copies OK"
