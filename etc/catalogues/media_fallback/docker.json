@@ -1,6 +1,6 @@
 {
   "nom": "media_fallback",
-  "version": "2023.11.0",
+  "version": "2023.11.1",
   "securite": "3.protege",
   "dependances": [
     {
@@ -64,7 +64,7 @@
       },
       "mode": {
         "mode": "replicated",
-        "replicas": 2
+        "replicas": 1
       }
     }
   ]
