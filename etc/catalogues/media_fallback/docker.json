@@ -1,6 +1,6 @@
 {
   "nom": "media_fallback",
-  "version": "2023.11.1",
+  "version": "2023.11.2",
   "securite": "3.protege",
   "dependances": [
     {
@@ -54,8 +54,8 @@
         {"target": "bridge"}
       ],
       "resources": {
-        "cpu_limit": 1000000000,
-        "mem_limit": 500000000
+        "cpu_limit": 4000000000,
+        "mem_limit": 1000000000
       },
       "restart_policy": {
         "condition": "on-failure",
