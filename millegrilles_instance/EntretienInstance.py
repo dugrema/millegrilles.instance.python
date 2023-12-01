@@ -103,6 +103,7 @@ CONFIG_MODULES_PROTEGES = [
     'docker.mq.json',
     'docker.mongo.json',
     'docker.midcompte.json',
+    'docker.ceduleur.json',
     'docker.core.json',
     'docker.webauth.json',
     'docker.maitrecomptes.json',

@@ -1,0 +1,66 @@
+{
+  "nom": "ceduleur",
+  "version": "2023.11.4",
+  "securite": "4.secure",
+  "dependances": [
+    {
+      "name": "ceduleur",
+      "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2023.11.11",
+      "args": ["-m", "millegrilles_ceduleur"],
+      "certificat": {
+        "roles": ["ceduleur"],
+        "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
+      },
+      "env": {
+        "CA_PEM": "/run/secrets/millegrille.cert.pem",
+        "CERT_PEM": "/run/secrets/cert.pem",
+        "KEY_PEM": "/run/secrets/key.pem",
+        "MQ_HOSTNAME": "${MQ_HOSTNAME}",
+        "MQ_PORT": "${MQ_PORT}",
+        "REDIS_HOSTNAME": "redis",
+        "REDIS_PORT": "6379"
+      },
+      "constraints": ["node.labels.millegrilles.ceduleur == true"],
+      "configs": [
+        {
+          "name": "pki.ceduleur",
+          "current": "cert",
+          "filename": "/run/secrets/cert.pem"
+        },
+        {
+          "name": "pki.millegrille",
+          "filename": "/run/secrets/millegrille.cert.pem"
+        }
+      ],
+      "secrets": [
+        {
+          "name": "pki.ceduleur",
+          "current": "key",
+          "filename": "key.pem"
+        },
+        {
+          "name": "passwd.redis",
+          "current": "password",
+          "filename": "passwd.redis.txt"
+        }
+      ],
+      "networks": [
+        {"target": "millegrille_net"},
+        {"target": "bridge"}
+      ],
+      "resources": {
+        "cpu_limit": 500000000,
+        "mem_limit": 25000000
+      },
+      "restart_policy": {
+        "condition": "on-failure",
+        "delay": 60000000000,
+        "max_attempts": 1000
+      },
+      "mode": {
+        "mode": "replicated",
+        "replicas": 1
+      }
+    }
+  ]
+}
