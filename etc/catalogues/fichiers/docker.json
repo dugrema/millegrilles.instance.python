@@ -1,11 +1,11 @@
 {
   "nom": "fichiers",
-  "version": "2023.11.2",
+  "version": "2023.11.3",
   "securite": "2.prive",
   "dependances": [
     {
       "name": "fichiers",
-      "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2023.11.8",
+      "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2023.11.12",
       "args": ["-m", "millegrilles_fichiers"],
       "certificat": {
         "roles": ["fichiers"],
@@ -32,6 +32,8 @@
       "constraints": ["node.labels.millegrilles.fichiers == true"],
       "mounts": [
         {"source": "millegrilles-consignation", "target":  "/var/opt/millegrilles/consignation", "type": "volume"},
+        {"source": "millegrilles-consignation-data", "target":  "/var/opt/millegrilles/consignation/data", "type": "volume"},
+        {"source": "millegrilles-staging", "target":  "/var/opt/millegrilles/staging", "type": "volume"},
         {"source": "/var/opt/millegrilles/nginx/html", "target":  "/var/opt/millegrilles/nginx/html", "type": "bind"}
       ],
       "configs": [
