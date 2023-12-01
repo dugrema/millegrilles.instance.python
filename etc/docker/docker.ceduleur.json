@@ -2,7 +2,10 @@
   "name": "ceduleur",
   "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2023.11.11",
   "args": ["-m", "millegrilles_ceduleur"],
-  "certificat": {"roles": ["ceduleur"]},
+  "certificat": {
+    "roles": ["ceduleur"],
+    "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
+  },
   "env": {
     "CA_PEM": "/run/secrets/pki.millegrille.cert",
     "CERT_PEM": "/run/secrets/cert.pem",
