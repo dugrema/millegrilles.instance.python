@@ -13,4 +13,4 @@ docker service update -d --publish-add published=3013,target=1443,mode=host sens
 docker service update -d --publish-add published=3039,target=443,mode=host messagerie_web
 docker service update -d --publish-add published=3005,target=1443,mode=host webauthn
 docker service update -d --publish-add 10443:443 mongoexpress
-docker service update -d --publish-add 8983:8983 solr
+docker service update -d --publish-add 8983:8983 solr_server
