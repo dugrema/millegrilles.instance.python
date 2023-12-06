@@ -1,11 +1,11 @@
 {
   "nom": "collections",
-  "version": "2023.11.14",
+  "version": "2023.11.15",
   "securite": "2.prive",
   "dependances": [
     {
       "name": "collections",
-      "image": "docker.maple.maceroc.com:5000/millegrilles_collections:2023.11.14",
+      "image": "docker.maple.maceroc.com:5000/millegrilles_collections:2023.11.15",
       "certificat": {
         "roles": ["collections"],
         "exchanges": ["2.prive", "1.public"],
