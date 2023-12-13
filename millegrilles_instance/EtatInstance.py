@@ -18,7 +18,7 @@ from millegrilles_messages.messages import Constantes
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.Certificats import preparer_certificats_web, generer_passwords
 from millegrilles_instance.Configuration import ConfigurationInstance
-from millegrilles_messages.IpUtils import get_ip, get_hostname
+from millegrilles_messages.IpUtils import get_ip, get_hostnames
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.FormatteurMessages import SignateurTransactionSimple, FormatteurMessageMilleGrilles
@@ -39,6 +39,7 @@ class EtatInstance:
 
         self.__ip_address: Optional[str] = None
         self.__hostname: Optional[str] = None
+        self.__hostnames: Optional[list[str]] = None
         self.__instance_id: Optional[str] = None
         self.__niveau_securite: Optional[str] = None
         self.__idmg: Optional[str] = None
@@ -82,8 +83,8 @@ class EtatInstance:
             self.__producer_set_event = asyncio.Event()
 
         self.__ip_address = get_ip()
-        self.__hostname = get_hostname(fqdn=True)
-        self.__logger.debug("Nom domaine instance: %s" % self.__hostname)
+        self.__hostname, self.__hostnames = get_hostnames(fqdn=True)
+        self.__logger.debug("Nom domaine instance: %s, liste domaines : %s" % (self.__hostname, self.__hostnames))
 
         # Generer les certificats web self-signed au besoin
         path_cert_web, path_cle_web = preparer_certificats_web(self.__configuration.path_secrets)
@@ -282,6 +283,10 @@ class EtatInstance:
         return self.__hostname
 
     @property
+    def hostnames(self):
+        return self.__hostnames
+
+    @property
     def mq_hostname(self):
         return self.__host_mq or self.__hostname
 
@@ -390,7 +395,8 @@ class EtatInstance:
 
         info_updatee['hostname'] = self.hostname
         info_updatee['domaine'] = self.hostname
-        info_updatee['fqdn_detecte'] = get_hostname(fqdn=True)
+        info_updatee['domaines'] = self.hostnames
+        info_updatee['fqdn_detecte'] = get_hostnames(fqdn=True)[0]
         info_updatee['ip_detectee'] = self.ip_address
         info_updatee['instance_id'] = self.instance_id
         info_updatee['securite'] = self.niveau_securite
