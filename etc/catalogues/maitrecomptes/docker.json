@@ -1,11 +1,11 @@
 {
   "nom": "maitrecomptes",
-  "version": "2023.11.1",
+  "version": "2023.11.2",
   "securite": "2.prive",
   "dependances": [
     {
       "name": "maitrecomptes",
-      "image": "docker.maple.maceroc.com:5000/millegrilles_maitrecomptes_python:2023.11.1",
+      "image": "docker.maple.maceroc.com:5000/millegrilles_maitrecomptes_python:2023.11.3",
       "certificat": {
         "roles": [ "maitrecomptes" ],
         "exchanges": [ "2.prive", "1.public" ],
