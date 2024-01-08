@@ -1,4 +1,4 @@
-[submodule "catalogues"]
+[submodule "etc/catalogues"]
 	path = etc/catalogues
 	url = https://github.com/dugrema/millegrilles.catalogues.git
 	branch = 2024.0
