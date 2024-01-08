@@ -20,7 +20,7 @@ sudo -u mginstance mkdir -p "${PATH_VAR_CONFIGURATION_DOCKER}"
 sudo cp -v ${PATH_DIR_DOCKER}/docker.*.json "${PATH_VAR_CONFIGURATION_DOCKER}"
 sudo chown mginstance:millegrilles "${PATH_VAR_CONFIGURATION_DOCKER}"
 
-PATH_DIR_CATALOGUES="${PATH_DIR_INSTALL}/etc/catalogues"
+PATH_DIR_CATALOGUES="${PATH_DIR_INSTALL}/etc/catalogues/signed"
 sudo -u mginstance mkdir -p "${PATH_VAR_CONFIGURATION_CATALOGUES}"
 sudo cp -v ${PATH_DIR_CATALOGUES}/*.json.xz "${PATH_VAR_CONFIGURATION_CATALOGUES}"
 sudo chown mginstance:millegrilles "${PATH_VAR_CONFIGURATION_CATALOGUES}"

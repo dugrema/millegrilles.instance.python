@@ -16,6 +16,9 @@ fi
 
 sudo echo "[INFO] Verification sudo"
 
+git submodule init etc/catalogues
+git submodule update --recursive
+
 # Executer le script d'installation de base sans docker
 ${REP_BIN}/install_instance.sh
 ${REP_BIN}/install_fixes.sh
