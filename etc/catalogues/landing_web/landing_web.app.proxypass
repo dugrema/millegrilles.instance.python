@@ -1,9 +1,0 @@
-set $upstream_{appname} https://landing_web:443;
-#set $upstream_{appname} https://SERVER:3045;  # DEV 3045/3046
-proxy_pass $upstream_{appname};
-
-proxy_ssl_certificate         /run/secrets/nginx.cert.pem;
-proxy_ssl_certificate_key     /run/secrets/nginx.key.pem;
-proxy_ssl_trusted_certificate /usr/share/nginx/files/certs/millegrille.cert.pem;
-proxy_ssl_verify       on;
-proxy_ssl_verify_depth 1;
