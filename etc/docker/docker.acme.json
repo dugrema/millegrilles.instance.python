@@ -1,6 +1,6 @@
 {
   "name": "acme",
-  "image": "docker.maple.maceroc.com:5000/mg_acme:3_0_5_1",
+  "image": "docker.maple.maceroc.com:5000/millegrilles_acme:3.0.8.master.6",
   "args": ["daemon"],
   "mounts": [
     {"source": "acmesh-data", "target":  "/acme.sh", "type": "volume"},
