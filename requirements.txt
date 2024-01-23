@@ -8,4 +8,4 @@ pytest-runner
 
 --extra-index-url https://millegrilles.mdugre.info/python/dist
 millegrilles_messages>=2023.11.4
-# millegrilles_messages @ https://millegrilles.mdugre.info/python/dist/millegrilles_messages-2023.10.1.tar.gz
+
