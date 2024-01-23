@@ -2,9 +2,9 @@ aiohttp>=3.8.1,<4
 docker>=4.4.0
 psutil
 
-apcaccess>=0.0.13,<1
 # Note : pytest-runner est requis pour apcaccess mais la dependance n'est pas explicite
 pytest-runner
+apcaccess>=0.0.13,<1
 
 --extra-index-url https://millegrilles.mdugre.info/python/dist
 millegrilles_messages>=2023.11.4

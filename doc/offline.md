@@ -13,19 +13,21 @@ Compléter l'installation de Ubuntu avant de poursuivre.
 
 ## Mettre à jour le système
 
+export PATH_BACKUP=/media/...
+
 Installer les packages pour upgrade a plus recent
 <pre>
 mkdir -p ~/work/debs
 cd ~/work/debs
-tar -xf debs/ubuntu_20.04.3-desktop.amd64.202401221124.tar
+tar -C ~/work/debs -xf ${PATH BACKUP}/debs/ubuntu_20.04.3-desktop.amd64.*.tar
 
-sudo dpkg -i --auto-deconfigure 1-upgrade/*.deb
+sudo dpkg -i --auto-deconfigure ~/work/debs/1-upgrade/*.deb
 
 # Fix deps avec probleme durant upgrade (libpam)
-sudo dpkg -i 1-upgrade/libpam*
+sudo dpkg -i ~/work/debs/1-upgrade/libpam*
 sudo apt install --fix-broken
 
-sudo dpkg -i 2-millegrilles/*.deb
+sudo dpkg -i ~/work/debs/2-millegrilles/*.deb
 </pre>
 
 ## Configurer le compte usager
@@ -48,24 +50,24 @@ sudo adduser $USERNAME syslog
 
 Extraire le code source (git bare) dans /var/lib/git
 <pre>
-sudo mkdir /var/lib/git
+sudo mkdir -p /var/lib/git
 sudo chown :git /var/lib/git
 sudo chmod 775 /var/lib/git
-tar -C /var/lib -xf millegrilles/git/fs1_git.202401220958.tar.gz
+tar -C /var/lib -xf ${PATH BACKUP}/millegrilles/git/fs1_git.*.tar.gz
 </pre>
 
 Extraire packages python dans /var/lib/pip
 <pre>
-sudo mkdir /var/lib/pip
+sudo mkdir -p /var/lib/pip
 sudo chown :pip /var/lib/pip
 sudo chmod 775 /var/lib/pip
-tar -C /var/lib -xf millegrilles/python/millegrilles.deps.python_202401220825.tar
+tar -C /var/lib -xf ${PATH BACKUP}/millegrilles/python/millegrilles.deps.python_202401220825.tar
 </pre>
 
 Installer les images docker
 <pre>
-docker image load -i millegrilles/docker/millegrilles.catalogues.x86_64.202401210744.tar
-docker image load -i millegrilles/docker/millegrilles.middleware.x86_64.202401210738.tar
+docker image load -i ${PATH BACKUP}/millegrilles/docker/millegrilles.catalogues.x86_64.202401210744.tar
+docker image load -i ${PATH BACKUP}/millegrilles/docker/millegrilles.middleware.x86_64.202401210738.tar
 </pre>
 
 Installer l'environnement MilleGrille
@@ -77,31 +79,29 @@ Faire un clone du module millegrilles.instance.python.
 <pre>
 mkdir git
 cd git
-git clone /var/lib/git/millegrilles.instance.python.git
+# Aller chercher les fichiers d'installation - choisir une branch au besoin
+git clone --branch master /var/lib/git/millegrilles.instance.python.git
 
+# Aller chercher les fichiers de catalogues - choisir une branch au besoin
 cd ~/git/millegrilles.instance.python
 cd etc
-git clone /var/lib/git/millegrilles.catalogues
+git clone --branch master /var/lib/git/millegrilles.catalogues
 git rm catalogues
-git mv millegrilles.catalogues catalogues
+mv millegrilles.catalogues catalogues
 cd ..
 
-#TODO : Fix install script sous compte mginstance pour path pip
+# Parametres pour empecher pip de se connecter au reseau
 export PIP_NO_INDEX=true
 export PIP_FIND_LINKS=/var/lib/pip
 export PIP_RETRIES=0
+
+# Installer l'instance
 ./install.sh
 </pre>
 
-Terminer l'installation - ces operations devraient être mise dans un script.
+Demarrer l'instance.
 
 <pre>
-sudo cp etc/daemon.json /etc/docker
-sudo cp etc/logrotate.millegrilles.conf /etc/logrotate.d
-sudo cp etc/01-millegrilles.conf /etc/rsyslog.d
-# Editer etc/rsyslog.conf pour activer imtcp : sudo nano /etc/rsyslog.conf
-sudo systemctl restart rsyslog
-sudo systemctl restart docker
 sudo systemctl enable mginstance
 sudo systemctl start mginstance
 </pre>
@@ -112,6 +112,60 @@ Configurer la nouvelle MilleGrille sous https://**NOM_HOST**
 
 Compléter les étapes d'installation d'une nouvelle MilleGrille avant de procéder
 a l'installation de l'environnement de développement.
+
+Les IDE utilisés pour le développement peuvent être installés avec les snaps sous $PATH_BACKUP/snaps.
+
+<pre>
+cd $PATH_BACKUP/snaps
+./install.sh
+
+sudo chown -R $USER /var/opt/millegrilles
+</pre>
+
+**Python**
+
+Python est le language de plusieurs applications serveur et utilitaires.
+
+Les packages pip utilises par Python ont deja été installés sous /var/lib/pip durant
+l'installation de la MilleGrille.
+
+Installation de l'environnement de développement Python.
+
+* IDE : PyCharm Community (snap)
+* Path de développement : $HOME/PycharmProjects
+
+Configurer les projets git sous PyCharm.
+
+Extraire le projet de git (peut être fait dans un shell, puis menu File/Open dans PyCharm)
+1. Ouvrir PyCharm à partir du menu d'applications Ubuntu.
+2. Choisir Get from CVS (ou Git / Clone dans le menu si PyCharm était déjà configuré).
+3. Remplir URL : /var/lib/git/millegrilles.instance.python.git
+4. Choisir Trust Project
+5. Créer l'environnement virtuel avec python3.10 ou plus récent. Cliquer sur OK.
+
+Installer les dépendances de projets Python pour millegrilles.instance.python.
+
+1. Ouvrir un shell
+2. Aller sous $HOME/PycharmProjects/millegrilles.instance.python
+3. . venv/bin/activate
+5. pip install --no-index --find-links /var/lib/pip -r requirements.txt 
+
+Désactiver mginstance :
+
+1. Ouvrir un shell
+2. sudo systemctl disable mginstance
+3. sudo systemctl stop mginstance
+
+Démarrer la version de développement de mginstance.
+
+1. Dans Pycharm, naviguer sous millegrilles.instance.python/millegrilles_instance
+2. Right click sur __main__.py, choisir Run '__main__'.
+3. Aller dans le menu Run / Edit Configurations.
+4. 
+
+**Rust**
+
+Rust est le language de programmation de plusieurs applications serveur.
 
 Copier rust et packages
 <pre>
@@ -139,3 +193,8 @@ Contenu .cargo/config
     [source.local-registry]
     local-registry = '/home/.../rust/local-registry'
 </pre>
+
+**NodeJS**
+
+NodeJS est requis par la partie client React des applications web.
+
