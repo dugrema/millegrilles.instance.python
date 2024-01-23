@@ -139,29 +139,18 @@ Configurer les projets git sous PyCharm.
 Extraire le projet de git (peut être fait dans un shell, puis menu File/Open dans PyCharm)
 1. Ouvrir PyCharm à partir du menu d'applications Ubuntu.
 2. Choisir Get from CVS (ou Git / Clone dans le menu si PyCharm était déjà configuré).
-3. Remplir URL : /var/lib/git/millegrilles.instance.python.git
+3. Remplir URL : /var/lib/git/`NOM PROJET`  (e.g. millegrilles.instance.python.git)
 4. Choisir Trust Project
-5. Créer l'environnement virtuel avec python3.10 ou plus récent. Cliquer sur OK.
+5. Si demandé, créer l'environnement virtuel avec python3.10 ou plus récent. Cliquer sur OK.
 
-Installer les dépendances de projets Python pour millegrilles.instance.python.
+Pour installer les dépendances de chaque projet Python :
 
 1. Ouvrir un shell
 2. Aller sous $HOME/PycharmProjects/millegrilles.instance.python
 3. . venv/bin/activate
-5. pip install --no-index --find-links /var/lib/pip -r requirements.txt 
+5. pip install --no-index --find-links /var/lib/pip -r `PATH PROJET`/requirements.txt 
 
-Désactiver mginstance :
-
-1. Ouvrir un shell
-2. sudo systemctl disable mginstance
-3. sudo systemctl stop mginstance
-
-Démarrer la version de développement de mginstance.
-
-1. Dans Pycharm, naviguer sous millegrilles.instance.python/millegrilles_instance
-2. Right click sur __main__.py, choisir Run '__main__'.
-3. Aller dans le menu Run / Edit Configurations.
-4. 
+Voir le document /doc/env.dev.md sous chaque projet pour obtenir les paramètres de configuration supplémentaires.
 
 **Rust**
 

@@ -12,7 +12,11 @@ partir d'une MilleGrille fonctionnelle.
 3. sudo systemctl stop mginstance
 4. sudo chown -R $USER /var/opt/millegrilles
 
-## Dépendances
+## Dépendances additionnelles
+
+Python
+
+Installer ces projets sous Pycharm au besoin. S'assurer de rebâtir et déployer ces dépendances au besoin.
 
 * millegrilles.messages.python
 
