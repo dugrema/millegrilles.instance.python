@@ -7,23 +7,20 @@ export REP_ETC REP_BIN
 
 # Charger les variables, paths, users/groups
 source ${REP_ETC}/config.env
-# source ${REP_ETC}/versions.env
 source ${REP_BIN}/install_reps.include
+
+export MG_INSTALL=1  # Flag d'installation en cours
 
 if [ -n "${DEV}" ]; then
   export DEV=${DEV}
 fi
 
-sudo echo "[INFO] Verification sudo"
-
-git submodule init etc/catalogues
-git submodule update --recursive
+if ! [ -d etc/catalogues/signed ]; then
+  echo "Init submodule etc/catalogues"
+  git submodule init etc/catalogues
+  git submodule update --recursive
+fi
 
 # Executer le script d'installation de base sans docker
-${REP_BIN}/install_instance.sh
+sudo -E ${REP_BIN}/install_instance.sh
 ${REP_BIN}/install_fixes.sh
-
-# Note : docker est maintenant gere via python dans mginstance
-#if [ -n "${DOCKER}" ]; then
-#  ${REP_BIN}/install_docker.sh
-#fi
