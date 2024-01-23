@@ -89,6 +89,7 @@ cd ..
 #TODO : Fix install script sous compte mginstance pour path pip
 export PIP_NO_INDEX=true
 export PIP_FIND_LINKS=/var/lib/pip
+export PIP_RETRIES=0
 ./install.sh
 </pre>
 

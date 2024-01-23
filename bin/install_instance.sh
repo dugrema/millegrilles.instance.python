@@ -34,11 +34,10 @@ if [ ! -d "${PATH_MILLEGRILLES}/configuration" ]; then
 
   echo "[INFO] Creer venv python3 sous $PATH_VENV"
   # URL_MG_MESSAGES="${MG_PIP_REPOSITORY_URL}/${PIP_PACKAGE_MESSAGES}"
-  echo "[INFO] Installer millegrilles messages avec url : ${MG_PIP_PACKAGE_URL}"
-  sudo -u mginstance ${REP_BIN}/install_python.sh "${PATH_VENV}" "${MG_PIP_PACKAGE_URL}"
+  sudo -E -u mginstance ${REP_BIN}/install_python.sh "${PATH_VENV}"
 
   echo "[INFO] Copier fichiers de configuration, code python"
-  sudo ${REP_BIN}/install_catalogues.sh
+  sudo -E ${REP_BIN}/install_catalogues.sh
 
   echo "[INFO] Copier application web"
   sudo ${REP_BIN}/install_web.sh

@@ -1,7 +1,7 @@
 #!/bin/env bash
 
 PATH_VENV=$1
-URL_MGMESSAGES=$2
+# URL_MGMESSAGES=$2
 
 echo "[INFO] Configurer venv python3, venv et dependances sous ${PATH_VENV}"
 python3 -m venv --system-site-packages $PATH_VENV
@@ -18,21 +18,21 @@ if ! pip3 list | grep "wheel" > /dev/null; then
 fi
 
 # Verifier que le package millegrilles-messages de la bonne version est installe
-MGMESSAGES_INSTALLE=0
-if ! pip3 list | grep -e "${MG_PIP_PACKAGE_NAME}" | grep -e "${MG_PIP_PACKAGE_VERSION}" > /dev/null; then
-  echo "[INFO] Installer millegrilles messages (path $MG_PIP_PACKAGE_URL)"
-  pip3 install $URL_MGMESSAGES
-  MGMESSAGES_INSTALLE=1
-fi
-
+#MGMESSAGES_INSTALLE=0
+#if ! pip3 list | grep -e "${MG_PIP_PACKAGE_NAME}" | grep -e "${MG_PIP_PACKAGE_VERSION}" > /dev/null; then
+#  echo "[INFO] Installer millegrilles messages (path $MG_PIP_PACKAGE_URL)"
+#  pip3 install $URL_MGMESSAGES
+#  MGMESSAGES_INSTALLE=1
+#fi
+cd
 echo "[INFO] Verifier requirements python pour millegrilles, installer au besoin"
 pip3 install -r requirements.txt
 
 # Fix pour cryptography
 # https://stackoverflow.com/questions/74981558/error-updating-python3-pip-attributeerror-module-lib-has-no-attribute-openss
-if [ "${MGMESSAGES_INSTALLE}" -eq 1 ]; then
-  echo "[INFO] Fix installation cryptography"
-  python3 -m pip install -U pyOpenSSL cryptography
-fi
+#if [ "${MGMESSAGES_INSTALLE}" -eq 1 ]; then
+#  echo "[INFO] Fix installation cryptography"
+#  python3 -m pip install -U pyOpenSSL cryptography
+#fi
 
 echo "[INFO] Fin configuration venv python3"
