@@ -1,16 +1,38 @@
 Pour developper avec PyCharm, copier les parametres suivants dans la section Environment Variables
 de millegrilles.instance.python/millegrilles_instance/__main__.py.
 
+Note : Utiliser le guide d'installation d'une MilleGrille pour préparer 
+l'environnement initial. L'environnement de développement opère à
+partir d'une MilleGrille fonctionnelle.
+
+## Préparer le système au mode développement
+
+1. Ouvrir un shell
+2. sudo systemctl disable mginstance
+3. sudo systemctl stop mginstance
+4. sudo chown -R $USER /var/opt/millegrilles
+
+## Dépendances
+
+* millegrilles.messages.python
+
+## Démarrer la version de développement de mginstance
+
+1. Dans Pycharm, naviguer sous millegrilles.instance.python/millegrilles_instance
+2. Right click sur __main__.py, choisir Run '__main__'.
+3. Aller dans le menu Run / Edit Configurations.
+4. Ajouter les paramètre de configuration suivants :
+
 TODO : rendre générique
-
----
-
+<pre>
 WEB_APP_PATH=/home/mathieu/PycharmProjects/millegrilles.instance.python/dist/web
-
+</pre>
 
 ---
 
-Modifications à nginx
+Démarrer (Run) l'instance. 
+
+## Modifications à nginx
 
 Le `HOSTNAME` est le nom que vous avez donné au serveur. Utiliser la commande
 `hostname` dans un shell pour l'obtenir au besoin. Utiliser ce hostname pour remplacer la
