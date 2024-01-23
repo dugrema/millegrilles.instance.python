@@ -12,11 +12,11 @@ WEB_APP_PATH=/home/mathieu/PycharmProjects/millegrilles.instance.python/dist/web
 
 Modifications à nginx
 
-Déterminer l'adresse IP locale (e.g. 172.17.0.1). Utiliser cette valeur
-pour remplacer la configuration `SERVER` dans les étapes suivantes.
+Le `HOSTNAME` est le nom que vous avez donné au serveur. Utiliser la commande
+`hostname` dans un shell pour l'obtenir au besoin. Utiliser ce hostname pour remplacer la
+valeur `SERVER`. 
 
-Le HOSTNAME est le nom que vous avez donné au serveur. Utiliser la commande
-`hostname` dans un shell pour l'obtenir au besoin.
+Note : en mode offline, remplacer `SERVER` par l'adresse IP locale (e.g. 172.17.0.1).
 
 * nano /var/opt/millegrilles/nginx/modules/installation.proxypass
 * Mettre un commentaire sur set $upstream_millegrilles (ligne 1)
