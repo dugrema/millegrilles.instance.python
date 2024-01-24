@@ -183,6 +183,21 @@ Contenu .cargo/config
     local-registry = '/home/.../rust/local-registry'
 </pre>
 
+Chaque projet Rust a une dependance vers millegrilles_common_rust. Le checkout du submodule ne fonctionnera pas.
+Faire un checkout local a la place. Exemple pour millegrilles_core :
+
+<pre>
+cd ~/RustroverProjects
+git checkout /var/lib/git/millegrilles_core.git
+cd millegrilles_core
+rm -r millegrilles_common_rust
+git clone /var/lib/git/millegrilles_common_rust.git
+</pre>
+
+TODO :
+
+* Erreur dans RustRover : cannot attach stdlib sources automatically
+
 **NodeJS**
 
 NodeJS est requis par la partie client React des applications web.
