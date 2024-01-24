@@ -202,3 +202,7 @@ TODO :
 
 NodeJS est requis par la partie client React des applications web.
 
+# https://github.com/nodejs/node-gyp/issues/1154
+wget https://nodejs.org/download/release/v20.11.0/node-v20.11.0-headers.tar.gz
+export npm_config_tarball=/home/mathieu/work/libs/npm/node-v20.11.0-headers.tar.gz
+
