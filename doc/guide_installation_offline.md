@@ -197,13 +197,28 @@ git clone /var/lib/git/millegrilles_common_rust.git
 
 TODO :
 
-* Erreur dans RustRover : cannot attach stdlib sources automatically
+* Erreur dans RustRover : cannot attach stdlib sources automatically. N'empêche pas le fonctionnement.
 
 **NodeJS**
 
 NodeJS est requis par la partie client React des applications web.
 
-# https://github.com/nodejs/node-gyp/issues/1154
+https://medium.com/@tgmarinho/how-to-install-node-js-via-binary-archive-on-linux-ab9bbe1dd0c2
+
+<pre>
+sudo mkdir /usr/local/lib/node
+tar -xJvf node-v8.9.4-linux-x64.tar.xz
+sudo mv node-v20.11.0-linux-x64/ /usr/local/lib/node/nodejs
+
+# Utiliser nano pour ajouter le contenu dans ~/.profile
+nano ~/.profile
+  export NODEJS_HOME=/usr/local/lib/node/nodejs
+  export PATH=$NODEJS_HOME/bin:$PATH
+
+. ~/.profile
+</pre>
+
+https://github.com/nodejs/node-gyp/issues/1154
 wget https://nodejs.org/download/release/v20.11.0/node-v20.11.0-headers.tar.gz
 export npm_config_tarball=/home/mathieu/work/libs/npm/node-v20.11.0-headers.tar.gz
 
