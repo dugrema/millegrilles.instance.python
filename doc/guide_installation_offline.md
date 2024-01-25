@@ -66,8 +66,9 @@ tar -C /var/lib -xf ${PATH BACKUP}/millegrilles/python/millegrilles.deps.python_
 
 Installer les images docker
 <pre>
-docker image load -i ${PATH BACKUP}/millegrilles/docker/millegrilles.catalogues.x86_64.202401210744.tar
-docker image load -i ${PATH BACKUP}/millegrilles/docker/millegrilles.middleware.x86_64.202401210738.tar
+docker image load -i ${PATH BACKUP}/millegrilles/docker/millegrilles.catalogues.*.tar
+docker image load -i ${PATH BACKUP}/millegrilles/docker/millegrilles.middleware.*.tar
+docker image load -i ${PATH BACKUP}/millegrilles/docker/millegrilles.developpement.*.tar
 </pre>
 
 Installer l'environnement MilleGrille
