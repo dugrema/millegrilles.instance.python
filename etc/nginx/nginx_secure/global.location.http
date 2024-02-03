@@ -15,3 +15,7 @@ location /fiche.json {{
   gzip_static on;
   gzip_types application/json;
 }}
+
+location = /time.txt {{
+   return 200 $msec;
+}}
