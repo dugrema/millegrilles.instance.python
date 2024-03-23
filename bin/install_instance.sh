@@ -55,6 +55,7 @@ if [ ! -d "${PATH_MILLEGRILLES}/configuration" ]; then
   configurer_reps
 
   echo "[INFO] Creer venv python3 sous $PATH_VENV"
+  cd "${REP_BASE}" || exit 10
   sudo -E -u mginstance ${REP_BIN}/install_python.sh "${PATH_VENV}"
 
   echo "[INFO] Copier fichiers de configuration, code python"

@@ -24,7 +24,6 @@ fi
 #  pip3 install $URL_MGMESSAGES
 #  MGMESSAGES_INSTALLE=1
 #fi
-cd
 echo "[INFO] Verifier requirements python pour millegrilles, installer au besoin"
 pip3 install -r requirements.txt
 
