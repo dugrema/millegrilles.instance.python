@@ -1,6 +1,6 @@
 {
   "name": "coupdoeil",
-  "image": "docker.maple.maceroc.com:5000/millegrilles_coupdoeil_python:2024.3.7",
+  "image": "docker.maple.maceroc.com:5000/millegrilles_coupdoeil_python:2024.3.11",
   "certificat": {
     "roles": ["coupdoeil"],
     "exchanges": ["3.protege", "2.prive", "1.public"],
