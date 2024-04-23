@@ -1,6 +1,6 @@
 {
   "name": "midcompte",
-  "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2024.3.39",
+  "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2024.3.40",
   "certificat": {"roles": ["midcompte"], "dns": {"localhost": true, "hostnames": ["midcompte"], "domain": true}, "combiner_keycert": true},
   "env": {
     "WEB_PORT": "2444"

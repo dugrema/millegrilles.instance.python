@@ -1,6 +1,6 @@
 {
   "name": "ceduleur",
-  "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2024.3.39",
+  "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2024.3.40",
   "args": ["-m", "millegrilles_ceduleur"],
   "certificat": {
     "roles": ["ceduleur"],
