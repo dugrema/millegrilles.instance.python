@@ -118,7 +118,7 @@ class EtatInstance:
 
         if self.__clecertificat is not None:
             signateur = SignateurTransactionSimple(self.__clecertificat)
-            self.__formatteur_message = FormatteurMessageMilleGrilles(self.__idmg, signateur)
+            self.__formatteur_message = FormatteurMessageMilleGrilles(self.__idmg, signateur, self.__certificat_millegrille)
             self.__validateur_certificats = ValidateurCertificatCache(self.__certificat_millegrille)
             self.__validateur_message = ValidateurMessage(self.__validateur_certificats)
 
