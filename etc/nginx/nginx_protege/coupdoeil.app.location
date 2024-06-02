@@ -1,20 +1,23 @@
+set $upstream_coupdoeil https://coupdoeil:1443;
+# set $upstream_coupdoeil https://[SERVER]:4003;
+
 location /coupdoeil/initSession {{
-    include /etc/nginx/conf.d/modules/coupdoeil.proxypass;
+    proxy_pass $upstream_coupdoeil;
     include /etc/nginx/conf.d/component_base_auth.include;
 }}
 
 location /coupdoeil/info.json {{
-    include /etc/nginx/conf.d/modules/coupdoeil.proxypass;
+    proxy_pass $upstream_coupdoeil;
     include /etc/nginx/conf.d/component_base_auth.include;
 }}
 
 location /coupdoeil/socket.io {{
-    include /etc/nginx/conf.d/modules/coupdoeil.proxypass;
+    proxy_pass $upstream_coupdoeil;
     include /etc/nginx/conf.d/component_base_auth.include;
 }}
 
 location /coupdoeil {{
-    include /etc/nginx/conf.d/modules/coupdoeil.proxypass;
+    proxy_pass $upstream_coupdoeil;
 # set $upstream_coupdoeil https://[SERVER]:3004;
 # proxy_pass $upstream_coupdoeil;
     include /etc/nginx/conf.d/component_base_auth.include;
