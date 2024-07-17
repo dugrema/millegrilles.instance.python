@@ -62,89 +62,89 @@ def preparer_certificats_web(path_secrets: str):
     return path_cert_web, path_key_web
 
 
-async def generer_certificats_modules(producer: MessageProducerFormatteur, client_session: ClientSession, etat_instance, configuration: dict,
-                                      etat_docker: Optional[EtatDockerInstanceSync] = None):
-    # S'assurer que tous les certificats sont presents et courants dans le repertoire secrets
-    path_secrets = etat_instance.configuration.path_secrets
-    for nom_module, value in configuration.items():
-        logger.debug("generer_certificats_modules() Verification certificat %s" % nom_module)
-
-        nom_local_certificat = value.get('nom') or nom_module
-
-        nom_certificat = 'pki.%s.cert' % nom_local_certificat
-        nom_cle = 'pki.%s.cle' % nom_local_certificat
-        path_certificat = path.join(path_secrets, nom_certificat)
-        path_cle = path.join(path_secrets, nom_cle)
-        combiner_keycert = value.get('combiner_keycert') or False
-
-        sauvegarder = False
-        try:
-            clecertificat = CleCertificat.from_files(path_cle, path_certificat)
-            enveloppe = clecertificat.enveloppe
-
-            # Ok, verifier si le certificat doit etre renouvele
-            detail_expiration = enveloppe.calculer_expiration()
-            roles = enveloppe.get_roles
-            #if 'maitredescles' in roles:
-            #    logger.error("!!! Certiticats.generer_certificats_modules HACK MaitreDesCles !!!!")
-            #    detail_expiration['renouveler'] = True
-
-            if detail_expiration['expire'] is True or detail_expiration['renouveler'] is True:
-                if 'maitredescles' in roles:
-                    # Verifier si on est en cours de rotation d'un certificat de maitre des cles
-                    # Il faut laisser le temps aux cles de finir d'etre rechiffrees
-                    if detail_expiration['expire'] is True or etat_instance.is_rotation_maitredescles() is False:
-                        clecertificat = await generer_nouveau_certificat(
-                            producer, client_session, etat_instance, nom_local_certificat, value)
-                        sauvegarder = True
-
-                        if detail_expiration['expire'] is not True:
-                            # Rotation du certificat qui n'est pas expire
-                            # Emettre une commande de rotation pour le maitre des cles, attendre reponse
-                            commande = {
-                                'certificat': clecertificat.enveloppe.chaine_pem(),
-                            }
-                            try:
-                                reponse = await producer.executer_commande(
-                                    commande, 'MaitreDesCles', 'rotationCertificat',
-                                    exchange='3.protege',
-                                    partition=enveloppe.fingerprint
-                                )
-                            except Exception as e:
-                                if detail_expiration['expire'] is True:
-                                    # Pas le choix - le certificat est expire, on force la rotation
-                                    logger.error(
-                                        "generer_certificats_modules Erreur rotation cle certificat (FORCE) : %s" % e)
-                                else:
-                                    # Skip, la rotation a ecohoue. On va ressayer plus tard.
-                                    logger.warning(
-                                        "generer_certificats_modules Erreur rotation cle certificat (SKIP) : %s" % e)
-                                    continue
-
-                        etat_instance.set_rotation_maitredescles()
-                else:
-                    clecertificat = await generer_nouveau_certificat(producer, client_session, etat_instance, nom_local_certificat, value)
-                    sauvegarder = True
-
-        except FileNotFoundError:
-            logger.info("Certificat %s non trouve, on le genere" % nom_local_certificat)
-            clecertificat = await generer_nouveau_certificat(producer, client_session, etat_instance, nom_local_certificat, value)
-            sauvegarder = True
-
-        # Verifier si le certificat et la cle sont stocke dans docker
-        if sauvegarder is True:
-
-            cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
-            with open(path_cle, 'wb') as fichier:
-                fichier.write(clecertificat.private_key_bytes())
-                if combiner_keycert is True:
-                    fichier.write(cert_str.encode('utf-8'))
-            with open(path_certificat, 'w') as fichier:
-                cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
-                fichier.write(cert_str)
-
-        if etat_docker is not None:
-            await etat_docker.assurer_clecertificat(nom_local_certificat, clecertificat, combiner_keycert)
+# async def generer_certificats_modules(producer: MessageProducerFormatteur, client_session: ClientSession, etat_instance, configuration: dict,
+#                                       etat_docker: Optional[EtatDockerInstanceSync] = None):
+#     # S'assurer que tous les certificats sont presents et courants dans le repertoire secrets
+#     path_secrets = etat_instance.configuration.path_secrets
+#     for nom_module, value in configuration.items():
+#         logger.debug("generer_certificats_modules() Verification certificat %s" % nom_module)
+#
+#         nom_local_certificat = value.get('nom') or nom_module
+#
+#         nom_certificat = 'pki.%s.cert' % nom_local_certificat
+#         nom_cle = 'pki.%s.cle' % nom_local_certificat
+#         path_certificat = path.join(path_secrets, nom_certificat)
+#         path_cle = path.join(path_secrets, nom_cle)
+#         combiner_keycert = value.get('combiner_keycert') or False
+#
+#         sauvegarder = False
+#         try:
+#             clecertificat = CleCertificat.from_files(path_cle, path_certificat)
+#             enveloppe = clecertificat.enveloppe
+#
+#             # Ok, verifier si le certificat doit etre renouvele
+#             detail_expiration = enveloppe.calculer_expiration()
+#             roles = enveloppe.get_roles
+#             #if 'maitredescles' in roles:
+#             #    logger.error("!!! Certiticats.generer_certificats_modules HACK MaitreDesCles !!!!")
+#             #    detail_expiration['renouveler'] = True
+#
+#             if detail_expiration['expire'] is True or detail_expiration['renouveler'] is True:
+#                 if 'maitredescles' in roles:
+#                     # Verifier si on est en cours de rotation d'un certificat de maitre des cles
+#                     # Il faut laisser le temps aux cles de finir d'etre rechiffrees
+#                     if detail_expiration['expire'] is True or etat_instance.is_rotation_maitredescles() is False:
+#                         clecertificat = await generer_nouveau_certificat(
+#                             producer, client_session, etat_instance, nom_local_certificat, value)
+#                         sauvegarder = True
+#
+#                         if detail_expiration['expire'] is not True:
+#                             # Rotation du certificat qui n'est pas expire
+#                             # Emettre une commande de rotation pour le maitre des cles, attendre reponse
+#                             commande = {
+#                                 'certificat': clecertificat.enveloppe.chaine_pem(),
+#                             }
+#                             try:
+#                                 reponse = await producer.executer_commande(
+#                                     commande, 'MaitreDesCles', 'rotationCertificat',
+#                                     exchange='3.protege',
+#                                     partition=enveloppe.fingerprint
+#                                 )
+#                             except Exception as e:
+#                                 if detail_expiration['expire'] is True:
+#                                     # Pas le choix - le certificat est expire, on force la rotation
+#                                     logger.error(
+#                                         "generer_certificats_modules Erreur rotation cle certificat (FORCE) : %s" % e)
+#                                 else:
+#                                     # Skip, la rotation a ecohoue. On va ressayer plus tard.
+#                                     logger.warning(
+#                                         "generer_certificats_modules Erreur rotation cle certificat (SKIP) : %s" % e)
+#                                     continue
+#
+#                         etat_instance.set_rotation_maitredescles()
+#                 else:
+#                     clecertificat = await generer_nouveau_certificat(producer, client_session, etat_instance, nom_local_certificat, value)
+#                     sauvegarder = True
+#
+#         except FileNotFoundError:
+#             logger.info("Certificat %s non trouve, on le genere" % nom_local_certificat)
+#             clecertificat = await generer_nouveau_certificat(producer, client_session, etat_instance, nom_local_certificat, value)
+#             sauvegarder = True
+#
+#         # Verifier si le certificat et la cle sont stocke dans docker
+#         if sauvegarder is True:
+#
+#             cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
+#             with open(path_cle, 'wb') as fichier:
+#                 fichier.write(clecertificat.private_key_bytes())
+#                 if combiner_keycert is True:
+#                     fichier.write(cert_str.encode('utf-8'))
+#             with open(path_certificat, 'w') as fichier:
+#                 cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
+#                 fichier.write(cert_str)
+#
+#         if etat_docker is not None:
+#             await etat_docker.assurer_clecertificat(nom_local_certificat, clecertificat, combiner_keycert)
 
 
 async def generer_certificats_modules_satellites(producer: MessageProducerFormatteur, etat_instance,

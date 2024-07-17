@@ -19,7 +19,7 @@ from millegrilles_instance.EntretienRabbitMq import EntretienRabbitMq
 from millegrilles_instance.RabbitMQDao import RabbitMQDao
 from millegrilles_instance.EntretienCatalogues import EntretienCatalogues
 from millegrilles_instance.EntretienApplications import GestionnaireApplications
-from millegrilles_instance.Certificats import generer_certificats_modules, generer_passwords, \
+from millegrilles_instance.Certificats import generer_passwords, \
     nettoyer_configuration_expiree, generer_certificats_modules_satellites
 
 logger = logging.getLogger(__name__)

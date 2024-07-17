@@ -1,11 +1,17 @@
+set $upstream_millegrilles https://maitrecomptes:1443;
+# DEV : remplacer la ligne precedente avec la ligne suivante. Aussi ajuster location /millegrilles (plus bas).
+# set $upstream_millegrilles https://[**DEV SERVER**]:4001;
+
 # API millegrilles, proteger via auth plugin
 location /millegrilles/api {{
-  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
+  proxy_pass $upstream_millegrilles;
   include /etc/nginx/conf.d/component_base_auth.include;
 }}
 
 # Support socket.io, proteger via auth plugin
 location /millegrilles/socket.io {{
+  proxy_pass $upstream_millegrilles;
+
   # Utiliser noauth pour toujours recuperer 200.
   # Requis pour initialisation avec maitre des comptes.
   auth_request      /auth/verifier_usager_noauth;
@@ -16,16 +22,17 @@ location /millegrilles/socket.io {{
   proxy_set_header  X-User-Id                $auth_x_user_id;
   proxy_set_header  X-Auth                   $auth_x_auth;
 
-  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
   # socket.io est public, c'est la methode d'authentification
   include /etc/nginx/conf.d/component_base.include;
 }}
 
 # Application React - s'occupe de l'authentification (non protege)
 location /millegrilles {{
-  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
-#set $upstream_millegrilles https://[SERVER]:3002;
-#proxy_pass $upstream_millegrilles;
+  proxy_pass $upstream_millegrilles;
+# DEV : retirer la ligne precedente et utiliser les 2 lignes suivantes. Remplacer [**DEV SERVER**] par le hostname dev.
+#set $upstream_millegrilles_react https://[**DEV SERVER**]:3002;
+#proxy_pass $upstream_millegrilles_react;
+
   include /etc/nginx/conf.d/component_gzip.include;
 
   proxy_set_header  X-Real-IP $remote_addr;

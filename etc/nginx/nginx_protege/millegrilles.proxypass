@@ -1,3 +1,0 @@
-set $upstream_millegrilles https://maitrecomptes:1443;
-# set $upstream_millegrilles https://[**DEV SERVER**]:4001;
-proxy_pass $upstream_millegrilles;
