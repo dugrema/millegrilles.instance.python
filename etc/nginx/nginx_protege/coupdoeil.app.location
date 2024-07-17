@@ -18,7 +18,7 @@ location /coupdoeil/socket.io {{
 
 location /coupdoeil {{
     proxy_pass $upstream_coupdoeil;
-# set $upstream_coupdoeil https://[SERVER]:3004;
-# proxy_pass $upstream_coupdoeil;
+# set $upstream_coupdoeil_react https://[SERVER]:3004;
+# proxy_pass $upstream_coupdoeil_react;
     include /etc/nginx/conf.d/component_base_auth.include;
 }}
