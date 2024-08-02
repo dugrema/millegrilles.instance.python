@@ -106,7 +106,7 @@ CONFIG_MODULES_PROTEGES = [
     'docker.ceduleur.json',
     'docker.core.json',
     'docker.webauth.json',
-    'docker.maitrecomptes.json',
+    # 'docker.maitrecomptes.json',
     'docker.coupdoeil.json',
     'docker.protected_webapi.json',
 ]
