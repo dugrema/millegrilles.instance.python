@@ -4,8 +4,8 @@
   "args": ["-m", "millegrilles_web"],
   "archives": [
     {
-      "src": "https://docker.maple.maceroc.com/archives/authentication/millegrilles_authentication_typescript.2024.6.1.tar.gz",
-      "digest": "4OQCIBIkBLXE9Dat+sMRb4nnMBwxIxxJnqQwJ83zvhbSltxz",
+      "src": "https://docker.maple.maceroc.com/archives/authentication/millegrilles_authentication_typescript.2024.6.6.tar.gz",
+      "digest": "4OQCIO7au0DILODTJ+Pl0BZGJA6T1UCT4eajzPAN60Tpi8hQ",
       "location": "nginx:html/applications/millegrilles"
     }
   ],
