@@ -28,7 +28,7 @@ location /millegrilles/socket.io {{
 
 # Application React - s'occupe de l'authentification (non protege)
 location /millegrilles {{
-  root /usr/share/nginx/html;
+  root /usr/share/nginx/html/applications;
   add_header 'Cache-Control' 'public,max-age=120';
 
 # set $upstream_millegrilles_react https://[**DEV SERVER**]:3002;
