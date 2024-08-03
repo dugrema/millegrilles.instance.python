@@ -419,8 +419,9 @@ class EtatDockerInstanceSync:
             pass  # Aucune constraint
 
         # Installer les archives si presentes
-        for archive in parser.archives:
-            await asyncio.to_thread(installer_archive, archive)
+        if parser.archives:
+            for archive in parser.archives:
+                await asyncio.to_thread(installer_archive, archive)
 
         # S'assurer d'avoir l'image
         image = parser.image
