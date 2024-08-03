@@ -6,8 +6,6 @@ import os
 
 from os import path
 
-import pytz
-
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
@@ -24,21 +22,11 @@ class GestionnaireApplications:
         self.__etat_docker = etat_docker
         self.__rabbitmq_dao = None
 
-        # Initialiser le prochain backup
-        # self.__prochain_backup_applications = datetime.datetime.now(tz=pytz.UTC) + datetime.timedelta(seconds=30)
-        # self.__intervalle_backup_applications = datetime.timedelta(days=1)  # Intervalle backup suivants
-
     def set_rabbitmq_dao(self, rabbitmq_dao):
         self.__rabbitmq_dao = rabbitmq_dao
 
     async def entretien(self):
         self.__logger.debug("entretien")
-        # date_courante = datetime.datetime.now(tz=pytz.UTC)
-        # if self.__prochain_backup_applications < date_courante:
-        #     try:
-        #         await self.backup_applications()
-        #     finally:
-        #         self.__prochain_backup_applications = datetime.datetime.now(tz=pytz.UTC) + self.__intervalle_backup_applications
 
     async def installer_application(self, configuration: dict, reinstaller=False):
         path_docker_apps = self.__etat_instance.configuration.path_docker_apps
@@ -95,10 +83,6 @@ class GestionnaireApplications:
             await self.__etat_instance.emettre_presence(producer)
             return {'ok': True}
 
-    # async def backup_applications(self):
-    #     if self.__etat_docker is not None:
-    #         await self.__etat_docker.backup_applications()
-
     async def get_producer(self, timeout=5):
         if self.__rabbitmq_dao is None:
             raise Exception('producer non disponible (rabbitmq non initialie)')
@@ -120,24 +104,6 @@ class GestionnaireApplications:
                 raise Exception('producer non disponible (timeout sur pret)')
 
         return producer
-
-    # async def get_liste_configurations(self) -> list:
-    #     """
-    #     Charge l'information de configuration de toutes les applications connues.
-    #     :return:
-    #     """
-    #     info_configuration = list()
-    #     path_docker_apps = self.__etat_instance.configuration.path_docker_apps
-    #     for fichier_config in listdir(path_docker_apps):
-    #         if not fichier_config.startswith('app.'):
-    #             continue  # Skip, ce n'est pas une application
-    #         with open(path.join(path_docker_apps, fichier_config), 'rb') as fichier:
-    #             contenu = json.load(fichier)
-    #         nom = contenu['nom']
-    #         version = contenu['version']
-    #         info_configuration.append({'nom': nom, 'version': version})
-    #
-    #     return info_configuration
 
 
 async def installer_application_sansdocker(etat_instance: EtatInstance, producer: MessageProducerFormatteur, configuration: dict):

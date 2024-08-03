@@ -28,14 +28,16 @@ location /millegrilles/socket.io {{
 
 # Application React - s'occupe de l'authentification (non protege)
 location /millegrilles {{
-  proxy_pass $upstream_millegrilles;
-# DEV : retirer la ligne precedente et utiliser les 2 lignes suivantes. Remplacer [**DEV SERVER**] par le hostname dev.
-#set $upstream_millegrilles_react https://[**DEV SERVER**]:3002;
-#proxy_pass $upstream_millegrilles_react;
+  root /usr/share/nginx/html;
+  add_header 'Cache-Control' 'public,max-age=120';
+
+# set $upstream_millegrilles_react https://[**DEV SERVER**]:3002;
+
+# DEV : Retirer les lignes precedentes et utiliser les lignes suivantes. Remplacer [**DEV SERVER**] par le hostname dev.
+# proxy_pass $upstream_millegrilles_react;
+# proxy_set_header  X-Real-IP $remote_addr;
+# proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+# proxy_set_header  X-Forwarded-Proto $scheme;
 
   include /etc/nginx/conf.d/component_gzip.include;
-
-  proxy_set_header  X-Real-IP $remote_addr;
-  proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
-  proxy_set_header  X-Forwarded-Proto $scheme;
 }}
