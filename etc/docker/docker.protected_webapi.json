@@ -1,6 +1,6 @@
 {
   "name": "protected_webapi",
-  "image": "docker.maple.maceroc.com:5000/millegrilles_web_python:2024.6.30",
+  "image": "docker.maple.maceroc.com:5000/millegrilles_web_python:2024.6.31",
   "args": ["-m", "millegrilles_web"],
   "archives": [
     {
