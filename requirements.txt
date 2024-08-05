@@ -7,5 +7,5 @@ pytest-runner
 apcaccess>=0.0.13,<1
 
 --extra-index-url https://millegrilles.mdugre.info/python/dist
-millegrilles_messages>=2024.6.38
+millegrilles_messages>=2024.6.39
 
