@@ -820,6 +820,7 @@ def installer_archive(archive: Archive):
         LOGGER.info('Downloading %s' % app_url.geturl())
         with open(file_download_path, 'wb') as output:
             with requests.get(app_url.geturl(), stream=True) as r:
+                r.raise_for_status()
                 for chunk in r.iter_content(1024*64):
                     output.write(chunk)
                     verificateur.update(chunk)
