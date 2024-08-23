@@ -1,11 +1,11 @@
 {
   "name": "protected_webapi",
-  "image": "docker.maple.maceroc.com:5000/millegrilles_web_python:2024.6.31",
+  "image": "docker.maple.maceroc.com:5000/millegrilles_web_python:2024.6.34",
   "args": ["-m", "millegrilles_web"],
   "archives": [
     {
-      "src": "https://docker.maple.maceroc.com/archives/authentication/millegrilles_authentication_typescript.2024.6.13.tar.gz",
-      "digest": "4OQCIFYqpmFLqkKxcrHHAGSJSotyozWygsXpKlHLoRKMajjo",
+      "src": "https://docker.maple.maceroc.com/archives/authentication/millegrilles_authentication_typescript.2024.6.14.tar.gz",
+      "digest": "4OQCIOiWrkYGBlrx4ybiuCPQJ+icbpBNJqkIW9d45Te6Esc5",
       "location": "nginx:html/applications/millegrilles"
     }
   ],
