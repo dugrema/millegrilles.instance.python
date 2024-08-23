@@ -11,6 +11,7 @@ from millegrilles_messages.messages.MessagesModule import MessageProducerFormatt
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance import Constantes as ConstantesInstance
+from millegrilles_instance.Configuration import sauvegarder_configuration_webapps
 
 LOGGER = logging.getLogger(__name__)
 
@@ -30,38 +31,40 @@ class GestionnaireApplications:
         self.__logger.debug("entretien")
 
     async def installer_application(self, configuration: dict, reinstaller=False):
-        path_docker_apps = self.__etat_instance.configuration.path_docker_apps
+        # path_docker_apps = self.__etat_instance.configuration.path_docker_apps
         nom_application = configuration['nom']
-
-        path_conf_applications = pathlib.Path(
-            self.__etat_instance.configuration.path_configuration,
-            ConstantesInstance.CONFIG_NOMFICHIER_CONFIGURATION_WEB_APPLICATIONS)
-
-        path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
-        self.__logger.debug("Sauvegarder configuration pour app %s vers %s" % (nom_application, path_app))
-        with open(path_app, 'w') as fichier:
-            json.dump(configuration, fichier, indent=2)
-
         web_links = configuration.get('web')
         if web_links:
-            hostname = self.__etat_instance.hostname
-            for link in web_links['links']:
-                try:
-                    link['url'] = link['url'].replace('${HOSTNAME}', hostname)
-                except KeyError:
-                    pass  # No url
-            try:
-                with open(path_conf_applications, 'rt+') as fichier:
-                    config_apps_json = json.load(fichier)
-                    config_apps_json[nom_application] = web_links
-                    fichier.seek(0)
-                    json.dump(config_apps_json, fichier)
-                    fichier.truncate()
-            except (FileNotFoundError, json.JSONDecodeError):
-                config_apps_json = dict()
-                config_apps_json[nom_application] = web_links
-                with open(path_conf_applications, 'wt') as fichier:
-                    json.dump(config_apps_json, fichier)
+            sauvegarder_configuration_webapps(nom_application, web_links, self.__etat_instance)
+
+        # path_conf_applications = pathlib.Path(
+        #     self.__etat_instance.configuration.path_configuration,
+        #     ConstantesInstance.CONFIG_NOMFICHIER_CONFIGURATION_WEB_APPLICATIONS)
+        # path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
+        # self.__logger.debug("Sauvegarder configuration pour app %s vers %s" % (nom_application, path_app))
+        # with open(path_app, 'w') as fichier:
+        #     json.dump(configuration, fichier, indent=2)
+        #
+        # web_links = configuration.get('web')
+        # if web_links:
+        #     hostname = self.__etat_instance.hostname
+        #     for link in web_links['links']:
+        #         try:
+        #             link['url'] = link['url'].replace('${HOSTNAME}', hostname)
+        #         except KeyError:
+        #             pass  # No url
+        #     try:
+        #         with open(path_conf_applications, 'rt+') as fichier:
+        #             config_apps_json = json.load(fichier)
+        #             config_apps_json[nom_application] = web_links
+        #             fichier.seek(0)
+        #             json.dump(config_apps_json, fichier)
+        #             fichier.truncate()
+        #     except (FileNotFoundError, json.JSONDecodeError):
+        #         config_apps_json = dict()
+        #         config_apps_json[nom_application] = web_links
+        #         with open(path_conf_applications, 'wt') as fichier:
+        #             json.dump(config_apps_json, fichier)
 
         producer = self.__rabbitmq_dao.get_producer()
         if self.__etat_docker is not None:

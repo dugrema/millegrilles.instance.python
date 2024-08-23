@@ -63,5 +63,21 @@
   "mode": {
     "mode": "replicated",
     "replicas": 1
+  },
+  "web": {
+    "links": [{
+      "labels": {
+          "en": {
+              "description": "System administration.",
+              "name": "Coup D'Oeil"
+          },
+          "fr": {
+              "description": "Administration du système.",
+              "name": "Coup D'Oeil"
+          }
+      },
+      "securite": "3.protege",
+      "url": "https://${HOSTNAME}/coupdoeil"
+    }]
   }
 }

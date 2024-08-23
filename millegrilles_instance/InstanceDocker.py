@@ -26,7 +26,7 @@ from millegrilles_messages.messages.Hachage import VerificateurHachage
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.CommandesDocker import CommandeListeTopologie, CommandeExecuterScriptDansService
 from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname, OnionizeNonDisponibleException
-
+from millegrilles_instance.Configuration import sauvegarder_configuration_webapps
 
 LOGGER = logging.getLogger(__name__)
 
@@ -351,6 +351,12 @@ class EtatDockerInstanceSync:
             for nom_service in nom_services_a_installer:
                 config_service = services[nom_service]
                 await self.installer_service(nom_service, config_service, params)
+
+                try:
+                    web_config = config_service['web']
+                    sauvegarder_configuration_webapps(nom_service, web_config, self.__etat_instance)
+                except KeyError:
+                    pass  # No web configuration
 
     async def get_params_env_service(self) -> dict:
         # Charger configurations

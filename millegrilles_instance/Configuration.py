@@ -1,10 +1,15 @@
 import argparse
+import logging
 import os
+import json
+import pathlib
 
 from typing import Optional
 
 from millegrilles_instance import Constantes
 from millegrilles_messages.messages import Constantes as ConstantesMessages
+
+LOGGER = logging.getLogger(__name__)
 
 CONST_INSTANCE_PARAMS = [
     Constantes.INSTANCE_CONFIG_PATH,
@@ -134,3 +139,30 @@ class ConfigurationWeb:
         self.web_cert_pem_path = dict_params.get(Constantes.ENV_WEB_CERT_PEM) or self.web_cert_pem_path
         self.web_key_pem_path = dict_params.get(Constantes.ENV_WEB_KEY_PEM) or self.web_key_pem_path
         self.port = int(dict_params.get(Constantes.ENV_WEB_PORT) or self.port)
+
+
+def sauvegarder_configuration_webapps(nom_application: str, web_links: dict, etat_instance):
+    LOGGER.debug("Sauvegarder configuration pour web app %s" % nom_application)
+
+    path_conf_applications = pathlib.Path(
+        etat_instance.configuration.path_configuration,
+        Constantes.CONFIG_NOMFICHIER_CONFIGURATION_WEB_APPLICATIONS)
+
+    hostname = etat_instance.hostname
+    for link in web_links['links']:
+        try:
+            link['url'] = link['url'].replace('${HOSTNAME}', hostname)
+        except KeyError:
+            pass  # No url
+    try:
+        with open(path_conf_applications, 'rt+') as fichier:
+            config_apps_json = json.load(fichier)
+            config_apps_json[nom_application] = web_links
+            fichier.seek(0)
+            json.dump(config_apps_json, fichier)
+            fichier.truncate()
+    except (FileNotFoundError, json.JSONDecodeError):
+        config_apps_json = dict()
+        config_apps_json[nom_application] = web_links
+        with open(path_conf_applications, 'wt') as fichier:
+            json.dump(config_apps_json, fichier)
