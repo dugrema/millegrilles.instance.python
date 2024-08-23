@@ -5,6 +5,7 @@ import aiohttp
 import datetime
 import logging
 import json
+import pathlib
 import psutil
 
 from apcaccess import status as apc
@@ -407,6 +408,27 @@ class EtatInstance:
         # Faire la liste des applications installees
         liste_applications = await self.get_liste_configurations()
         info_updatee['applications_configurees'] = liste_applications
+
+        # Liste applications web
+        path_conf_applications = pathlib.Path(
+            self.configuration.path_configuration,
+            ConstantesInstance.CONFIG_NOMFICHIER_CONFIGURATION_WEB_APPLICATIONS)
+        try:
+            with open(path_conf_applications, 'rt') as fichier:
+                configuration_webapps = json.load(fichier)
+
+            webapps_list = list()
+            # Merge avec la liste d'applications docker
+            for nom, app in configuration_webapps.items():
+                for links in app['links']:
+                    app_info = links.copy()
+                    app_info['name'] = nom
+                    webapps_list.append(app_info)
+
+            info_updatee['webapps'] = webapps_list
+
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.__logger.info('No web application configuration file present/valid')
 
         niveau_securite = self.niveau_securite
         if niveau_securite == Constantes.SECURITE_SECURE:

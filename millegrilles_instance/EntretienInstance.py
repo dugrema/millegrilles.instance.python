@@ -3,6 +3,7 @@ import asyncio
 import datetime
 import json
 import logging
+import pathlib
 
 from os import path, makedirs, listdir
 from typing import Optional, Union
@@ -12,6 +13,7 @@ from asyncio import Event, TimeoutError
 from millegrilles_messages.docker.Entretien import TacheEntretien
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesThread import MessagesThread
+from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance.EntretienNginx import EntretienNginx
@@ -126,6 +128,21 @@ CONFIG_MODULES_PUBLICS = [
     'docker.acme.json',
     'docker.webauth.json',
 ]
+
+APPLICATION_COUPDOEIL_CONFIG = {
+    "labels": {
+        "en": {
+            "description": "System administration.",
+            "name": "Coup D'Oeil"
+        },
+        "fr": {
+            "description": "Administration du système.",
+            "name": "Coup D'Oeil"
+        }
+    },
+    "securite": "3.protege",
+    "url": "https://${HOSTNAME}/coupdoeil"
+}
 
 
 class InstanceAbstract:
@@ -640,6 +657,25 @@ class InstanceProtegee(InstanceDockerAbstract):
         if producer is None:
             self.__logger.debug("entretien_topologie Producer MQ non disponible")
             return
+
+        # Ensure coupdoeil is listed in web applications list
+        hostname = self._etat_instance.hostname
+        coupdoeil_info = APPLICATION_COUPDOEIL_CONFIG.copy()
+        coupdoeil_info['url'] = coupdoeil_info['url'].replace('${HOSTNAME}', hostname)
+        path_conf_applications = pathlib.Path(
+            self._etat_instance.configuration.path_configuration,
+            ConstantesInstance.CONFIG_NOMFICHIER_CONFIGURATION_WEB_APPLICATIONS)
+        try:
+            with open(path_conf_applications, 'rt+') as fichier:
+                config_file = json.load(fichier)
+                if config_file.get('coupdoeil') is None:
+                    config_file['coupdoeil'] = {'links': [coupdoeil_info]}
+                    fichier.seek(0)
+                    json.dump(config_file, fichier)
+                    fichier.truncate()
+        except (FileNotFoundError, json.JSONDecodeError):
+            with open(path_conf_applications, 'wt') as fichier:
+                json.dump({'coupdoeil': {'links': [coupdoeil_info]}}, fichier)
 
         await self._etat_docker.emettre_presence(producer)
 
