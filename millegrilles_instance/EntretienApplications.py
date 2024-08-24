@@ -31,7 +31,6 @@ class GestionnaireApplications:
         self.__logger.debug("entretien")
 
     async def installer_application(self, configuration: dict, reinstaller=False):
-        # path_docker_apps = self.__etat_instance.configuration.path_docker_apps
         nom_application = configuration['nom']
         web_links = configuration.get('web')
         if web_links:
@@ -40,11 +39,12 @@ class GestionnaireApplications:
         # path_conf_applications = pathlib.Path(
         #     self.__etat_instance.configuration.path_configuration,
         #     ConstantesInstance.CONFIG_NOMFICHIER_CONFIGURATION_WEB_APPLICATIONS)
-        # path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
-        # self.__logger.debug("Sauvegarder configuration pour app %s vers %s" % (nom_application, path_app))
-        # with open(path_app, 'w') as fichier:
-        #     json.dump(configuration, fichier, indent=2)
-        #
+        path_docker_apps = self.__etat_instance.configuration.path_docker_apps
+        path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
+        self.__logger.debug("Sauvegarder configuration pour app %s vers %s" % (nom_application, path_app))
+        with open(path_app, 'w') as fichier:
+            json.dump(configuration, fichier, indent=2)
+
         # web_links = configuration.get('web')
         # if web_links:
         #     hostname = self.__etat_instance.hostname
