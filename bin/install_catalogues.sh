@@ -44,7 +44,7 @@ sudo chown -R mginstance:millegrilles ${PATH_VAR_CONFIGURATION_PYTHON}
 # Skip cette etape durant l'installation initiale
 if [ -z "${MG_INSTALL}" ]; then
   echo "Mettre a jour millegrilles-messages"
-  sudo -i -u mginstance bash -c ". /var/opt/millegrilles/venv/bin/activate; pip3 install --upgrade --extra-index-url https://millegrilles.mdugre.info/python/dist millegrilles_messages"
+  sudo -i -u mginstance bash -c ". /var/opt/millegrilles/venv/bin/activate; pip3 install --upgrade --extra-index-url https://libs.millegrilles.com/python/dist millegrilles_messages"
 fi
 
 echo "[INFO] Fichier configurations copies OK"
