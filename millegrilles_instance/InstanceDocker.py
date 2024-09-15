@@ -245,7 +245,7 @@ class EtatDockerInstanceSync:
                 services_with_images[service_key] = service_data
             else:
                 try:
-                    _ = service_data['images']
+                    _ = service_data['image']
                     services_with_images[service_key] = service_data
                 except KeyError:
                     pass  # No images, check separately

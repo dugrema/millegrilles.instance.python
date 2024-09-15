@@ -26,6 +26,24 @@ location /millegrilles/socket.io {{
   include /etc/nginx/conf.d/component_base.include;
 }}
 
+location /millegrilles/static/ {{
+  root /usr/share/nginx/html/applications;
+  try_files $uri =404;
+  expires 1y;
+  access_log off;
+  add_header Cache-Control "public, immutable";
+  include /etc/nginx/conf.d/component_gzip.include;
+}}
+
+# Image resources
+location ~/millegrilles/.*\.(?:png|svg)$ {{
+  root /usr/share/nginx/html/applications;
+  try_files $uri =404;
+  expires 15m;
+  access_log off;
+  add_header Cache-Control "public";
+}}
+
 # Application React - s'occupe de l'authentification (non protege)
 location /millegrilles {{
   root /usr/share/nginx/html/applications;
