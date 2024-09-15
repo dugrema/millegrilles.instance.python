@@ -236,6 +236,21 @@ class EtatDockerInstanceSync:
         self.__docker_initialise = True
 
     async def entretien_services(self, services: dict):
+        services_with_images = dict()
+        for service_key, service_data in services.items():
+            try:
+                _ = service_data['archives']
+            except KeyError:
+                # No archives, keep the service
+                services_with_images[service_key] = service_data
+            else:
+                try:
+                    _ = service_data['images']
+                    services_with_images[service_key] = service_data
+                except KeyError:
+                    pass  # No images, check separately
+
+
         commande_liste_services = DockerCommandes.CommandeListerServices(aio=True)
         self.__docker_handler.ajouter_commande(commande_liste_services)
         liste_services_docker = await commande_liste_services.get_liste()
@@ -245,10 +260,10 @@ class EtatDockerInstanceSync:
         liste_config_datee = await commande_config_currente.get_resultat()
 
         # Determiner s'il y a des services manquants
-        nom_services_a_installer = set(services.keys())
-        for nom_service, config_service in services.items():
-            if config_service.get('image') is not None or config_service.get('archives'):
-                nom_services_a_installer.add(nom_service)
+        nom_services_a_installer = set(services_with_images.keys())
+        # for nom_service, config_service in services.items():
+        #     if config_service.get('image') is not None:
+        #         nom_services_a_installer.add(nom_service)
 
         # Services avec certificats/secrets/passwd a remplacer
         services_a_reconfigurer = set()
