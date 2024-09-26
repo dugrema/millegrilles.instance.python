@@ -1,6 +1,6 @@
 {
   "name": "core",
-  "image": "docker.maple.maceroc.com:5000/millegrilles_core:2024.7.38",
+  "image": "docker.maple.maceroc.com:5000/millegrilles_core:2024.7.40",
   "certificat": {
     "roles": ["core"],
     "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"],
@@ -27,7 +27,8 @@
     "node.labels.millegrilles.database == true"
   ],
   "mounts": [
-    {"source": "/var/opt/millegrilles/configuration", "target": "/var/opt/millegrilles/configuration", "type": "bind", "read_only": true}
+    {"source": "/var/opt/millegrilles/configuration", "target": "/var/opt/millegrilles/configuration", "type": "bind", "read_only": true},
+    {"source": "millegrilles-domain-archives", "target": "/var/opt/millegrilles/archives", "type": "volume"}
   ],
   "configs": [
     {
