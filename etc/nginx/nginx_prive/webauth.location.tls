@@ -1,8 +1,11 @@
 # Verification de l'authentification TLS client
-location = /auth/verifier_client_tls {{
+location /auth/verifier_client_tls {{
   if ( $ssl_client_verify != SUCCESS ) {{return 403;}}
   include /etc/nginx/conf.d/modules/webauth.proxypass;
   proxy_pass_request_body off; # no need to send the PUT/POST body
+  client_max_body_size 0;
+  proxy_http_version 1.1;
+  proxy_request_buffering off;
 
   proxy_set_header  Content-Length "";
   proxy_set_header  X-Real-IP $remote_addr;
@@ -14,15 +17,16 @@ location = /auth/verifier_client_tls {{
   proxy_set_header VERIFIED           $ssl_client_verify;
   proxy_set_header X-Client-Issuer-DN $ssl_client_i_dn;
   proxy_set_header DN                 $ssl_client_s_dn;
-  proxy_set_header X-SSL-CERT $ssl_client_escaped_cert;
-
-  client_max_body_size 101m;  # Limite batch upload
+  proxy_set_header X-SSL-CERT         $ssl_client_escaped_cert;
 }}
 
-location = /auth/verifier_usager_tls {{
+location /auth/verifier_usager_tls {{
   if ( $ssl_client_verify != SUCCESS ) {{return 403;}}
   include /etc/nginx/conf.d/modules/webauth.proxypass;
   proxy_pass_request_body off; # no need to send the PUT/POST body
+  client_max_body_size 0;
+  proxy_http_version 1.1;
+  proxy_request_buffering off;
 
   proxy_set_header  Content-Length "";
   proxy_set_header  X-Real-IP $remote_addr;
@@ -36,9 +40,7 @@ location = /auth/verifier_usager_tls {{
   proxy_set_header VERIFIED           $ssl_client_verify;
   proxy_set_header X-Client-Issuer-DN $ssl_client_i_dn;
   proxy_set_header DN                 $ssl_client_s_dn;
-  proxy_set_header X-SSL-CERT $ssl_client_escaped_cert;
-
-  client_max_body_size 101m;  # Limite batch upload
+  proxy_set_header X-SSL-CERT         $ssl_client_escaped_cert;
 }}
 
 location /auth {{
