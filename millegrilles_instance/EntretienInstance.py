@@ -9,6 +9,8 @@ from typing import Optional, Union
 
 from asyncio import Event, TimeoutError
 
+from millegrilles_instance.ModulesRequisInstance import CONFIG_MODULES_INSTALLATION, CONFIG_MODULES_SECURE_EXPIRE, \
+    CONFIG_CERTIFICAT_EXPIRE, CONFIG_MODULES_SECURES, CONFIG_MODULES_PROTEGES, CONFIG_MODULES_PRIVES
 from millegrilles_messages.docker.Entretien import TacheEntretien
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesThread import MessagesThread
@@ -70,62 +72,6 @@ def get_module_execution(etat_instance: EtatInstance):
         return InstanceInstallationAvecDocker()
 
     return InstanceInstallation()
-
-
-CONFIG_MODULES_INSTALLATION = [
-    'docker.certissuer.json',
-    'docker.acme.json',
-]
-
-
-CONFIG_MODULES_SECURE_EXPIRE = [
-    'docker.certissuer.json',
-]
-
-
-CONFIG_CERTIFICAT_EXPIRE = [
-]
-
-
-CONFIG_MODULES_SECURES = [
-    'docker.certissuer.json',
-    'docker.acme.json',
-    'docker.nginx.json',
-    'docker.redis.json',
-]
-
-
-CONFIG_MODULES_PROTEGES = [
-    'docker.certissuer.json',
-    'docker.acme.json',
-    'docker.nginx.json',
-    'docker.redis.json',
-    'docker.mq.json',
-    'docker.mongo.json',
-    'docker.midcompte.json',
-    'docker.ceduleur.json',
-    'docker.core.json',
-    'docker.webauth.json',
-    # 'docker.maitrecomptes.json',
-    'docker.coupdoeil.json',
-    'docker.protected_webapi.json',
-]
-
-
-CONFIG_MODULES_PRIVES = [
-    'docker.nginx.json',
-    'docker.redis.json',
-    'docker.acme.json',
-    'docker.webauth.json',
-]
-
-
-CONFIG_MODULES_PUBLICS = [
-    'docker.nginx.json',
-    'docker.redis.json',
-    'docker.acme.json',
-    'docker.webauth.json',
-]
 
 
 class InstanceAbstract:
