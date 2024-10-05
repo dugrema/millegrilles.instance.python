@@ -1,3 +1,27 @@
 location = / {{
-  return 307 https://$http_host/installation;
+  return 307 https://$http_host/millegrilles;
+}}
+
+location /certs {{
+  root /usr/share/nginx/files;
+  include /etc/nginx/conf.d/component_cors.include;
+}}
+
+location /fiche.json {{
+  root /usr/share/nginx/html;
+  include /etc/nginx/conf.d/component_cors.include;
+  add_header 'Cache-Control' 'public,max-age=30';
+  gzip on;
+  gzip_static on;
+  gzip_types application/json;
+}}
+
+location /favicon.ico {{
+  root /usr/share/nginx/html;
+  include /etc/nginx/conf.d/component_cors.include;
+  add_header 'Cache-Control' 'public,max-age=86400';
+}}
+
+location = /time.txt {{
+   return 200 $msec;
 }}

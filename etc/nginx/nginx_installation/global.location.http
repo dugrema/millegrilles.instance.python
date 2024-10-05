@@ -1,5 +1,5 @@
 location = / {{
-  return 307 https://$http_host/installation;
+  return 307 https://$http_host/coupdoeil2;
 }}
 
 location /certs {{
@@ -14,4 +14,8 @@ location /fiche.json {{
   gzip on;
   gzip_static on;
   gzip_types application/json;
+}}
+
+location = /time.txt {{
+   return 200 $msec;
 }}

@@ -1,3 +1,2 @@
 # http://certissuer:8380
-set $upstream_certissuer {certissuer_url};
-proxy_pass $upstream_certissuer;
+proxy_pass {certissuer_url};

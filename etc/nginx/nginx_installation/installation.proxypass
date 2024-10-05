@@ -1,2 +1,1 @@
-set $upstream_installation {monitor_url};
-proxy_pass $upstream_installation;
+proxy_pass {instance_url};

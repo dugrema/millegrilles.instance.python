@@ -1,5 +1,4 @@
-# Resolver permet de chercher les apps/containers qui sont down sans faire planter nginx
-resolver 127.0.0.11 valid=30s;
-
 # Utiliser configuration standard dans le container
 include /etc/nginx/conf.d/server.include;
+
+#error_log  /tmp/nginx.error_log  debug;
