@@ -14,7 +14,7 @@ from millegrilles_messages.messages.MessagesThread import MessagesThread
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
-from millegrilles_instance.EntretienApplications import GestionnaireApplications
+from millegrilles_instance.MaintenanceApplications import GestionnaireApplications
 from millegrilles_instance.AcmeHandler import CommandeAcmeIssue
 from millegrilles_instance.Certificats import signer_certificat_instance_secure, signer_certificat_usager_via_secure
 

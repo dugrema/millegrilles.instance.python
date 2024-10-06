@@ -12,7 +12,7 @@ from millegrilles_messages.messages.MessagesThread import MessagesThread
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance.Commandes import CommandHandler
 from millegrilles_messages.messages.MessagesModule import MessageWrapper
-from millegrilles_instance.EntretienApplications import GestionnaireApplications
+from millegrilles_instance.MaintenanceApplications import GestionnaireApplications
 
 
 class MqThread:

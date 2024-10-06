@@ -10,6 +10,7 @@ from os import path
 from ssl import SSLContext
 from typing import Optional
 
+import millegrilles_instance.Exceptions
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Configuration import ConfigurationWeb
 from millegrilles_instance.EtatInstance import EtatInstance
@@ -30,7 +31,7 @@ class WebServer:
         self.__ssl_context: Optional[SSLContext] = None
 
         self.__webrunner: Optional[WebRunner] = None
-        self.__webrunner_443: Optional[WebRunner] = None
+        # self.__webrunner_443: Optional[WebRunner] = None
         self.__ipv6 = True
 
     def setup(self, configuration: Optional[dict] = None):
@@ -42,10 +43,10 @@ class WebServer:
     async def fermer(self):
         self.__stop_event.set()
 
-        try:
-            await self.__webrunner_443.stop()
-        except Exception as e:
-            self.__logger.debug("Erreur fermeture webrunner 443 : %s" % str(e))
+        # try:
+        #     await self.__webrunner_443.stop()
+        # except Exception as e:
+        #     self.__logger.debug("Erreur fermeture webrunner 443 : %s" % str(e))
 
         try:
             await self.__webrunner.stop()
@@ -146,14 +147,14 @@ class WebServer:
         try:
             resultat = await installer_instance(self.__etat_instance, request, headers_response=headers)
 
-            if self.__webrunner_443 is not None:
-                self.__logger.info("Desactiver server_coupdoeil instance sur port 443 pour demarrer nginx")
-
-                self.__logger.warning("Installation, redemarrer (peut pas arreter port 443 pour nginx)")
-                # await self.__etat_instance.reload_configuration()
-                # self.__etat_instance.set_redemarrer(True)
-                # self.__stop_event.set()
-                # await self.__etat_instance.stop()
+            # if self.__webrunner_443 is not None:
+            #     self.__logger.info("Desactiver server_coupdoeil instance sur port 443 pour demarrer nginx")
+            #
+            #     self.__logger.warning("Installation, redemarrer (peut pas arreter port 443 pour nginx)")
+            #     # await self.__etat_instance.reload_configuration()
+            #     # self.__etat_instance.set_redemarrer(True)
+            #     # self.__stop_event.set()
+            #     # await self.__etat_instance.stop()
 
             # return resultat
 
@@ -161,7 +162,7 @@ class WebServer:
             await self.__etat_instance.stop()
             return web.Response(headers=headers, status=200)
 
-        except ConstantesInstances.RedemarrageException:
+        except millegrilles_instance.Exceptions.RedemarrageException:
             self.__stop_event.set()
             return web.Response(headers=headers, status=200)
         except:
@@ -268,16 +269,16 @@ class WebServer:
         # Configuration pour site sur port 443 (utilise si nginx n'est pas configure)
         #niveau_securite_initial = self.__etat_instance.niveau_securite
         #if niveau_securite_initial != Constantes.SECURITE_PROTEGE:
-        if self.__etat_instance.doit_activer_443() is True:  # Pas encore initialise
-            self.__webrunner_443 = WebRunner(self.__etat_instance, self.__configuration, self.__app,
-                                             ipv6=self.__ipv6, port=443)
+        # if self.__etat_instance.doit_activer_443() is True:  # Pas encore initialise
+        #     self.__webrunner_443 = WebRunner(self.__etat_instance, self.__configuration, self.__app,
+        #                                      ipv6=self.__ipv6, port=443)
 
         try:
-            if self.__webrunner_443 is not None:
-                try:
-                    await self.__webrunner_443.start()
-                except OSError:
-                    self.__logger.info("Port 443 non disponible (probablement nginx - OK)")
+            # if self.__webrunner_443 is not None:
+            #     try:
+            #         await self.__webrunner_443.start()
+            #     except OSError:
+            #         self.__logger.info("Port 443 non disponible (probablement nginx - OK)")
             await self.__webrunner.start()
             self.__logger.info("Site demarre")
 

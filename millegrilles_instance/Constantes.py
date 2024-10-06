@@ -54,6 +54,6 @@ CONFIG_NOMFICHIER_CONFIGURATION_WEB_APPLICATIONS = 'web_applications.json'
 
 INTERVALLE_VERIFIER_CERTIFICATS = 3600
 
+FICHIER_ARCHIVES_APP = '/var/opt/millegrilles/configuration/archives.json'
 
-class RedemarrageException(BaseException):
-    pass
+

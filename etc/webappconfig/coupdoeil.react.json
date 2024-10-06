@@ -1,0 +1,28 @@
+{
+  "nom": "coupdoeil2",
+  "securite": "3.protege",
+  "dependances": [
+    {
+      "name": "coupdoeil2",
+      "archives": [
+        {
+          "src": "https://docker.maple.maceroc.com/archives/coupdoeil/millegrilles_coupdoeil_react.2024.7.3.tar.gz",
+          "digest": "4OQCIJr2vJJcWHxbAtHTpaSOii82WEYv6j4DiKachYYnoDsN",
+          "location": "nginx:html/applications/coupdoeil2"
+        }
+      ]
+    }
+  ],
+  "web": {
+    "links": [
+      {
+        "labels": {
+          "fr": {"name": "Coup D'Oeil 2", "description": "Comme Coup D'Oeil, mais mieux."},
+          "en": {"name": "Coup D'Oeil 2", "description": "MilleGrilles administrative application."}
+        },
+        "url": "https://${HOSTNAME}/coupdoeil2",
+        "securite": "3.protege"
+      }
+    ]
+  }
+}

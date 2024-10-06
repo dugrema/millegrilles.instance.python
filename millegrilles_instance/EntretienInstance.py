@@ -11,6 +11,7 @@ from typing import Optional, Union
 
 from asyncio import Event, TimeoutError
 
+from millegrilles_instance.MaintenanceApplicationWeb import entretien_webapps_installation
 from millegrilles_instance.ModulesRequisInstance import CONFIG_MODULES_INSTALLATION, CONFIG_MODULES_SECURE_EXPIRE, \
     CONFIG_CERTIFICAT_EXPIRE, CONFIG_MODULES_SECURES, CONFIG_MODULES_PROTEGES, CONFIG_MODULES_PRIVES
 from millegrilles_messages.docker.Entretien import TacheEntretien
@@ -22,7 +23,7 @@ from millegrilles_instance.EntretienNginx import EntretienNginx, generer_configu
 from millegrilles_instance.EntretienRabbitMq import EntretienRabbitMq
 from millegrilles_instance.RabbitMQDao import RabbitMQDao
 from millegrilles_instance.EntretienCatalogues import EntretienCatalogues
-from millegrilles_instance.EntretienApplications import GestionnaireApplications
+from millegrilles_instance.MaintenanceApplications import GestionnaireApplications
 from millegrilles_instance.Certificats import generer_passwords, \
     nettoyer_configuration_expiree, generer_certificats_modules_satellites
 
@@ -357,6 +358,11 @@ class InstanceDockerAbstract:
         await self._etat_docker.entretien_services(services)
         self.__logger.debug("entretien_services fin")
 
+    async def entretien_webapps_installation(self):
+        self.__logger.debug("entretien_webapps_installation debut")
+        await entretien_webapps_installation(self._etat_instance)
+        self.__logger.debug("entretien_webapps_installation fin")
+
     async def entretien_catalogues(self):
         if self.__setup_catalogues_complete is False:
             #setup_catalogues(self._etat_instance)
@@ -389,6 +395,7 @@ class InstanceInstallationAvecDocker(InstanceDockerAbstract):
         self._taches_entretien.append(TacheEntretien(datetime.timedelta(seconds=30), self.entretien_repertoires_installation))
         self._taches_entretien.append(TacheEntretien(datetime.timedelta(seconds=30), self.entretien_catalogues))
         self._taches_entretien.append(TacheEntretien(datetime.timedelta(seconds=30), self.entretien_services))
+        self._taches_entretien.append(TacheEntretien(datetime.timedelta(seconds=30), self.entretien_webapps_installation))
 
     async def setup(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
         self.__logger.info("Setup InstanceInstallation")
