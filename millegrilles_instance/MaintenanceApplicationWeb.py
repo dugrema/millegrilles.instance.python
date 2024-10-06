@@ -8,6 +8,9 @@ import tarfile
 
 import requests
 
+from typing import Optional
+
+from millegrilles_instance.Configuration import sauvegarder_configuration_webapps
 from millegrilles_instance.Constantes import FICHIER_ARCHIVES_APP
 from millegrilles_messages.docker.ParseConfiguration import WebApplicationConfiguration
 from millegrilles_messages.messages.Hachage import VerificateurHachage
@@ -42,7 +45,7 @@ def check_archive_stale(etat_instance, archive: WebApplicationConfiguration) -> 
         return True
 
 
-def installer_archive(etat_instance, archive: WebApplicationConfiguration):
+def installer_archive(etat_instance, app_name: str, archive: WebApplicationConfiguration, web_links: Optional[dict]):
     module = archive.module
     sub_path = archive.path
     app_url = archive.app_url
@@ -129,6 +132,10 @@ def installer_archive(etat_instance, archive: WebApplicationConfiguration):
                 config_locale = {archive.location: archive.__dict__}
                 json.dump(config_locale, fichier)
 
+        # Conserver url links de l'application
+        if web_links is not None:
+            sauvegarder_configuration_webapps(app_name, web_links, etat_instance)
+
     except Exception as e:
         # If the old path is present, restore it
         if tmp_old_path.exists():
@@ -165,6 +172,7 @@ async def entretien_webapps_installation(etat_instance):
                 config = json.load(fichier)
 
             for dep in config['dependances']:
+                name = config['nom']
                 try:
                     archives = dep['archives']
                 except KeyError:
@@ -174,6 +182,6 @@ async def entretien_webapps_installation(etat_instance):
                         archive = WebApplicationConfiguration(archive_dict)
                         try:
                             if await asyncio.to_thread(check_archive_stale, etat_instance, archive):
-                                await asyncio.to_thread(installer_archive, etat_instance, archive)
+                                await asyncio.to_thread(installer_archive, etat_instance, name, archive, config.get('web'))
                         except:
                             LOGGER.exception("Error checking web app %s", config_file.name)

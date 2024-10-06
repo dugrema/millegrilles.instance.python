@@ -263,7 +263,9 @@ async def install_service(etat_instance, docker_handler: DockerHandler, command:
     if parser.archives:
         for archive in parser.archives:
             if await asyncio.to_thread(check_archive_stale, etat_instance, archive):
-                await asyncio.to_thread(installer_archive, etat_instance, archive)
+                service_name = command.status.name
+                web_links = command.status.configuration.get('web')
+                await asyncio.to_thread(installer_archive, etat_instance, service_name, archive, web_links)
 
     # S'assurer d'avoir l'image
     image = parser.image
