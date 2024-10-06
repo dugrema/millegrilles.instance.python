@@ -9,9 +9,9 @@ configurer_docker() {
 
   # Installer logging pour docker avec rsyslog
   # Copier fichiers s'ils n'existent pas deja
-  sudo cp -n etc/daemon.json /etc/docker
-  sudo cp -n etc/logrotate.millegrilles.conf /etc/logrotate.d/millegrilles
-  sudo cp -n etc/01-millegrilles.conf /etc/rsyslog.d/
+  sudo cp --update=none etc/daemon.json /etc/docker
+  sudo cp --update=none etc/logrotate.millegrilles.conf /etc/logrotate.d/millegrilles
+  sudo cp --update=none etc/01-millegrilles.conf /etc/rsyslog.d/
 
   if ! cat /etc/rsyslog.conf | grep '^input(type="imtcp" port="514")'; then
     echo "[INFO] Ajouter l'option TCP sur port 514 dans /etc/rsyslog.conf"
@@ -63,11 +63,10 @@ if [ ! -d "${PATH_MILLEGRILLES}/configuration" ]; then
 
   echo "[INFO] Copier application web"
   ${REP_BIN}/install_web.sh
-  chown -R mginstance:millegrilles ${PATH_MILLEGRILLES}/dist
 
   # Permettre a python d'ouvrir un serveur sur les ports < 1024 pour tous les usagers
-  export PYTHON_BIN=`readlink -f $PATH_MILLEGRILLES/venv/bin/python3`
-  setcap 'cap_net_bind_service=+ep' $PYTHON_BIN
+  # export PYTHON_BIN=`readlink -f $PATH_MILLEGRILLES/venv/bin/python3`
+  # setcap 'cap_net_bind_service=+ep' $PYTHON_BIN
 
   docker info
   if [ "$?" -eq "0" ]; then
@@ -77,8 +76,8 @@ if [ ! -d "${PATH_MILLEGRILLES}/configuration" ]; then
 
   # Installer config pour logging (rsyslog, logrotate)
   # Les fichiers ne sont pas modifies s'ils existent deja
-  cp -n "${REP_ETC}/01-millegrilles.conf" "/etc/rsyslog.d"
-  cp -n "${REP_ETC}/logrotate.millegrilles.conf" "/etc/logrotate.d"
+  cp --update=none "${REP_ETC}/01-millegrilles.conf" "/etc/rsyslog.d"
+  cp --update=none "${REP_ETC}/logrotate.millegrilles.conf" "/etc/logrotate.d"
   systemctl restart rsyslog
 
 fi

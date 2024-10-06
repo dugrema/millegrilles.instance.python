@@ -1,6 +1,6 @@
 {
   "name": "nginxinstall",
-  "image": "docker.maple.maceroc.com:5000/millegrilles_nginx:1.27-alpine.2024.5.10",
+  "image": "docker.maple.maceroc.com:5000/millegrilles_nginx:1.27-alpine.2024.7.12",
   "env": {
     "ONIONSERVICE_NAME": "nginx",
     "ONIONSERVICE_PORT": "443"

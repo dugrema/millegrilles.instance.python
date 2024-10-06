@@ -18,9 +18,9 @@ install_docker() {
 configurer_docker() {
   # Installer logging pour docker avec rsyslog
   # Copier fichiers s'ils n'existent pas deja
-  sudo cp -n etc/daemon.json /etc/docker
-  sudo cp -n etc/logrotate.millegrilles.conf /etc/logrotate.d/millegrilles
-  sudo cp -n etc/01-millegrilles.conf /etc/rsyslog.d/
+  sudo cp --update=none etc/daemon.json /etc/docker
+  sudo cp --update=none etc/logrotate.millegrilles.conf /etc/logrotate.d/millegrilles
+  sudo cp --update=none etc/01-millegrilles.conf /etc/rsyslog.d/
 
   if ! cat /etc/rsyslog.conf | grep '^input(type="imtcp" port="514")'; then
     echo "[INFO] Ajouter l'option TCP sur port 514 dans /etc/rsyslog.conf"

@@ -1,4 +1,0 @@
-location /installation {{
-    include /etc/nginx/conf.d/modules/installation.proxypass;
-    include /etc/nginx/conf.d/component_base.include;
-}}

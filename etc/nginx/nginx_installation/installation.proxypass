@@ -1,1 +1,1 @@
-proxy_pass {instance_url};
+proxy_pass https://docker:5443;
