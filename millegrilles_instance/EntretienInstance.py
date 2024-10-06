@@ -26,6 +26,7 @@ from millegrilles_instance.EntretienCatalogues import EntretienCatalogues
 from millegrilles_instance.MaintenanceApplications import GestionnaireApplications
 from millegrilles_instance.Certificats import generer_passwords, \
     nettoyer_configuration_expiree, generer_certificats_modules_satellites
+from millegrilles_instance.MaintenanceApplicationService import charger_configuration_docker, charger_configuration_application
 
 logger = logging.getLogger(__name__)
 
@@ -157,7 +158,7 @@ class InstanceAbstract:
 
     async def get_configuration_certificats(self) -> dict:
         path_configuration = self._etat_instance.configuration.path_configuration
-        path_configuration_docker = path.join(path_configuration, 'docker')
+        path_configuration_docker = pathlib.Path(path_configuration, 'docker')
         config_modules = self.get_config_modules()
         configurations = await charger_configuration_docker(path_configuration_docker, config_modules)
         configurations_apps = await charger_configuration_application(path_configuration_docker)
@@ -177,7 +178,7 @@ class InstanceAbstract:
 
     async def get_configuration_passwords(self) -> list:
         path_configuration = self._etat_instance.configuration.path_configuration
-        path_configuration_docker = path.join(path_configuration, 'docker')
+        path_configuration_docker = pathlib.Path(path_configuration, 'docker')
         configurations = await charger_configuration_docker(path_configuration_docker, CONFIG_MODULES_PROTEGES)
 
         # map configuration certificat
@@ -295,7 +296,7 @@ class InstanceDockerAbstract:
 
     async def get_configuration_services(self) -> dict:
         path_configuration = self._etat_instance.configuration.path_configuration
-        path_configuration_docker = path.join(path_configuration, 'docker')
+        path_configuration_docker = pathlib.Path(path_configuration, 'docker')
         configurations = await charger_configuration_docker(path_configuration_docker, self.get_config_modules())
         configurations_apps = await charger_configuration_application(path_configuration_docker)
         configurations.extend(configurations_apps)
@@ -313,7 +314,7 @@ class InstanceDockerAbstract:
 
     async def get_configuration_certificats(self) -> dict:
         path_configuration = self._etat_instance.configuration.path_configuration
-        path_configuration_docker = path.join(path_configuration, 'docker')
+        path_configuration_docker = pathlib.Path(path_configuration, 'docker')
         config_modules = self.get_config_modules()
         configurations = await charger_configuration_docker(path_configuration_docker, config_modules)
         configurations_apps = await charger_configuration_application(path_configuration_docker)
@@ -333,7 +334,7 @@ class InstanceDockerAbstract:
 
     async def get_configuration_passwords(self) -> list:
         path_configuration = self._etat_instance.configuration.path_configuration
-        path_configuration_docker = path.join(path_configuration, 'docker')
+        path_configuration_docker = pathlib.Path(path_configuration, 'docker')
         configurations = await charger_configuration_docker(path_configuration_docker, CONFIG_MODULES_PROTEGES)
 
         # map configuration certificat
@@ -354,8 +355,8 @@ class InstanceDockerAbstract:
 
     async def entretien_services(self):
         self.__logger.debug("entretien_services debut")
-        services = await self.get_configuration_services()
-        await self._etat_docker.entretien_services(services)
+        # services = await self.get_configuration_services()
+        await self._etat_docker.entretien_services(self.get_config_modules())
         self.__logger.debug("entretien_services fin")
 
     async def entretien_webapps_installation(self):
@@ -1065,41 +1066,3 @@ class InstanceSecure(InstanceAbstract):
             return
 
         await self._etat_instance.emettre_presence(producer)
-
-
-async def charger_configuration_docker(path_configuration: str, fichiers: list) -> list:
-    configuration = []
-    for filename in fichiers:
-        path_fichier = path.join(path_configuration, filename)
-        try:
-            with open(path_fichier, 'rb') as fichier:
-                contenu = json.load(fichier)
-            configuration.append(contenu)
-        except FileNotFoundError:
-            logger.error("Fichier de module manquant : %s" % path_fichier)
-
-    return configuration
-
-
-async def charger_configuration_application(path_configuration: str) -> list:
-    configuration = []
-    try:
-        filenames = listdir(path_configuration)
-    except FileNotFoundError:
-        # Aucune configuration
-        return list()
-
-    for filename in filenames:
-        if filename.startswith('app.'):
-            path_fichier = path.join(path_configuration, filename)
-            try:
-                with open(path_fichier, 'rb') as fichier:
-                    contenu = json.load(fichier)
-
-                deps = contenu['dependances']
-
-                configuration.extend(deps)
-            except FileNotFoundError:
-                logger.error("Fichier de module manquant : %s" % path_fichier)
-
-    return configuration

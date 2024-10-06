@@ -9,8 +9,10 @@ from typing import Union
 from docker import DockerClient
 from docker.errors import APIError, NotFound
 from docker.models.containers import Container
+from docker.models.services import Service
 
-from millegrilles_messages.docker.DockerHandler import CommandeDocker
+from millegrilles_messages.docker import DockerCommandes
+from millegrilles_messages.docker.DockerHandler import CommandeDocker, DockerHandler
 
 
 class CommandeListeTopologie(CommandeDocker):
@@ -147,3 +149,37 @@ def parse_liste_containers(containers: list) -> dict:
         dict_containers[attrs['Name']] = info_container
 
     return dict_containers
+
+
+def check_service_running(service: Service) -> int:
+    tasks = [task for task in service.tasks() if task['DesiredState'] == 'running']
+    return len(tasks)
+
+def check_service_preparing(service: Service) -> int:
+    tasks = [task for task in service.tasks() if task['DesiredState'] == 'preparing']
+    return len(tasks)
+
+def check_replicas(service: Service):
+    attrs = service.attrs
+    spec = attrs['Spec']
+    mode = spec['Mode']
+    try:
+        replicated = mode['Replicated']
+        return replicated['Replicas']
+    except KeyError:
+        return None
+
+
+async def get_docker_image_tag(docker_handler: DockerHandler, image: str, pull=True):
+    commande_image = DockerCommandes.CommandeGetImage(image, pull=pull, aio=True)
+    docker_handler.ajouter_commande(commande_image)
+    image_info = await commande_image.get_resultat()
+    try:
+        image_tag = image_info['tags'][0]
+    except TypeError:
+        raise UnknownImage(image)
+    return image_tag
+
+
+class UnknownImage(Exception):
+    pass
