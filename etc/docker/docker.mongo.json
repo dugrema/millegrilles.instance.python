@@ -43,7 +43,8 @@
     "aliases": ["mongo"]
   }],
   "labels": {
-    "millegrille": "${IDMG}"
+    "millegrille": "${IDMG}",
+    "install_priority": "1"
   },
   "resources": {
     "cpu_limit": 3000000000,

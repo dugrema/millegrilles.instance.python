@@ -49,7 +49,8 @@
   }],
   "labels": {
     "securite": "3.protege",
-    "url": "https://${HOSTNAME}/coupdoeil"
+    "url": "https://${HOSTNAME}/coupdoeil",
+    "install_priority": "3"
   },
   "resources": {
     "cpu_limit": 1000000000,

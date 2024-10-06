@@ -69,6 +69,9 @@
     "target": "millegrille_net",
     "aliases": ["nginx"]
   }],
+  "labels": {
+    "install_priority": "1"
+  },
   "resources": {
     "cpu_limit": 2000000000,
     "mem_limit": 30000000

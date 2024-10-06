@@ -64,7 +64,8 @@
     "aliases": ["protected-webapi"]
   }],
   "labels": {
-    "millegrille": "${IDMG}"
+    "millegrille": "${IDMG}",
+    "install_priority": "4"
   },
   "resources": {
     "cpu_limit": 2000000000,

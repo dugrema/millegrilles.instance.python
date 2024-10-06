@@ -27,5 +27,8 @@
   },
   "networks": [
     {"target": "bridge"}
-  ]
+  ],
+  "labels": {
+    "install_priority": "1"
+  }
 }

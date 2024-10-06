@@ -43,6 +43,9 @@
       "filename": "passwd.redis.txt"
     }
   ],
+  "labels": {
+    "install_priority": "4"
+  },
   "networks": [
     {"target": "millegrille_net", "aliases": ["webauth"]},
     {"target": "bridge"}

@@ -13,7 +13,8 @@
     "target": "millegrille_net"
   }],
   "labels": {
-    "millegrille": "${IDMG}"
+    "millegrille": "${IDMG}",
+    "install_priority": "1"
   },
   "endpoint_spec": {
     "mode": "vip",

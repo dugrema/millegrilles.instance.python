@@ -26,6 +26,9 @@
       "filename": "webkey.pem"
     }
   ],
+  "labels": {
+    "install_priority": "1"
+  },
   "endpoint_spec": {
     "mode": "vip",
     "ports": [
