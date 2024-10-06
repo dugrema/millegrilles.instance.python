@@ -6,6 +6,8 @@ import json
 
 from typing import Optional
 
+import docker.errors
+
 from millegrilles_instance.CommandesDocker import check_service_running, check_replicas, check_service_preparing, \
     get_docker_image_tag, UnknownImage
 from millegrilles_instance.MaintenanceApplicationWeb import check_archive_stale, installer_archive
@@ -91,6 +93,7 @@ async def get_missing_services(etat_instance, docker_handler: DockerHandler, con
 
     return core_services
 
+
 async def download_docker_images(
         etat_instance, docker_handler: DockerHandler, services: list[ServiceStatus],
         service_queue: asyncio.Queue[Optional[ServiceInstallCommand]]):
@@ -113,6 +116,7 @@ async def download_docker_images(
             await service_queue.put(command)
     finally:
         await service_queue.put(None)  # Ensure install thread finishes
+
 
 async def install_services(
         etat_instance, docker_handler: DockerHandler,
@@ -144,6 +148,7 @@ async def install_services(
         except Exception:
             LOGGER.exception("Error installing service %s, aborting for this cycle" % service_name)
 
+
 async def update_stale_configuration(etat_instance, docker_handler: DockerHandler):
     # Check if any existing configuration needs to be updated
     commande_config_courante = DockerCommandes.CommandeGetConfigurationsDatees(aio=True)
@@ -168,141 +173,6 @@ async def service_maintenance(etat_instance, docker_handler: DockerHandler, conf
         task_install = install_services(etat_instance, docker_handler, service_install_queue)
         await asyncio.gather(task_install, task_download)
         LOGGER.debug("Install missing services DONE")
-
-# def m():
-#     services_with_images = dict()
-#     for service_key, service_data in services.items():
-#         try:
-#             _ = service_data['archives']
-#         except KeyError:
-#             # No archives, keep the service
-#             services_with_images[service_key] = service_data
-#         else:
-#             try:
-#                 _ = service_data['image']
-#                 services_with_images[service_key] = service_data
-#             except KeyError:
-#                 pass  # No images, check separately
-#
-#     commande_liste_services = DockerCommandes.CommandeListerServices(aio=True)
-#     self.__docker_handler.ajouter_commande(commande_liste_services)
-#     liste_services_docker = await commande_liste_services.get_liste()
-#
-#     commande_config_currente = DockerCommandes.CommandeGetConfigurationsDatees(aio=True)
-#     self.__docker_handler.ajouter_commande(commande_config_currente)
-#     liste_config_datee = await commande_config_currente.get_resultat()
-#
-#     # Determiner s'il y a des services manquants
-#     nom_services_a_installer = set(services_with_images.keys())
-#
-#     # Services avec certificats/secrets/passwd a remplacer
-#     services_a_reconfigurer = set()
-#
-#     # Utiliser docker pour determiner la liste de services a reconfigurer
-#     liste_services_docker = trier_services(liste_services_docker)
-#     for s in liste_services_docker:
-#         name = s.name
-#         attrs = s.attrs
-#         spec = attrs['Spec']
-#         mode = spec['Mode']
-#         try:
-#             replicated = mode['Replicated']
-#             replicas = replicated['Replicas']
-#         except KeyError:
-#             self.__logger.debug("Service %s configure sans replicas, on l'ignore" % name)
-#             replicas = None
-#
-#         try:
-#             nom_services_a_installer.remove(name)
-#         except KeyError:
-#             # Ce n'est pas un module de base - verifier si c'est une application gere par l'instance
-#             labels = spec['Labels']
-#             if labels.get('application') is None:
-#                 replicas = None
-#
-#         service_state_ok = False
-#         if replicas is not None and replicas > 0:
-#             # Verifier si le service est actif
-#             tasks = s.tasks(filters={'desired-state': 'running'})
-#             for task in tasks:
-#                 try:
-#                     status = task['Status']
-#                     state = status['State']
-#                     if state in ['running', 'preparing']:
-#                         service_state_ok = True
-#                 except KeyError:
-#                     pass
-#         else:
-#             service_state_ok = True
-#
-#         if service_state_ok is False:
-#             self.__logger.info("Service %s arrete, on le redemarre" % name)
-#             s.update(force_update=True)
-#             action_configurations = DockerCommandes.CommandeRedemarrerService(nom_service=name, aio=True)
-#             self.__docker_handler.ajouter_commande(action_configurations)
-#             await action_configurations.attendre()
-#         else:
-#             # Verifier si l'etat de la configuration est courant
-#             container_spec = spec['TaskTemplate']['ContainerSpec']
-#             try:
-#                 container_secrets = container_spec['Secrets']
-#             except KeyError:
-#                 container_secrets = None
-#             try:
-#                 container_config = container_spec['Configs']
-#             except KeyError:
-#                 container_config = None
-#
-#             config_ok = verifier_config_current(liste_config_datee['correspondance'], container_config,
-#                                                 container_secrets)
-#             if config_ok is False:
-#                 self.__logger.info("Configs/secrets out of date, regenerer config %s" % s.name)
-#                 services_a_reconfigurer.add(s.name)
-#                 config_service = services[s.name]
-#                 await self.maj_configuration_datee_service(s.name, config_service)
-#
-#     # Pour tous les services, verifier s'ils sont bases sur des archives a installer sans docker
-#     for nom_service in set(services.keys()):
-#         config_service = services[nom_service]
-#         archives = config_service.get('archives')
-#         if archives:
-#             try:
-#                 with open(FICHIER_ARCHIVES_APP, 'rt') as fichier:
-#                     config_archives = json.load(fichier)
-#             except (FileNotFoundError, json.JSONDecodeError):
-#                 nom_services_a_installer.add(nom_service)
-#                 continue  # Aucun fichier de configuration, aucunes archives d'installees
-#
-#             try:
-#                 for archive in archives:
-#                     archive_location = archive['location']
-#                     archive_digest = archive['digest']
-#                     archive_configuration = config_archives[archive_location]
-#                     if archive_configuration['digest'] != archive_digest:
-#                         nom_services_a_installer.add(nom_service)
-#                         break  # Il faut reinstaller l'application
-#                 else:
-#                     # Toutes les archives sont installees et avec le meme digest
-#                     pass
-#
-#             except KeyError:
-#                 # Il manque un element (probablement location). Reinstaller.
-#                 nom_services_a_installer.add(nom_service)
-#
-#     if len(nom_services_a_installer) > 0:
-#         self.__logger.debug("Services manquants dans docker : %s" % nom_services_a_installer)
-#
-#         params = await self.get_params_env_service()
-#
-#         for nom_service in nom_services_a_installer:
-#             config_service = services[nom_service]
-#             await self.installer_service(nom_service, config_service, params)
-#
-#             try:
-#                 web_config = config_service['web']
-#                 sauvegarder_configuration_webapps(nom_service, web_config, self.__etat_instance)
-#             except KeyError:
-#                 pass  # No web configuration
 
 
 async def charger_configuration_docker(path_configuration: pathlib.Path, fichiers: list) -> list:
@@ -431,3 +301,15 @@ async def get_params_env_service(etat_instance, docker_handler: DockerHandler) -
     }
 
     return params
+
+
+async def nginx_installation_cleanup(etat_instance, docker_handler: DockerHandler):
+    """
+    Ensure nginxinstall and other installation services are removed.
+    """
+    action_remove = DockerCommandes.CommandeSupprimerService("nginxinstall", aio=True)
+    docker_handler.ajouter_commande(action_remove)
+    try:
+        await action_remove.get_resultat()
+    except docker.errors.NotFound:
+        pass  # Ok, already removed

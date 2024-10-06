@@ -11,6 +11,8 @@ import ssl
 from aiohttp.client_exceptions import ClientConnectorError
 from os import path, makedirs
 from typing import Optional, Union
+
+from millegrilles_instance.MaintenanceApplicationService import nginx_installation_cleanup
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.CleCertificat import CleCertificat
@@ -146,6 +148,9 @@ proxy_pass $upstream_fichiers;
 
     async def preparer_nginx(self):
         self.__logger.info("Preparer nginx")
+
+        # S'assurer que l'instance nginxinstall est supprimee
+        await nginx_installation_cleanup(self.__etat_instance, self.__etat_docker)
         configuration_modifiee = self.verifier_repertoire_configuration()
         self.__entretien_initial_complete = True
         self.__logger.info("Configuration nginx prete (configuration modifiee? %s)" % configuration_modifiee)
@@ -384,16 +389,26 @@ def generer_configuration_nginx(etat_instance, path_src_nginx: pathlib.Path, pat
         LOGGER.info("Configurer nginx en mode installation")
         repertoire_src_nginx = path.join(path_src_nginx, 'nginx_installation')
 
+    initial_override = False
+    if niveau_securite is not None:
+        guard_initial_override = pathlib.Path(path_nginx_modules, '.init_done')
+        if guard_initial_override.exists() is False:
+            initial_override = True
+
     for fichier in os.listdir(repertoire_src_nginx):
         # Verifier si le fichier existe dans la destination
         path_destination = path.join(path_nginx_modules, fichier)
-        if path.exists(path_destination) is False:
+        if initial_override or path.exists(path_destination) is False:
             LOGGER.info("Generer fichier configuration nginx %s" % fichier)
             path_source = path.join(repertoire_src_nginx, fichier)
             with open(path_source, 'r') as fichier_input:
                 contenu = fichier_input.read()
             ajouter_fichier_configuration(etat_instance, path_nginx_modules, fichier, contenu)
             configuration_modifiee = True
+
+    if initial_override:
+        with open(guard_initial_override, 'wt') as fichier:
+            json.dump({'done': True}, fichier)
 
     return configuration_modifiee
 

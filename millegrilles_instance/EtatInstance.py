@@ -492,13 +492,14 @@ class EtatInstance:
         return True
 
     async def emettre_notification(self, producer, contenu, subject: Optional[str] = None, niveau='info'):
-        if self.__emetteur_notifications is not None:
-            if subject is None:
-                subject = self.__hostname
-
-            await self.__emetteur_notifications.emettre_notification(producer, contenu, subject, niveau)
-        else:
-            self.__logger.debug("Emetteur notification offline, notification ignoree : %s" % contenu)
+        self.__logger.debug("!!! Notification deprecated")
+        # if self.__emetteur_notifications is not None:
+        #     if subject is None:
+        #         subject = self.__hostname
+        #
+        #     await self.__emetteur_notifications.emettre_notification(producer, contenu, subject, niveau)
+        # else:
+        #     self.__logger.debug("Emetteur notification offline, notification ignoree : %s" % contenu)
 
 
 def load_fichier_config(path_fichier: str) -> Optional[str]:
