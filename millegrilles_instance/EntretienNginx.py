@@ -141,7 +141,10 @@ class EntretienNginx:
 set $upstream_fichiers %s;
 proxy_pass $upstream_fichiers;
     """ % url_consignation
-            fichier_nouveau = self.ajouter_fichier_configuration(nom_fichier, contenu)
+
+            path_nginx = self.__etat_instance.configuration.path_nginx
+            path_nginx_module = pathlib.Path(path_nginx, 'modules')
+            fichier_nouveau = ajouter_fichier_configuration(self.__etat_instance, path_nginx_module, nom_fichier, contenu)
 
             if fichier_nouveau is True:
                 await self.__etat_docker.redemarrer_nginx()
@@ -266,7 +269,10 @@ proxy_pass $upstream_fichiers;
         contenu = """
 add_header "Onion-Location" "https://%s";
 """ % hostname
-        fichier_nouveau = self.ajouter_fichier_configuration(nom_fichier, contenu)
+
+        path_nginx = self.__etat_instance.configuration.path_nginx
+        path_nginx_module = pathlib.Path(path_nginx, 'modules')
+        fichier_nouveau = ajouter_fichier_configuration(self.__etat_instance, path_nginx_module, nom_fichier, contenu)
 
         if fichier_nouveau is True:
             await self.__etat_docker.redemarrer_nginx()
@@ -297,6 +303,7 @@ def generer_configuration_nginx(etat_instance, path_src_nginx: pathlib.Path, pat
         repertoire_src_nginx = path.join(path_src_nginx, 'nginx_installation')
 
     initial_override = False
+    guard_initial_override = None
     if niveau_securite is not None:
         guard_initial_override = pathlib.Path(path_nginx_modules, '.init_done')
         if guard_initial_override.exists() is False:
@@ -313,7 +320,7 @@ def generer_configuration_nginx(etat_instance, path_src_nginx: pathlib.Path, pat
             ajouter_fichier_configuration(etat_instance, path_nginx_modules, fichier, contenu)
             configuration_modifiee = True
 
-    if initial_override:
+    if guard_initial_override:
         with open(guard_initial_override, 'wt') as fichier:
             json.dump({'done': True}, fichier)
 
