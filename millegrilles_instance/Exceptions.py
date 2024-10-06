@@ -1,0 +1,3 @@
+class InstallationModeException(Exception):
+    pass
+

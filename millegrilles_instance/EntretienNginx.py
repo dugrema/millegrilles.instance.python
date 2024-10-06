@@ -2,6 +2,7 @@ import datetime
 import json
 import os
 import urllib3
+import pathlib
 
 import aiohttp
 import logging
@@ -15,6 +16,9 @@ from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertific
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_instance.AcmeHandler import CommandeAcmeExtractCertificates, AcmeNonDisponibleException
 from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname, OnionizeNonDisponibleException
+
+
+LOGGER = logging.getLogger(__name__)
 
 
 class EntretienNginx:
@@ -164,97 +168,103 @@ proxy_pass $upstream_fichiers;
         return configuration_modifiee
 
     def generer_configuration_nginx(self) -> bool:
-        path_nginx = self.__etat_instance.configuration.path_nginx
-        path_nginx_modules = path.join(path_nginx, 'modules')
-        makedirs(path_nginx_modules, 0o750, exist_ok=True)
-
-        # params = {
-        #     'nodename': nodename,
-        #     'hostname': hostname,
-        #     'monitor_url': monitor_url,
-        #     'certissuer_url': certissuer_url,
-        #     'MQ_HOST': mq_host,
-        # }
-
-        # params = {
-        #     'nodename': 'mg-dev5',
-        #     'hostname': 'mg-dev5',
-        #     'instance_url': 'https://mg-dev5:2443',
-        #     'certissuer_url': 'http://mg-dev5:2080',
-        #     'midcompte_url': 'https://midcompte:2444',
-        #     'MQ_HOST': 'mq',
-        # }
-
-        configuration_modifiee = False
+        path_src_nginx = pathlib.Path(self.__etat_instance.configuration.path_configuration, 'nginx')
+        path_nginx_modules = pathlib.Path(self.__etat_instance.configuration.path_nginx, 'modules')
         niveau_securite = self.__etat_instance.niveau_securite
+        return generer_configuration_nginx(self.__etat_instance, path_src_nginx, path_nginx_modules, niveau_securite)
 
-        # Faire liste des fichiers de configuration
-        path_src_nginx = path.join(self.__etat_instance.configuration.path_configuration, 'nginx')
+        # path_nginx = self.__etat_instance.configuration.path_nginx
+        # path_nginx_modules = path.join(path_nginx, 'modules')
+        # makedirs(path_nginx_modules, 0o750, exist_ok=True)
+        #
+        # # params = {
+        # #     'nodename': nodename,
+        # #     'hostname': hostname,
+        # #     'monitor_url': monitor_url,
+        # #     'certissuer_url': certissuer_url,
+        # #     'MQ_HOST': mq_host,
+        # # }
+        #
+        # # params = {
+        # #     'nodename': 'mg-dev5',
+        # #     'hostname': 'mg-dev5',
+        # #     'instance_url': 'https://mg-dev5:2443',
+        # #     'certissuer_url': 'http://mg-dev5:2080',
+        # #     'midcompte_url': 'https://midcompte:2444',
+        # #     'MQ_HOST': 'mq',
+        # # }
+        #
+        # configuration_modifiee = False
+        # niveau_securite = self.__etat_instance.niveau_securite
+        #
+        # # Faire liste des fichiers de configuration
+        # path_src_nginx = path.join(self.__etat_instance.configuration.path_configuration, 'nginx')
+        #
+        # if niveau_securite == Constantes.SECURITE_PROTEGE:
+        #     repertoire_src_nginx = path.join(path_src_nginx, 'nginx_protege')
+        # elif niveau_securite == Constantes.SECURITE_SECURE:
+        #     repertoire_src_nginx = path.join(path_src_nginx, 'nginx_secure')
+        # elif niveau_securite == Constantes.SECURITE_PRIVE:
+        #     repertoire_src_nginx = path.join(path_src_nginx, 'nginx_prive')
+        # elif niveau_securite == Constantes.SECURITE_PUBLIC:
+        #     repertoire_src_nginx = path.join(path_src_nginx, 'nginx_public')
+        # else:
+        #     self.__logger.info("Configurer nginx en mode installation")
+        #     repertoire_src_nginx = path.join(path_src_nginx, 'nginx_installation')
+        #
+        # for fichier in os.listdir(repertoire_src_nginx):
+        #     # Verifier si le fichier existe dans la destination
+        #     path_destination = path.join(path_nginx_modules, fichier)
+        #     if path.exists(path_destination) is False:
+        #         self.__logger.info("Generer fichier configuration nginx %s" % fichier)
+        #         path_source = path.join(repertoire_src_nginx, fichier)
+        #         with open(path_source, 'r') as fichier_input:
+        #             contenu = fichier_input.read()
+        #         # contenu = contenu.format(**params)
+        #         self.ajouter_fichier_configuration(fichier, contenu)
+        #         # with open(path_destination, 'w') as fichier:
+        #         #     fichier.write(contenu)
+        #         configuration_modifiee = True
+        #
+        # return configuration_modifiee
 
-        if niveau_securite == Constantes.SECURITE_PROTEGE:
-            repertoire_src_nginx = path.join(path_src_nginx, 'nginx_protege')
-        elif niveau_securite == Constantes.SECURITE_SECURE:
-            repertoire_src_nginx = path.join(path_src_nginx, 'nginx_secure')
-        elif niveau_securite == Constantes.SECURITE_PRIVE:
-            repertoire_src_nginx = path.join(path_src_nginx, 'nginx_prive')
-        elif niveau_securite == Constantes.SECURITE_PUBLIC:
-            repertoire_src_nginx = path.join(path_src_nginx, 'nginx_public')
-        else:
-            raise Exception("Niveau securite non supporte avec nginx : '%s'", niveau_securite)
-
-        for fichier in os.listdir(repertoire_src_nginx):
-            # Verifier si le fichier existe dans la destination
-            path_destination = path.join(path_nginx_modules, fichier)
-            if path.exists(path_destination) is False:
-                self.__logger.info("Generer fichier configuration nginx %s" % fichier)
-                path_source = path.join(repertoire_src_nginx, fichier)
-                with open(path_source, 'r') as fichier_input:
-                    contenu = fichier_input.read()
-                # contenu = contenu.format(**params)
-                self.ajouter_fichier_configuration(fichier, contenu)
-                # with open(path_destination, 'w') as fichier:
-                #     fichier.write(contenu)
-                configuration_modifiee = True
-
-        return configuration_modifiee
-
-    def ajouter_fichier_configuration(self, nom_fichier: str, contenu: str, params: Optional[dict] = None) -> bool:
-        path_nginx = self.__etat_instance.configuration.path_nginx
-        path_nginx_modules = path.join(path_nginx, 'modules')
-        if params is None:
-            params = dict()
-        else:
-            params = params.copy()
-
-        params.update({
-            'nodename': self.__etat_instance.hostname,
-            'hostname': self.__etat_instance.hostname,
-            'instance_url': 'https://%s:2443' % self.__etat_instance.hostname,
-            'certissuer_url': 'http://%s:2080' % self.__etat_instance.hostname,
-            'midcompte_url': 'https://midcompte:2444',
-            'MQ_HOST': self.__etat_instance.mq_hostname,
-        })
-
-        path_destination = path.join(path_nginx_modules, nom_fichier)
-        try:
-            contenu = contenu.format(**params)
-        except (KeyError, ValueError):
-            self.__logger.exception("Erreur configuration fichier %s\n%s\n" % (nom_fichier, contenu))
-            return False
-
-        changement_detecte = False
-        try:
-            with open(path_destination, 'r') as fichier_existant:
-                contenu_existant = fichier_existant.read()
-                if contenu_existant != contenu:
-                    changement_detecte = True
-        except FileNotFoundError:
-            changement_detecte = True
-
-        with open(path_destination, 'w') as fichier_output:
-            fichier_output.write(contenu)
-
-        return changement_detecte
+    # def ajouter_fichier_configuration(self, nom_fichier: str, contenu: str, params: Optional[dict] = None) -> bool:
+    #     path_nginx = self.__etat_instance.configuration.path_nginx
+    #     path_nginx_modules = path.join(path_nginx, 'modules')
+    #     if params is None:
+    #         params = dict()
+    #     else:
+    #         params = params.copy()
+    #
+    #     params.update({
+    #         'nodename': self.__etat_instance.hostname,
+    #         'hostname': self.__etat_instance.hostname,
+    #         'instance_url': 'https://%s:2443' % self.__etat_instance.hostname,
+    #         'certissuer_url': 'http://%s:2080' % self.__etat_instance.hostname,
+    #         'midcompte_url': 'https://midcompte:2444',
+    #         'MQ_HOST': self.__etat_instance.mq_hostname,
+    #     })
+    #
+    #     path_destination = path.join(path_nginx_modules, nom_fichier)
+    #     try:
+    #         contenu = contenu.format(**params)
+    #     except (KeyError, ValueError):
+    #         self.__logger.exception("Erreur configuration fichier %s\n%s\n" % (nom_fichier, contenu))
+    #         return False
+    #
+    #     changement_detecte = False
+    #     try:
+    #         with open(path_destination, 'r') as fichier_existant:
+    #             contenu_existant = fichier_existant.read()
+    #             if contenu_existant != contenu:
+    #                 changement_detecte = True
+    #     except FileNotFoundError:
+    #         changement_detecte = True
+    #
+    #     with open(path_destination, 'w') as fichier_output:
+    #         fichier_output.write(contenu)
+    #
+    #     return changement_detecte
 
     def sauvegarder_fichier_data(self, path_fichier: str, contenu: Union[str, bytes, dict], path_html=False):
         path_nginx = self.__etat_instance.configuration.path_nginx
@@ -349,3 +359,76 @@ add_header "Onion-Location" "https://%s";
         if fichier_nouveau is True:
             await self.__etat_docker.redemarrer_nginx()
 
+
+def generer_configuration_nginx(etat_instance, path_src_nginx: pathlib.Path, path_nginx_modules: pathlib.Path, niveau_securite: Optional[str]) -> bool:
+    """
+    :path_src_nginx: Configuration file source folder for nginx
+    :path_nginx: nginx destination folder
+    :niveau_securite: Security level of the instance, None for installation mode.
+    """
+
+    makedirs(path_nginx_modules, 0o750, exist_ok=True)
+
+    configuration_modifiee = False
+
+    # Faire liste des fichiers de configuration
+    if niveau_securite == Constantes.SECURITE_PROTEGE:
+        repertoire_src_nginx = path.join(path_src_nginx, 'nginx_protege')
+    elif niveau_securite == Constantes.SECURITE_SECURE:
+        repertoire_src_nginx = path.join(path_src_nginx, 'nginx_secure')
+    elif niveau_securite == Constantes.SECURITE_PRIVE:
+        repertoire_src_nginx = path.join(path_src_nginx, 'nginx_prive')
+    elif niveau_securite == Constantes.SECURITE_PUBLIC:
+        repertoire_src_nginx = path.join(path_src_nginx, 'nginx_public')
+    else:
+        LOGGER.info("Configurer nginx en mode installation")
+        repertoire_src_nginx = path.join(path_src_nginx, 'nginx_installation')
+
+    for fichier in os.listdir(repertoire_src_nginx):
+        # Verifier si le fichier existe dans la destination
+        path_destination = path.join(path_nginx_modules, fichier)
+        if path.exists(path_destination) is False:
+            LOGGER.info("Generer fichier configuration nginx %s" % fichier)
+            path_source = path.join(repertoire_src_nginx, fichier)
+            with open(path_source, 'r') as fichier_input:
+                contenu = fichier_input.read()
+            ajouter_fichier_configuration(etat_instance, path_nginx_modules, fichier, contenu)
+            configuration_modifiee = True
+
+    return configuration_modifiee
+
+def ajouter_fichier_configuration(etat_instance, path_nginx_modules: pathlib.Path, nom_fichier: str, contenu: str, params: Optional[dict] = None) -> bool:
+    if params is None:
+        params = dict()
+    else:
+        params = params.copy()
+
+    params.update({
+        'nodename': etat_instance.hostname,
+        'hostname': etat_instance.hostname,
+        'instance_url': 'https://%s:2443' % etat_instance.hostname,
+        'certissuer_url': 'http://%s:2080' % etat_instance.hostname,
+        'midcompte_url': 'https://midcompte:2444',
+        'MQ_HOST': etat_instance.mq_hostname,
+    })
+
+    path_destination = path.join(path_nginx_modules, nom_fichier)
+    try:
+        contenu = contenu.format(**params)
+    except (KeyError, ValueError):
+        LOGGER.exception("Erreur configuration fichier %s\n%s\n" % (nom_fichier, contenu))
+        return False
+
+    changement_detecte = False
+    try:
+        with open(path_destination, 'r') as fichier_existant:
+            contenu_existant = fichier_existant.read()
+            if contenu_existant != contenu:
+                changement_detecte = True
+    except FileNotFoundError:
+        changement_detecte = True
+
+    with open(path_destination, 'w') as fichier_output:
+        fichier_output.write(contenu)
+
+    return changement_detecte

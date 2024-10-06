@@ -3,6 +3,8 @@ import asyncio
 import datetime
 import json
 import logging
+import pathlib
+import shutil
 
 from os import path, makedirs, listdir
 from typing import Optional, Union
@@ -16,7 +18,7 @@ from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesThread import MessagesThread
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
-from millegrilles_instance.EntretienNginx import EntretienNginx
+from millegrilles_instance.EntretienNginx import EntretienNginx, generer_configuration_nginx
 from millegrilles_instance.EntretienRabbitMq import EntretienRabbitMq
 from millegrilles_instance.RabbitMQDao import RabbitMQDao
 from millegrilles_instance.EntretienCatalogues import EntretienCatalogues
@@ -399,8 +401,20 @@ class InstanceInstallationAvecDocker(InstanceDockerAbstract):
         path_nginx = self._etat_instance.configuration.path_nginx
         path_nginx_html = path.join(path_nginx, 'html')
         makedirs(path_nginx_html, 0o755, exist_ok=True)
-        # path_certissuer = self._etat_instance.configuration.path_certissuer
-        # makedirs(path_certissuer, 0o700, exist_ok=True)
+
+        path_nginx_modules = pathlib.Path(path_nginx, 'modules')
+        if path_nginx_modules.exists() is False:  # modules/ not configured yet
+            self.__logger.info("Setup nginx installation module configuration")
+            path_nginx_modules_work = pathlib.Path(path_nginx, 'modules.work')
+            try:
+                # Cleanup old attempt
+                shutil.rmtree(path_nginx_modules_work)
+            except FileNotFoundError:
+                pass  #
+
+            path_src_nginx = pathlib.Path(self._etat_instance.configuration.path_configuration, 'nginx')
+            generer_configuration_nginx(self._etat_instance, path_src_nginx, path_nginx_modules_work, None)
+            path_nginx_modules_work.rename(path_nginx_modules)
 
 
 class InstanceDockerCertificatProtegeExpire(InstanceDockerAbstract):

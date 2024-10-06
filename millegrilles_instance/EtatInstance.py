@@ -14,6 +14,7 @@ from json.decoder import JSONDecodeError
 from typing import Optional
 from os import path, listdir
 
+from millegrilles_instance.Exceptions import InstallationModeException
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance import Constantes as ConstantesInstance
@@ -188,16 +189,19 @@ class EtatInstance:
         for fingerprint in maitredescles_expire:
             del self.__certificats_maitredescles[fingerprint]
 
-        if get_producer is not None:
-            producer = await get_producer()
-        else:
-            self.__logger.info("EtatInstance.entretien Producer mq est None")
-            producer = None
-
         try:
-            await self.__etat_systeme.entretien(producer)
-        except Exception:
-            self.__logger.exception('Erreur entretien systeme')
+            if get_producer is not None:
+                producer = await get_producer()
+            else:
+                self.__logger.info("EtatInstance.entretien Producer mq est None")
+                producer = None
+
+            try:
+                await self.__etat_systeme.entretien(producer)
+            except Exception:
+                self.__logger.exception('Erreur entretien systeme')
+        except InstallationModeException:
+            self.__logger.info("entretien - Skip, mode installation")
 
     def set_docker_present(self, etat: bool):
         self.__docker_present = etat

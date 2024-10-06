@@ -9,6 +9,7 @@ from os import path
 
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 from millegrilles_instance.EtatInstance import EtatInstance
+from millegrilles_instance.Exceptions import InstallationModeException
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.Configuration import sauvegarder_configuration_webapps
@@ -128,6 +129,9 @@ class GestionnaireApplications:
             return {'ok': True}
 
     async def get_producer(self, timeout=5):
+        if self.__etat_instance.niveau_securite is None:
+            raise InstallationModeException('Installation mode')
+
         if self.__rabbitmq_dao is None:
             raise Exception('producer non disponible (rabbitmq non initialie)')
         producer = self.__rabbitmq_dao.get_producer()

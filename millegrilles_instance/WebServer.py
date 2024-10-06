@@ -57,7 +57,7 @@ class WebServer:
 
     def _preparer_routes(self):
         self.__app.add_routes([
-            web.get('/', self.rediriger_root),
+            # web.get('/', self.rediriger_root),
 
             web.get('/installation/api/info', self.handle_api_info),
             web.get('/installation/api/infoMonitor', self.handle_api_info),  # Deprecated, FIX dans coupdoeil
@@ -76,10 +76,10 @@ class WebServer:
             web.options('/installation/api/installerCertificat', self.options_cors),
 
             # Application d'installation static React
-            web.get('/installation/', self.installation_index_handler),
-            web.get('/installation', self.installation_index_handler),
+            # web.get('/installation/', self.installation_index_handler),
+            # web.get('/installation', self.installation_index_handler),
 
-            web.static('/installation', self.__configuration.path_app_installation),
+            # web.static('/installation', self.__configuration.path_app_installation),
         ])
 
     async def rediriger_root(self, request):

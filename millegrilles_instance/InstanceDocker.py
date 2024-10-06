@@ -671,59 +671,6 @@ class EtatDockerInstanceSync:
 
         return {'ok': resultat}
 
-    # async def backup_applications(self):
-    #     """
-    #     Execute les scripts de backup de tous les containers.
-    #     :return:
-    #     """
-    #     commande_services = CommandeGetServicesBackup()
-    #     self.__docker_handler.ajouter_commande(commande_services)
-    #     services_backup = await commande_services.get_services()
-    #
-    #     for nom_service, values in services_backup.items():
-    #         try:
-    #             labels = values['labels']
-    #             backup_scripts = labels['backup_scripts']
-    #             backup_scripts = backup_scripts.split(',')
-    #         except KeyError:  # Ne devrait pas arriver, backup_scripts est le filter dans services.list()
-    #             continue
-    #
-    #         path_scripts = labels.get('scripts_path') or path.join('/var/opt/millegrilles_scripts', nom_service)
-    #
-    #         for script in backup_scripts:
-    #             path_script = path.join(path_scripts, script)
-    #             commande_backup = CommandeExecuterScriptDansService(nom_service, path_script)
-    #             self.__docker_handler.ajouter_commande(commande_backup)
-    #             resultat = await commande_backup.get_resultat()
-    #             code = resultat['code']
-    #             output = resultat['output']
-    #             if code != 0:
-    #                 self.__logger.warning("Resultat backup %s = %s\n%s" % (path_script, code, output))
-    #             else:
-    #                 self.__logger.info("Resultat backup %s = %s" % (path_script, code))
-    #
-    #     # Executer backup pour chiffrer archives
-    #     image_backup = self.__etat_instance.configuration.docker_image_backup
-    #
-    #     env_backup = {
-    #         'CA_PEM': '/var/opt/millegrilles/configuration/pki.millegrille.cert',
-    #         'CERT_PEM': '/var/opt/millegrilles/secrets/pki.instance.cert',
-    #         'KEY_PEM': '/var/opt/millegrilles/secrets/pki.instance.key',
-    #         'MQ_HOSTNAME': 'mq',
-    #     }
-    #     commande_container_backup = DockerCommandes.CommandeRunContainer(
-    #         image_backup,
-    #         "-m millegrilles_messages.backup backup --source /var/opt/millegrilles_backup",
-    #         environment=env_backup,
-    #     )
-    #     commande_container_backup.ajouter_mount('millegrilles_backup', '/var/opt/millegrilles_backup',
-    #                                             mount_type='volume')
-    #     commande_container_backup.ajouter_mount('/var/opt/millegrilles', '/var/opt/millegrilles',
-    #                                             mount_type='bind', read_only=True)
-    #     self.__docker_handler.ajouter_commande(commande_container_backup)
-    #     resultat = await commande_container_backup.get_resultat()
-    #     self.__logger.debug("Chiffrage backup applications complete : %s" % resultat)
-
     async def verifier_tor(self):
         commande = CommandeOnionizeGetHostname()
         self.__docker_handler.ajouter_commande(commande)

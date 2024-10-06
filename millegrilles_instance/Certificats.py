@@ -946,6 +946,9 @@ class GenerateurCertificatsHandler:
                 self.__logger.exception('entretien_docker Erreur nettoyer_configuration_expiree')
 
     async def entretien_certificat_instance(self):
+        if self.__etat_instance.niveau_securite is None:
+            return  # Installation mode
+
         enveloppe_instance = self.__etat_instance.clecertificat.enveloppe
         expiration_instance = enveloppe_instance.calculer_expiration()
         if expiration_instance.get('expire') is True:
