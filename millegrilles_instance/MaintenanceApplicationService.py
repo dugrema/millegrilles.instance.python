@@ -25,6 +25,8 @@ class ServiceStatus:
     running: bool
     preparing: bool
     replicas: Optional[int]
+    web_only: bool
+    disabled: bool
 
     def __init__(self, configuration: dict, installed=False, replicas=None):
         self.name = configuration['name']
@@ -33,6 +35,11 @@ class ServiceStatus:
         self.running = False
         self.preparing = False
         self.replicas = replicas
+        self.web_only = False
+        self.disabled = False
+
+    def __repr__(self):
+        return 'ServiceStatus ' + self.name
 
 class ServiceInstallCommand:
     status: ServiceStatus       # Status
@@ -79,6 +86,14 @@ async def get_missing_services(etat_instance, docker_handler: DockerHandler, con
     docker_handler.ajouter_commande(commande_liste_services)
     liste_services_docker = await commande_liste_services.get_liste()
 
+    # Find all installed web applications
+    web_apps = pathlib.Path(etat_instance.configuration.path_configuration, 'web_applications.json')
+    try:
+        with open(web_apps, 'rt') as fichier:
+            web_app_configuration = json.load(fichier)
+    except FileNotFoundError:
+        web_app_configuration = dict()
+
     for service in liste_services_docker:
         service_name = service.name
         try:
@@ -86,14 +101,27 @@ async def get_missing_services(etat_instance, docker_handler: DockerHandler, con
             mapped_service.installed = True
             mapped_service.running = check_service_running(service) > 0
             mapped_service.preparing = check_service_preparing(service) > 0
-            mapped_service.replicas = check_replicas(service)
+            replicas = check_replicas(service)
+            mapped_service.replicas = replicas
+            if replicas == 0:
+                mapped_service.disabled = True
         except KeyError:
-            pass  # Unmanaged service
+            pass  # Not in docker
+
+    for service_name, service_config in mapped_services.items():
+        try:
+            mapped_service = mapped_services[service_name]
+            web_service = web_app_configuration[service_name]
+            if mapped_service.configuration.get('image') is None and web_service:
+                # This is purely a web application, no docker component
+                service_config.web_only = True
+        except KeyError:
+            pass # Not a web application
 
     # Determine which services are not installed and running
-    core_services = [c for c in core_services if c.running is not True]
+    missing_core_services = [c for c in core_services if c.running is not True and c.web_only is not True and c.disabled if not True]
 
-    return core_services
+    return missing_core_services
 
 
 async def download_docker_images(
