@@ -4,10 +4,14 @@ import logging
 import json
 import os
 import pathlib
+from asyncio import timeout
 
 from os import path
 
-from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
+from typing import Optional
+
+from millegrilles_messages.messages import Constantes
+from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur, MessageWrapper
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.Exceptions import InstallationModeException
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
@@ -31,7 +35,7 @@ class GestionnaireApplications:
     async def entretien(self):
         self.__logger.debug("entretien")
 
-    async def installer_application(self, configuration: dict, reinstaller=False):
+    async def installer_application(self, configuration: dict, reinstaller=False, command: Optional[MessageWrapper] = None):
         nom_application = configuration['nom']
         web_links = configuration.get('web')
         if web_links:
@@ -42,6 +46,11 @@ class GestionnaireApplications:
         self.__logger.debug("Sauvegarder configuration pour app %s vers %s" % (nom_application, path_app))
         with open(path_app, 'w') as fichier:
             json.dump(configuration, fichier, indent=2)
+
+        if command:
+            # Emit OK response, installation is beginning
+            producer = await self.__etat_instance.get_producer(timeout=5)
+            await producer.repondre({"ok": True}, command.reply_to, command.correlation_id)
 
         producer = self.__rabbitmq_dao.get_producer()
         if self.__etat_docker is not None:

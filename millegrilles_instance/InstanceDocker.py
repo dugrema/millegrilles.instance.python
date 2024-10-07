@@ -3,6 +3,7 @@ import json
 import logging
 import tarfile
 import io
+import pathlib
 
 from asyncio import Event, TimeoutError
 from docker.errors import APIError, NotFound
@@ -11,6 +12,7 @@ from typing import Optional
 from base64 import b64decode
 
 from millegrilles_instance.Constantes import FICHIER_ARCHIVES_APP
+from millegrilles_instance.EntretienNginx import ajouter_fichier_configuration
 from millegrilles_instance.MaintenanceApplicationService import service_maintenance
 from millegrilles_instance.MaintenanceApplicationWeb import installer_archive, check_archive_stale
 from millegrilles_messages.docker.DockerHandler import DockerHandler
@@ -408,7 +410,9 @@ class EtatDockerInstanceSync:
                     'appname': nom_application,
                 }
                 for nom_fichier, contenu in conf_dict.items():
-                    self.__etat_instance.entretien_nginx.ajouter_fichier_configuration(nom_fichier, contenu, params)
+                    path_nginx = self.__etat_instance.configuration.path_nginx
+                    path_nginx_module = pathlib.Path(path_nginx, 'modules')
+                    ajouter_fichier_configuration(self.__etat_instance, path_nginx_module, nom_fichier, contenu, params)
                 redemarrer_nginx = True
 
         # Deployer services

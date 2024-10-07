@@ -158,7 +158,7 @@ class CommandHandler:
         contenu = message.parsed
         # nom_application = contenu['nom_application']
         configuration = contenu['configuration']
-        return await self._gestionnaire_applications.installer_application(configuration)
+        return await self._gestionnaire_applications.installer_application(configuration, command=message)
 
     async def supprimer_application(self, message: MessageWrapper):
         contenu = message.parsed

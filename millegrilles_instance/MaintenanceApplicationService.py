@@ -35,12 +35,14 @@ class ServiceStatus:
         self.replicas = replicas
 
 class ServiceInstallCommand:
-    status: ServiceStatus   # Status
-    image_tag: str          # Docker image reference
+    status: ServiceStatus       # Status
+    image_tag: Optional[str]    # Docker image reference
+    web_only: bool
 
-    def __init__(self, status: ServiceStatus, image_tag: str):
+    def __init__(self, status: ServiceStatus, image_tag: Optional[str], web_only: bool = False):
         self.status = status
         self.image_tag = image_tag
+        self.web_only = web_only
 
 
 async def get_configuration_services(etat_instance, config_modules: list) -> list[ServiceStatus]:
@@ -100,20 +102,29 @@ async def download_docker_images(
 
     try:
         for service in services:
-            image = service.configuration['image']
             try:
-                image_tag = await get_docker_image_tag(docker_handler, image, pull=False)
-            except UnknownImage:
-                LOGGER.info('Image %s missing locally, downloading' % image)
-                # Todo - download progress
+                image = service.configuration['image']
+            except KeyError as e:
+                if len(service.configuration['archives']) > 0:
+                    # Install service with web apps only
+                    command = ServiceInstallCommand(service, None, True)
+                    await service_queue.put(command)
+                else:
+                    raise Exception("Service without image or archives: %s" % service.name)
+            else:
                 try:
-                    image_tag = await get_docker_image_tag(docker_handler, image, pull=True)
+                    image_tag = await get_docker_image_tag(docker_handler, image, pull=False)
                 except UnknownImage:
-                    LOGGER.error("Unnkown docker image: %s. Stopping service download/installation" % image)
-                    break
+                    LOGGER.info('Image %s missing locally, downloading' % image)
+                    # Todo - download progress
+                    try:
+                        image_tag = await get_docker_image_tag(docker_handler, image, pull=True)
+                    except UnknownImage:
+                        LOGGER.error("Unnkown docker image: %s. Stopping service download/installation" % image)
+                        break
 
-            command = ServiceInstallCommand(service, image_tag)
-            await service_queue.put(command)
+                command = ServiceInstallCommand(service, image_tag)
+                await service_queue.put(command)
     finally:
         await service_queue.put(None)  # Ensure install thread finishes
 
