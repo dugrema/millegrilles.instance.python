@@ -24,17 +24,30 @@ def test_sync():
     handler = DockerHandler(state)
     handler.start()
 
-    action_services = CommandeListerServices(callback_liste)
-    handler.ajouter_commande(action_services)
-    action_services = CommandeListerServices(callback_liste, filters={'name': 'mongo'})
-    handler.ajouter_commande(action_services)
-    action_services = CommandeListerServices(callback_liste, filters={'name': 'nginx'})
-    handler.ajouter_commande(action_services)
-    wait_event.wait(5)
-    action_services = CommandeListerContainers(callback_liste)
-    handler.ajouter_commande(action_services)
+    liste = state.docker.services.list()
+    for item in liste:
+        image_name = item.attrs['Spec']['TaskTemplate']['ContainerSpec']['Image'].split('@')[0]
+        try:
+            image_version = image_name.split('/')[1].split(':')[1]
+        except IndexError:
+            try:
+                image_version = image_name.split(':')[1]
+            except IndexError:
+                image_version = image_name
+        print("Images %s, version: %s" % (image_name, image_version))
+        pass
 
-    wait_event.wait(5)
+    # action_services = CommandeListerServices(callback_liste)
+    # handler.ajouter_commande(action_services)
+    # action_services = CommandeListerServices(callback_liste, filters={'name': 'mongo'})
+    # handler.ajouter_commande(action_services)
+    # action_services = CommandeListerServices(callback_liste, filters={'name': 'nginx'})
+    # handler.ajouter_commande(action_services)
+    # wait_event.wait(5)
+    # action_services = CommandeListerContainers(callback_liste)
+    # handler.ajouter_commande(action_services)
+    #
+    # wait_event.wait(5)
 
 
 async def test_async():
@@ -124,8 +137,8 @@ async def test_config():
 
 
 def main():
-    # test_sync()
-    asyncio.run(test_async())
+    test_sync()
+    # asyncio.run(test_async())
     # asyncio.run(test_config())
 
 

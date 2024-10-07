@@ -102,9 +102,21 @@ def parse_list_service(services: list) -> dict:
     for service in services:
         attrs = service.attrs
         spec = attrs['Spec']
+
+        image_name = spec['TaskTemplate']['ContainerSpec']['Image'].split('@')[0]
+        try:
+            image_version = image_name.split('/')[1].split(':')[1]
+        except IndexError:
+            try:
+                image_version = image_name.split(':')[1]
+            except IndexError:
+                image_version = image_name
+
         info_service = {
             'creation_service': service.attrs['CreatedAt'],
             'maj_service': service.attrs['UpdatedAt'],
+            'image': image_name,
+            'version': image_version,
         }
         labels = spec.get('Labels')
         if labels:
