@@ -119,7 +119,7 @@ async def get_missing_services(etat_instance, docker_handler: DockerHandler, con
             pass # Not a web application
 
     # Determine which services are not installed and running
-    missing_core_services = [c for c in core_services if c.running is not True and c.web_only is not True and c.disabled if not True]
+    missing_core_services = [c for c in core_services if c.running is not True and c.web_only is not True and c.disabled is not True]
 
     return missing_core_services
 
