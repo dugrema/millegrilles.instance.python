@@ -1,6 +1,7 @@
 import json
 import logging
 import lzma
+import pathlib
 
 from cryptography.x509.extensions import ExtensionNotFound
 from os import listdir, path
@@ -113,6 +114,8 @@ class CommandHandler:
                         return await self.configurer_application(message)
                     if action == ConstantesInstance.COMMANDE_CONFIGURER_DOMAINE:
                         return await self.configurer_domaine(message)
+                    if action == ConstantesInstance.REQUETE_GET_PASSWORDS:
+                        return await self.get_passwords(message)
 
                     # Exchange protege seulement
                     if exchange == Constantes.SECURITE_PROTEGE:
@@ -292,3 +295,28 @@ class CommandHandler:
         reponse = await signer_certificat_usager_via_secure(self._etat_instance, message.parsed)
 
         return {'ok': True, 'certificat': reponse['certificat']}
+
+    async def get_passwords(self, message: MessageWrapper):
+        enveloppe = message.certificat
+
+        try:
+            delegation_globale = enveloppe.get_delegation_globale
+        except ExtensionNotFound:
+            delegation_globale = None
+
+        if delegation_globale != 'proprietaire':
+            return {"ok": False, "err": "Access denied"}
+
+        path_secrets = pathlib.Path(self._etat_instance.configuration.path_secrets)
+        secrets = dict()
+        for file in path_secrets.iterdir():
+            if file.is_file() and file.name.startswith('passwd'):
+                with open(file, 'rt') as fichier:
+                    file_content = fichier.read(10240)
+                secrets[file.name] = file_content
+
+        # Retourner la reponse chiffree
+        producer = await self._etat_instance.get_producer(1)
+        await producer.repondre_chiffre(enveloppe, {"secrets": secrets}, message.reply_to, message.correlation_id)
+
+        return None

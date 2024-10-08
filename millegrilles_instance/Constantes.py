@@ -31,6 +31,7 @@ CERTISSUER_PATH = 'CERTISSUER_PATH'
 
 # Commandes supportees par l'instance (MQ)
 REQUETE_CONFIGURATION_ACME = 'configurationAcme'
+REQUETE_GET_PASSWORDS = 'getPasswords'
 COMMANDE_TRANSMETTRE_CATALOGUES = 'transmettreCatalogues'
 COMMANDE_CONFIGURER_DOMAINE = 'configurerDomaine'
 COMMANDE_SET_HOSTNAME = 'setHostname'

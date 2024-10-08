@@ -109,6 +109,8 @@ class MqThread:
         # RK Public pour toutes les instances
         res_configuration.ajouter_rk(Constantes.SECURITE_PUBLIC, 'requete.instance.%s.%s' % (
             instance_id, ConstantesInstance.REQUETE_CONFIGURATION_ACME))
+        res_installation.ajouter_rk(niveau_securite_ajuste, 'requete.instance.%s.%s' % (
+            instance_id, ConstantesInstance.REQUETE_GET_PASSWORDS))
 
         # RK globaux (meme niveau que l'instance - sauf 4.secure qui est downgrade a 3.protege)
         res_configuration.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
