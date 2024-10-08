@@ -7,6 +7,7 @@ import json
 from typing import Optional
 
 import docker.errors
+from docker.models.services import Service
 
 from millegrilles_instance.CommandesDocker import check_service_running, check_replicas, check_service_preparing, \
     get_docker_image_tag, UnknownImage
@@ -27,6 +28,7 @@ class ServiceStatus:
     replicas: Optional[int]
     web_only: bool
     disabled: bool
+    docker_handle: Optional[Service]
 
     def __init__(self, configuration: dict, installed=False, replicas=None):
         self.name = configuration['name']
@@ -37,6 +39,7 @@ class ServiceStatus:
         self.replicas = replicas
         self.web_only = False
         self.disabled = False
+        self.docker_handle = None
 
     def __repr__(self):
         return 'ServiceStatus ' + self.name
@@ -45,11 +48,13 @@ class ServiceInstallCommand:
     status: ServiceStatus       # Status
     image_tag: Optional[str]    # Docker image reference
     web_only: bool
+    reinstall: bool
 
-    def __init__(self, status: ServiceStatus, image_tag: Optional[str], web_only: bool = False):
+    def __init__(self, status: ServiceStatus, image_tag: Optional[str] = None, web_only = False, reinstall = False):
         self.status = status
         self.image_tag = image_tag
         self.web_only = web_only
+        self.reinstall = reinstall
 
 
 async def get_configuration_services(etat_instance, config_modules: list) -> list[ServiceStatus]:
@@ -74,7 +79,7 @@ async def get_configuration_services(etat_instance, config_modules: list) -> lis
     return services
 
 
-async def get_missing_services(etat_instance, docker_handler: DockerHandler, config_modules: list) -> list[ServiceStatus]:
+async def get_service_status(etat_instance, docker_handler: DockerHandler, config_modules: list, missing_only=True) -> list[ServiceStatus]:
     # Get list of core services - they must be installed in order and running before installing other services/apps
     core_services = await get_configuration_services(etat_instance, config_modules)
 
@@ -98,6 +103,7 @@ async def get_missing_services(etat_instance, docker_handler: DockerHandler, con
         service_name = service.name
         try:
             mapped_service = mapped_services[service_name]
+            mapped_service.docker_handle = service
             mapped_service.installed = True
             mapped_service.running = check_service_running(service) > 0
             mapped_service.preparing = check_service_preparing(service) > 0
@@ -118,10 +124,12 @@ async def get_missing_services(etat_instance, docker_handler: DockerHandler, con
         except KeyError:
             pass # Not a web application
 
-    # Determine which services are not installed and running
-    missing_core_services = [c for c in core_services if c.running is not True and c.web_only is not True and c.disabled is not True]
+    if missing_only:
+        # Determine which services are not installed and running
+        missing_core_services = [c for c in core_services if c.running is not True and c.web_only is not True and c.disabled is not True]
+        return missing_core_services
 
-    return missing_core_services
+    return core_services
 
 
 async def download_docker_images(
@@ -188,21 +196,50 @@ async def install_services(
             LOGGER.exception("Error installing service %s, aborting for this cycle" % service_name)
 
 
-async def update_stale_configuration(etat_instance, docker_handler: DockerHandler):
+async def update_stale_configuration(etat_instance, docker_handler: DockerHandler, config_modules: list):
     # Check if any existing configuration needs to be updated
+    liste_services_docker = await get_service_status(etat_instance, docker_handler, config_modules, missing_only=False)
+    mapped_services = dict()
+    for service in liste_services_docker:
+        mapped_services[service.name] = service
+
     commande_config_courante = DockerCommandes.CommandeGetConfigurationsDatees(aio=True)
     docker_handler.ajouter_commande(commande_config_courante)
-    liste_config_datee = await commande_config_courante.get_resultat()
+    resulat_liste_config_datee = await commande_config_courante.get_resultat()
+    correspondance_liste_datee = resulat_liste_config_datee['correspondance']
 
-    LOGGER.warning("update_stale_configuration NOT IMPLEMENTED - TODO")
+    for service in liste_services_docker:
+
+        try:
+            spec = service.docker_handle.attrs['Spec']['TaskTemplate']['ContainerSpec']
+        except (KeyError, AttributeError):
+            LOGGER.debug("update_stale_configuration No ContainerSpec for service %s" % service.name)
+            continue
+
+        try:
+            secret_list = spec['Secrets']
+        except KeyError:
+            secret_list = None
+        try:
+            config_list = spec['Configs']
+        except KeyError:
+            config_list = None
+        is_current = verifier_config_current(correspondance_liste_datee, config_list, secret_list)
+        if is_current is False:
+            LOGGER.info("Service %s stale, update config/secrets" % service.name)
+            service_status = mapped_services[service.name]
+            image = service_status.configuration['image']
+            image_tag = await get_docker_image_tag(docker_handler, image)
+            install_command = ServiceInstallCommand(service, image_tag, False, True)
+            await install_service(etat_instance, docker_handler, install_command)
 
 
 async def service_maintenance(etat_instance, docker_handler: DockerHandler, config_modules: list):
     # Try to update any stale configuration (e.g. expired certificates)
-    await update_stale_configuration(etat_instance, docker_handler)
+    await update_stale_configuration(etat_instance, docker_handler, config_modules)
 
     # Configure and install missing services
-    missing_services = await get_missing_services(etat_instance, docker_handler, config_modules)
+    missing_services = await get_service_status(etat_instance, docker_handler, config_modules)
     if len(missing_services) > 0:
         LOGGER.info("Install %d missing or stopped services" % len(missing_services))
         LOGGER.debug("Missing services %s" % missing_services)
@@ -313,7 +350,7 @@ async def install_service(etat_instance, docker_handler: DockerHandler, command:
     image = parser.image
     if image is not None:
         commande_creer_service = DockerCommandes.CommandeCreerService(
-            image_tag, config_parsed, reinstaller=False, aio=True)
+            image_tag, config_parsed, reinstaller=command.reinstall, aio=True)
         docker_handler.ajouter_commande(commande_creer_service)
         resultat = await commande_creer_service.get_resultat()
 
@@ -361,4 +398,75 @@ async def nginx_installation_cleanup(etat_instance, docker_handler: DockerHandle
 
 async def remove_service(etat_instance, docker_handler: DockerHandler, app_name: str):
     pass
+
+
+def verifier_config_current(liste_config_datee: dict, container_config: Optional[list], container_secrets: Optional[list]):
+
+    if container_config is not None:
+        for cs in container_config:
+            container_name = cs['ConfigName']
+            try:
+                name_split = container_name.split('.')
+                prefix = '.'.join(name_split[0:2])
+                if name_split[0] == 'pki':
+                    type_data = 'cert'
+                else:
+                    continue
+
+                current_name = liste_config_datee[prefix]['current'][type_data]['name']
+
+                if current_name != container_name:
+                    # On a un mismatch, il faut regenerer la configuration
+                    return False
+            except KeyError:
+                pass  # Secret n'a pas le bon format, pas gere
+
+    if container_secrets is not None:
+        for cs in container_secrets:
+            container_name = cs['SecretName']
+            try:
+                name_split = container_name.split('.')
+                prefix = '.'.join(name_split[0:2])
+                if name_split[0] == 'passwd':
+                    type_data = 'password'
+                elif name_split[0] == 'pki':
+                    type_data = 'key'
+                else:
+                    continue
+
+                current_name = liste_config_datee[prefix]['current'][type_data]['name']
+
+                if current_name != container_name:
+                    # On a un mismatch, il faut regenerer la configuration
+                    return False
+            except KeyError:
+                pass  # Secret n'a pas le bon format, pas gere
+
+    return True
+
+
+def trier_services(liste_services: list) -> list:
+
+    services_speciaux = ['mq', 'mongo', 'certissuer', 'midcompte', 'nginx', 'redis']
+
+    map_services_parnom = dict()
+    liste_services_finale = list()
+    for service in liste_services:
+        nom_service = service.attrs['Spec']['Name']
+        if nom_service in services_speciaux:
+            map_services_parnom[nom_service] = service
+        else:
+            liste_services_finale.append(service)
+
+    # Mettre services par ordre de priorite
+    services_speciaux.reverse()
+    for nom_service in services_speciaux:
+        try:
+            service = map_services_parnom[nom_service]
+            liste_services_finale.insert(0, service)
+        except KeyError:
+            pass
+
+    return liste_services_finale
+
 
