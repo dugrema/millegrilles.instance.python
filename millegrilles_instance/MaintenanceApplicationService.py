@@ -249,6 +249,8 @@ async def charger_configuration_application(path_configuration: pathlib.Path) ->
                 configuration.extend(deps)
             except FileNotFoundError:
                 LOGGER.error("Fichier de module manquant : %s" % path_fichier)
+            except TypeError:
+                LOGGER.debug("Installation d'une application sans dependances (e.g. pur nginx config)")
 
     return configuration
 

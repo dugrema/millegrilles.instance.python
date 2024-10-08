@@ -416,22 +416,23 @@ class EtatDockerInstanceSync:
                 redemarrer_nginx = True
 
         # Deployer services
-        for dep in dependances:
-            nom_module = dep['name']
-            if dep.get('image') is not None:
-                params = await self.get_params_env_service()
-                params['__nom_application'] = nom_application
-                resultat_installation = await self.installer_service(nom_module, dep, params, reinstaller)
+        if dependances is not None:
+            for dep in dependances:
+                nom_module = dep['name']
+                if dep.get('image') is not None:
+                    params = await self.get_params_env_service()
+                    params['__nom_application'] = nom_application
+                    resultat_installation = await self.installer_service(nom_module, dep, params, reinstaller)
 
-                try:
-                    scripts_module = configuration['scripts_installation'][nom_module]
-                except KeyError:
-                    pass
-                else:
-                    path_rep = configuration.get('scripts_path') or '/var/opt/millegrilles_scripts'
-                    path_scripts = path.join(path_rep, nom_application)
-                    scripts_module_path = [path.join(path_scripts, s) for s in scripts_module]
-                    await self.executer_scripts_container(nom_module, scripts_module_path)
+                    try:
+                        scripts_module = configuration['scripts_installation'][nom_module]
+                    except KeyError:
+                        pass
+                    else:
+                        path_rep = configuration.get('scripts_path') or '/var/opt/millegrilles_scripts'
+                        path_scripts = path.join(path_rep, nom_application)
+                        scripts_module_path = [path.join(path_scripts, s) for s in scripts_module]
+                        await self.executer_scripts_container(nom_module, scripts_module_path)
 
         if redemarrer_nginx is True:
             await self.redemarrer_nginx()
@@ -464,6 +465,9 @@ class EtatDockerInstanceSync:
                 self.__logger.info("Resultat execution %s\n%s" % (code, output))
 
     async def generer_valeurs(self, correspondance, dependances, nom_application, producer):
+        if dependances is None:
+            return  # Rien a faire
+
         for dep in dependances:
             try:
                 certificat = dep['certificat']
