@@ -10,6 +10,8 @@ from os import path
 
 from typing import Optional
 
+from setuptools.compat.py311 import shutil_rmtree
+
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur, MessageWrapper
 from millegrilles_instance.EtatInstance import EtatInstance
@@ -94,10 +96,17 @@ class GestionnaireApplications:
         try:
             with open(path_conf_applications, 'rt+') as fichier:
                 config_apps_json = json.load(fichier)
+                webapp_config = config_apps_json[nom_application]
                 del config_apps_json[nom_application]
                 fichier.seek(0)
                 json.dump(config_apps_json, fichier)
                 fichier.truncate()
+
+                # webapp_config['']
+                # path_webapps = pathlib.Path(self.__etat_instance.configuration.path_nginx, 'html/applications')
+                # path_app = pathlib.Path(path_webapps, nom_application)
+                # shutil_rmtree()
+
         except (KeyError, FileNotFoundError):
             pass  # App or configuration file was already deleted
 

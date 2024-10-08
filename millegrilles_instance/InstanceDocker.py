@@ -19,14 +19,14 @@ from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.docker import DockerCommandes
 
 from millegrilles_messages.messages.CleCertificat import CleCertificat
-from millegrilles_messages.docker.ParseConfiguration import ConfigurationService
+from millegrilles_messages.docker.ParseConfiguration import ConfigurationService, WebApplicationConfiguration
 from millegrilles_messages.docker.DockerHandler import CommandeDocker
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.CommandesDocker import CommandeListeTopologie, CommandeExecuterScriptDansService
 from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname, OnionizeNonDisponibleException
-from millegrilles_instance.Configuration import sauvegarder_configuration_webapps
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -419,6 +419,21 @@ class EtatDockerInstanceSync:
         if dependances is not None:
             for dep in dependances:
                 nom_module = dep['name']
+
+                # Installer web apps en premier
+                if dep.get('archives') is not None:
+                    try:
+                        web_links = configuration['web']
+                    except KeyError:
+                        web_links = dict()
+                    # Installer webapp
+                    for archive in dep['archives']:
+                        app_name = dep['name']
+                        config = WebApplicationConfiguration(archive)
+                        if await asyncio.to_thread(check_archive_stale, self.__etat_instance, config):
+                            await asyncio.to_thread(installer_archive, self.__etat_instance, app_name, config,
+                                                    web_links)
+
                 if dep.get('image') is not None:
                     params = await self.get_params_env_service()
                     params['__nom_application'] = nom_application

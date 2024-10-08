@@ -45,7 +45,7 @@ def check_archive_stale(etat_instance, archive: WebApplicationConfiguration) -> 
         return True
 
 
-def installer_archive(etat_instance, app_name: str, archive: WebApplicationConfiguration, web_links: Optional[dict]):
+def installer_archive(etat_instance, app_name: str, archive: WebApplicationConfiguration, web_links: Optional[dict]=None):
     module = archive.module
     sub_path = archive.path
     app_url = archive.app_url
