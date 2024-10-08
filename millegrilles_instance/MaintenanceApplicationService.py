@@ -204,14 +204,15 @@ async def service_maintenance(etat_instance, docker_handler: DockerHandler, conf
     # Configure and install missing services
     missing_services = await get_missing_services(etat_instance, docker_handler, config_modules)
     if len(missing_services) > 0:
-        LOGGER.info("Install %d missing services" % len(missing_services))
+        LOGGER.info("Install %d missing or stopped services" % len(missing_services))
+        LOGGER.debug("Missing services %s" % missing_services)
 
         service_install_queue = asyncio.Queue()
         # Run download and install in parallel. If install fails, download keeps going.
         task_download = download_docker_images(etat_instance, docker_handler, missing_services, service_install_queue)
         task_install = install_services(etat_instance, docker_handler, service_install_queue)
         await asyncio.gather(task_install, task_download)
-        LOGGER.debug("Install missing services DONE")
+        LOGGER.debug("Install missing or stopped services DONE")
 
 
 async def charger_configuration_docker(path_configuration: pathlib.Path, fichiers: list) -> list:
@@ -356,3 +357,8 @@ async def nginx_installation_cleanup(etat_instance, docker_handler: DockerHandle
         await action_remove.get_resultat()
     except docker.errors.NotFound:
         pass  # Ok, already removed
+
+
+async def remove_service(etat_instance, docker_handler: DockerHandler, app_name: str):
+    pass
+

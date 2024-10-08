@@ -101,17 +101,49 @@ class GestionnaireApplications:
         except (KeyError, FileNotFoundError):
             pass  # App or configuration file was already deleted
 
+        nginx_restart = False
+        # Charger configuration application
+        try:
+            path_docker_apps = self.__etat_instance.configuration.path_docker_apps
+            path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
+            self.__logger.debug("Sauvegarder configuration pour app %s vers %s" % (nom_application, path_app))
+            with open(path_app, 'rt') as fichier:
+                app_config = json.load(fichier)
+        except FileNotFoundError:
+            pass  # Fichier supprime, OK
+        else:
+            # Supprimer fichiers nginx au besoin
+            try:
+                nginx_conf = app_config['nginx']['conf']
+                path_nginx_modules = pathlib.Path(self.__etat_instance.configuration.path_nginx, 'modules')
+                for nginx_file in nginx_conf.keys():
+                    self.__logger.info("Delete nginx file %s" % nginx_file)
+                    path_nginx_file = pathlib.Path(path_nginx_modules, nginx_file)
+                    try:
+                        path_nginx_file.unlink()
+                        nginx_restart = True
+                    except FileNotFoundError:
+                        pass  # OK
+            except KeyError:
+                pass
+
         if self.__etat_docker is not None:
             resultat = await self.__etat_docker.supprimer_application(nom_application)
             await self.__etat_docker.emettre_presence(producer)
-            return resultat
+            reponse = resultat
         else:
             path_docker_apps = self.__etat_instance.configuration.path_docker_apps
             path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
             self.__logger.debug("Supprimer configuration pour app %s vers %s" % (nom_application, path_app))
             os.unlink(path_app)
             await self.__etat_instance.emettre_presence(producer)
-            return {'ok': True}
+            reponse = {'ok': True}
+
+        if nginx_restart:
+            self.__logger.warning("Restarting nginx after removing %s" % nom_application)
+            await self.__etat_docker.redemarrer_nginx()
+
+        return reponse
 
     async def get_producer(self, timeout=5):
         if self.__etat_instance.niveau_securite is None:
