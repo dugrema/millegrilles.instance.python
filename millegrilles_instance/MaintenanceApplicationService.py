@@ -26,18 +26,18 @@ class ServiceStatus:
     running: bool
     preparing: bool
     replicas: Optional[int]
-    web_only: bool
+    web_config: Optional[dict]
     disabled: bool
     docker_handle: Optional[Service]
 
-    def __init__(self, configuration: dict, installed=False, replicas=None):
-        self.name = configuration['name']
-        self.configuration = configuration
+    def __init__(self, dep_configuration: dict, installed=False, replicas=None):
+        self.name = dep_configuration['name']
+        self.configuration = dep_configuration
         self.installed = installed
         self.running = False
         self.preparing = False
         self.replicas = replicas
-        self.web_only = False
+        self.web_config = None
         self.disabled = False
         self.docker_handle = None
 
@@ -63,6 +63,7 @@ async def get_configuration_services(etat_instance, config_modules: list) -> lis
     """
     path_configuration = etat_instance.configuration.path_configuration
     path_configuration_docker = pathlib.Path(path_configuration, 'docker')
+    path_configuration_webappconfig = pathlib.Path(path_configuration, 'webappconfig')
     configurations = await charger_configuration_docker(path_configuration_docker, config_modules)
     configurations_apps = await charger_configuration_application(path_configuration_docker)
     configurations.extend(configurations_apps)
@@ -75,6 +76,14 @@ async def get_configuration_services(etat_instance, config_modules: list) -> lis
             services.append(status)
         except KeyError:
             pass
+
+    configuration_webapps = await charger_configuration_webapps(path_configuration_webappconfig)
+    for webapp in configuration_webapps:
+        web_config = webapp['web']
+        for dep in webapp['dependances']:
+            status = ServiceStatus(dep)
+            status.web_config = web_config
+            services.append(status)
 
     return services
 
@@ -121,12 +130,30 @@ async def get_service_status(etat_instance, docker_handler: DockerHandler, confi
             if mapped_service.configuration.get('image') is None and web_service:
                 # This is purely a web application, no docker component
                 service_config.web_only = True
+
+                # Check if the application is installed
+                path_webapps = pathlib.Path(etat_instance.configuration.path_nginx)
+                configuration = mapped_service.configuration
+                for archive in configuration['archives']:
+                    location = archive['location']
+                    module, app_path = location.split(":")
+                    if module == 'nginx':
+                        path_webapp = pathlib.Path(path_webapps, app_path)
+                        path_version_file = pathlib.Path(path_webapp, '.version')
+                        try:
+                            with open(path_version_file, 'rt') as fichier:
+                                version = fichier.readline()
+                        except FileNotFoundError:
+                            version = None
+                        if version == archive['digest']:
+                            mapped_service.installed = True
+                            mapped_service.running = True
         except KeyError:
             pass # Not a web application
 
     if missing_only:
         # Determine which services are not installed and running
-        missing_core_services = [c for c in core_services if c.running is not True and c.web_only is not True and c.disabled is not True]
+        missing_core_services = [c for c in core_services if (c.installed is not True or c.running is not True) and c.disabled is not True]
         return missing_core_services
 
     return core_services
@@ -265,6 +292,17 @@ async def charger_configuration_docker(path_configuration: pathlib.Path, fichier
 
     return configuration
 
+async def charger_configuration_webapps(path_configuration: pathlib.Path) -> list:
+    configuration = []
+    for file in path_configuration.iterdir():
+        if file.is_file() and file.name.endswith('.json'):
+            filename = file.name
+            path_fichier = pathlib.Path(path_configuration, filename)
+            with open(path_fichier, 'rb') as fichier:
+                contenu = json.load(fichier)
+            configuration.append(contenu)
+
+    return configuration
 
 async def charger_configuration_application(path_configuration: pathlib.Path) -> list:
     configuration = []
