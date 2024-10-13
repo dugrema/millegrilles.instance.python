@@ -129,7 +129,7 @@ class GestionnaireApplications:
                         nginx_restart = True
                     except FileNotFoundError:
                         pass  # OK
-            except KeyError:
+            except (TypeError,KeyError):
                 pass
 
         if self.__etat_docker is not None:
