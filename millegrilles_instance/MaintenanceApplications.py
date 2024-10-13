@@ -4,15 +4,11 @@ import logging
 import json
 import os
 import pathlib
-from asyncio import timeout
 
 from os import path
 
 from typing import Optional
 
-from setuptools.compat.py311 import shutil_rmtree
-
-from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur, MessageWrapper
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.Exceptions import InstallationModeException
