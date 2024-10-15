@@ -356,7 +356,8 @@ class InstanceDockerAbstract:
     async def entretien_services(self):
         self.__logger.debug("entretien_services debut")
         # services = await self.get_configuration_services()
-        await self._etat_docker.entretien_services(self.get_config_modules())
+        config_modules = self.get_config_modules()
+        await self._etat_docker.entretien_services(config_modules)
         self.__logger.debug("entretien_services fin")
 
     async def entretien_webapps_installation(self):

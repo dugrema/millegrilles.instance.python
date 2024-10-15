@@ -78,6 +78,8 @@ class EtatInstance:
         self.__producer_cb = None
         self.__attente_renouvellement_certificat = False
 
+        self.__application_status = ApplicationInstallationStatus()
+
     async def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
 
@@ -348,6 +350,13 @@ class EtatInstance:
     @attente_renouvellement_certificat.setter
     def attente_renouvellement_certificat(self, value):
         self.__attente_renouvellement_certificat = value
+
+    @property
+    def application_status(self):
+        return self.__application_status
+
+    def update_application_status(self, app_name: str, status: dict):
+        self.__application_status.update(app_name, status)
 
     def doit_activer_443(self):
         """
@@ -794,3 +803,18 @@ CPU usage : {load_average}
 <p>Nombre de transferts {NUMXFERS}</p>
 """
             await self.__etat_instance.emettre_notification(producer, contenu, subject=subject, niveau='warn')
+
+
+class ApplicationInstallationStatus:
+
+    def __init__(self):
+        self.required_app_names: list[str] = list()
+        self.apps: dict[str, dict] = dict()
+        self.last_update = datetime.datetime.now()
+
+    def update(self, app_name: str, status: dict):
+        try:
+            self.apps[app_name].update(status)
+        except KeyError:
+            self.apps[app_name] = status
+        self.last_update = datetime.datetime.now()

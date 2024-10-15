@@ -4,7 +4,7 @@ import json
 import logging
 import time
 
-from typing import Union
+from typing import Union, Optional
 
 from docker import DockerClient
 from docker.errors import APIError, NotFound
@@ -182,13 +182,19 @@ def check_replicas(service: Service):
         return None
 
 
-async def get_docker_image_tag(docker_handler: DockerHandler, image: str, pull=True):
+async def get_docker_image_tag(etat_instance, docker_handler: DockerHandler, image: str, pull=True, app_name: Optional[str] = None):
     commande_image = DockerCommandes.CommandeGetImage(image, pull=pull, aio=True)
     docker_handler.ajouter_commande(commande_image)
     image_info_coro = commande_image.get_resultat()
     progress_coro = commande_image.progress_coro()
+    coros = [image_info_coro, progress_coro]
 
-    image_info, _ = await asyncio.gather(image_info_coro, progress_coro)
+    if app_name:
+        download_update_coro = download_update_callback(etat_instance, app_name, commande_image)
+        coros.append(download_update_coro)
+
+    result = await asyncio.gather(*coros)
+    image_info = result[0]
 
     try:
         image_tag = image_info['tags'][0]
@@ -196,6 +202,19 @@ async def get_docker_image_tag(docker_handler: DockerHandler, image: str, pull=T
         raise UnknownImage(image)
     return image_tag
 
+
+async def download_update_callback(etat_instance, app_name:str, commande_image: DockerCommandes.CommandeGetImage):
+    while True:
+        status = commande_image.pull_status.__dict__()
+        etat_instance.update_application_status(app_name, {'download': status})
+        try:
+            await asyncio.wait_for(commande_image.attendre(), 1)
+            break  # Done
+        except asyncio.TimeoutError:
+            pass
+    status = commande_image.pull_status.__dict__()
+    # status['done'] = True
+    etat_instance.update_application_status(app_name, {'download': status})
 
 class UnknownImage(Exception):
     pass

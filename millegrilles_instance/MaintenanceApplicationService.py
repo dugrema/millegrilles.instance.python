@@ -151,6 +151,24 @@ async def get_service_status(etat_instance, docker_handler: DockerHandler, confi
         except KeyError:
             pass # Not a web application
 
+    service_name_list = [c.name for c in core_services]
+    for name, value in mapped_services.items():
+        try:
+            pos = service_name_list.index(name)
+        except ValueError:
+            pos = None
+
+        etat_instance.update_application_status(name, {
+            'status': {
+                'disabled': value.disabled,
+                'installed': value.installed,
+                'preparing': value.preparing,
+                'running': value.running,
+                'name': name,
+                'pos': pos,
+            },
+        })
+
     if missing_only:
         # Determine which services are not installed and running
         missing_core_services = [c for c in core_services if (c.installed is not True or c.running is not True) and c.disabled is not True]
@@ -165,6 +183,7 @@ async def download_docker_images(
 
     try:
         for service in services:
+            service_name = service.name
             try:
                 image = service.configuration['image']
             except KeyError as e:
@@ -176,12 +195,11 @@ async def download_docker_images(
                     raise Exception("Service without image or archives: %s" % service.name)
             else:
                 try:
-                    image_tag = await get_docker_image_tag(docker_handler, image, pull=False)
+                    image_tag = await get_docker_image_tag(etat_instance, docker_handler, image, pull=False)
                 except UnknownImage:
                     LOGGER.info('Image %s missing locally, downloading' % image)
-                    # Todo - download progress
                     try:
-                        image_tag = await get_docker_image_tag(docker_handler, image, pull=True)
+                        image_tag = await get_docker_image_tag(etat_instance, docker_handler, image, pull=True, app_name=service_name)
                     except UnknownImage:
                         LOGGER.error("Unnkown docker image: %s. Stopping service download/installation" % image)
                         break
@@ -256,7 +274,7 @@ async def update_stale_configuration(etat_instance, docker_handler: DockerHandle
             LOGGER.info("Service %s stale, update config/secrets" % service.name)
             service_status = mapped_services[service.name]
             image = service_status.configuration['image']
-            image_tag = await get_docker_image_tag(docker_handler, image)
+            image_tag = await get_docker_image_tag(etat_instance, docker_handler, image)
             install_command = ServiceInstallCommand(service, image_tag, False, True)
             await install_service(etat_instance, docker_handler, install_command)
 

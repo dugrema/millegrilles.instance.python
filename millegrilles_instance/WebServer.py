@@ -2,6 +2,7 @@ import aiohttp
 import asyncio
 import logging
 import json
+import math
 
 from aiohttp import web
 from asyncio import Event
@@ -65,6 +66,7 @@ class WebServer:
             web.get('/installation/api/csr', self.handle_api_csr),
             web.get('/installation/api/csrInstance', self.handle_api_csr_instance),
             web.get('/installation/api/etatCertificatWeb', self.handle_etat_certificat_web),
+            web.get('/installation/api/appInstallationStatus', self.handle_application_installation_status),
 
             web.post('/installation/api/installer', self.handle_installer),
             web.post('/installation/api/configurerIdmg', self.handle_configurer_idmg),
@@ -112,6 +114,16 @@ class WebServer:
         headers = headers_cors()
 
         return web.json_response(headers=headers, data=reponse)
+
+    async def handle_application_installation_status(self, request):
+        status = {'ok': True}
+        apps_status = self.__etat_instance.application_status
+        status['apps'] = apps_status.apps
+        status['lastUpdate'] = math.floor(apps_status.last_update.timestamp())
+
+        # Headers CORS
+        headers = headers_cors()
+        return web.json_response(headers=headers, data=status)
 
     async def handle_api_csr(self, request):
         url_issuer = self.__etat_instance.certissuer_url
