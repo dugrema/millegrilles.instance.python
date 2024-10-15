@@ -185,7 +185,11 @@ def check_replicas(service: Service):
 async def get_docker_image_tag(docker_handler: DockerHandler, image: str, pull=True):
     commande_image = DockerCommandes.CommandeGetImage(image, pull=pull, aio=True)
     docker_handler.ajouter_commande(commande_image)
-    image_info = await commande_image.get_resultat()
+    image_info_coro = commande_image.get_resultat()
+    progress_coro = commande_image.progress_coro()
+
+    image_info, _ = await asyncio.gather(image_info_coro, progress_coro)
+
     try:
         image_tag = image_info['tags'][0]
     except TypeError:
