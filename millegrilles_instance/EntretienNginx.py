@@ -125,10 +125,12 @@ class EntretienNginx:
         reponse = await producer.executer_requete(requete, 'CoreTopologie', 'getConsignationFichiers', Constantes.SECURITE_PRIVE)
         reponse_parsed = reponse.parsed
         if reponse_parsed['ok'] is True:
+            self.__configuration_consignation = reponse_parsed
+
             instance_id_consignation = reponse_parsed['instance_id']
             url_consignation = reponse_parsed['consignation_url']
+            self.__logger.debug("Consignation sur %s (instance_id: %s)" % (url_consignation, instance_id_consignation))
 
-            self.__configuration_consignation = reponse_parsed
             if self.__etat_instance.instance_id == instance_id_consignation:
                 url_parsed = urllib3.util.parse_url(url_consignation)
                 port = url_parsed.port or 443
