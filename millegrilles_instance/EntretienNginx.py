@@ -54,7 +54,7 @@ class EntretienNginx:
         # Information de CoreTopologie pour la consignation de fichiers
         self.__configuration_consignation: Optional[dict] = None
         self.__date_changement_consignation: Optional[datetime.datetime] = None
-        self.__intervalle_verification_consignation = datetime.timedelta(minutes=15)
+        self.__intervalle_verification_consignation = datetime.timedelta(minutes=5)
 
     async def creer_session(self):
         if self.__etat_instance.configuration.instance_password_mq_path is not None:
