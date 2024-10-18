@@ -1,2 +1,4 @@
-set $upstream_fichiers https://fichiers:443;
+# Fichier genere par EntretienNginx
+set $upstream_fichiers https://thinkcentre1.maple.maceroc.com:3021;
 proxy_pass $upstream_fichiers;
+    
