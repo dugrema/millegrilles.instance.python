@@ -353,11 +353,13 @@ def ajouter_fichier_configuration(etat_instance, path_nginx_modules: pathlib.Pat
         with open(path_destination, 'r') as fichier_existant:
             contenu_existant = fichier_existant.read()
             if contenu_existant != contenu:
+                LOGGER.info("ajouter_fichier_configuration Detecte changement fichier config\nOriginal\n%s\n-------\nNouveau\n%s" % (contenu_existant, contenu))
                 changement_detecte = True
     except FileNotFoundError:
         changement_detecte = True
 
-    with open(path_destination, 'w') as fichier_output:
-        fichier_output.write(contenu)
+    if changement_detecte:
+        with open(path_destination, 'w') as fichier_output:
+            fichier_output.write(contenu)
 
     return changement_detecte
