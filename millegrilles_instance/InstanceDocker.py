@@ -347,8 +347,8 @@ class EtatDockerInstanceSync:
         self.__docker_handler.ajouter_commande(commande_maj)
         await commande_maj.attendre()
 
-    async def redemarrer_nginx(self):
-        self.__logger.info("Redemarrer nginx pour charger configuration maj")
+    async def redemarrer_nginx(self, reason: Optional[str] = None):
+        self.__logger.info("Redemarrer nginx pour charger configuration maj (reason: %s)" % reason)
         commande = DockerCommandes.CommandeRedemarrerService('nginx', aio=True)
         self.__docker_handler.ajouter_commande(commande)
         try:
@@ -450,7 +450,7 @@ class EtatDockerInstanceSync:
                         await self.executer_scripts_container(nom_module, scripts_module_path)
 
         if redemarrer_nginx is True:
-            await self.redemarrer_nginx()
+            await self.redemarrer_nginx("Application %s installee" % nom_application)
 
         return {'ok': True}
 

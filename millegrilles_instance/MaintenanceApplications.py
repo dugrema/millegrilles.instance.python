@@ -144,9 +144,9 @@ class GestionnaireApplications:
             await self.__etat_instance.emettre_presence(producer)
             reponse = {'ok': True}
 
-        if nginx_restart:
-            self.__logger.warning("Restarting nginx after removing %s" % nom_application)
-            await self.__etat_docker.redemarrer_nginx()
+        #if nginx_restart:
+        #    self.__logger.warning("Restarting nginx after removing %s" % nom_application)
+        #    await self.__etat_docker.redemarrer_nginx("Application %s retiree" % nom_application)
 
         return reponse
 

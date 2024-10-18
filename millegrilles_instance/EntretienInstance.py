@@ -552,7 +552,7 @@ class InstanceProtegee(InstanceDockerAbstract):
         # self.__event_setup_initial_certificats.clear()
         self.__event_setup_initial_passwords.clear()
 
-        await self._etat_docker.redemarrer_nginx()
+        # await self._etat_docker.redemarrer_nginx("InstanceProtegee Demarrage instance")
 
         await super().declencher_run(etat_instance)
 
@@ -687,7 +687,7 @@ class InstanceSecureDocker(InstanceDockerAbstract):
         # self.__event_setup_initial_certificats.clear()
         self.__event_setup_initial_passwords.clear()
 
-        await self._etat_docker.redemarrer_nginx()
+        # await self._etat_docker.redemarrer_nginx("InstanceSecureDocker Demarrage instance")
 
         await super().declencher_run(etat_instance)
 
@@ -793,7 +793,7 @@ class InstancePriveeDocker(InstanceDockerAbstract):
         # self.__event_setup_initial_certificats.clear()
         self.__event_setup_initial_passwords.clear()
 
-        await self._etat_docker.redemarrer_nginx()
+        # await self._etat_docker.redemarrer_nginx("InstancePriveeDocker Demarrage instance")
 
         await super().declencher_run(etat_instance)
 
