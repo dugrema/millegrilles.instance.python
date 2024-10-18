@@ -110,7 +110,7 @@ class EntretienNginx:
                     self.__date_changement_consignation is None or \
                     self.__date_changement_consignation + self.__intervalle_verification_consignation < datetime.datetime.utcnow():
                 try:
-                    await self.charger_configuration_consignation(producer)
+                    # await self.charger_configuration_consignation(producer)
                     self.__date_changement_consignation = datetime.datetime.utcnow()
                 except:
                     self.__logger.exception("Erreur configuration URL consignation")
