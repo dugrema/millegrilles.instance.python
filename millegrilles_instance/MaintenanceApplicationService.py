@@ -187,13 +187,13 @@ async def download_docker_images(
             service_name = service.name
             try:
                 image = service.configuration['image']
-            except KeyError as e:
-                if len(service.configuration['archives']) > 0:
+            except KeyError:
+                if len(service.configuration.get('archives')) > 0:
                     # Install service with web apps only
                     command = ServiceInstallCommand(service, None, True)
                     await service_queue.put(command)
                 else:
-                    raise Exception("Service without image or archives: %s" % service.name)
+                    LOGGER.debug("Nothing to download for service %s without image or archives" % service.name)
             else:
                 try:
                     image_tag = await get_docker_image_tag(etat_instance, docker_handler, image, pull=False)
