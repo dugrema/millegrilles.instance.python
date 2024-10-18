@@ -147,7 +147,7 @@ proxy_pass $upstream_fichiers;
             fichier_nouveau = ajouter_fichier_configuration(self.__etat_instance, path_nginx_module, nom_fichier, contenu)
 
             if fichier_nouveau is True:
-                await self.__etat_docker.redemarrer_nginx()
+                await self.__etat_docker.redemarrer_nginx("EntetienNginx.charger_configuration_consignation Fichier %s maj/nouveau" % nom_fichier)
 
     async def preparer_nginx(self):
         self.__logger.info("Preparer nginx")
@@ -251,7 +251,7 @@ proxy_pass $upstream_fichiers;
                 fichier.write(cert_pem)
 
             self.__logger.info("Redemarrer nginx avec le nouveau certificat web")
-            await self.__etat_docker.redemarrer_nginx()
+            await self.__etat_docker.redemarrer_nginx("EntetienNginx.verifier_certificat_web Nouveau certificat web")
 
     async def verifier_tor(self):
         commande = CommandeOnionizeGetHostname()
@@ -275,7 +275,7 @@ add_header "Onion-Location" "https://%s";
         fichier_nouveau = ajouter_fichier_configuration(self.__etat_instance, path_nginx_module, nom_fichier, contenu)
 
         if fichier_nouveau is True:
-            await self.__etat_docker.redemarrer_nginx()
+            await self.__etat_docker.redemarrer_nginx("EntretienNginx.verifier_tor Maj configuration TOR")
 
 
 def generer_configuration_nginx(etat_instance, path_src_nginx: pathlib.Path, path_nginx_modules: pathlib.Path, niveau_securite: Optional[str]) -> bool:
