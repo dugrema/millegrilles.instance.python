@@ -131,16 +131,6 @@ class EntretienNginx:
             instance_id_consignation = reponse_parsed['instance_id']
             url_consignation = reponse_parsed['consignation_url']
 
-            # Troubleshooting
-            if url_consignation == 'https://fichiers:1443':
-                self.__logger.info("URL interne, info\n%s" % reponse_parsed)
-                self.__logger.info("Nouvelle requete pour voir si on a un resultat different")
-                await asyncio.sleep(5)
-                reponse2 = await producer.executer_requete(requete, 'CoreTopologie', 'getConsignationFichiers',
-                                                          Constantes.SECURITE_PRIVE)
-                reponse_parsed2 = reponse2.parsed
-                self.__logger.info("Reponse 2: %s" % reponse_parsed2)
-
             self.__logger.debug("Consignation sur %s (instance_id: %s)" % (url_consignation, instance_id_consignation))
 
             if self.__etat_instance.instance_id == instance_id_consignation:
