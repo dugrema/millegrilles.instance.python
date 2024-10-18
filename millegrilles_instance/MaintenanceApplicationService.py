@@ -15,6 +15,7 @@ from millegrilles_instance.MaintenanceApplicationWeb import check_archive_stale,
 from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.docker import DockerCommandes
 from millegrilles_messages.docker.ParseConfiguration import ConfigurationService
+from millegrilles_instance.Configuration import sauvegarder_configuration_webapps
 
 LOGGER = logging.getLogger(__name__)
 
@@ -344,7 +345,7 @@ async def charger_configuration_application(path_configuration: pathlib.Path) ->
             except FileNotFoundError:
                 LOGGER.error("Fichier de module manquant : %s" % path_fichier)
             except TypeError:
-                LOGGER.debug("Installation d'une application sans dependances (e.g. pur nginx config)")
+                LOGGER.debug("charger_configuration_application: application %s sans dependances (e.g. pur nginx config)" % filename)
 
     return configuration
 
@@ -397,10 +398,15 @@ async def install_service(etat_instance, docker_handler: DockerHandler, command:
     # Installer les archives si presentes
     if parser.archives:
         for archive in parser.archives:
+            service_name = command.status.name
+            web_links = command.status.configuration.get('web') or command.status.web_config
             if await asyncio.to_thread(check_archive_stale, etat_instance, archive):
-                service_name = command.status.name
-                web_links = command.status.configuration.get('web')
                 await asyncio.to_thread(installer_archive, etat_instance, service_name, archive, web_links)
+            else:
+                # Mettre a jour configuration des liens web
+                LOGGER.info("installer_service Mettre a jour configuration web links pour %s", service_name)
+                sauvegarder_configuration_webapps(service_name, web_links, etat_instance)
+
 
     # S'assurer d'avoir l'image
     image = parser.image
@@ -413,7 +419,6 @@ async def install_service(etat_instance, docker_handler: DockerHandler, command:
         return resultat
     else:
         LOGGER.debug("installer_service() Invoque pour un service sans images : %s", service_name)
-
 
 async def get_params_env_service(etat_instance, docker_handler: DockerHandler) -> dict:
     # Charger configurations
