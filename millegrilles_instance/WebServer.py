@@ -1,3 +1,5 @@
+import datetime
+
 import aiohttp
 import asyncio
 import logging
@@ -225,7 +227,8 @@ class WebServer:
             'mq_port': int(contenu['port']),
         }
         self.__etat_instance.maj_configuration_json(config_dict)
-        await self.__etat_instance.reload_configuration()
+        # await self.__etat_instance.reload_configuration()
+        await self.__etat_instance.delay_reload_configuration(duration=datetime.timedelta(seconds=1))
 
         return web.json_response({'ok': True}, headers=headers_cors())
 

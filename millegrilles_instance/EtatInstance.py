@@ -80,6 +80,11 @@ class EtatInstance:
 
         self.__application_status = ApplicationInstallationStatus()
 
+        self.__delay_reload_configuration: Optional[datetime.datetime] = None
+
+    async def delay_reload_configuration(self, duration: datetime.timedelta):
+        self.__delay_reload_configuration = datetime.datetime.now() + duration
+
     async def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
 
@@ -204,6 +209,12 @@ class EtatInstance:
                 self.__logger.exception('Erreur entretien systeme')
         except InstallationModeException:
             self.__logger.info("entretien - Skip, mode installation")
+
+    async def check_delay_reload(self):
+        if self.__delay_reload_configuration:
+            if datetime.datetime.now() > self.__delay_reload_configuration:
+                self.__delay_reload_configuration = None
+                await self.reload_configuration()
 
     def set_docker_present(self, etat: bool):
         self.__docker_present = etat

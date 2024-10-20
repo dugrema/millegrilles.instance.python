@@ -238,6 +238,8 @@ class InstanceDockerAbstract:
         # Entretien etat_instance (certificats cache du validateur)
         self._taches_entretien.append(TacheEntretien(
             datetime.timedelta(seconds=30), self._etat_instance.entretien, self.get_producer))
+        self._taches_entretien.append(TacheEntretien(
+            datetime.timedelta(seconds=5), self._etat_instance.check_delay_reload))
 
         self._etat_instance.set_producer(self.get_producer)
         self._etat_instance.generateur_certificats.set_configuration_modules_getter(self.get_configuration_certificats)
@@ -283,7 +285,7 @@ class InstanceDockerAbstract:
 
             try:
                 self.__logger.debug("run() fin execution cycle")
-                await asyncio.wait_for(self._event_entretien.wait(), 30)
+                await asyncio.wait_for(self._event_entretien.wait(), 5)
                 self._event_entretien.clear()
             except TimeoutError:
                 pass
