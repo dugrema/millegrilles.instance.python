@@ -206,7 +206,8 @@ class WebServer:
         # Conserver hostname
         hostname = contenu['hostname']
         self.__etat_instance.maj_configuration_json({'hostname': hostname})
-        await self.__etat_instance.reload_configuration()
+        # await self.__etat_instance.reload_configuration()
+        await self.__etat_instance.delay_reload_configuration(duration=datetime.timedelta(seconds=1))
 
         return web.json_response({'ok': True}, headers=headers_cors())
 
@@ -268,7 +269,8 @@ class WebServer:
         # Installer le nouveau certificat d'instance
         self.__etat_instance.maj_clecert(clecert)
 
-        await self.__etat_instance.reload_configuration()
+        # await self.__etat_instance.reload_configuration()
+        await self.__etat_instance.delay_reload_configuration(duration=datetime.timedelta(seconds=1))
 
         return web.json_response({'ok': True}, headers=headers_cors())
 

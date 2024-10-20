@@ -1,4 +1,5 @@
 import aiohttp
+import datetime
 import json
 import logging
 
@@ -198,9 +199,10 @@ async def configurer_idmg(etat_instance: EtatInstance, contenu: dict):
 
     # Declencher le recharger de la configuration de l'instance
     # Va aussi installer les nouveaux elements de configuration/secrets dans docker
-    await etat_instance.reload_configuration()
+    # await etat_instance.reload_configuration()
+    await etat_instance.delay_reload_configuration(duration=datetime.timedelta(seconds=1))
 
-    return web.Response(status=200)
+    return web.json_response({'ok': True}, status=200)
 
 
 async def installer_certificat_intermediaire(url_certissuer: str, contenu: dict) -> dict:
