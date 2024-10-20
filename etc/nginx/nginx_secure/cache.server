@@ -1,7 +1,0 @@
-# Configuration du cache NGINX pour les fichiers
-proxy_cache_path /cache
-                 levels=1:2
-                 keys_zone=cache_fichiers:2m
-                 max_size=2g
-                 inactive=4320m
-                 use_temp_path=off;

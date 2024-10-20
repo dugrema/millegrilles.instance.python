@@ -1,2 +1,0 @@
-set $upstream_installation {instance_url};
-proxy_pass $upstream_installation;
