@@ -105,6 +105,8 @@ class InstanceAbstract:
         # Entretien etat_instance (certificats cache du validateur)
         self._taches_entretien.append(TacheEntretien(
             datetime.timedelta(seconds=30), self._etat_instance.entretien, self.get_producer))
+        self._taches_entretien.append(TacheEntretien(
+            datetime.timedelta(seconds=5), self._etat_instance.check_delay_reload))
 
         # Ajouter listener de changement de configuration. Demarre l'execution des taches d'entretien/installation.
         self._etat_instance.ajouter_listener(self.declencher_run)

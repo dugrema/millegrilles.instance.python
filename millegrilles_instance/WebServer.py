@@ -172,19 +172,23 @@ class WebServer:
 
             # return resultat
 
-            await self.fermer()
-            await self.__etat_instance.stop()
-            return web.Response(headers=headers, status=200)
+            # await self.fermer()
+            # await self.__etat_instance.stop()
+            # Donner le temps de repondre et reload
+            await self.__etat_instance.delay_reload_configuration(datetime.timedelta(seconds=1))
+            # return web.Response(headers=headers, status=200)
+            return web.json_response({'ok': True}, headers=headers, status=200)
 
         except millegrilles_instance.Exceptions.RedemarrageException:
             self.__stop_event.set()
             return web.Response(headers=headers, status=200)
         except:
             self.__logger.exception("Erreur installation")
-            await self.fermer()
-            await self.__etat_instance.stop()
+            #await self.fermer()
+            #await self.__etat_instance.stop()
             # return web.Response(headers=headers, status=500)
-            return web.Response(headers=headers, status=200)
+            #return web.Response(headers=headers, status=200)
+            return web.Response(headers=headers, status=500)
 
     async def handle_configurer_idmg(self, request: web.Request):
         contenu = await request.json()

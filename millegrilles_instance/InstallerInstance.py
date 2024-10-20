@@ -168,7 +168,9 @@ async def installer_satellite(etat_instance: EtatInstance, contenu: dict, securi
 
     # Declencher le recharger de la configuration de l'instance
     # Va aussi installer les nouveaux elements de configuration/secrets dans docker
-    await etat_instance.reload_configuration()
+    # await etat_instance.reload_configuration()
+    # Donner 10 secondes pour terminer le traitement (e.g. reponse web)
+    await etat_instance.delay_reload_configuration(datetime.timedelta(seconds=10), force_restart=True)
 
 
 async def configurer_idmg(etat_instance: EtatInstance, contenu: dict):

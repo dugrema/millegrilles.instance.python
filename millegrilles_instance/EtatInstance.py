@@ -81,9 +81,11 @@ class EtatInstance:
         self.__application_status = ApplicationInstallationStatus()
 
         self.__delay_reload_configuration: Optional[datetime.datetime] = None
+        self.__delay_reload_force_restart = False
 
-    async def delay_reload_configuration(self, duration: datetime.timedelta):
+    async def delay_reload_configuration(self, duration: datetime.timedelta, force_restart=False):
         self.__delay_reload_configuration = datetime.datetime.now() + duration
+        self.__delay_reload_force_restart = force_restart
 
     async def reload_configuration(self):
         self.__logger.info("Reload configuration sur disque ou dans docker")
@@ -213,8 +215,12 @@ class EtatInstance:
     async def check_delay_reload(self):
         if self.__delay_reload_configuration:
             if datetime.datetime.now() > self.__delay_reload_configuration:
+                restart = self.__delay_reload_force_restart
+                self.__delay_reload_force_restart = False
                 self.__delay_reload_configuration = None
                 await self.reload_configuration()
+                if restart:
+                    await self.stop()
 
     def set_docker_present(self, etat: bool):
         self.__docker_present = etat
