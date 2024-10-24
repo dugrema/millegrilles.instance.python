@@ -76,6 +76,8 @@ class MqThread:
         res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_INSTALLER))
         res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
+            instance_id, ConstantesInstance.COMMANDE_APPLICATION_UPGRADE))
+        res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER))
         res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
             instance_id, ConstantesInstance.COMMANDE_APPLICATION_DEMARRER))

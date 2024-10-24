@@ -110,8 +110,10 @@ class CommandHandler:
                         return await self.arreter_application(message)
                     if action == ConstantesInstance.COMMANDE_APPLICATION_REQUETE_CONFIG:
                         return await self.get_application_configuration(message)
-                    if action == ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER:
-                        return await self.configurer_application(message)
+                    if action == ConstantesInstance.COMMANDE_APPLICATION_UPGRADE:
+                        return await self.upgrade_application(message)
+                    # if action == ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER:
+                    #     return await self.configurer_application(message)
                     if action == ConstantesInstance.COMMANDE_CONFIGURER_DOMAINE:
                         return await self.configurer_domaine(message)
                     if action == ConstantesInstance.REQUETE_GET_PASSWORDS:
@@ -208,6 +210,11 @@ class CommandHandler:
             fichier.write(configuration_str)
 
         return await self._gestionnaire_applications.installer_application(configuration, reinstaller=True)
+
+    async def upgrade_application(self, message: MessageWrapper):
+        contenu = message.parsed
+        configuration = contenu['configuration']
+        return await self._gestionnaire_applications.upgrade_application(configuration, command=message)
 
     async def configurer_domaine(self, message: MessageWrapper):
         parsed = message.parsed

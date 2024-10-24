@@ -9,6 +9,7 @@ from os import path
 
 from typing import Optional
 
+from millegrilles_instance.MaintenanceApplicationService import list_images, pull_images
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur, MessageWrapper
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.Exceptions import InstallationModeException
@@ -45,20 +46,60 @@ class GestionnaireApplications:
         with open(path_app, 'w') as fichier:
             json.dump(configuration, fichier, indent=2)
 
-        if command:
-            # Emit OK response, installation is beginning
-            producer = await self.__etat_instance.get_producer(timeout=5)
-            await producer.repondre({"ok": True}, command.reply_to, command.correlation_id)
+        # if command:
+        #     # Emit OK response, installation is beginning
+        #     producer = await self.__etat_instance.get_producer(timeout=5)
+        #     await producer.repondre({"ok": True}, command.reply_to, command.correlation_id)
 
         producer = self.__rabbitmq_dao.get_producer()
         if self.__etat_docker is not None:
             resultat = await self.__etat_docker.installer_application(producer, configuration, reinstaller)
+            if command:
+                # Emit OK response, installation is beginning
+                producer = await self.__etat_instance.get_producer(timeout=5)
+                await producer.repondre(resultat, command.reply_to, command.correlation_id)
             await self.__etat_docker.emettre_presence(producer)
             return resultat
         else:
             resultat = await installer_application_sansdocker(self.__etat_instance, producer, configuration)
             await self.__etat_instance.emettre_presence(producer)
             return resultat
+
+    async def upgrade_application(self, configuration: dict, command: Optional[MessageWrapper] = None):
+        nom_application = configuration['nom']
+        web_links = configuration.get('web')
+
+        # Downloader toutes les images a l'avance
+        images = list_images(configuration)
+        all_found = await pull_images(self.__etat_instance, self.__etat_docker, images, nom_application)
+
+        # if command:
+        #     # Emettre reponse OK, upgrade commence
+        #     producer = await self.__etat_instance.get_producer(timeout=5)
+        #     await producer.repondre({"ok": all_found}, command.reply_to, command.correlation_id)
+
+        if all_found is False:
+            return {"ok": False, "err": "Some images missing: %s" % images}
+
+        if web_links:
+            sauvegarder_configuration_webapps(nom_application, web_links, self.__etat_instance)
+
+        path_docker_apps = self.__etat_instance.configuration.path_docker_apps
+        path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
+        self.__logger.debug("Sauvegarder configuration pour app %s vers %s" % (nom_application, path_app))
+        with open(path_app, 'w') as fichier:
+            json.dump(configuration, fichier, indent=2)
+
+        producer = self.__rabbitmq_dao.get_producer()
+        if self.__etat_docker is not None:
+            resultat = await self.__etat_docker.installer_application(producer, configuration, True)
+            await self.__etat_docker.emettre_presence(producer)
+            return resultat
+        else:
+            resultat = await installer_application_sansdocker(self.__etat_instance, producer, configuration)
+            await self.__etat_instance.emettre_presence(producer)
+            return resultat
+
 
     async def demarrer_application(self, nom_application: str):
         if self.__etat_docker is not None:

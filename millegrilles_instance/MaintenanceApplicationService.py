@@ -50,12 +50,14 @@ class ServiceInstallCommand:
     image_tag: Optional[str]    # Docker image reference
     web_only: bool
     reinstall: bool
+    upgrade: bool
 
-    def __init__(self, status: ServiceStatus, image_tag: Optional[str] = None, web_only = False, reinstall = False):
+    def __init__(self, status: ServiceStatus, image_tag: Optional[str] = None, web_only = False, reinstall = False, upgrade = False):
         self.status = status
         self.image_tag = image_tag
         self.web_only = web_only
         self.reinstall = reinstall
+        self.upgrade = upgrade
 
 
 async def get_configuration_services(etat_instance, config_modules: list) -> list[ServiceStatus]:
@@ -534,3 +536,26 @@ def trier_services(liste_services: list) -> list:
     return liste_services_finale
 
 
+def list_images(package_configuration: dict):
+    images = set()
+    for dep in package_configuration['dependances']:
+        try:
+            images.add(dep['image'])
+        except KeyError:
+            pass
+    return images
+
+
+async def pull_images(etat_instance, docker_handler, images: list, app_name: str):
+    all_done = True
+    for image in images:
+        try:
+            await get_docker_image_tag(etat_instance, docker_handler, image, pull=False)
+        except UnknownImage:
+            LOGGER.info('Image %s missing locally, downloading' % image)
+            try:
+                await get_docker_image_tag(etat_instance, docker_handler, image, pull=True, app_name=app_name)
+            except UnknownImage:
+                LOGGER.error("Unnkown docker image: %s. Stopping service download/installation" % image)
+                all_done = False
+    return all_done
