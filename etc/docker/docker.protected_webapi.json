@@ -65,7 +65,8 @@
   }],
   "labels": {
     "millegrille": "${IDMG}",
-    "install_priority": "4"
+    "install_priority": "4",
+    "noremove": "true"
   },
   "resources": {
     "cpu_limit": 2000000000,

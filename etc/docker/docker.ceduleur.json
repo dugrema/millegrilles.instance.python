@@ -37,7 +37,8 @@
   "networks": [{"target": "millegrille_net"}],
   "labels": {
     "millegrille": "${IDMG}",
-    "install_priority": "3"
+    "install_priority": "3",
+    "noremove": "true"
   },
   "resources": {
     "cpu_limit": 500000000,

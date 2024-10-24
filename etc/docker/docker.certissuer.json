@@ -14,7 +14,8 @@
   }],
   "labels": {
     "millegrille": "${IDMG}",
-    "install_priority": "1"
+    "install_priority": "1",
+    "noremove": "true"
   },
   "endpoint_spec": {
     "mode": "vip",

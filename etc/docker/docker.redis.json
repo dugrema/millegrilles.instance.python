@@ -38,7 +38,8 @@
   "networks": [{"target": "millegrille_net", "aliases": ["redis"]}],
   "labels": {
     "millegrille": "${IDMG}",
-    "install_priority": "1"
+    "install_priority": "1",
+    "noremove": "true"
   },
   "resources": {
     "cpu_limit": 1500000000,

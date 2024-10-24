@@ -44,7 +44,8 @@
     }
   ],
   "labels": {
-    "install_priority": "4"
+    "install_priority": "4",
+    "noremove": "true"
   },
   "networks": [
     {"target": "millegrille_net", "aliases": ["webauth"]},

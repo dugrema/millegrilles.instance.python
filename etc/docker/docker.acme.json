@@ -29,6 +29,7 @@
     {"target": "bridge"}
   ],
   "labels": {
-    "install_priority": "1"
+    "install_priority": "1",
+    "noremove": "true"
   }
 }
