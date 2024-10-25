@@ -352,7 +352,8 @@ class EtatDockerInstanceSync:
 
     async def redemarrer_nginx(self, reason: Optional[str] = None):
         self.__logger.info("Redemarrer nginx pour charger configuration maj (reason: %s)" % reason)
-        commande = DockerCommandes.CommandeRedemarrerService('nginx', aio=True)
+        commande = DockerCommandes.CommandeReloadNginx()
+        # commande = DockerCommandes.CommandeRedemarrerService('nginx', aio=True)
         self.__docker_handler.ajouter_commande(commande)
         try:
             await commande.attendre()
