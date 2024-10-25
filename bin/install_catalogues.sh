@@ -40,7 +40,7 @@ sudo cp -rv ${PATH_DIR_NGINX}/* "${PATH_VAR_CONFIGURATION_NGINX}"
 sudo chown mginstance:millegrilles "${PATH_VAR_CONFIGURATION_NGINX}"
 
 # Copier les regles de validation pour accepter les catalogues d'un idmg tiers
-sudo cp --update=none ${PATH_DIR_ETC}/idmg_validation.json "${PATH_VAR_CONFIGURATION}"
+sudo cp ${PATH_DIR_ETC}/idmg_validation.json "${PATH_VAR_CONFIGURATION}"
 
 echo "Copier python instance"
 sudo mkdir -p ${PATH_VAR_CONFIGURATION_PYTHON}
