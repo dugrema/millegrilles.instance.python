@@ -12,7 +12,10 @@ from docker.models.containers import Container
 from docker.models.services import Service
 
 from millegrilles_messages.docker import DockerCommandes
+from millegrilles_messages.docker.DockerCommandes import PullStatus
 from millegrilles_messages.docker.DockerHandler import CommandeDocker, DockerHandler
+
+LOGGER = logging.getLogger(__name__)
 
 
 class CommandeListeTopologie(CommandeDocker):
@@ -182,17 +185,23 @@ def check_replicas(service: Service):
         return None
 
 
-async def get_docker_image_tag(etat_instance, docker_handler: DockerHandler, image: str, pull=True, app_name: Optional[str] = None):
+async def get_docker_image_tag(etat_instance, docker_handler: DockerHandler, image: str, pull=True, app_name: Optional[str] = None) -> str:
     commande_image = DockerCommandes.CommandeGetImage(image, pull=pull, aio=True)
-    docker_handler.ajouter_commande(commande_image)
+
     image_info_coro = commande_image.get_resultat()
-    progress_coro = commande_image.progress_coro()
+
+    # Status updates
+    async def status_callback(status: PullStatus):
+        LOGGER.info("Downloading image %s status: %s" % (image, status.status_str()))
+    progress_coro = commande_image.progress_coro(status_callback)
+
     coros = [image_info_coro, progress_coro]
 
     if app_name:
         download_update_coro = download_update_callback(etat_instance, app_name, commande_image)
         coros.append(download_update_coro)
 
+    docker_handler.ajouter_commande(commande_image)
     result = await asyncio.gather(*coros)
     image_info = result[0]
 

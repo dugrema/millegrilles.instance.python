@@ -24,7 +24,8 @@ from millegrilles_messages.docker.DockerHandler import CommandeDocker
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 
 from millegrilles_instance import Constantes as ConstantesInstance
-from millegrilles_instance.CommandesDocker import CommandeListeTopologie, CommandeExecuterScriptDansService
+from millegrilles_instance.CommandesDocker import CommandeListeTopologie, CommandeExecuterScriptDansService, \
+    get_docker_image_tag
 from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname, OnionizeNonDisponibleException
 
 
@@ -310,11 +311,13 @@ class EtatDockerInstanceSync:
         # S'assurer d'avoir l'image
         image = parser.image
         if image is not None:
-            commande_image = DockerCommandes.CommandeGetImage(image, pull=True, aio=True)
-            self.__docker_handler.ajouter_commande(commande_image)
-            image_info = await commande_image.get_resultat()
+            # commande_image = DockerCommandes.CommandeGetImage(image, pull=True, aio=True)
+            # self.__docker_handler.ajouter_commande(commande_image)
+            # image_info = await commande_image.get_resultat()
+            #
+            # image_tag = image_info['tags'][0]
+            image_tag = await get_docker_image_tag(self.__etat_instance, self.__docker_handler, image, pull=True, app_name=image)
 
-            image_tag = image_info['tags'][0]
             commande_creer_service = DockerCommandes.CommandeCreerService(image_tag, config_parsed, reinstaller=reinstaller, aio=True)
             self.__docker_handler.ajouter_commande(commande_creer_service)
             resultat = await commande_creer_service.get_resultat()
