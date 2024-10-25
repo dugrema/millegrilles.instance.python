@@ -6,8 +6,8 @@
       "name": "coupdoeil2",
       "archives": [
         {
-          "src": "https://docker.maple.maceroc.com/archives/coupdoeil/millegrilles_coupdoeil_react.2024.7.18.tar.gz",
-          "digest": "4OQCIAUj0kCopkxghvTOaL+kVuOMHwuAWCMCtw2Kzzjt/6kS",
+          "src": "https://docker.maple.maceroc.com/archives/coupdoeil/millegrilles_coupdoeil_react.2024.7.20.tar.gz",
+          "digest": "4OQCIHE8fu81QrgFpqp1G0nvOrcrZC6rqbPY7jHLREpthQhm",
           "location": "nginx:html/applications/coupdoeil2"
         }
       ]
