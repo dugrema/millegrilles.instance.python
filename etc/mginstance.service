@@ -6,6 +6,7 @@ After=docker.service
 Type=simple
 Nice=2
 PIDFile=/var/run/mginstance.pid
+Environment="WEB_PORT=5443"
 ExecStart=/var/opt/millegrilles/bin/start_instance.sh --verbose
 # ExecStop=/opt/millegrilles/bin/monitor.sh stop
 # ExecStartPre=+/opt/millegrilles/bin/prestart_monitor.sh
