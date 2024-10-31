@@ -30,7 +30,7 @@ location /coupdoeil2 {{
   try_files $uri $uri/ /coupdoeil2/index.html;
 
 # DEV : Retirer root, include et add_header Cache-Control et utiliser les lignes suivantes. Remplacer [**DEV SERVER**] par le hostname dev.
-# proxy_pass https://[**DEV SERVER**]:3006;
+# proxy_pass https://docker:3006;
 }}
 
 # React development only
