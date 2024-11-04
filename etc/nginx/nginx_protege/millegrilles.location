@@ -44,23 +44,6 @@ location ~/millegrilles/.*\.(?:png|svg)$ {{
   add_header Cache-Control "public";
 }}
 
-# Fichiers de backup
-location /fichiers/backup_v2/tar {{
-  include /etc/nginx/conf.d/modules/fichiers.proxypass;
-  include /etc/nginx/conf.d/component_base_auth.include;
-
-  if ($request_method !~ GET) {{
-    return 405;
-  }}
-
-  # Desactiver buffering de transfert
-  proxy_buffering off;  # Desactiver buffering de la reponse (download)
-  proxy_request_buffering off;  # Desactiver buffering de la request (upload)
-
-  # Rewrite pour dowload domaine fichier
-  rewrite ^(/fichiers/backup_v2/tar/)(.*)$ /fichiers_transfert/backup_v2/tar/$2 break;
-}}
-
 # Application React - s'occupe de l'authentification (non protege)
 location /millegrilles {{
   root /usr/share/nginx/html/applications;

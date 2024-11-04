@@ -1,4 +1,0 @@
-# Fichier genere par EntretienNginx
-set $upstream_fichiers https://fichiers:1443;
-proxy_pass $upstream_fichiers;
-    
