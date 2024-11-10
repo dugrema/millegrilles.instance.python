@@ -1,6 +1,6 @@
 {
   "name": "core",
-  "image": "docker.maple.maceroc.com:5000/millegrilles_core:2024.8.68",
+  "image": "docker.maple.maceroc.com:5000/millegrilles_core:2024.8.71",
   "certificat": {
     "roles": ["core"],
     "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"],
