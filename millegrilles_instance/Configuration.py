@@ -149,20 +149,25 @@ def sauvegarder_configuration_webapps(nom_application: str, web_links: dict, eta
         Constantes.CONFIG_NOMFICHIER_CONFIGURATION_WEB_APPLICATIONS)
 
     hostname = etat_instance.hostname
-    for link in web_links['links']:
-        try:
-            link['url'] = link['url'].replace('${HOSTNAME}', hostname)
-        except KeyError:
-            pass  # No url
     try:
-        with open(path_conf_applications, 'rt+') as fichier:
-            config_apps_json = json.load(fichier)
+        links = web_links['links']
+    except KeyError:
+        LOGGER.debug("sauvegarder_configuration_webapps Aucun web links pour %s" % nom_application)
+    else:
+        for link in links:
+            try:
+                link['url'] = link['url'].replace('${HOSTNAME}', hostname)
+            except KeyError:
+                pass  # No url
+        try:
+            with open(path_conf_applications, 'rt+') as fichier:
+                config_apps_json = json.load(fichier)
+                config_apps_json[nom_application] = web_links
+                fichier.seek(0)
+                json.dump(config_apps_json, fichier)
+                fichier.truncate()
+        except (FileNotFoundError, json.JSONDecodeError):
+            config_apps_json = dict()
             config_apps_json[nom_application] = web_links
-            fichier.seek(0)
-            json.dump(config_apps_json, fichier)
-            fichier.truncate()
-    except (FileNotFoundError, json.JSONDecodeError):
-        config_apps_json = dict()
-        config_apps_json[nom_application] = web_links
-        with open(path_conf_applications, 'wt') as fichier:
-            json.dump(config_apps_json, fichier)
+            with open(path_conf_applications, 'wt') as fichier:
+                json.dump(config_apps_json, fichier)
