@@ -151,7 +151,7 @@ def sauvegarder_configuration_webapps(nom_application: str, web_links: dict, eta
     hostname = etat_instance.hostname
     try:
         links = web_links['links']
-    except KeyError:
+    except (TypeError, KeyError):
         LOGGER.debug("sauvegarder_configuration_webapps Aucun web links pour %s" % nom_application)
     else:
         for link in links:
