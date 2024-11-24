@@ -10,7 +10,6 @@ import requests
 
 from typing import Optional
 
-from millegrilles_instance.Configuration import sauvegarder_configuration_webapps
 from millegrilles_instance.Constantes import FICHIER_ARCHIVES_APP
 from millegrilles_messages.docker.ParseConfiguration import WebApplicationConfiguration
 from millegrilles_messages.messages.Hachage import VerificateurHachage
@@ -134,7 +133,8 @@ def installer_archive(etat_instance, app_name: str, archive: WebApplicationConfi
 
         # Conserver url links de l'application
         if web_links is not None:
-            sauvegarder_configuration_webapps(app_name, web_links, etat_instance)
+            raise NotImplementedError('todo')
+            #sauvegarder_configuration_webapps(app_name, web_links, etat_instance)
 
     except Exception as e:
         # If the old path is present, restore it

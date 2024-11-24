@@ -1,13 +1,113 @@
-from millegrilles_instance.Application import main as instance_main
+import asyncio
+import logging
+import sys
+from asyncio import TaskGroup
+from concurrent.futures.thread import ThreadPoolExecutor
+
+from typing import Awaitable
+
+from millegrilles_instance.Certificats import GenerateurCertificatsHandler
+from millegrilles_instance.Configuration import ConfigurationInstance
+from millegrilles_instance.Context import InstanceContext
+from millegrilles_instance.Manager import InstanceManager
+from millegrilles_instance.WebServer import WebServer
+from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopListener
+from millegrilles_messages.bus.BusExceptions import ConfigurationFileError
+from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
+from millegrilles_instance.MgbusHandler import MgbusHandler
+from millegrilles_messages.docker.DockerHandler import DockerState, DockerHandler
+
+LOGGER = logging.getLogger(__name__)
 
 
-def main():
-    """
-    Methode d'execution de l'application
-    :return:
-    """
-    instance_main()
+async def force_terminate_task_group():
+    """Used to force termination of a task group."""
+    raise ForceTerminateExecution()
+
+
+async def main():
+    config = ConfigurationInstance.load()
+    try:
+        context = InstanceContext(config)
+    except ConfigurationFileError as e:
+        LOGGER.error("Error loading configuration files %s, quitting" % str(e))
+        sys.exit(1)  # Quit
+
+    LOGGER.setLevel(logging.INFO)
+    LOGGER.info("Starting")
+
+    # Wire classes together, gets awaitables to run
+    try:
+        coros = await wiring(context)
+    except PermissionError as e:
+        LOGGER.error("Permission denied on loading configuration and preparing folders : %s" % str(e))
+        sys.exit(2)  # Quit
+
+    try:
+        # Use taskgroup to run all threads
+        async with TaskGroup() as group:
+            for coro in coros:
+                group.create_task(coro)
+
+            # Create a listener that fires a task to cancel all other tasks
+            async def stop_group():
+                group.create_task(force_terminate_task_group())
+
+            stop_listener = StopListener(stop_group)
+            context.register_stop_listener(stop_listener)
+
+    except* (ForceTerminateExecution, asyncio.CancelledError):
+        # Result of the termination task
+        LOGGER.error("__main__ Force termination exception")
+        context.stop()
+
+    pass  # All done, quitting with no errors
+
+
+async def wiring(context: InstanceContext) -> list[Awaitable]:
+    # Some threads get used to handle sync events for the duration of the execution. Ensure there are enough.
+    loop = asyncio.get_event_loop()
+    loop.set_default_executor(ThreadPoolExecutor(max_workers=10))
+
+    # Services
+    bus_connector = MilleGrillesPikaConnector(context)
+    context.bus_connector = bus_connector
+    generateur_certificats = GenerateurCertificatsHandler(context)
+    docker_state = DockerState(context)
+
+    if docker_state.docker_present():
+        docker_handler = DockerHandler(docker_state)
+        # self.__docker_etat = EtatDockerInstanceSync(self.__etat_instance, self.__docker_handler)
+    else:
+        # Docker not supported
+        docker_handler = None
+
+    # Facade
+    manager = InstanceManager(context, generateur_certificats, docker_handler)
+
+    # Access modules
+    web_server = WebServer(manager)
+    bus_handler = MgbusHandler(manager)
+
+    # Setup
+    await manager.setup()
+    await web_server.setup()
+
+    # Create tasks
+    coros = [
+        context.run(),
+        # bus_connector.run(),  # Handled in bus_handler to start/stop thread dynamically
+        manager.run(),
+        bus_handler.run(),
+        web_server.run(),
+    ]
+
+    if docker_handler:
+        coros.append(docker_handler.run())
+
+    return coros
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
+    LOGGER.info("Stopped")

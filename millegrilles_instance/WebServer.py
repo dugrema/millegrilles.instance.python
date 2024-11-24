@@ -14,8 +14,10 @@ from ssl import SSLContext
 from typing import Optional
 
 import millegrilles_instance.Exceptions
+from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
+from millegrilles_instance.Manager import InstanceManager
 from millegrilles_messages.messages import Constantes
-from millegrilles_instance.Configuration import ConfigurationWeb
+#from millegrilles_instance.Configuration import ConfigurationWeb
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstallerInstance import installer_instance, configurer_idmg
 from millegrilles_messages.messages.CleCertificat import CleCertificat
@@ -23,25 +25,28 @@ from millegrilles_instance import Constantes as ConstantesInstances
 
 
 class WebServer:
+    """
+    Web access module
+    """
 
-    def __init__(self, etat_instance: EtatInstance):
+    def __init__(self, manager: InstanceManager):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        self.__etat_instance = etat_instance
+        self.__manager = manager
 
         self.__app = web.Application()
         self.__stop_event: Optional[Event] = None
-        self.__configuration = ConfigurationWeb()
+        # self.__configuration = ConfigurationWeb()
         self.__ssl_context: Optional[SSLContext] = None
 
         self.__webrunner: Optional[WebRunner] = None
         # self.__webrunner_443: Optional[WebRunner] = None
         self.__ipv6 = True
 
-    def setup(self, configuration: Optional[dict] = None):
-        self._charger_configuration(configuration)
+    async def setup(self):
+        self._charger_configuration()
         self._preparer_routes()
 
-        self.__webrunner = WebRunner(self.__etat_instance, self.__configuration, self.__app, ipv6=self.__ipv6)
+        self.__webrunner = WebRunner(self.context, self.__app, ipv6=self.__ipv6)
 
     async def fermer(self):
         self.__stop_event.set()
@@ -56,13 +61,15 @@ class WebServer:
         except Exception:
             self.__logger.exception("Erreur fermeture webrunner")
 
-    def _charger_configuration(self, configuration: Optional[dict] = None):
-        self.__configuration.parse_config(configuration)
+    @property
+    def context(self):
+        return self.__manager.context
+
+    def _charger_configuration(self):
+        self.context.configuration.parse_config()
 
     def _preparer_routes(self):
         self.__app.add_routes([
-            # web.get('/', self.rediriger_root),
-
             web.get('/installation/api/info', self.handle_api_info),
             web.get('/installation/api/infoMonitor', self.handle_api_info),  # Deprecated, FIX dans coupdoeil
             web.get('/installation/api/csr', self.handle_api_csr),
@@ -79,36 +86,39 @@ class WebServer:
             web.options('/installation/api/installer', self.options_cors),
             web.options('/installation/api/configurerMQ', self.options_cors),
             web.options('/installation/api/installerCertificat', self.options_cors),
-
-            # Application d'installation static React
-            # web.get('/installation/', self.installation_index_handler),
-            # web.get('/installation', self.installation_index_handler),
-
-            # web.static('/installation', self.__configuration.path_app_installation),
         ])
 
-    async def rediriger_root(self, request):
-        return web.HTTPTemporaryRedirect(location='/installation')
+    # async def rediriger_root(self, request):
+    #     return web.HTTPTemporaryRedirect(location='/installation')
 
-    async def installation_index_handler(self, request):
-        path_app_installation = self.__configuration.path_app_installation
-        path_index = path.join(path_app_installation, 'index.html')
-        return web.FileResponse(path_index)
+    # async def installation_index_handler(self, request):
+    #     path_app_installation = self.__configuration.path_app_installation
+    #     path_index = path.join(path_app_installation, 'index.html')
+    #     return web.FileResponse(path_index)
 
     async def handle_api_info(self, request):
         # action = request.match_info['action']
         # print("ACTION! %s" % action)
-        reponse = {
-            'instance_id': self.__etat_instance.instance_id,
-            'securite': self.__etat_instance.niveau_securite,
-            'idmg': self.__etat_instance.idmg,
-        }
         try:
-            reponse['ca'] = self.__etat_instance.certificat_millegrille.certificat_pem
+            reponse = {
+                'instance_id': self.context.instance_id,
+                'securite': self.context.securite,
+                'idmg': self.context.idmg,
+            }
+        except ValueNotAvailable:
+            reponse = {
+                'instance_id': None,
+                'securite': None,
+                'idmg': None,
+            }
+
+        try:
+            reponse['ca'] = self.context.ca.certificat_pem
         except AttributeError:
             pass
+
         try:
-            reponse['certificat'] = self.__etat_instance.clecertificat.enveloppe.chaine_pem()
+            reponse['certificat'] = self.context.signing_key.enveloppe.chaine_pem()
         except AttributeError:
             pass
 
@@ -160,23 +170,7 @@ class WebServer:
         headers = headers_cors()
         try:
             resultat = await installer_instance(self.__etat_instance, request, headers_response=headers)
-
-            # if self.__webrunner_443 is not None:
-            #     self.__logger.info("Desactiver server_coupdoeil instance sur port 443 pour demarrer nginx")
-            #
-            #     self.__logger.warning("Installation, redemarrer (peut pas arreter port 443 pour nginx)")
-            #     # await self.__etat_instance.reload_configuration()
-            #     # self.__etat_instance.set_redemarrer(True)
-            #     # self.__stop_event.set()
-            #     # await self.__etat_instance.stop()
-
-            # return resultat
-
-            # await self.fermer()
-            # await self.__etat_instance.stop()
-            # Donner le temps de repondre et reload
             await self.__etat_instance.delay_reload_configuration(datetime.timedelta(seconds=1))
-            # return web.Response(headers=headers, status=200)
             return web.json_response({'ok': True}, headers=headers, status=200)
 
         except millegrilles_instance.Exceptions.RedemarrageException:
@@ -247,7 +241,7 @@ class WebServer:
         certificat = '\n'.join(contenu['certificat'])
 
         # Valider le nouveau certificat, s'assurer que c'est un certificat d'instance du bon niveau
-        enveloppe = await self.__etat_instance.validateur_certificats.valider(certificat)
+        enveloppe = await self.context.verificateur_certificats.valider(certificat)
         exchanges = enveloppe.get_exchanges
         roles = enveloppe.get_roles
 
@@ -257,7 +251,7 @@ class WebServer:
             return web.HTTPBadRequest()
 
         # Roles doit inclure securite locale
-        niveau_securite = self.__etat_instance.niveau_securite
+        niveau_securite = self.context.securite
         if niveau_securite not in exchanges:
             self.__logger.error("Certificat recu ne contient pas niveau de securite  '%s'" % niveau_securite)
             return web.HTTPBadRequest()
@@ -287,19 +281,7 @@ class WebServer:
         else:
             self.__stop_event = Event()
 
-        # Configuration pour site sur port 443 (utilise si nginx n'est pas configure)
-        #niveau_securite_initial = self.__etat_instance.niveau_securite
-        #if niveau_securite_initial != Constantes.SECURITE_PROTEGE:
-        # if self.__etat_instance.doit_activer_443() is True:  # Pas encore initialise
-        #     self.__webrunner_443 = WebRunner(self.__etat_instance, self.__configuration, self.__app,
-        #                                      ipv6=self.__ipv6, port=443)
-
         try:
-            # if self.__webrunner_443 is not None:
-            #     try:
-            #         await self.__webrunner_443.start()
-            #     except OSError:
-            #         self.__logger.info("Port 443 non disponible (probablement nginx - OK)")
             await self.__webrunner.start()
             self.__logger.info("Site demarre")
 
@@ -317,11 +299,12 @@ class WebServer:
 
 class WebRunner:
 
-    def __init__(self, etat_instance: EtatInstance, configuration: ConfigurationWeb, app,
+    def __init__(self, contexte: InstanceContext, app,
                  ipv6: Optional[bool] = False, port: Optional[int] = None):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        self._etat_instance = etat_instance
-        self._configuration = configuration
+        self.__contexte = contexte
+
+        configuration = contexte.configuration
         self._runner = web.AppRunner(app)
 
         self.__ipv6 = ipv6
@@ -329,7 +312,7 @@ class WebRunner:
         if port is not None:
             self._port = port
         else:
-            self._port = self._configuration.port
+            self._port = configuration.port
 
         self.__site: Optional[web.TCPSite] = None
         self.__site_ipv6: Optional[web.TCPSite] = None
@@ -355,7 +338,7 @@ class WebRunner:
 
     def charger_ssl(self):
         ssl_context = SSLContext()
-        configuration = self._configuration
+        configuration = self.__contexte.configuration
         ssl_context.load_cert_chain(configuration.web_cert_pem_path, configuration.web_key_pem_path)
         return ssl_context
 

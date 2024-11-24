@@ -13,6 +13,7 @@ from docker.errors import APIError
 from os import path, stat
 from typing import Optional
 
+from millegrilles_instance.Context import InstanceContext
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa
@@ -833,9 +834,9 @@ class CommandeRotationMaitredescles(CommandeSignatureModule):
 
 class GenerateurCertificatsHandler:
 
-    def __init__(self, etat_instance):
+    def __init__(self, context: InstanceContext):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        self.__etat_instance = etat_instance
+        self.__context = context
         self.__etat_docker = None
         self.__derniere_notification: Optional[datetime.datetime] = None
         self.__intervalle_notifications = datetime.timedelta(hours=12)

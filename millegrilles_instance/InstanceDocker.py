@@ -12,6 +12,7 @@ from typing import Optional
 from base64 import b64decode
 
 from millegrilles_instance.Constantes import FICHIER_ARCHIVES_APP
+from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.EntretienNginx import ajouter_fichier_configuration
 from millegrilles_instance.MaintenanceApplicationService import service_maintenance
 from millegrilles_instance.MaintenanceApplicationWeb import installer_archive, check_archive_stale
@@ -34,13 +35,13 @@ LOGGER = logging.getLogger(__name__)
 
 class EtatDockerInstanceSync:
 
-    def __init__(self, etat_instance, docker_handler: DockerHandler):
+    def __init__(self, context: InstanceContext, docker_handler: DockerHandler):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        self.__etat_instance = etat_instance
+        self.__context = context
         self.__docker_handler = docker_handler  # DockerHandler
 
-        self.__etat_instance.ajouter_listener(self.callback_changement_configuration)
-        self.__etat_instance.generateur_certificats.etat_docker = self
+        self.__context.ajouter_listener(self.callback_changement_configuration)
+        self.__context.generateur_certificats.etat_docker = self
 
         self.__docker_initialise = False
 
