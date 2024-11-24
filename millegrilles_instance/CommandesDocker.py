@@ -11,6 +11,7 @@ from docker.errors import APIError, NotFound
 from docker.models.containers import Container
 from docker.models.services import Service
 
+from millegrilles_instance.Context import InstanceContext
 from millegrilles_messages.docker import DockerCommandes
 from millegrilles_messages.docker.DockerCommandes import PullStatus
 from millegrilles_messages.docker.DockerHandler import CommandeDocker, DockerHandler
@@ -20,16 +21,16 @@ LOGGER = logging.getLogger(__name__)
 
 class CommandeListeTopologie(CommandeDocker):
 
-    def __init__(self, callback=None, aio=True):
-        super().__init__(callback, aio)
+    def __init__(self):
+        super().__init__()
 
         self.facteur_throttle = 0.25  # Utilise pour throttling, represente un cout relatif de la commande
 
-    def executer(self, docker_client: DockerClient):
+    async def executer(self, docker_client: DockerClient):
         info = docker_client.info()
         containers = parse_liste_containers(docker_client.containers.list(all=True))
         services = parse_list_service(docker_client.services.list())
-        self.callback({'info': info, 'containers': containers, 'services': services})
+        await self._callback_asyncio({'info': info, 'containers': containers, 'services': services})
 
     async def get_info(self) -> dict:
         resultat = await self.attendre()
@@ -40,7 +41,7 @@ class CommandeListeTopologie(CommandeDocker):
 class CommandeExecuterScriptDansService(CommandeDocker):
 
     def __init__(self, nom_service: str, path_script: str):
-        super().__init__(aio=True)
+        super().__init__()
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
 
         self.__nom_service = nom_service
@@ -48,7 +49,7 @@ class CommandeExecuterScriptDansService(CommandeDocker):
 
         self.facteur_throttle = 2.0
 
-    def executer(self, docker_client: DockerClient):
+    async def executer(self, docker_client: DockerClient):
         containers = docker_client.containers.list(filters={"name": "^%s\\." % self.__nom_service})
         container = None
         for i in range(0, 5):
@@ -66,12 +67,12 @@ class CommandeExecuterScriptDansService(CommandeDocker):
 
         if container is None:
             self.__logger.debug("Container de service %s non trouve, on abandonne" % self.__nom_service)
-            return self.callback({'code': -1, 'output': 'Container %s introuvable' % self.__nom_service})
+            return await self._callback_asyncio({'code': -1, 'output': 'Container %s introuvable' % self.__nom_service})
 
         self.__logger.debug("Container de service %s, on execute le script %s" % (self.__nom_service, self.__path_script))
         exit_code, output = container.exec_run(self.__path_script)
         self.__logger.debug("Resultat execution %s = %s" % (self.__path_script, exit_code))
-        self.callback({'code': exit_code, 'output': output})
+        await self._callback_asyncio({'code': exit_code, 'output': output})
 
     async def get_resultat(self) -> dict:
         resultat = await self.attendre()
@@ -85,13 +86,13 @@ class CommandeGetServicesBackup(CommandeDocker):
     """
 
     def __init__(self):
-        super().__init__(aio=True)
+        super().__init__()
         self.facteur_throttle = 0.25
 
-    def executer(self, docker_client: DockerClient):
+    async def executer(self, docker_client: DockerClient):
         liste_services = docker_client.services.list(filters={"label": "backup_scripts"})
         services = parse_list_service(liste_services)
-        self.callback(services)
+        await self._callback_asyncio(services)
 
     async def get_services(self) -> dict:
         resultat = await self.attendre()
@@ -185,10 +186,10 @@ def check_replicas(service: Service):
         return None
 
 
-async def get_docker_image_tag(etat_instance, docker_handler: DockerHandler, image: str, pull=True, app_name: Optional[str] = None) -> str:
-    commande_image = DockerCommandes.CommandeGetImage(image, pull=pull, aio=True)
+async def get_docker_image_tag(context: InstanceContext, docker_handler: DockerHandler, image: str, pull=True, app_name: Optional[str] = None) -> str:
+    commande_image = DockerCommandes.CommandeGetImage(image, pull=pull)
 
-    image_info_coro = commande_image.get_resultat()
+    image_info_coro = docker_handler.run_command(commande_image)
 
     # Status updates
     async def status_callback(status: PullStatus):
@@ -198,10 +199,9 @@ async def get_docker_image_tag(etat_instance, docker_handler: DockerHandler, ima
     coros = [image_info_coro, progress_coro]
 
     if app_name:
-        download_update_coro = download_update_callback(etat_instance, app_name, commande_image)
+        download_update_coro = download_update_callback(context, app_name, commande_image)
         coros.append(download_update_coro)
 
-    docker_handler.ajouter_commande(commande_image)
     result = await asyncio.gather(*coros)
     image_info = result[0]
 
@@ -212,10 +212,10 @@ async def get_docker_image_tag(etat_instance, docker_handler: DockerHandler, ima
     return image_tag
 
 
-async def download_update_callback(etat_instance, app_name:str, commande_image: DockerCommandes.CommandeGetImage):
+async def download_update_callback(context: InstanceContext, app_name:str, commande_image: DockerCommandes.CommandeGetImage):
     while True:
         status = commande_image.pull_status.__dict__()
-        etat_instance.update_application_status(app_name, {'download': status})
+        context.update_application_status(app_name, {'download': status})
         try:
             await asyncio.wait_for(commande_image.attendre(), 1)
             break  # Done
@@ -223,7 +223,7 @@ async def download_update_callback(etat_instance, app_name:str, commande_image: 
             pass
     status = commande_image.pull_status.__dict__()
     # status['done'] = True
-    etat_instance.update_application_status(app_name, {'download': status})
+    context.update_application_status(app_name, {'download': status})
 
 class UnknownImage(Exception):
     pass

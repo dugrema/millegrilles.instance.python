@@ -9,6 +9,7 @@ from typing import Awaitable
 from millegrilles_instance.Certificats import GenerateurCertificatsHandler
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
+from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance.Manager import InstanceManager
 from millegrilles_instance.WebServer import WebServer
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopListener
@@ -67,7 +68,7 @@ async def main():
 async def wiring(context: InstanceContext) -> list[Awaitable]:
     # Some threads get used to handle sync events for the duration of the execution. Ensure there are enough.
     loop = asyncio.get_event_loop()
-    loop.set_default_executor(ThreadPoolExecutor(max_workers=10))
+    loop.set_default_executor(ThreadPoolExecutor(max_workers=15))
 
     # Services
     bus_connector = MilleGrillesPikaConnector(context)
@@ -76,8 +77,8 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     docker_state = DockerState(context)
 
     if docker_state.docker_present():
-        docker_handler = DockerHandler(docker_state)
-        # self.__docker_etat = EtatDockerInstanceSync(self.__etat_instance, self.__docker_handler)
+        docker_handler = InstanceDockerHandler(context, docker_state)
+        context.add_reload_listener(docker_handler.callback_changement_configuration)
     else:
         # Docker not supported
         docker_handler = None
@@ -97,6 +98,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     coros = [
         context.run(),
         # bus_connector.run(),  # Handled in bus_handler to start/stop thread dynamically
+        generateur_certificats.run(),
         manager.run(),
         bus_handler.run(),
         web_server.run(),

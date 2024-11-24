@@ -11,6 +11,7 @@ import requests
 from typing import Optional
 
 from millegrilles_instance.Constantes import FICHIER_ARCHIVES_APP
+from millegrilles_instance.Context import InstanceContext
 from millegrilles_messages.docker.ParseConfiguration import WebApplicationConfiguration
 from millegrilles_messages.messages.Hachage import VerificateurHachage
 
@@ -19,7 +20,7 @@ CONST_VERSION_FILE = '.version'
 LOGGER = logging.getLogger(__name__)
 
 
-def check_archive_stale(etat_instance, archive: WebApplicationConfiguration) -> bool:
+def check_archive_stale(context: InstanceContext, archive: WebApplicationConfiguration) -> bool:
     """
     Returns true if the web application is stale and should be replaced.
     """
@@ -27,7 +28,7 @@ def check_archive_stale(etat_instance, archive: WebApplicationConfiguration) -> 
     sub_path = archive.path
 
     if module == 'nginx':
-        module_path = etat_instance.configuration.path_nginx
+        module_path = context.configuration.path_nginx
     else:
         raise Exception('Module %s is not supported' % module)
 
@@ -44,13 +45,13 @@ def check_archive_stale(etat_instance, archive: WebApplicationConfiguration) -> 
         return True
 
 
-def installer_archive(etat_instance, app_name: str, archive: WebApplicationConfiguration, web_links: Optional[dict]=None):
+def installer_archive(context: InstanceContext, app_name: str, archive: WebApplicationConfiguration, web_links: Optional[dict]=None):
     module = archive.module
     sub_path = archive.path
     app_url = archive.app_url
 
     if module == 'nginx':
-        module_path = etat_instance.configuration.path_nginx
+        module_path = context.configuration.path_nginx
     else:
         raise Exception('Module %s is not supported' % module)
 

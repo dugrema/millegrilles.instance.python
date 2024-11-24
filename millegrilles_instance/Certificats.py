@@ -6,6 +6,7 @@ import logging
 import math
 import pathlib
 import secrets
+from asyncio import TaskGroup
 
 from aiohttp import ClientSession
 from aiohttp.client_exceptions import ClientConnectorError, ClientResponseError
@@ -13,7 +14,9 @@ from docker.errors import APIError
 from os import path, stat
 from typing import Optional
 
-from millegrilles_instance.Context import InstanceContext
+from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
+from millegrilles_instance.InstanceDocker import InstanceDockerHandler
+from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa
@@ -24,7 +27,7 @@ from millegrilles_messages.docker import DockerCommandes
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 
 from millegrilles_instance import Constantes as ContantesInstance
-from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
+# from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 
 
 logger = logging.getLogger(__name__)
@@ -149,7 +152,7 @@ def preparer_certificats_web(path_secrets: str):
 
 
 async def generer_certificats_modules_satellites(producer: MessageProducerFormatteur, etat_instance,
-                                                 etat_docker: Optional[EtatDockerInstanceSync], configuration: dict):
+                                                 docker_handler: Optional[InstanceDockerHandler], configuration: dict):
     # S'assurer que tous les certificats sont presents et courants dans le repertoire secrets
     path_secrets = etat_instance.configuration.path_secrets
     for nom_module, value in configuration.items():
@@ -189,13 +192,13 @@ async def generer_certificats_modules_satellites(producer: MessageProducerFormat
                 cert_str = '\n'.join(clecertificat.enveloppe.chaine_pem())
                 fichier.write(cert_str)
 
-        if etat_docker is not None:
-            await etat_docker.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
+        if docker_handler is not None:
+            await docker_handler.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
 
 
-async def nettoyer_configuration_expiree(etat_docker: EtatDockerInstanceSync):
+async def nettoyer_configuration_expiree(docker_handler: InstanceDockerHandler):
     commande_config = DockerCommandes.CommandeGetConfigurationsDatees()
-    etat_docker.ajouter_commande(commande_config)
+    docker_handler.ajouter_commande(commande_config)
     config_datees = await commande_config.get_resultat()
 
     config_a_supprimer = set()
@@ -220,7 +223,7 @@ async def nettoyer_configuration_expiree(etat_docker: EtatDockerInstanceSync):
 
     for config_name in config_a_supprimer:
         command = DockerCommandes.CommandeSupprimerConfiguration(config_name, aio=True)
-        etat_docker.ajouter_commande(command)
+        docker_handler.ajouter_commande(command)
         try:
             await command.attendre()
         except APIError as apie:
@@ -233,7 +236,7 @@ async def nettoyer_configuration_expiree(etat_docker: EtatDockerInstanceSync):
 
     for secret_name in secret_a_supprimer:
         command = DockerCommandes.CommandeSupprimerSecret(secret_name, aio=True)
-        etat_docker.ajouter_commande(command)
+        docker_handler.ajouter_commande(command)
         try:
             await command.attendre()
         except APIError as apie:
@@ -500,18 +503,18 @@ async def signer_certificat_public_key_via_secure(etat_instance, message: dict) 
     return reponse
 
 
-async def generer_passwords(etat_instance, etat_docker: Optional[EtatDockerInstanceSync],
+async def generer_passwords(context: InstanceContext, docker_handler: Optional[InstanceDockerHandler],
                             liste_passwords: list):
     """
     Generer les passwords manquants.
     :param etat_instance:
-    :param etat_docker:
+    :param docker_handler:
     :param liste_noms_passwords:
     :return:
     """
-    path_secrets = etat_instance.configuration.path_secrets
-    if etat_docker is not None:
-        configurations = await etat_docker.get_configurations_datees()
+    path_secrets = context.configuration.path_secrets
+    if docker_handler is not None:
+        configurations = await docker_handler.get_configurations_datees()
         secrets_dict = configurations['secrets']
     else:
         secrets_dict = dict()
@@ -545,7 +548,7 @@ async def generer_passwords(etat_instance, etat_docker: Optional[EtatDockerInsta
             date_password = info_fichier.st_mtime
 
         logger.debug("Date password : %s" % date_password)
-        date_password = datetime.datetime.utcfromtimestamp(date_password)
+        date_password = datetime.datetime.fromtimestamp(date_password)
         date_password_str = date_password.strftime('%Y%m%d%H%M%S')
 
         label_passord = '%s.%s' % (prefixe, date_password_str)
@@ -556,8 +559,8 @@ async def generer_passwords(etat_instance, etat_docker: Optional[EtatDockerInsta
             pass  # Le mot de passe n'existe pas
 
         # Ajouter mot de passe
-        if etat_docker is not None:
-            await etat_docker.ajouter_password(label, date_password_str, password)
+        if docker_handler is not None:
+            await docker_handler.ajouter_password(label, date_password_str, password)
 
 
 def generer_password(type_generateur='password', size: int = None):
@@ -581,9 +584,9 @@ def generer_password(type_generateur='password', size: int = None):
 
 class CommandeSignature:
 
-    def __init__(self, etat_instance, etat_docker):
-        self._etat_instance = etat_instance
-        self._etat_docker = etat_docker
+    def __init__(self, context: InstanceContext, docker_handler: DockerHandler):
+        self._context = context
+        self._docker_handler = docker_handler
         self.__event_done = asyncio.Event()
         self.__exception = None
         self.__result = None
@@ -667,9 +670,9 @@ def sauvegarder_clecert(path_secrets: pathlib.Path, nom_module: str, clecertific
 
 class CommandeSignatureInstance(CommandeSignature):
 
-    def __init__(self, etat_instance, etat_docker):
+    def __init__(self, context: InstanceContext, etat_docker):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        super().__init__(etat_instance, etat_docker)
+        super().__init__(context, etat_docker)
 
     async def _run(self):
         try:
@@ -837,12 +840,12 @@ class GenerateurCertificatsHandler:
     def __init__(self, context: InstanceContext):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context = context
-        self.__etat_docker = None
+        self.__docker_handler = None
         self.__derniere_notification: Optional[datetime.datetime] = None
         self.__intervalle_notifications = datetime.timedelta(hours=12)
 
         # Queue de certificats a signer
-        self.__q_signer = asyncio.Queue(maxsize=20)
+        self.__q_signer: asyncio.Queue[Optional[CommandeSignature]] = asyncio.Queue(maxsize=20)
 
         # Fonction qui retourne un dict des modules pour entretien
         self.__get_configuration_modules = None
@@ -853,32 +856,39 @@ class GenerateurCertificatsHandler:
         self.__get_configuration_modules = getter
 
     @property
-    def etat_docker(self):
-        return self.__etat_docker
+    def docker_handler(self):
+        return self.__docker_handler
 
-    @etat_docker.setter
-    def etat_docker(self, etat_docker):
-        self.__etat_docker = etat_docker
+    @docker_handler.setter
+    def docker_handler(self, docker_handler: DockerHandler):
+        self.__docker_handler = docker_handler
 
     @property
     def event_entretien_initial(self):
         return self.__event_setup_initial_certificats
 
-    async def threads(self):
-        tasks = [
-            asyncio.create_task(self.thread_entretien()),
-            asyncio.create_task(self.thread_signature()),
-        ]
-        try:
-            await asyncio.gather(*tasks)
-        finally:
-            self.__event_setup_initial_certificats.set()  # Liberer event pour fermeture
+    async def run(self):
+        async with TaskGroup() as group:
+            group.create_task(self.thread_entretien())
+            group.create_task(self.__thread_signature())
+            group.create_task(self.__stop_thread())
+
+    # async def threads(self):
+    #     tasks = [
+    #         asyncio.create_task(self.thread_entretien()),
+    #         asyncio.create_task(self.__thread_signature()),
+    #         asyncio.create_task(self.__stop_thread()),
+    #     ]
+    #     try:
+    #         await asyncio.gather(*tasks)
+    #     finally:
+    #         self.__event_setup_initial_certificats.set()  # Liberer event pour fermeture
 
     async def thread_entretien(self):
         """
         Entretien des certificats. Gerer le repertoire de secrets et docker (si disponible).
         """
-        while self.__etat_instance.stop_event.is_set() is False:
+        while self.__context.stopping is False:
             self.__logger.debug("thread_entretien Debut entretien")
 
             try:
@@ -886,7 +896,7 @@ class GenerateurCertificatsHandler:
             except Exception:
                 self.__logger.exception("thread_entretien Erreur entretien_repertoire_secrets")
 
-            if self.__etat_docker is not None:
+            if self.__docker_handler is not None:
                 try:
                     await self.entretien_modules()
                 except Exception:
@@ -895,34 +905,42 @@ class GenerateurCertificatsHandler:
             self.__event_setup_initial_certificats.set()
 
             self.__logger.debug("thread_entretien Fin entretien")
+            await self.__context.wait(ContantesInstance.INTERVALLE_VERIFIER_CERTIFICATS)
+
+    async def __stop_thread(self):
+        await self.__context.wait()
+        await self.__q_signer.put(None)  # Exit condition
+        self.__event_setup_initial_certificats.set()
+
+    async def __thread_signature(self):
+        while self.__context.stopping is False:
+            command = await self.__q_signer.get()
+            if command is None:
+                return  # Exit condition
             try:
-                await asyncio.wait_for(self.__etat_instance.stop_event.wait(),
-                                       timeout=ContantesInstance.INTERVALLE_VERIFIER_CERTIFICATS)
-            except asyncio.TimeoutError:
-                pass  # OK
+                await self.__signer(command)
+            except:
+                self.__logger.exception("Error signing request")
 
-    async def thread_signature(self):
-        pending = {asyncio.create_task(self.__etat_instance.stop_event.wait())}
-
-        while self.__etat_instance.stop_event.is_set() is False:
-            pending.add(asyncio.create_task(self.__q_signer.get()))
-            done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
-            for d in done:
-                if d.exception():
-                    self.__logger.exception("thread_signature Erreur task : %s" % d.exception())
-                else:
-                    result: CommandeSignature = d.result()
-                    await self.__signer(result)
-                    if result.exception:
-                        self.__logger.exception("thread_signature Erreur execution commande %s",
-                                                result.__class__, exc_info=result.exception)
-
-        for p in pending:
-            p.cancel()
-            try:
-                await p
-            except asyncio.CancelledError:
-                pass  # OK
+        # while self.__etat_instance.stop_event.is_set() is False:
+        #     pending.add(asyncio.create_task(self.__q_signer.get()))
+        #     done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
+        #     for d in done:
+        #         if d.exception():
+        #             self.__logger.exception("thread_signature Erreur task : %s" % d.exception())
+        #         else:
+        #             result: CommandeSignature = d.result()
+        #             await self.__signer(result)
+        #             if result.exception:
+        #                 self.__logger.exception("thread_signature Erreur execution commande %s",
+        #                                         result.__class__, exc_info=result.exception)
+        #
+        # for p in pending:
+        #     p.cancel()
+        #     try:
+        #         await p
+        #     except asyncio.CancelledError:
+        #         pass  # OK
 
     async def entretien_repertoire_secrets(self):
         # Detecter expiration certificat instance
@@ -939,18 +957,20 @@ class GenerateurCertificatsHandler:
         except Exception:
             self.__logger.exception("entretien_docker Erreur generer_commandes_modules")
 
-        if self.__etat_docker is not None:
+        if self.__docker_handler is not None:
             # Entretien config/secrets
             try:
-                await nettoyer_configuration_expiree(self.__etat_docker)
+                await nettoyer_configuration_expiree(self.__docker_handler)
             except Exception:
                 self.__logger.exception('entretien_docker Erreur nettoyer_configuration_expiree')
 
     async def entretien_certificat_instance(self):
-        if self.__etat_instance.niveau_securite is None:
+        try:
+            securite = self.__context.securite
+        except ValueNotAvailable:
             return  # Installation mode
 
-        enveloppe_instance = self.__etat_instance.clecertificat.enveloppe
+        enveloppe_instance = self.__context.signing_key.enveloppe
         expiration_instance = enveloppe_instance.calculer_expiration()
         if expiration_instance.get('expire') is True:
             if self.__etat_instance.attente_renouvellement_certificat:
@@ -959,11 +979,13 @@ class GenerateurCertificatsHandler:
 
             self.__logger.error("Certificat d'instance expire (%s), on redemarre l'instance en mode d'attente de renouvellement manuel")
             # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
-            await self.__etat_instance.stop()
+            #await self.__context.stop()
+            # TODO - shut down mgbus, drop cert config, go into certificate restoration mode
+            raise NotImplementedError('TODO')
 
         elif expiration_instance.get('renouveler') is True:
             self.__logger.info("Certificat d'instance peut etre renouvele")
-            await self.__q_signer.put(CommandeSignatureInstance(self.__etat_instance, self.__etat_docker))
+            await self.__q_signer.put(CommandeSignatureInstance(self.__context, self.__docker_handler))
 
     async def __signer(self, commande: CommandeSignature):
         try:
@@ -1014,12 +1036,12 @@ class GenerateurCertificatsHandler:
                     else:
                         enveloppe_requete = None
                     commande = CommandeRotationMaitredescles(
-                        self.__etat_instance, self.__etat_docker, nom_module, value, enveloppe_requete)
+                        self.__etat_instance, self.__docker_handler, nom_module, value, enveloppe_requete)
                 else:
-                    commande = CommandeSignatureModule(self.__etat_instance, self.__etat_docker, nom_module, value)
+                    commande = CommandeSignatureModule(self.__etat_instance, self.__docker_handler, nom_module, value)
                 await self.__q_signer.put(commande)
 
     async def demander_signature(self, nom_module: str, params: Optional[dict] = None, timeout=45):
-        commande = CommandeSignatureModule(self.__etat_instance, self.__etat_docker, nom_module, params)
+        commande = CommandeSignatureModule(self.__etat_instance, self.__docker_handler, nom_module, params)
         await self.__q_signer.put(commande)
         return await commande.done(timeout)

@@ -210,7 +210,7 @@ class ApplicationInstance:
         ]
 
         if self.__docker_etat is not None:
-            tasks.append(asyncio.create_task(self.__docker_etat.entretien(self._stop_event)))
+            tasks.append(asyncio.create_task(self.__docker_etat.__maintenance(self._stop_event)))
 
         # Execution de la loop avec toutes les tasks
         try:

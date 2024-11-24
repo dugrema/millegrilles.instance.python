@@ -3,13 +3,15 @@ import logging
 
 from asyncio import TaskGroup
 
-from typing import Optional
+from typing import Optional, Callable
 
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Interfaces import DockerHandlerInterface
+from millegrilles_messages.IpUtils import get_ip, get_hostnames
 from millegrilles_messages.bus.BusContext import MilleGrillesBusContext
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
 from millegrilles_messages.bus.PikaMessageProducer import MilleGrillesPikaMessageProducer
+from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages.EnveloppeCertificat import CertificatExpire
 
 LOGGER = logging.getLogger(__name__)
@@ -26,8 +28,13 @@ class InstanceContext(MilleGrillesBusContext):
         self.__instance_id: Optional[str] = None
         self.__securite: Optional[str] = None
         self.__idmg: Optional[str] = None
+        self.__ip_address: Optional[str] = None
+        self.__hostname: Optional[str] = None
+        self.__hostnames: Optional[list[str]] = None
+        self.__csr_genere: Optional[CleCsrGenere] = None
 
         self.__reload_q: asyncio.Queue[Optional[float]] = asyncio.Queue(maxsize=2)
+        self.__reload_listeners: list[Callable[[], None]] = list()
 
     async def run(self):
         async with TaskGroup() as group:
@@ -46,6 +53,9 @@ class InstanceContext(MilleGrillesBusContext):
     async def __stop_thread(self):
         await self.wait()
         await self.__reload_q.put(None)
+
+    def add_reload_listener(self, listener: Callable[[], None]):
+        self.__reload_listeners.append(listener)
 
     @property
     def bus_connector(self) -> MilleGrillesPikaConnector:
@@ -92,22 +102,32 @@ class InstanceContext(MilleGrillesBusContext):
             raise ValueNotAvailable()
         return self.__idmg
 
+    @property
+    def csr_genere(self):
+        if self.__csr_genere is None:
+            self.__csr_genere = CleCsrGenere.build(self.instance_id)
+        return self.__csr_genere
+
+    def clear_csr_genere(self):
+        self.__csr_genere = None
+
     async def delay_reload(self, delay: float):
         await self.__reload_q.put(delay)
 
     def reload(self):
         configuration: ConfigurationInstance = self.configuration
+
+        instance_id = configuration.get_instance_id()
+        self.__instance_id = instance_id
+
         try:
-            instance_id = configuration.get_instance_id()
             securite = configuration.get_securite()
             idmg = configuration.get_idmg()
 
-            self.__instance_id = instance_id
             self.__securite = securite
             self.__idmg = idmg
         except FileNotFoundError:
             # System not configured yet
-            self.__instance_id = None
             self.__securite = None
             self.__idmg = None
 
@@ -119,6 +139,15 @@ class InstanceContext(MilleGrillesBusContext):
         except CertificatExpire:
             # The system certificate is expired
             self.__logger.info("Certificate is expired, MQ Bus unavailable")
+
+        self.__ip_address = get_ip()
+        self.__logger.debug("Local IP: %s" % self.__ip_address)
+        self.__hostname, self.__hostnames = get_hostnames(fqdn=True)
+        self.__logger.debug("Local domain: %s, domaines : %s" % (self.__hostname, self.__hostnames))
+
+        # Call reload listeners
+        for listener in self.__reload_listeners:
+            listener()
 
 
 class ValueNotAvailable(Exception):

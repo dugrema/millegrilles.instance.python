@@ -5,18 +5,19 @@ import tarfile
 import io
 import pathlib
 
-from asyncio import Event, TimeoutError
+from asyncio import Event, TimeoutError, TaskGroup
 from docker.errors import APIError, NotFound
 from os import path, unlink, makedirs
 from typing import Optional
 from base64 import b64decode
 
 from millegrilles_instance.Constantes import FICHIER_ARCHIVES_APP
-from millegrilles_instance.Context import InstanceContext
+from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.EntretienNginx import ajouter_fichier_configuration
 from millegrilles_instance.MaintenanceApplicationService import service_maintenance
 from millegrilles_instance.MaintenanceApplicationWeb import installer_archive, check_archive_stale
-from millegrilles_messages.docker.DockerHandler import DockerHandler
+from millegrilles_messages.bus.BusContext import ForceTerminateExecution
+from millegrilles_messages.docker.DockerHandler import DockerHandler, DockerState
 from millegrilles_messages.docker import DockerCommandes
 
 from millegrilles_messages.messages.CleCertificat import CleCertificat
@@ -30,41 +31,66 @@ from millegrilles_instance.CommandesDocker import CommandeListeTopologie, Comman
 from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname, OnionizeNonDisponibleException
 
 
-LOGGER = logging.getLogger(__name__)
+# LOGGER = logging.getLogger(__name__)
 
 
-class EtatDockerInstanceSync:
+# class EtatDockerInstanceSync:
 
-    def __init__(self, context: InstanceContext, docker_handler: DockerHandler):
-        self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+    # def __init__(self, context: InstanceContext, docker_handler: DockerHandler):
+    #     self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+    #     self.__context = context
+    #     self.__docker_handler = docker_handler  # DockerHandler
+    #
+    #     self.__context.ajouter_listener(self.callback_changement_configuration)
+    #     self.__context.generateur_certificats.etat_docker = self
+    #
+    #     self.__docker_initialise = False
+
+class InstanceDockerHandler:
+
+    def __init__(self, context: InstanceContext, docker_state: DockerState):
+        self.__logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
         self.__context = context
-        self.__docker_handler = docker_handler  # DockerHandler
+        self.__docker_state = docker_state
+        self.__docker_handler = DockerHandler(docker_state)
+        self.__verify_configuration_event = asyncio.Event()
 
-        self.__context.ajouter_listener(self.callback_changement_configuration)
-        self.__context.generateur_certificats.etat_docker = self
+    async def run(self):
+        async with TaskGroup() as group:
+            group.create_task(self.__docker_handler.run())
+            group.create_task(self.__maintenance())
+            group.create_task(self.initialiser_docker())
 
-        self.__docker_initialise = False
+    async def __configuration_thread(self):
+        while self.__context.stopping is False:
+            await self.__verify_configuration_event.wait()
+            if self.__context.stopping:
+                return  # Stopping
 
-    async def callback_changement_configuration(self, etat_instance):
-        self.__logger.info("callback_changement_configuration - Reload configuration")
-        await self.verifier_config_instance()
-
-    async def entretien(self, stop_event: Event):
-        while stop_event.is_set() is False:
-
-            if self.__docker_initialise is False:
-                await self.initialiser_docker()
-
-            if self.__docker_initialise is True:
-                self.__logger.debug("Debut Entretien EtatDockerInstanceSync")
-                await self.verifier_config_instance()
-                self.__logger.debug("Fin Entretien EtatDockerInstanceSync")
+            self.__verify_configuration_event.clear()
 
             try:
-                await asyncio.wait_for(stop_event.wait(), 60)
-            except TimeoutError:
-                pass
+                await self.verifier_config_instance()
+            except asyncio.CancelledError:
+                return
+            except:
+                self.__logger.exception("Error reloading configuration")
 
+    def callback_changement_configuration(self):
+        self.__logger.info("callback_changement_configuration - Reload configuration")
+        self.__verify_configuration_event.set()
+
+    async def __maintenance(self):
+        while self.__context.stopping is False:
+            self.__logger.debug("Debut Entretien EtatDockerInstanceSync")
+            try:
+                await self.verifier_config_instance()
+            except:
+                self.__logger.exception("__maintenance Error during maintenance")
+            self.__logger.debug("Fin Entretien EtatDockerInstanceSync")
+            await self.__context.wait(60)
+
+        self.__verify_configuration_event.set()  # Release thread
         self.__logger.info("Thread Entretien InstanceDocker terminee")
 
     async def emettre_presence(self, producer: MessageProducerFormatteur, info: Optional[dict] = None):
@@ -84,40 +110,43 @@ class EtatDockerInstanceSync:
         if adresse_onion is not None:
             info_updatee['onion'] = adresse_onion
 
-        await self.__etat_instance.emettre_presence(producer, info_updatee)
+        raise NotImplementedError('todo')
+        # await self.__etat_instance.emettre_presence(producer, info_updatee)
 
     async def verifier_config_instance(self):
-        instance_id = self.__etat_instance.instance_id
+        instance_id = self.__context.instance_id
         if instance_id is not None:
             await self.sauvegarder_config(ConstantesInstance.DOCKER_CONFIG_INSTANCE_ID, instance_id, comparer=True)
 
-        niveau_securite = self.__etat_instance.niveau_securite
-        if niveau_securite is not None:
-            await self.sauvegarder_config(ConstantesInstance.DOCKER_CONFIG_INSTANCE_SECURITE, niveau_securite, comparer=True)
+        try:
+            niveau_securite = self.__context.securite
+            if niveau_securite is not None:
+                await self.sauvegarder_config(ConstantesInstance.DOCKER_CONFIG_INSTANCE_SECURITE, niveau_securite, comparer=True)
 
-        idmg = self.__etat_instance.idmg
-        if idmg is not None:
-            await self.sauvegarder_config(ConstantesInstance.DOCKER_CONFIG_INSTANCE_IDMG, idmg, comparer=True)
+            idmg = self.__context.idmg
+            if idmg is not None:
+                await self.sauvegarder_config(ConstantesInstance.DOCKER_CONFIG_INSTANCE_IDMG, idmg, comparer=True)
 
-        certificat_millegrille = self.__etat_instance.certificat_millegrille
-        if certificat_millegrille is not None:
-            await self.sauvegarder_config(ConstantesInstance.DOCKER_CONFIG_PKI_MILLEGRILLE, certificat_millegrille.certificat_pem)
+            certificat_millegrille = self.__context.ca
+            if certificat_millegrille is not None:
+                await self.sauvegarder_config(ConstantesInstance.DOCKER_CONFIG_PKI_MILLEGRILLE, certificat_millegrille.certificat_pem)
+        except ValueNotAvailable:
+            self.__logger.info("Securite, Idmg, certificats non disponibles. Non configures sous docker.")
 
         await self.verifier_certificat_web()
 
     async def sauvegarder_config(self, label: str, valeur: str, comparer=False):
-        commande = DockerCommandes.CommandeGetConfiguration(label, aio=True)
-        self.__docker_handler.ajouter_commande(commande)
+        commande = DockerCommandes.CommandeGetConfiguration(label)
         try:
+            await self.__docker_handler.run_command(commande)
             valeur_docker = await commande.get_data()
             self.__logger.debug("Docker %s : %s" % (label, valeur_docker))
             if comparer is True and valeur_docker != valeur:
                 raise Exception("Erreur configuration, %s mismatch" % label)
         except NotFound:
             self.__logger.debug("Docker instance NotFound")
-            commande_ajouter = DockerCommandes.CommandeAjouterConfiguration(label, valeur, aio=True)
-            self.__docker_handler.ajouter_commande(commande_ajouter)
-            await commande_ajouter.attendre()
+            commande_ajouter = DockerCommandes.CommandeAjouterConfiguration(label, valeur)
+            await self.__docker_handler.run_command(commande_ajouter)
 
     async def verifier_certificat_web(self):
         """
@@ -126,7 +155,7 @@ class EtatDockerInstanceSync:
         """
         self.__logger.debug("verifier_certificat_web()")
 
-        path_secrets = self.__etat_instance.configuration.path_secrets
+        path_secrets = self.__context.configuration.path_secrets
 
         nom_certificat = 'pki.web.cert'
         nom_cle = 'pki.web.cle'
@@ -162,11 +191,10 @@ class EtatDockerInstanceSync:
             'date': date_debut,
         }
 
-        commande_ajouter_cert = DockerCommandes.CommandeAjouterConfiguration(label_certificat, pem_certificat, labels=labels, aio=True)
-        self.__docker_handler.ajouter_commande(commande_ajouter_cert)
+        commande_ajouter_cert = DockerCommandes.CommandeAjouterConfiguration(label_certificat, pem_certificat, labels=labels)
         ajoute = False
         try:
-            await commande_ajouter_cert.attendre()
+            await self.__docker_handler.run_command(commande_ajouter_cert)
             ajoute = True
         except APIError as apie:
             if apie.status_code == 409:
@@ -174,10 +202,9 @@ class EtatDockerInstanceSync:
             else:
                 raise apie
 
-        commande_ajouter_cle = DockerCommandes.CommandeAjouterSecret(label_cle, pem_cle, labels=labels, aio=True)
-        self.__docker_handler.ajouter_commande(commande_ajouter_cle)
+        commande_ajouter_cle = DockerCommandes.CommandeAjouterSecret(label_cle, pem_cle, labels=labels)
         try:
-            await commande_ajouter_cle.attendre()
+            await self.__docker_handler.run_command(commande_ajouter_cle)
             ajoute = True
         except APIError as apie:
             if apie.status_code == 409:
@@ -189,9 +216,8 @@ class EtatDockerInstanceSync:
             self.__logger.debug("Nouveau certificat, reconfigurer module %s" % nom_module)
 
     async def get_configurations_datees(self):
-        commande = DockerCommandes.CommandeGetConfigurationsDatees(aio=True)
-        self.__docker_handler.ajouter_commande(commande)
-        return await commande.get_resultat()
+        commande = DockerCommandes.CommandeGetConfigurationsDatees()
+        return await self.__docker_handler.run_command(commande)
 
     async def ajouter_password(self, nom_module: str, date: str, value: str):
         prefixe = 'passwd.%s' % nom_module
@@ -202,12 +228,11 @@ class EtatDockerInstanceSync:
             'label_prefix': prefixe,
             'date': date,
         }
-        commande_ajouter_cle = DockerCommandes.CommandeAjouterSecret(label_password, value, labels=labels, aio=True)
+        commande_ajouter_cle = DockerCommandes.CommandeAjouterSecret(label_password, value, labels=labels)
 
-        self.__docker_handler.ajouter_commande(commande_ajouter_cle)
         ajoute = False
         try:
-            await commande_ajouter_cle.attendre()
+            await self.__docker_handler.run_command(commande_ajouter_cle)
             ajoute = True
         except APIError as apie:
             if apie.status_code == 409:
@@ -219,38 +244,36 @@ class EtatDockerInstanceSync:
             self.__logger.debug("Nouveau password, reconfigurer module %s" % nom_module)
 
     async def initialiser_docker(self):
-        commande_initialiser_swarm = DockerCommandes.CommandeCreerSwarm(aio=True)
-        self.__docker_handler.ajouter_commande(commande_initialiser_swarm)
         try:
-            await commande_initialiser_swarm.attendre()
-        except APIError as e:
-            if e.status_code == 503:
-                pass  # OK, deja initialise
-            else:
-                raise e
+            commande_initialiser_swarm = DockerCommandes.CommandeCreerSwarm()
+            try:
+                await self.__docker_handler.run_command(commande_initialiser_swarm)
+            except APIError as e:
+                if e.status_code == 503:
+                    pass  # OK, deja initialise
+                else:
+                    raise e
 
-        commande_initialiser_network = DockerCommandes.CommandeCreerNetworkOverlay('millegrille_net', aio=True)
-        self.__docker_handler.ajouter_commande(commande_initialiser_network)
-        await commande_initialiser_network.attendre()
-
-        self.__docker_initialise = True
+            commande_initialiser_network = DockerCommandes.CommandeCreerNetworkOverlay('millegrille_net')
+            await self.__docker_handler.run_command(commande_initialiser_network)
+        except:
+            self.__logger.exception("initialiser_docker Error initializing docker swarm/networking - quitting")
+            self.__context.stop()
+            raise ForceTerminateExecution()
 
     async def entretien_services(self, config_modules: list):
-        await service_maintenance(self.__etat_instance, self.__docker_handler, config_modules)
+        await service_maintenance(self.__context, self.__docker_handler, config_modules)
 
     async def get_params_env_service(self) -> dict:
         # Charger configurations
-        action_configurations = DockerCommandes.CommandeListerConfigs(aio=True)
-        self.__docker_handler.ajouter_commande(action_configurations)
-        docker_configs = await action_configurations.get_resultat()
+        action_configurations = DockerCommandes.CommandeListerConfigs()
+        docker_configs = await self.__docker_handler.run_command(action_configurations)
 
-        action_secrets = DockerCommandes.CommandeListerSecrets(aio=True)
-        self.__docker_handler.ajouter_commande(action_secrets)
-        docker_secrets = await action_secrets.get_resultat()
+        action_secrets = DockerCommandes.CommandeListerSecrets()
+        docker_secrets = await self.__docker_handler.run_command(action_secrets)
 
-        action_datees = DockerCommandes.CommandeGetConfigurationsDatees(aio=True)
-        self.__docker_handler.ajouter_commande(action_datees)
-        config_datees = await action_datees.get_resultat()
+        action_datees = DockerCommandes.CommandeGetConfigurationsDatees()
+        config_datees = await self.__docker_handler.run_command(action_datees)
 
         params = {
             'HOSTNAME': self.__etat_instance.hostname,
@@ -297,17 +320,16 @@ class EtatDockerInstanceSync:
                 nom_constraint = constraint.split('=')[0]
                 nom_constraint = nom_constraint.replace('node.labels.', '').strip()
                 list_labels.append(nom_constraint)
-            commande_ajouter_labels = DockerCommandes.CommandeEnsureNodeLabels(list_labels, aio=True)
-            self.__docker_handler.ajouter_commande(commande_ajouter_labels)
-            await commande_ajouter_labels.attendre()
+            commande_ajouter_labels = DockerCommandes.CommandeEnsureNodeLabels(list_labels)
+            await self.__docker_handler.run_command(commande_ajouter_labels)
         except TypeError:
             pass  # Aucune constraint
 
         # Installer les archives si presentes
         if parser.archives:
             for archive in parser.archives:
-                if await asyncio.to_thread(check_archive_stale, self.__etat_instance, archive):
-                    await asyncio.to_thread(installer_archive, self.__etat_instance, archive)
+                if await asyncio.to_thread(check_archive_stale, self.__context, archive):
+                    await asyncio.to_thread(installer_archive, self.__context, archive)
 
         # S'assurer d'avoir l'image
         image = parser.image
@@ -317,7 +339,7 @@ class EtatDockerInstanceSync:
             # image_info = await commande_image.get_resultat()
             #
             # image_tag = image_info['tags'][0]
-            image_tag = await get_docker_image_tag(self.__etat_instance, self.__docker_handler, image, pull=True, app_name=image)
+            image_tag = await get_docker_image_tag(self.__context, self.__docker_handler, image, pull=True, app_name=image)
 
             commande_creer_service = DockerCommandes.CommandeCreerService(image_tag, config_parsed, reinstaller=reinstaller, aio=True)
             self.__docker_handler.ajouter_commande(commande_creer_service)
