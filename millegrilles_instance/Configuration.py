@@ -86,7 +86,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         self.__path_configuration = os.environ.get(ContantesInstance.INSTANCE_CONFIG_PATH) or self.__path_configuration
         self.__path_secrets = os.environ.get(ContantesInstance.INSTANCE_SECRETS_PATH) or self.__path_secrets
         self.__path_secrets_partages = os.environ.get(ContantesInstance.INSTANCE_SECRETS_PARTAGES_PATH) or str(pathlib.Path(self.__path_millegrilles, 'secrets_partages'))
-        self.__path_nginx = os.environ.get(ContantesInstance.INSTANCE_NGINX_PATH) or str(pathlib.Path(self.__path_configuration, 'nginx'))
+        self.__path_nginx = os.environ.get(ContantesInstance.INSTANCE_NGINX_PATH) or str(pathlib.Path(self.__path_millegrilles, 'nginx'))
         self.__certissuer_url = os.environ.get(ContantesInstance.PARAM_INSTANCE_CERTISSUER_URL) or self.__certissuer_url
         self.__instance_id_path = os.environ.get(ContantesInstance.PARAM_INSTANCE_ID_PATH) or str(pathlib.Path(self.__path_configuration, 'instance_id.txt'))
         self.__instance_idmg_path = os.environ.get(ContantesInstance.PARAM_INSTANCE_IDMG_PATH) or str(pathlib.Path(self.__path_configuration, 'idmg.txt'))

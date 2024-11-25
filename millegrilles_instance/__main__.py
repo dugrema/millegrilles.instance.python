@@ -103,6 +103,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     # Setup
     await manager.setup()
     await web_server.setup()
+    await nginx_handler.setup()
 
     # Create tasks
     coros = [

@@ -137,8 +137,8 @@ class NginxHandler:
         # self.__entretien_initial_complete = True
         self.__logger.info("Configuration nginx prete (configuration modifiee? %s)" % configuration_modifiee)
 
-        if configuration_modifiee is True:
-            await self.__context.reload_wait()
+        # if configuration_modifiee is True:
+        #     await self.__context.reload_wait()
 
     def verifier_repertoire_configuration(self):
         path_nginx = self.__context.configuration.path_nginx
