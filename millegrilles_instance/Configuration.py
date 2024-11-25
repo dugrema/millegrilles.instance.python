@@ -131,6 +131,10 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
     def path_secrets_partages(self) -> pathlib.Path:
         return pathlib.Path(self.__path_secrets_partages)
 
+    @property
+    def path_nginx(self) -> pathlib.Path:
+        return pathlib.Path(self.__path_nginx)
+
     def get_instance_id(self) -> str:
         with open(self.__instance_id_path, 'rt') as fp:
             return fp.read().strip()
@@ -142,37 +146,6 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
     def get_securite(self) -> str:
         with open(self.__instance_securite_path, 'rt') as fp:
             return fp.read().strip()
-
-    def sauvegarder_configuration_webapps(self, nom_application: str, web_links: dict, etat_instance):
-        self.__logger.debug("Sauvegarder configuration pour web app %s" % nom_application)
-
-        path_conf_applications = pathlib.Path(
-            etat_instance.configuration.path_configuration,
-            ContantesInstance.CONFIG_NOMFICHIER_CONFIGURATION_WEB_APPLICATIONS)
-
-        hostname = etat_instance.hostname
-        try:
-            links = web_links['links']
-        except (TypeError, KeyError):
-            self.__logger.debug("sauvegarder_configuration_webapps Aucun web links pour %s" % nom_application)
-        else:
-            for link in links:
-                try:
-                    link['url'] = link['url'].replace('${HOSTNAME}', hostname)
-                except KeyError:
-                    pass  # No url
-            try:
-                with open(path_conf_applications, 'rt+') as fichier:
-                    config_apps_json = json.load(fichier)
-                    config_apps_json[nom_application] = web_links
-                    fichier.seek(0)
-                    json.dump(config_apps_json, fichier)
-                    fichier.truncate()
-            except (FileNotFoundError, json.JSONDecodeError):
-                config_apps_json = dict()
-                config_apps_json[nom_application] = web_links
-                with open(path_conf_applications, 'wt') as fichier:
-                    json.dump(config_apps_json, fichier)
 
 
 # import argparse

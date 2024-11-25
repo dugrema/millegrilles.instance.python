@@ -6,13 +6,13 @@ import json
 
 from typing import Optional
 
-import docker.errors
 from docker.models.services import Service
 
 from millegrilles_instance.CommandesDocker import check_service_running, check_replicas, check_service_preparing, \
     get_docker_image_tag, UnknownImage
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
-from millegrilles_instance.MaintenanceApplicationWeb import check_archive_stale, installer_archive
+from millegrilles_instance.MaintenanceApplicationWeb import check_archive_stale, installer_archive, \
+    sauvegarder_configuration_webapps
 from millegrilles_instance.ModulesRequisInstance import RequiredModules
 from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.docker import DockerCommandes
@@ -412,8 +412,7 @@ async def install_service(context: InstanceContext, docker_handler: DockerHandle
             else:
                 # Mettre a jour configuration des liens web
                 LOGGER.info("installer_service Mettre a jour configuration web links pour %s", service_name)
-                raise NotImplementedError('todo')
-                # sauvegarder_configuration_webapps(service_name, web_links, etat_instance)
+                sauvegarder_configuration_webapps(context, service_name, web_links)
 
 
     # S'assurer d'avoir l'image
@@ -453,17 +452,6 @@ async def get_params_env_service(context: InstanceContext, docker_handler: Docke
     }
 
     return params
-
-
-async def nginx_installation_cleanup(context: InstanceContext, docker_handler: DockerHandler):
-    """
-    Ensure nginxinstall and other installation services are removed.
-    """
-    action_remove = DockerCommandes.CommandeSupprimerService("nginxinstall")
-    try:
-        await docker_handler.run_command(action_remove)
-    except docker.errors.NotFound:
-        pass  # Ok, already removed
 
 
 async def remove_service(etat_instance, docker_handler: DockerHandler, app_name: str):

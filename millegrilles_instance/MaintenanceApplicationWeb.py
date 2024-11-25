@@ -10,7 +10,7 @@ import requests
 
 from typing import Optional
 
-from millegrilles_instance.Constantes import FICHIER_ARCHIVES_APP
+from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_messages.docker.ParseConfiguration import WebApplicationConfiguration
 from millegrilles_messages.messages.Hachage import VerificateurHachage
@@ -109,7 +109,7 @@ def installer_archive(context: InstanceContext, app_name: str, archive: WebAppli
 
         # Conserver l'information d'installation
         try:
-            with open(FICHIER_ARCHIVES_APP, 'rt+') as fichier:
+            with open(ConstantesInstance.FICHIER_ARCHIVES_APP, 'rt+') as fichier:
                 # Read file
                 try:
                     config_locale = json.load(fichier)
@@ -128,14 +128,13 @@ def installer_archive(context: InstanceContext, app_name: str, archive: WebAppli
                 fichier.truncate()
         except FileNotFoundError:
             # New file
-            with open(FICHIER_ARCHIVES_APP, 'wt') as fichier:
+            with open(ConstantesInstance.FICHIER_ARCHIVES_APP, 'wt') as fichier:
                 config_locale = {archive.location: archive.__dict__}
                 json.dump(config_locale, fichier)
 
         # Conserver url links de l'application
         if web_links is not None:
-            raise NotImplementedError('todo')
-            #sauvegarder_configuration_webapps(app_name, web_links, etat_instance)
+            sauvegarder_configuration_webapps(context, app_name, web_links)
 
     except Exception as e:
         # If the old path is present, restore it
@@ -186,3 +185,37 @@ async def entretien_webapps_installation(etat_instance):
                                 await asyncio.to_thread(installer_archive, etat_instance, name, archive, config.get('web'))
                         except:
                             LOGGER.exception("Error checking web app %s", config_file.name)
+
+
+def sauvegarder_configuration_webapps(context: InstanceContext, nom_application: str, web_links: dict):
+    LOGGER.debug("Sauvegarder configuration pour web app %s" % nom_application)
+
+    configuration = context.configuration
+
+    path_conf_applications = pathlib.Path(
+        configuration.path_configuration,
+        ConstantesInstance.CONFIG_NOMFICHIER_CONFIGURATION_WEB_APPLICATIONS)
+
+    hostname = context.hostname
+    try:
+        links = web_links['links']
+    except (TypeError, KeyError):
+        LOGGER.debug("sauvegarder_configuration_webapps Aucun web links pour %s" % nom_application)
+    else:
+        for link in links:
+            try:
+                link['url'] = link['url'].replace('${HOSTNAME}', hostname)
+            except KeyError:
+                pass  # No url
+        try:
+            with open(path_conf_applications, 'rt+') as fichier:
+                config_apps_json = json.load(fichier)
+                config_apps_json[nom_application] = web_links
+                fichier.seek(0)
+                json.dump(config_apps_json, fichier)
+                fichier.truncate()
+        except (FileNotFoundError, json.JSONDecodeError):
+            config_apps_json = dict()
+            config_apps_json[nom_application] = web_links
+            with open(path_conf_applications, 'wt') as fichier:
+                json.dump(config_apps_json, fichier)

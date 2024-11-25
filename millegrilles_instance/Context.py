@@ -37,6 +37,7 @@ class InstanceContext(MilleGrillesBusContext):
         self.__reload_q: asyncio.Queue[Optional[float]] = asyncio.Queue(maxsize=2)
         self.__reload_listeners: list[Callable[[], None]] = list()
         self.__application_status = ApplicationInstallationStatus()
+        self.__reload_done = asyncio.Event()
 
     async def run(self):
         async with TaskGroup() as group:
@@ -49,7 +50,8 @@ class InstanceContext(MilleGrillesBusContext):
             reload_value = await self.__reload_q.get()
             if reload_value is None:
                 return  # Done
-            await asyncio.sleep(reload_value)
+            if reload_value > 0:
+                await asyncio.sleep(reload_value)
             await asyncio.to_thread(self.reload)
 
     async def __stop_thread(self):
@@ -129,7 +131,13 @@ class InstanceContext(MilleGrillesBusContext):
         self.__csr_genere = None
 
     async def delay_reload(self, delay: float):
+        self.__reload_done.clear()
         await self.__reload_q.put(delay)
+
+    async def reload_wait(self):
+        self.__reload_done.clear()
+        await self.__reload_q.put(0)
+        await self.__reload_done.wait()
 
     def reload(self):
         configuration: ConfigurationInstance = self.configuration

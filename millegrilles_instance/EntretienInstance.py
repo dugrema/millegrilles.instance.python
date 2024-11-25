@@ -19,7 +19,7 @@ from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesThread import MessagesThread
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
-from millegrilles_instance.EntretienNginx import EntretienNginx, generer_configuration_nginx
+from millegrilles_instance.NginxHandler import NginxHandler, generer_configuration_nginx
 from millegrilles_instance.EntretienRabbitMq import EntretienRabbitMq
 from millegrilles_instance.RabbitMQDao import RabbitMQDao
 from millegrilles_instance.EntretienCatalogues import EntretienCatalogues
@@ -523,7 +523,7 @@ class InstanceProtegee(InstanceDockerAbstract):
 
         # self.__event_setup_initial_certificats: Optional[Event] = None
         self.__event_setup_initial_passwords: Optional[Event] = None
-        self.__entretien_nginx: Optional[EntretienNginx] = None
+        self.__entretien_nginx: Optional[NginxHandler] = None
         self.__entretien_rabbitmq: Optional[EntretienRabbitMq] = None
         self.__entretien_catalogues: Optional[EntretienCatalogues] = None
 
@@ -539,7 +539,7 @@ class InstanceProtegee(InstanceDockerAbstract):
         # self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
 
-        self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
+        self.__entretien_nginx = NginxHandler(etat_instance, etat_docker)
         self.__entretien_rabbitmq = EntretienRabbitMq(etat_instance)
         self.__entretien_catalogues = EntretienCatalogues(etat_instance)
 
@@ -664,7 +664,7 @@ class InstanceSecureDocker(InstanceDockerAbstract):
 
         # self.__event_setup_initial_certificats: Optional[Event] = None
         self.__event_setup_initial_passwords: Optional[Event] = None
-        self.__entretien_nginx: Optional[EntretienNginx] = None
+        self.__entretien_nginx: Optional[NginxHandler] = None
         self.__rabbitmq_dao: Optional[RabbitMQDao] = None
 
         self.__setup_catalogues_complete = False
@@ -676,7 +676,7 @@ class InstanceSecureDocker(InstanceDockerAbstract):
 
         # self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
-        self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
+        self.__entretien_nginx = NginxHandler(etat_instance, etat_docker)
 
         await super().setup(etat_instance, etat_docker)
 
@@ -768,7 +768,7 @@ class InstancePriveeDocker(InstanceDockerAbstract):
 
         # self.__event_setup_initial_certificats: Optional[Event] = None
         self.__event_setup_initial_passwords: Optional[Event] = None
-        self.__entretien_nginx: Optional[EntretienNginx] = None
+        self.__entretien_nginx: Optional[NginxHandler] = None
 
         self.__rabbitmq_dao: Optional[RabbitMQDao] = None
 
@@ -782,7 +782,7 @@ class InstancePriveeDocker(InstanceDockerAbstract):
         # self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
 
-        self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
+        self.__entretien_nginx = NginxHandler(etat_instance, etat_docker)
 
         await super().setup(etat_instance, etat_docker)
 
@@ -905,7 +905,7 @@ class InstancePrivee(InstanceAbstract):
 
         # self.__event_setup_initial_certificats: Optional[Event] = None
         self.__event_setup_initial_passwords: Optional[Event] = None
-        self.__entretien_nginx: Optional[EntretienNginx] = None
+        self.__entretien_nginx: Optional[NginxHandler] = None
 
         self.__rabbitmq_dao: Optional[RabbitMQDao] = None
 
@@ -918,7 +918,7 @@ class InstancePrivee(InstanceAbstract):
         # self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
 
-        self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
+        self.__entretien_nginx = NginxHandler(etat_instance, etat_docker)
 
         self._gestionnaire_applications = ApplicationsHandler(etat_instance, etat_docker)
 
@@ -1002,7 +1002,7 @@ class InstanceSecure(InstanceAbstract):
 
         # self.__event_setup_initial_certificats: Optional[Event] = None
         self.__event_setup_initial_passwords: Optional[Event] = None
-        self.__entretien_nginx: Optional[EntretienNginx] = None
+        self.__entretien_nginx: Optional[NginxHandler] = None
 
         self.__rabbitmq_dao: Optional[RabbitMQDao] = None
 
@@ -1015,7 +1015,7 @@ class InstanceSecure(InstanceAbstract):
         # self.__event_setup_initial_certificats = Event()
         self.__event_setup_initial_passwords = Event()
 
-        self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
+        self.__entretien_nginx = NginxHandler(etat_instance, etat_docker)
 
         self._gestionnaire_applications = ApplicationsHandler(etat_instance, etat_docker)
 

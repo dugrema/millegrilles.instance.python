@@ -6,6 +6,8 @@ import pathlib
 import tarfile
 import threading
 
+import docker.errors
+
 from asyncio import Event, TimeoutError, TaskGroup
 from docker.errors import APIError, NotFound
 from os import path, unlink, makedirs
@@ -14,10 +16,10 @@ from base64 import b64decode
 
 from millegrilles_instance.Constantes import FICHIER_ARCHIVES_APP
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
-from millegrilles_instance.EntretienNginx import ajouter_fichier_configuration
 from millegrilles_instance.MaintenanceApplicationService import service_maintenance
 from millegrilles_instance.MaintenanceApplicationWeb import installer_archive, check_archive_stale
 from millegrilles_instance.ModulesRequisInstance import RequiredModules
+from millegrilles_instance.NginxUtils import ajouter_fichier_configuration
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.docker.DockerHandler import DockerHandler, DockerState
 from millegrilles_messages.docker import DockerCommandes
@@ -105,6 +107,7 @@ class InstanceDockerHandler:
                 return  # Stopping
 
             self.__logger.debug("__application_maintenance Debut Entretien")
+            self.__applications_changed.clear()
             try:
                 config_modules = self.__context.application_status.required_modules
                 await service_maintenance(self.__context, self.__docker_handler, config_modules)
@@ -122,7 +125,7 @@ class InstanceDockerHandler:
             info_updatee = dict()
 
         commande = CommandeListeTopologie()
-        self.ajouter_commande(commande)
+        await self.run_command(commande)
         info_instance = await commande.get_info()
         info_updatee.update(info_instance)
 
@@ -394,19 +397,33 @@ class InstanceDockerHandler:
 
     async def redemarrer_nginx(self, reason: Optional[str] = None):
         self.__logger.info("Redemarrer nginx pour charger configuration maj (reason: %s)" % reason)
-        commande = DockerCommandes.CommandeReloadNginx()
-        # commande = DockerCommandes.CommandeRedemarrerService('nginx', aio=True)
-        self.__docker_handler.ajouter_commande(commande)
         try:
-            await commande.attendre()
+            await self.__docker_handler.run_command(DockerCommandes.CommandeReloadNginx())
         except APIError as e:
             if e.status_code == 404:
                 pass  # Nginx n'est pas encore installe
             else:
                 raise e
 
-    def ajouter_commande(self, commande: CommandeDocker):
-        self.__docker_handler.ajouter_commande(commande)
+    async def nginx_installation_cleanup(self):
+        """
+        Ensure nginxinstall and other installation services are removed.
+        """
+        action_remove = DockerCommandes.CommandeSupprimerService("nginxinstall")
+        try:
+            await self.run_command(action_remove)
+        except docker.errors.NotFound:
+            pass  # Ok, already removed
+
+    # def ajouter_commande(self, commande: CommandeDocker):
+    #     self.__docker_handler.ajouter_commande(commande)
+
+    async def run_command(self, command: CommandeDocker):
+        result = await self.__docker_handler.run_command(command)
+        try:
+            return await command.get_resultat()
+        except AttributeError:
+            return result
 
     async def installer_application(self, context: InstanceContext, configuration: dict, reinstaller=False):
         nom_application = configuration['nom']

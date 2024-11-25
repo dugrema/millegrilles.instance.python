@@ -10,6 +10,7 @@ from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopLi
 from millegrilles_messages.bus.BusExceptions import ConfigurationFileError
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
 from millegrilles_messages.docker.DockerHandler import DockerState
+from millegrilles_instance.NginxHandler import NginxHandler
 from millegrilles_instance.Certificats import GenerateurCertificatsHandler
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
@@ -75,11 +76,16 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     bus_connector = MilleGrillesPikaConnector(context)
     context.bus_connector = bus_connector
     generateur_certificats = GenerateurCertificatsHandler(context)
+    nginx_handler = NginxHandler(context)
+
     docker_state = DockerState(context)
 
     if docker_state.docker_present():
         docker_handler = InstanceDockerHandler(context, docker_state)
         context.add_reload_listener(docker_handler.callback_changement_configuration)
+
+        # Conditional wiring
+        nginx_handler.docker_handler = docker_handler
     else:
         # Docker not supported
         docker_handler = None

@@ -24,7 +24,7 @@ from millegrilles_messages.IpUtils import get_ip, get_hostnames
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.FormatteurMessages import SignateurTransactionSimple, FormatteurMessageMilleGrilles
-from millegrilles_instance.EntretienNginx import EntretienNginx
+from millegrilles_instance.NginxHandler import NginxHandler
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 from millegrilles_messages.messages.ValidateurCertificats import ValidateurCertificatCache
 from millegrilles_messages.messages.ValidateurMessage import ValidateurMessage
@@ -56,7 +56,7 @@ class EtatInstance:
         self.__docker_actif = False
         self.__csr_genere: Optional[CleCsrGenere] = None
 
-        self.__entretien_nginx: Optional[EntretienNginx] = None
+        self.__entretien_nginx: Optional[NginxHandler] = None
 
         # Liste de listeners qui sont appeles sur changement de configuration
         self.__config_listeners = list()
