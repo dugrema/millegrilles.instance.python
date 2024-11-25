@@ -15,7 +15,7 @@ from millegrilles_messages.messages.MessagesThread import MessagesThread
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
-from millegrilles_instance.MaintenanceApplications import GestionnaireApplications
+from millegrilles_instance.MaintenanceApplications import ApplicationsHandler
 from millegrilles_instance.AcmeHandler import CommandeAcmeIssue
 from millegrilles_instance.Certificats import signer_certificat_instance_secure, signer_certificat_usager_via_secure
 
@@ -23,7 +23,7 @@ from millegrilles_instance.Certificats import signer_certificat_instance_secure,
 class CommandHandler:
 
     def __init__(self, entretien_instance, etat_instance: EtatInstance,
-                 etat_docker: Optional[EtatDockerInstanceSync], gestionnaire_applications: GestionnaireApplications):
+                 etat_docker: Optional[EtatDockerInstanceSync], gestionnaire_applications: ApplicationsHandler):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self._entretien_instance = entretien_instance
         self._etat_instance = etat_instance

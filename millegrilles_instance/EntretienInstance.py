@@ -23,7 +23,7 @@ from millegrilles_instance.EntretienNginx import EntretienNginx, generer_configu
 from millegrilles_instance.EntretienRabbitMq import EntretienRabbitMq
 from millegrilles_instance.RabbitMQDao import RabbitMQDao
 from millegrilles_instance.EntretienCatalogues import EntretienCatalogues
-from millegrilles_instance.MaintenanceApplications import GestionnaireApplications
+from millegrilles_instance.MaintenanceApplications import ApplicationsHandler
 from millegrilles_instance.Certificats import generer_passwords, \
     nettoyer_configuration_expiree, generer_certificats_modules_satellites
 from millegrilles_instance.MaintenanceApplicationService import charger_configuration_docker, charger_configuration_application
@@ -91,7 +91,7 @@ class InstanceAbstract:
         self._event_entretien: Optional[Event] = None
         self._taches_entretien = TachesEntretienType()
 
-        self._gestionnaire_applications: Optional[GestionnaireApplications] = None
+        self._gestionnaire_applications: Optional[ApplicationsHandler] = None
 
     async def setup(self, etat_instance: EtatInstance, etat_docker: Optional[EtatDockerInstanceSync] = None):
         self.__logger.info("Setup InstanceInstallation")
@@ -221,7 +221,7 @@ class InstanceDockerAbstract:
         self._event_stop: Optional[Event] = None
         self._etat_instance: Optional[EtatInstance] = None
         self._etat_docker: Optional[EtatDockerInstanceSync] = None
-        self._gestionnaire_applications: Optional[GestionnaireApplications] = None
+        self._gestionnaire_applications: Optional[ApplicationsHandler] = None
 
         self._event_entretien: Optional[Event] = None
         self._taches_entretien = TachesEntretienType()
@@ -235,7 +235,7 @@ class InstanceDockerAbstract:
         self._etat_instance = etat_instance
         self._etat_docker = etat_docker
 
-        self._gestionnaire_applications = GestionnaireApplications(etat_instance, etat_docker)
+        self._gestionnaire_applications = ApplicationsHandler(etat_instance, etat_docker)
 
         # Entretien etat_instance (certificats cache du validateur)
         self._taches_entretien.append(TacheEntretien(
@@ -920,7 +920,7 @@ class InstancePrivee(InstanceAbstract):
 
         self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
 
-        self._gestionnaire_applications = GestionnaireApplications(etat_instance, etat_docker)
+        self._gestionnaire_applications = ApplicationsHandler(etat_instance, etat_docker)
 
         await super().setup(etat_instance, etat_docker)
 
@@ -1017,7 +1017,7 @@ class InstanceSecure(InstanceAbstract):
 
         self.__entretien_nginx = EntretienNginx(etat_instance, etat_docker)
 
-        self._gestionnaire_applications = GestionnaireApplications(etat_instance, etat_docker)
+        self._gestionnaire_applications = ApplicationsHandler(etat_instance, etat_docker)
 
         await super().setup(etat_instance, etat_docker)
 

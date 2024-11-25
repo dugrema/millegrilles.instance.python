@@ -1,9 +1,10 @@
 import asyncio
 import json
 import logging
-import tarfile
 import io
 import pathlib
+import tarfile
+import threading
 
 from asyncio import Event, TimeoutError, TaskGroup
 from docker.errors import APIError, NotFound
@@ -16,6 +17,7 @@ from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.EntretienNginx import ajouter_fichier_configuration
 from millegrilles_instance.MaintenanceApplicationService import service_maintenance
 from millegrilles_instance.MaintenanceApplicationWeb import installer_archive, check_archive_stale
+from millegrilles_instance.ModulesRequisInstance import RequiredModules
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.docker.DockerHandler import DockerHandler, DockerState
 from millegrilles_messages.docker import DockerCommandes
@@ -53,17 +55,26 @@ class InstanceDockerHandler:
         self.__context = context
         self.__docker_state = docker_state
         self.__docker_handler = DockerHandler(docker_state)
-        self.__verify_configuration_event = asyncio.Event()
+        self.__verify_configuration_event = threading.Event()
+        self.__applications_changed = asyncio.Event()
 
     async def run(self):
         async with TaskGroup() as group:
             group.create_task(self.__docker_handler.run())
-            group.create_task(self.__maintenance())
+            group.create_task(self.__application_maintenance())
             group.create_task(self.initialiser_docker())
+            group.create_task(self.__configuration_udpate_thread())
+            group.create_task(self.__stop_thread())
 
-    async def __configuration_thread(self):
+    async def __stop_thread(self):
+        await self.__context.wait()
+        # Release threads
+        self.__verify_configuration_event.set()
+        self.__applications_changed.set()
+
+    async def __configuration_udpate_thread(self):
         while self.__context.stopping is False:
-            await self.__verify_configuration_event.wait()
+            await asyncio.to_thread(self.__verify_configuration_event.wait, 600)
             if self.__context.stopping:
                 return  # Stopping
 
@@ -80,18 +91,28 @@ class InstanceDockerHandler:
         self.__logger.info("callback_changement_configuration - Reload configuration")
         self.__verify_configuration_event.set()
 
-    async def __maintenance(self):
-        while self.__context.stopping is False:
-            self.__logger.debug("Debut Entretien EtatDockerInstanceSync")
-            try:
-                await self.verifier_config_instance()
-            except:
-                self.__logger.exception("__maintenance Error during maintenance")
-            self.__logger.debug("Fin Entretien EtatDockerInstanceSync")
-            await self.__context.wait(60)
+    async def callback_changement_applications(self):
+        self.__applications_changed.set()
 
-        self.__verify_configuration_event.set()  # Release thread
-        self.__logger.info("Thread Entretien InstanceDocker terminee")
+    async def __application_maintenance(self):
+        while self.__context.stopping is False:
+            try:
+                await asyncio.wait_for(self.__applications_changed.wait(), 600)
+            except asyncio.TimeoutError:
+                pass
+
+            if self.__context.stopping:
+                return  # Stopping
+
+            self.__logger.debug("__application_maintenance Debut Entretien")
+            try:
+                config_modules = self.__context.application_status.required_modules
+                await service_maintenance(self.__context, self.__docker_handler, config_modules)
+            except:
+                self.__logger.exception("__application_maintenance Error during maintenance")
+            self.__logger.debug("Fin Entretien EtatDockerInstanceSync")
+
+        self.__logger.info("__application_maintenance Thread terminee")
 
     async def emettre_presence(self, producer: MessageProducerFormatteur, info: Optional[dict] = None):
         self.__logger.info("Emettre presence")
@@ -261,7 +282,7 @@ class InstanceDockerHandler:
             self.__context.stop()
             raise ForceTerminateExecution()
 
-    async def entretien_services(self, config_modules: list):
+    async def entretien_services(self, config_modules: RequiredModules):
         await service_maintenance(self.__context, self.__docker_handler, config_modules)
 
     async def get_params_env_service(self) -> dict:
@@ -276,8 +297,8 @@ class InstanceDockerHandler:
         config_datees = await self.__docker_handler.run_command(action_datees)
 
         params = {
-            'HOSTNAME': self.__etat_instance.hostname,
-            'IDMG': self.__etat_instance.idmg,
+            'HOSTNAME': self.__context.hostname,
+            'IDMG': self.__context.idmg,
             '__secrets': docker_secrets,
             '__configs': docker_configs,
             '__docker_config_datee': config_datees['correspondance'],
@@ -291,16 +312,17 @@ class InstanceDockerHandler:
         params['__nom_application'] = nom_service
         params['__certificat_info'] = {'label_prefix': 'pki.%s' % nom_service}
         params['__password_info'] = {'label_prefix': 'passwd.%s' % nom_service}
-        params['__instance_id'] = self.__etat_instance.instance_id
+        params['__instance_id'] = self.__context.instance_id
 
-        mq_hostname = self.__etat_instance.mq_hostname
+        configuration = self.__context.configuration
+        mq_hostname = configuration.mq_hostname
         if mq_hostname == 'localhost':
             # Remplacer par mq pour applications (via docker)
             mq_hostname = 'mq'
         params['MQ_HOSTNAME'] = mq_hostname
-        params['MQ_PORT'] = self.__etat_instance.mq_port or '5673'
-        if self.__etat_instance.idmg is not None:
-            params['__idmg'] = self.__etat_instance.idmg
+        params['MQ_PORT'] = configuration.mq_port or '5673'
+        if configuration.idmg is not None:
+            params['__idmg'] = configuration.idmg
 
         config_service = configuration.copy()
         try:
@@ -341,11 +363,8 @@ class InstanceDockerHandler:
             # image_tag = image_info['tags'][0]
             image_tag = await get_docker_image_tag(self.__context, self.__docker_handler, image, pull=True, app_name=image)
 
-            commande_creer_service = DockerCommandes.CommandeCreerService(image_tag, config_parsed, reinstaller=reinstaller, aio=True)
-            self.__docker_handler.ajouter_commande(commande_creer_service)
-            resultat = await commande_creer_service.get_resultat()
-
-            return resultat
+            commande_creer_service = DockerCommandes.CommandeCreerService(image_tag, config_parsed, reinstaller=reinstaller)
+            return await self.__docker_handler.run_command(commande_creer_service)
         else:
             self.__logger.warning("installer_service() Invoque pour un service sans images : %s", nom_service)
 
@@ -389,17 +408,16 @@ class InstanceDockerHandler:
     def ajouter_commande(self, commande: CommandeDocker):
         self.__docker_handler.ajouter_commande(commande)
 
-    async def installer_application(self, producer: MessageProducerFormatteur, configuration: dict, reinstaller=False):
+    async def installer_application(self, context: InstanceContext, configuration: dict, reinstaller=False):
         nom_application = configuration['nom']
         nginx = configuration.get('nginx')
         dependances = configuration['dependances']
 
-        commande_config_datees = DockerCommandes.CommandeGetConfigurationsDatees(aio=True)
-        self.__docker_handler.ajouter_commande(commande_config_datees)
-        commande_config_services = DockerCommandes.CommandeListerServices(filters={'name': nom_application}, aio=True)
-        self.__docker_handler.ajouter_commande(commande_config_services)
+        commande_config_datees = DockerCommandes.CommandeGetConfigurationsDatees()
+        await self.__docker_handler.run_command(commande_config_datees)
 
-        resultat_config_datees = await commande_config_datees.get_resultat()
+        commande_config_services = DockerCommandes.CommandeListerServices(filters={'name': nom_application})
+        resultat_config_datees = await self.__docker_handler.run_command(commande_config_services)
         correspondance = resultat_config_datees['correspondance']
         service_existant = await commande_config_services.get_liste()
 
@@ -407,7 +425,7 @@ class InstanceDockerHandler:
             return {'ok': False, 'err': 'Service deja installe'}
 
         # Generer certificats/passwords
-        await self.generer_valeurs(correspondance, dependances, nom_application, producer)
+        await self.generer_valeurs(correspondance, dependances, nom_application)
 
         # Copier scripts
         try:
@@ -437,9 +455,9 @@ class InstanceDockerHandler:
                     'appname': nom_application,
                 }
                 for nom_fichier, contenu in conf_dict.items():
-                    path_nginx = self.__etat_instance.configuration.path_nginx
+                    path_nginx = self.__context.configuration.path_nginx
                     path_nginx_module = pathlib.Path(path_nginx, 'modules')
-                    ajouter_fichier_configuration(self.__etat_instance, path_nginx_module, nom_fichier, contenu, params)
+                    ajouter_fichier_configuration(self.__context, path_nginx_module, nom_fichier, contenu, params)
                 redemarrer_nginx = True
 
         # Deployer services
@@ -457,8 +475,8 @@ class InstanceDockerHandler:
                     for archive in dep['archives']:
                         app_name = dep['name']
                         config = WebApplicationConfiguration(archive)
-                        if await asyncio.to_thread(check_archive_stale, self.__etat_instance, config):
-                            await asyncio.to_thread(installer_archive, self.__etat_instance, app_name, config,
+                        if await asyncio.to_thread(check_archive_stale, self.__context, config):
+                            await asyncio.to_thread(installer_archive, self.__context, app_name, config,
                                                     web_links)
 
                 if dep.get('image') is not None:
@@ -506,7 +524,7 @@ class InstanceDockerHandler:
             else:
                 self.__logger.info("Resultat execution %s\n%s" % (code, output))
 
-    async def generer_valeurs(self, correspondance, dependances, nom_application, producer):
+    async def generer_valeurs(self, correspondance, dependances, nom_application):
         if dependances is None:
             return  # Rien a faire
 
@@ -521,12 +539,13 @@ class InstanceDockerHandler:
                     current['cert']
                 except KeyError:
                     self.__logger.info("generer_valeurs Generer certificat/secret pour %s" % nom_application)
-                    clecertificat = await self.__etat_instance.generateur_certificats.demander_signature(nom_application, certificat)
-                    if clecertificat is None:
-                        raise Exception("generer_valeurs Erreur creation certificat %s" % nom_application)
-                    # Importer toutes les cles dans docker
-                    if self.__docker_initialise is True and clecertificat is not None:
-                        await self.assurer_clecertificat(nom_application, clecertificat)
+                    raise NotImplementedError('todo')
+                    # clecertificat = await self.__context.generateur_certificats.demander_signature(nom_application, certificat)
+                    # if clecertificat is None:
+                    #     raise Exception("generer_valeurs Erreur creation certificat %s" % nom_application)
+                    # # Importer toutes les cles dans docker
+                    # if self.__docker_initialise is True and clecertificat is not None:
+                    #     await self.assurer_clecertificat(nom_application, clecertificat)
 
             except KeyError:
                 pass
@@ -551,29 +570,26 @@ class InstanceDockerHandler:
                 pass
 
     async def demarrer_application(self, nom_application: str):
-        commande_image = DockerCommandes.CommandeDemarrerService(nom_application, replicas=1, aio=True)
-        self.__docker_handler.ajouter_commande(commande_image)
-        resultat = await commande_image.get_resultat()
+        commande_image = DockerCommandes.CommandeDemarrerService(nom_application, replicas=1)
+        resultat = await self.__docker_handler.run_command(commande_image)
         return {'ok': resultat}
 
     async def arreter_application(self, nom_application: str):
-        commande_image = DockerCommandes.CommandeArreterService(nom_application, aio=True)
-        self.__docker_handler.ajouter_commande(commande_image)
-        resultat = await commande_image.get_resultat()
+        commande_image = DockerCommandes.CommandeArreterService(nom_application)
+        resultat = await self.__docker_handler.run_command(commande_image)
         return {'ok': resultat}
 
     async def supprimer_application(self, nom_application: str):
-        commande_image = DockerCommandes.CommandeSupprimerService(nom_application, aio=True)
-        self.__docker_handler.ajouter_commande(commande_image)
+        commande_image = DockerCommandes.CommandeSupprimerService(nom_application)
         try:
-            resultat = await commande_image.get_resultat()
+            resultat = await self.__docker_handler.run_command(commande_image)
         except APIError as apie:
             if apie.status_code == 404:
                 resultat = True  # Ok, deja supprime
             else:
                 raise apie
 
-        path_docker_apps = self.__etat_instance.configuration.path_docker_apps
+        path_docker_apps = self.__context.configuration.path_docker_apps
         fichier_config = path.join(path_docker_apps, 'app.%s.json' % nom_application)
         try:
             unlink(fichier_config)

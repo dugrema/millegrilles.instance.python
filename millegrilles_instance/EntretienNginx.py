@@ -13,6 +13,7 @@ from aiohttp.client_exceptions import ClientConnectorError
 from os import path, makedirs
 from typing import Optional, Union
 
+from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.MaintenanceApplicationService import nginx_installation_cleanup
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
@@ -109,10 +110,10 @@ class EntretienNginx:
 
             if self.__configuration_consignation is None or \
                     self.__date_changement_consignation is None or \
-                    self.__date_changement_consignation + self.__intervalle_verification_consignation < datetime.datetime.utcnow():
+                    self.__date_changement_consignation + self.__intervalle_verification_consignation < datetime.datetime.now():
                 try:
                     await self.charger_configuration_consignation(producer)
-                    self.__date_changement_consignation = datetime.datetime.utcnow()
+                    self.__date_changement_consignation = datetime.datetime.now()
                 except:
                     self.__logger.exception("Erreur configuration URL consignation")
 
@@ -330,19 +331,20 @@ def generer_configuration_nginx(etat_instance, path_src_nginx: pathlib.Path, pat
 
     return configuration_modifiee
 
-def ajouter_fichier_configuration(etat_instance, path_nginx_modules: pathlib.Path, nom_fichier: str, contenu: str, params: Optional[dict] = None) -> bool:
+def ajouter_fichier_configuration(context: InstanceContext, path_nginx_modules: pathlib.Path, nom_fichier: str, contenu: str, params: Optional[dict] = None) -> bool:
     if params is None:
         params = dict()
     else:
         params = params.copy()
 
+    configuration = context.configuration
     params.update({
-        'nodename': etat_instance.hostname,
-        'hostname': etat_instance.hostname,
-        'instance_url': 'https://%s:2443' % etat_instance.hostname,
-        'certissuer_url': 'http://%s:2080' % etat_instance.hostname,
+        'nodename': context.hostname,
+        'hostname': context.hostname,
+        'instance_url': 'https://%s:2443' % context.hostname,
+        'certissuer_url': 'http://%s:2080' % context.hostname,
         'midcompte_url': 'https://midcompte:2444',
-        'MQ_HOST': etat_instance.mq_hostname,
+        'MQ_HOST': configuration.mq_hostname,
     })
 
     path_destination = path.join(path_nginx_modules, nom_fichier)

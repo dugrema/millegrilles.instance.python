@@ -9,61 +9,52 @@ from os import path
 
 from typing import Optional
 
+from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.MaintenanceApplicationService import list_images, pull_images
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur, MessageWrapper
 from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.Exceptions import InstallationModeException
-from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
+from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance import Constantes as ConstantesInstance
-from millegrilles_instance.Configuration import sauvegarder_configuration_webapps
+# from millegrilles_instance.Configuration import sauvegarder_configuration_webapps
 
 LOGGER = logging.getLogger(__name__)
 
 
-class GestionnaireApplications:
+class ApplicationsHandler:
 
-    def __init__(self, etat_instance: EtatInstance, etat_docker: EtatDockerInstanceSync):
+    def __init__(self, context: InstanceContext, docker_handler: Optional[InstanceDockerHandler]):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        self.__etat_instance = etat_instance
-        self.__etat_docker = etat_docker
-        self.__rabbitmq_dao = None
+        self.__context = context
+        self.__docker_handler = docker_handler
 
-    def set_rabbitmq_dao(self, rabbitmq_dao):
-        self.__rabbitmq_dao = rabbitmq_dao
-
-    async def entretien(self):
-        self.__logger.debug("entretien")
-
-    async def installer_application(self, configuration: dict, reinstaller=False, command: Optional[MessageWrapper] = None):
-        nom_application = configuration['nom']
-        web_links = configuration.get('web')
+    async def installer_application(self, app_configuration: dict, reinstaller=False, command: Optional[MessageWrapper] = None):
+        nom_application = app_configuration['nom']
+        web_links = app_configuration.get('web')
         if web_links:
-            sauvegarder_configuration_webapps(nom_application, web_links, self.__etat_instance)
+            raise NotImplementedError('todo')
+            #sauvegarder_configuration_webapps(nom_application, web_links, self.__context)
 
-        path_docker_apps = self.__etat_instance.configuration.path_docker_apps
+        path_docker_apps = self.__context.configuration.path_docker_apps
         path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
         self.__logger.debug("Sauvegarder configuration pour app %s vers %s" % (nom_application, path_app))
         with open(path_app, 'w') as fichier:
-            json.dump(configuration, fichier, indent=2)
+            json.dump(app_configuration, fichier, indent=2)
 
-        # if command:
-        #     # Emit OK response, installation is beginning
-        #     producer = await self.__etat_instance.get_producer(timeout=5)
-        #     await producer.repondre({"ok": True}, command.reply_to, command.correlation_id)
-
-        producer = self.__rabbitmq_dao.get_producer()
-        if self.__etat_docker is not None:
-            resultat = await self.__etat_docker.installer_application(producer, configuration, reinstaller)
+        producer = await self.__context.get_producer()
+        if self.__docker_handler is not None:
+            resultat = await self.__docker_handler.installer_application(self.__context, app_configuration, reinstaller)
             if command:
                 # Emit OK response, installation is beginning
-                producer = await self.__etat_instance.get_producer(timeout=5)
-                await producer.repondre(resultat, command.reply_to, command.correlation_id)
-            await self.__etat_docker.emettre_presence(producer)
-            return resultat
+                await producer.reply(resultat, command.reply_to, command.correlation_id)
+            raise NotImplementedError('todo')
+            #await self.__docker_handler.emettre_presence(producer)
+            #return resultat
         else:
-            resultat = await installer_application_sansdocker(self.__etat_instance, producer, configuration)
-            await self.__etat_instance.emettre_presence(producer)
-            return resultat
+            resultat = await installer_application_sansdocker(self.__context, app_configuration)
+            raise NotImplementedError('todo')
+            #await self.__context.emettre_presence(producer)
+            #return resultat
 
     async def upgrade_application(self, configuration: dict, command: Optional[MessageWrapper] = None):
         nom_application = configuration['nom']
@@ -71,7 +62,7 @@ class GestionnaireApplications:
 
         # Downloader toutes les images a l'avance
         images = list_images(configuration)
-        all_found = await pull_images(self.__etat_instance, self.__etat_docker, images, nom_application)
+        all_found = await pull_images(self.__context, self.__docker_handler, images, nom_application)
 
         # if command:
         #     # Emettre reponse OK, upgrade commence
@@ -82,52 +73,48 @@ class GestionnaireApplications:
             return {"ok": False, "err": "Some images missing: %s" % images}
 
         if web_links:
-            sauvegarder_configuration_webapps(nom_application, web_links, self.__etat_instance)
+            raise NotImplementedError('todo')
+            # sauvegarder_configuration_webapps(nom_application, web_links, self.__context)
 
-        path_docker_apps = self.__etat_instance.configuration.path_docker_apps
+        path_docker_apps = self.__context.configuration.path_docker_apps
         path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
         self.__logger.debug("Sauvegarder configuration pour app %s vers %s" % (nom_application, path_app))
         with open(path_app, 'w') as fichier:
             json.dump(configuration, fichier, indent=2)
 
-        producer = self.__rabbitmq_dao.get_producer()
-        if self.__etat_docker is not None:
-            resultat = await self.__etat_docker.installer_application(producer, configuration, True)
-            await self.__etat_docker.emettre_presence(producer)
-            return resultat
+        if self.__docker_handler is not None:
+            resultat = await self.__docker_handler.installer_application(self.__context, configuration, True)
+            raise NotImplementedError('todo')
+            # await self.__docker_handler.emettre_presence(producer)
+            # return resultat
         else:
-            resultat = await installer_application_sansdocker(self.__etat_instance, producer, configuration)
-            await self.__etat_instance.emettre_presence(producer)
-            return resultat
-
+            resultat = await installer_application_sansdocker(self.__context, configuration)
+            raise NotImplementedError('todo')
+            #await self.__context.emettre_presence(producer)
+            #return resultat
 
     async def demarrer_application(self, nom_application: str):
-        if self.__etat_docker is not None:
-            resultat = await self.__etat_docker.demarrer_application(nom_application)
+        if self.__docker_handler is not None:
+            resultat = await self.__docker_handler.demarrer_application(nom_application)
 
-            producer = self.__rabbitmq_dao.get_producer()
-            await self.__etat_docker.emettre_presence(producer)
-
-            return resultat
+            raise NotImplementedError('todo')
+            #await self.__docker_handler.emettre_presence(producer)
+            #return resultat
         else:
             return {'ok': False, 'err': 'Non supporte'}
 
     async def arreter_application(self, nom_application: str):
-        if self.__etat_docker is not None:
-            resultat = await self.__etat_docker.arreter_application(nom_application)
+        if self.__docker_handler is not None:
+            resultat = await self.__docker_handler.arreter_application(nom_application)
 
-            producer = self.__rabbitmq_dao.get_producer()
-            await self.__etat_docker.emettre_presence(producer)
-
-            return resultat
+            #await self.__docker_handler.emettre_presence(producer)
+            #return resultat
         else:
             return {'ok': False, 'err': 'Non supporte'}
 
     async def supprimer_application(self, nom_application: str):
-        producer = self.__rabbitmq_dao.get_producer()
-
         path_conf_applications = pathlib.Path(
-            self.__etat_instance.configuration.path_configuration,
+            self.__context.configuration.path_configuration,
             ConstantesInstance.CONFIG_NOMFICHIER_CONFIGURATION_WEB_APPLICATIONS)
 
         try:
@@ -150,7 +137,7 @@ class GestionnaireApplications:
         nginx_restart = False
         # Charger configuration application
         try:
-            path_docker_apps = self.__etat_instance.configuration.path_docker_apps
+            path_docker_apps = self.__context.configuration.path_docker_apps
             path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
             self.__logger.debug("Sauvegarder configuration pour app %s vers %s" % (nom_application, path_app))
             with open(path_app, 'rt') as fichier:
@@ -161,7 +148,7 @@ class GestionnaireApplications:
             # Supprimer fichiers nginx au besoin
             try:
                 nginx_conf = app_config['nginx']['conf']
-                path_nginx_modules = pathlib.Path(self.__etat_instance.configuration.path_nginx, 'modules')
+                path_nginx_modules = pathlib.Path(self.__context.configuration.path_nginx, 'modules')
                 for nginx_file in nginx_conf.keys():
                     self.__logger.info("Delete nginx file %s" % nginx_file)
                     path_nginx_file = pathlib.Path(path_nginx_modules, nginx_file)
@@ -173,17 +160,19 @@ class GestionnaireApplications:
             except (TypeError,KeyError):
                 pass
 
-        if self.__etat_docker is not None:
-            resultat = await self.__etat_docker.supprimer_application(nom_application)
-            await self.__etat_docker.emettre_presence(producer)
-            reponse = resultat
+        if self.__docker_handler is not None:
+            resultat = await self.__docker_handler.supprimer_application(nom_application)
+            raise NotImplementedError('todo')
+            #await self.__docker_handler.emettre_presence(producer)
+            #reponse = resultat
         else:
-            path_docker_apps = self.__etat_instance.configuration.path_docker_apps
+            path_docker_apps = self.__context.configuration.path_docker_apps
             path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
             self.__logger.debug("Supprimer configuration pour app %s vers %s" % (nom_application, path_app))
             os.unlink(path_app)
-            await self.__etat_instance.emettre_presence(producer)
-            reponse = {'ok': True}
+            raise NotImplementedError('todo')
+            #await self.__context.emettre_presence(producer)
+            #reponse = {'ok': True}
 
         #if nginx_restart:
         #    self.__logger.warning("Restarting nginx after removing %s" % nom_application)
@@ -191,37 +180,37 @@ class GestionnaireApplications:
 
         return reponse
 
-    async def get_producer(self, timeout=5):
-        if self.__etat_instance.niveau_securite is None:
-            raise InstallationModeException('Installation mode')
+    # async def get_producer(self, timeout=5):
+    #     if self.__context.securite is None:
+    #         raise InstallationModeException('Installation mode')
+    #
+    #     if self.__rabbitmq_dao is None:
+    #         raise Exception('producer non disponible (rabbitmq non initialie)')
+    #     producer = self.__rabbitmq_dao.get_producer()
+    #
+    #     date_debut = datetime.datetime.utcnow()
+    #     intervalle = datetime.timedelta(seconds=timeout)
+    #     while producer is None:
+    #         await asyncio.sleep(0.5)
+    #         if datetime.datetime.utcnow() - intervalle > date_debut:
+    #             raise Exception('producer non disponible (aucune connection)')
+    #         producer = self.__rabbitmq_dao.get_producer()
+    #
+    #     pret = producer.producer_pret()
+    #     if pret.is_set() is False:
+    #         try:
+    #             await asyncio.wait_for(pret.wait(), timeout)
+    #         except asyncio.TimeoutError:
+    #             raise Exception('producer non disponible (timeout sur pret)')
+    #
+    #     return producer
 
-        if self.__rabbitmq_dao is None:
-            raise Exception('producer non disponible (rabbitmq non initialie)')
-        producer = self.__rabbitmq_dao.get_producer()
 
-        date_debut = datetime.datetime.utcnow()
-        intervalle = datetime.timedelta(seconds=timeout)
-        while producer is None:
-            await asyncio.sleep(0.5)
-            if datetime.datetime.utcnow() - intervalle > date_debut:
-                raise Exception('producer non disponible (aucune connection)')
-            producer = self.__rabbitmq_dao.get_producer()
-
-        pret = producer.producer_pret()
-        if pret.is_set() is False:
-            try:
-                await asyncio.wait_for(pret.wait(), timeout)
-            except asyncio.TimeoutError:
-                raise Exception('producer non disponible (timeout sur pret)')
-
-        return producer
-
-
-async def installer_application_sansdocker(etat_instance: EtatInstance, producer: MessageProducerFormatteur, configuration: dict):
+async def installer_application_sansdocker(context: InstanceContext, configuration: dict):
     """ Installe un certificat d'application sur une instance sans docker (e.g. RPi) """
     nom_application = configuration['nom']
     dependances = configuration['dependances']
-    path_secrets = etat_instance.configuration.path_secrets
+    path_secrets = context.configuration.path_secrets
 
     # Generer certificats/passwords
     for dep in dependances:
@@ -233,7 +222,7 @@ async def installer_application_sansdocker(etat_instance: EtatInstance, producer
             path_cle = path.join(path_secrets, 'pki.%s.cle' % nom_application)
             if path.exists(path_cert) is False or path.exists(path_cle) is False:
                 LOGGER.info("generer_valeurs Generer certificat/secret pour %s" % nom_application)
-                clecertificat = await etat_instance.generateur_certificats.demander_signature(
+                clecertificat = await context.generateur_certificats.demander_signature(
                     nom_application, certificat)
                 if clecertificat is None:
                     raise Exception("generer_valeurs Erreur creation certificat %s" % nom_application)
@@ -251,7 +240,7 @@ async def installer_application_sansdocker(etat_instance: EtatInstance, producer
 
                 path_password = path.join(path_secrets, 'passwd.%s.txt' % label)
                 if path.exists(path_password) is False:
-                    await etat_instance.generer_passwords(None, [passwd_gen])
+                    await context.generer_passwords(None, [passwd_gen])
 
         except KeyError:
             pass

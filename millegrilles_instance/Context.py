@@ -7,6 +7,7 @@ from typing import Optional, Callable
 
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Interfaces import DockerHandlerInterface
+from millegrilles_instance.Structs import ApplicationInstallationStatus
 from millegrilles_messages.IpUtils import get_ip, get_hostnames
 from millegrilles_messages.bus.BusContext import MilleGrillesBusContext
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
@@ -35,6 +36,7 @@ class InstanceContext(MilleGrillesBusContext):
 
         self.__reload_q: asyncio.Queue[Optional[float]] = asyncio.Queue(maxsize=2)
         self.__reload_listeners: list[Callable[[], None]] = list()
+        self.__application_status = ApplicationInstallationStatus()
 
     async def run(self):
         async with TaskGroup() as group:
@@ -56,6 +58,9 @@ class InstanceContext(MilleGrillesBusContext):
 
     def add_reload_listener(self, listener: Callable[[], None]):
         self.__reload_listeners.append(listener)
+
+    def update_application_status(self, app_name: str, status: dict):
+        self.__application_status.update(app_name, status)
 
     @property
     def bus_connector(self) -> MilleGrillesPikaConnector:
@@ -103,10 +108,22 @@ class InstanceContext(MilleGrillesBusContext):
         return self.__idmg
 
     @property
+    def hostname(self):
+        return self.__hostname
+
+    @property
+    def hostnames(self):
+        return self.__hostnames
+
+    @property
     def csr_genere(self):
         if self.__csr_genere is None:
             self.__csr_genere = CleCsrGenere.build(self.instance_id)
         return self.__csr_genere
+
+    @property
+    def application_status(self) -> ApplicationInstallationStatus:
+        return self.__application_status
 
     def clear_csr_genere(self):
         self.__csr_genere = None

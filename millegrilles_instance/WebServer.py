@@ -17,11 +17,8 @@ import millegrilles_instance.Exceptions
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.Manager import InstanceManager
 from millegrilles_messages.messages import Constantes
-#from millegrilles_instance.Configuration import ConfigurationWeb
-from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_instance.InstallerInstance import installer_instance, configurer_idmg
 from millegrilles_messages.messages.CleCertificat import CleCertificat
-from millegrilles_instance import Constantes as ConstantesInstances
 
 
 class WebServer:
@@ -35,11 +32,9 @@ class WebServer:
 
         self.__app = web.Application()
         self.__stop_event: Optional[Event] = None
-        # self.__configuration = ConfigurationWeb()
         self.__ssl_context: Optional[SSLContext] = None
 
         self.__webrunner: Optional[WebRunner] = None
-        # self.__webrunner_443: Optional[WebRunner] = None
         self.__ipv6 = True
 
     async def setup(self):
@@ -50,11 +45,6 @@ class WebServer:
 
     async def fermer(self):
         self.__stop_event.set()
-
-        # try:
-        #     await self.__webrunner_443.stop()
-        # except Exception as e:
-        #     self.__logger.debug("Erreur fermeture webrunner 443 : %s" % str(e))
 
         try:
             await self.__webrunner.stop()
@@ -88,17 +78,7 @@ class WebServer:
             web.options('/installation/api/installerCertificat', self.options_cors),
         ])
 
-    # async def rediriger_root(self, request):
-    #     return web.HTTPTemporaryRedirect(location='/installation')
-
-    # async def installation_index_handler(self, request):
-    #     path_app_installation = self.__configuration.path_app_installation
-    #     path_index = path.join(path_app_installation, 'index.html')
-    #     return web.FileResponse(path_index)
-
     async def handle_api_info(self, request):
-        # action = request.match_info['action']
-        # print("ACTION! %s" % action)
         try:
             reponse = {
                 'instance_id': self.context.instance_id,

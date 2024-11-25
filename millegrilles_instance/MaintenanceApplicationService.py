@@ -11,7 +11,9 @@ from docker.models.services import Service
 
 from millegrilles_instance.CommandesDocker import check_service_running, check_replicas, check_service_preparing, \
     get_docker_image_tag, UnknownImage
+from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.MaintenanceApplicationWeb import check_archive_stale, installer_archive
+from millegrilles_instance.ModulesRequisInstance import RequiredModules
 from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.docker import DockerCommandes
 from millegrilles_messages.docker.ParseConfiguration import ConfigurationService
@@ -59,7 +61,7 @@ class ServiceInstallCommand:
         self.upgrade = upgrade
 
 
-async def get_configuration_services(etat_instance, config_modules: list) -> list[ServiceStatus]:
+async def get_configuration_services(etat_instance, config_modules: RequiredModules) -> list[ServiceStatus]:
     """
     Retourne la liste des services a configurer en ordre.
     """
@@ -90,20 +92,20 @@ async def get_configuration_services(etat_instance, config_modules: list) -> lis
     return services
 
 
-async def get_service_status(etat_instance, docker_handler: DockerHandler, config_modules: list, missing_only=True) -> list[ServiceStatus]:
+async def get_service_status(context: InstanceContext, docker_handler: DockerHandler, config_modules: RequiredModules, missing_only=True) -> list[ServiceStatus]:
     # Get list of core services - they must be installed in order and running before installing other services/apps
-    core_services = await get_configuration_services(etat_instance, config_modules)
+    core_services = await get_configuration_services(context, config_modules)
 
     mapped_services = dict()
     for service in core_services:
         mapped_services[service.name] = service
 
-    commande_liste_services = DockerCommandes.CommandeListerServices(aio=True)
-    docker_handler.ajouter_commande(commande_liste_services)
+    commande_liste_services = DockerCommandes.CommandeListerServices()
+    await docker_handler.run_command(commande_liste_services)
     liste_services_docker = await commande_liste_services.get_liste()
 
     # Find all installed web applications
-    web_apps = pathlib.Path(etat_instance.configuration.path_configuration, 'web_applications.json')
+    web_apps = pathlib.Path(context.configuration.path_configuration, 'web_applications.json')
     try:
         with open(web_apps, 'rt') as fichier:
             web_app_configuration = json.load(fichier)
@@ -134,7 +136,7 @@ async def get_service_status(etat_instance, docker_handler: DockerHandler, confi
                 service_config.web_only = True
 
                 # Check if the application is installed
-                path_webapps = pathlib.Path(etat_instance.configuration.path_nginx)
+                path_webapps = pathlib.Path(context.configuration.path_nginx)
                 configuration = mapped_service.configuration
                 for archive in configuration['archives']:
                     location = archive['location']
@@ -160,7 +162,7 @@ async def get_service_status(etat_instance, docker_handler: DockerHandler, confi
         except ValueError:
             pos = None
 
-        etat_instance.update_application_status(name, {
+        context.update_application_status(name, {
             'status': {
                 'disabled': value.disabled,
                 'installed': value.installed,
@@ -237,24 +239,23 @@ async def install_services(
             elif service.running is False:
                 # Restart service
                 LOGGER.info("Restarting service %s" % service_name)
-                restart_command = DockerCommandes.CommandeRedemarrerService(nom_service=service_name, aio=True)
-                docker_handler.ajouter_commande(restart_command)
-                await restart_command.attendre()
+                restart_command = DockerCommandes.CommandeRedemarrerService(nom_service=service_name)
+                await docker_handler.run_command(restart_command)
             else:
                 raise Exception('install_services Service in unknown state: %s' % service_name)
         except Exception:
             LOGGER.exception("Error installing service %s, aborting for this cycle" % service_name)
 
 
-async def update_stale_configuration(etat_instance, docker_handler: DockerHandler, config_modules: list):
+async def update_stale_configuration(context: InstanceContext, docker_handler: DockerHandler, config_modules: RequiredModules):
     # Check if any existing configuration needs to be updated
-    liste_services_docker = await get_service_status(etat_instance, docker_handler, config_modules, missing_only=False)
+    liste_services_docker = await get_service_status(context, docker_handler, config_modules, missing_only=False)
     mapped_services = dict()
     for service in liste_services_docker:
         mapped_services[service.name] = service
 
-    commande_config_courante = DockerCommandes.CommandeGetConfigurationsDatees(aio=True)
-    docker_handler.ajouter_commande(commande_config_courante)
+    commande_config_courante = DockerCommandes.CommandeGetConfigurationsDatees()
+    await docker_handler.run_command(commande_config_courante)
     resulat_liste_config_datee = await commande_config_courante.get_resultat()
     correspondance_liste_datee = resulat_liste_config_datee['correspondance']
 
@@ -279,32 +280,32 @@ async def update_stale_configuration(etat_instance, docker_handler: DockerHandle
             LOGGER.info("Service %s stale, update config/secrets" % service.name)
             service_status = mapped_services[service.name]
             image = service_status.configuration['image']
-            image_tag = await get_docker_image_tag(etat_instance, docker_handler, image)
+            image_tag = await get_docker_image_tag(context, docker_handler, image)
             install_command = ServiceInstallCommand(service, image_tag, False, True)
-            await install_service(etat_instance, docker_handler, install_command)
+            await install_service(context, docker_handler, install_command)
 
 
-async def service_maintenance(etat_instance, docker_handler: DockerHandler, config_modules: list):
+async def service_maintenance(context: InstanceContext, docker_handler: DockerHandler, config_modules: RequiredModules):
     # Try to update any stale configuration (e.g. expired certificates)
-    await update_stale_configuration(etat_instance, docker_handler, config_modules)
+    await update_stale_configuration(context, docker_handler, config_modules)
 
     # Configure and install missing services
-    missing_services = await get_service_status(etat_instance, docker_handler, config_modules)
+    missing_services = await get_service_status(context, docker_handler, config_modules)
     if len(missing_services) > 0:
         LOGGER.info("Install %d missing or stopped services" % len(missing_services))
         LOGGER.debug("Missing services %s" % missing_services)
 
         service_install_queue = asyncio.Queue()
         # Run download and install in parallel. If install fails, download keeps going.
-        task_download = download_docker_images(etat_instance, docker_handler, missing_services, service_install_queue)
-        task_install = install_services(etat_instance, docker_handler, service_install_queue)
+        task_download = download_docker_images(context, docker_handler, missing_services, service_install_queue)
+        task_install = install_services(context, docker_handler, service_install_queue)
         await asyncio.gather(task_install, task_download)
         LOGGER.debug("Install missing or stopped services DONE")
 
 
-async def charger_configuration_docker(path_configuration: pathlib.Path, fichiers: list) -> list:
+async def charger_configuration_docker(path_configuration: pathlib.Path, required_modules: RequiredModules) -> list:
     configuration = []
-    for filename in fichiers:
+    for filename in required_modules.modules:
         path_fichier = pathlib.Path(path_configuration, filename)
         try:
             with open(path_fichier, 'rb') as fichier:
@@ -354,26 +355,29 @@ async def charger_configuration_application(path_configuration: pathlib.Path) ->
     return configuration
 
 
-async def install_service(etat_instance, docker_handler: DockerHandler, command: ServiceInstallCommand):
+async def install_service(context: InstanceContext, docker_handler: DockerHandler, command: ServiceInstallCommand):
     service_name = command.status.name
     LOGGER.info("Installing service %s" % service_name)
     image_tag = command.image_tag
 
     # Copier params, ajouter info service
-    params = await get_params_env_service(etat_instance, docker_handler)
+    params = await get_params_env_service(context, docker_handler)
     params['__nom_application'] = service_name
     params['__certificat_info'] = {'label_prefix': 'pki.%s' % service_name}
     params['__password_info'] = {'label_prefix': 'passwd.%s' % service_name}
-    params['__instance_id'] = etat_instance.instance_id
+    params['__instance_id'] = context.instance_id
 
-    mq_hostname = etat_instance.mq_hostname
+    configuration = context.configuration
+    mq_hostname = configuration.mq_hostname
     if mq_hostname == 'localhost':
         # Remplacer par mq pour applications (via docker)
         mq_hostname = 'mq'
     params['MQ_HOSTNAME'] = mq_hostname
-    params['MQ_PORT'] = etat_instance.mq_port or '5673'
-    if etat_instance.idmg is not None:
-        params['__idmg'] = etat_instance.idmg
+    params['MQ_PORT'] = configuration.mq_port or '5673'
+    try:
+        params['__idmg'] = context.idmg
+    except ValueNotAvailable:
+        pass
 
     config_service = command.status.configuration.copy()
     try:
@@ -393,9 +397,8 @@ async def install_service(etat_instance, docker_handler: DockerHandler, command:
             nom_constraint = constraint.split('=')[0]
             nom_constraint = nom_constraint.replace('node.labels.', '').strip()
             list_labels.append(nom_constraint)
-        commande_ajouter_labels = DockerCommandes.CommandeEnsureNodeLabels(list_labels, aio=True)
-        docker_handler.ajouter_commande(commande_ajouter_labels)
-        await commande_ajouter_labels.attendre()
+        commande_ajouter_labels = DockerCommandes.CommandeEnsureNodeLabels(list_labels)
+        await docker_handler.run_command(commande_ajouter_labels)
     except TypeError:
         pass  # Aucune constraint
 
@@ -404,8 +407,8 @@ async def install_service(etat_instance, docker_handler: DockerHandler, command:
         for archive in parser.archives:
             service_name = command.status.name
             web_links = command.status.configuration.get('web') or command.status.web_config
-            if await asyncio.to_thread(check_archive_stale, etat_instance, archive):
-                await asyncio.to_thread(installer_archive, etat_instance, service_name, archive, web_links)
+            if await asyncio.to_thread(check_archive_stale, context, archive):
+                await asyncio.to_thread(installer_archive, context, service_name, archive, web_links)
             else:
                 # Mettre a jour configuration des liens web
                 LOGGER.info("installer_service Mettre a jour configuration web links pour %s", service_name)
@@ -417,31 +420,33 @@ async def install_service(etat_instance, docker_handler: DockerHandler, command:
     image = parser.image
     if image is not None:
         commande_creer_service = DockerCommandes.CommandeCreerService(
-            image_tag, config_parsed, reinstaller=command.reinstall, aio=True)
-        docker_handler.ajouter_commande(commande_creer_service)
-        resultat = await commande_creer_service.get_resultat()
-
+            image_tag, config_parsed, reinstaller=command.reinstall)
+        resultat = await docker_handler.run_command(commande_creer_service)
         return resultat
     else:
         LOGGER.debug("installer_service() Invoque pour un service sans images : %s", service_name)
 
-async def get_params_env_service(etat_instance, docker_handler: DockerHandler) -> dict:
+async def get_params_env_service(context: InstanceContext, docker_handler: DockerHandler) -> dict:
     # Charger configurations
-    action_configurations = DockerCommandes.CommandeListerConfigs(aio=True)
-    docker_handler.ajouter_commande(action_configurations)
+    action_configurations = DockerCommandes.CommandeListerConfigs()
+    await docker_handler.run_command(action_configurations)
     docker_configs = await action_configurations.get_resultat()
 
-    action_secrets = DockerCommandes.CommandeListerSecrets(aio=True)
-    docker_handler.ajouter_commande(action_secrets)
+    action_secrets = DockerCommandes.CommandeListerSecrets()
+    await docker_handler.run_command(action_secrets)
     docker_secrets = await action_secrets.get_resultat()
 
-    action_datees = DockerCommandes.CommandeGetConfigurationsDatees(aio=True)
-    docker_handler.ajouter_commande(action_datees)
+    action_datees = DockerCommandes.CommandeGetConfigurationsDatees()
+    await docker_handler.run_command(action_datees)
     config_datees = await action_datees.get_resultat()
 
+    try:
+        idmg = context.idmg
+    except ValueNotAvailable:
+        idmg = None
     params = {
-        'HOSTNAME': etat_instance.hostname,
-        'IDMG': etat_instance.idmg,
+        'HOSTNAME': context.hostname,
+        'IDMG': idmg,
         '__secrets': docker_secrets,
         '__configs': docker_configs,
         '__docker_config_datee': config_datees['correspondance'],
@@ -450,14 +455,13 @@ async def get_params_env_service(etat_instance, docker_handler: DockerHandler) -
     return params
 
 
-async def nginx_installation_cleanup(etat_instance, docker_handler: DockerHandler):
+async def nginx_installation_cleanup(context: InstanceContext, docker_handler: DockerHandler):
     """
     Ensure nginxinstall and other installation services are removed.
     """
-    action_remove = DockerCommandes.CommandeSupprimerService("nginxinstall", aio=True)
-    docker_handler.ajouter_commande(action_remove)
+    action_remove = DockerCommandes.CommandeSupprimerService("nginxinstall")
     try:
-        await action_remove.get_resultat()
+        await docker_handler.run_command(action_remove)
     except docker.errors.NotFound:
         pass  # Ok, already removed
 

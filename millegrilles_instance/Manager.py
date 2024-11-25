@@ -1,16 +1,21 @@
 import asyncio
 import logging
+import threading
 
 from asyncio import TaskGroup
 from os import path, makedirs
 from typing import Optional
 from uuid import uuid4
 
+from millegrilles_instance import ModulesRequisInstance
+from millegrilles_instance.InstanceDocker import InstanceDockerHandler
+from millegrilles_messages.bus.BusContext import ForceTerminateExecution
+from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Certificats import GenerateurCertificatsHandler, preparer_certificats_web
 from millegrilles_instance.Configuration import ConfigurationInstance
-from millegrilles_instance.Context import InstanceContext
-from millegrilles_messages.bus.BusContext import ForceTerminateExecution
-from millegrilles_messages.docker.DockerHandler import DockerHandler
+from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
+from millegrilles_instance.MaintenanceApplications import ApplicationsHandler
+from millegrilles_messages.messages.Constantes import SECURITE_SECURE
 
 
 class InstanceManager:
@@ -18,11 +23,16 @@ class InstanceManager:
     Facade for system handlers. Used by access modules (mq, web).
     """
 
-    def __init__(self, context: InstanceContext, generateur_certificats: GenerateurCertificatsHandler, docker_handler: Optional[DockerHandler]):
+    def __init__(self, context: InstanceContext, generateur_certificats: GenerateurCertificatsHandler,
+                 docker_handler: Optional[InstanceDockerHandler], gestionnaire_applications: Optional[ApplicationsHandler]):
+
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context = context
         self.__generateur_certificats = generateur_certificats
         self.__docker_handler = docker_handler
+        self.__gestionnaire_applications = gestionnaire_applications
+
+        self.__reload_configuration = threading.Event()
 
     @property
     def context(self) -> InstanceContext:
@@ -34,6 +44,7 @@ class InstanceManager:
     async def run(self):
         async with TaskGroup() as group:
             group.create_task(self.__stop_thread())
+            group.create_task(self.__reload_configuration_thread())
 
         if self.__context.stopping is False:
             self.__logger.error("InstanceManager stopping without stop flag set - force quitting")
@@ -42,8 +53,20 @@ class InstanceManager:
 
         self.__logger.info("run() stopping")
 
+    def callback_changement_configuration(self):
+        self.__reload_configuration.set()
+
+    async def __reload_configuration_thread(self):
+        while self.context.stopping is False:
+            await asyncio.to_thread(self.__reload_configuration.wait)
+            if self.context.stopping:
+                return  # Exit condition
+            self.__reload_configuration.clear()
+            await self.__load_application_list()
+
     async def __stop_thread(self):
         await self.context.wait()
+        self.__reload_configuration.set()  # Release thread
 
     async def __prepare_configuration(self):
         """
@@ -98,3 +121,65 @@ class InstanceManager:
     async def preparer_certificats(self):
         configuration: ConfigurationInstance = self.__context.configuration
         await asyncio.to_thread(preparer_certificats_web, str(configuration.path_secrets))
+
+    async def __load_application_list(self):
+        try:
+            securite = self.__context.securite
+        except ValueNotAvailable:
+            securite = None  # System not initialized
+
+        try:
+            clecert = self.__context.signing_key
+            expiration = clecert.enveloppe.calculer_expiration()
+            expired = expiration is None or expiration.get('expire') is True
+        except AttributeError:
+            expired = None  # No valid certificate
+
+        docker_present = self.__docker_handler is not None
+
+        if securite is None:
+            if docker_present:
+                self.__logger.info("Installation mode with docker")
+                required_modules = ModulesRequisInstance.CONFIG_MODULES_INSTALLATION
+            else:
+                self.__logger.info("Installation mode without docker")
+                raise NotImplementedError('Installation mode without docker not supported')
+        elif expired:
+            if docker_present:
+                self.__logger.info("Recovery mode with docker")
+                if securite in [Constantes.SECURITE_PROTEGE, Constantes.SECURITE_SECURE]:
+                    required_modules = ModulesRequisInstance.CONFIG_MODULES_SECURE_EXPIRE
+                else:
+                    required_modules = ModulesRequisInstance.CONFIG_CERTIFICAT_EXPIRE
+            else:
+                self.__logger.info("Recovery mode without docker")
+                raise NotImplementedError('Recovery mode without docker not supported')
+        elif docker_present is False:
+            # No docker, just plain application mode
+            self.__logger.info("Applications without docker mode")
+            raise NotImplementedError('Applications without docker not supported')
+        else:
+            # Normal operation mode with docker
+            if securite == Constantes.SECURITE_PUBLIC:
+                self.__logger.info("Docker mode 1.public")
+                required_modules = ModulesRequisInstance.CONFIG_MODULES_PUBLICS
+            elif securite == Constantes.SECURITE_PRIVE:
+                self.__logger.info("Docker mode 2.prive")
+                required_modules = ModulesRequisInstance.CONFIG_MODULES_PRIVES
+            elif securite == Constantes.SECURITE_PROTEGE:
+                self.__logger.info("Docker mode 3.protege")
+                required_modules = ModulesRequisInstance.CONFIG_MODULES_PROTEGES
+            elif securite == Constantes.SECURITE_SECURE:
+                self.__logger.info("Docker mode 4.secure")
+                required_modules = ModulesRequisInstance.CONFIG_MODULES_SECURES
+            else:
+                raise ValueError('Unsupported security mode: %s' % securite)
+
+        self.__context.application_status.required_modules = required_modules
+
+        # Reload configured application list from disk
+
+        # Trigger application maintenance
+        await self.__docker_handler.callback_changement_applications()
+
+        pass

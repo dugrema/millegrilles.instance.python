@@ -203,9 +203,9 @@ async def get_docker_image_tag(context: InstanceContext, docker_handler: DockerH
         coros.append(download_update_coro)
 
     result = await asyncio.gather(*coros)
-    image_info = result[0]
 
     try:
+        image_info = await commande_image.get_resultat()
         image_tag = image_info['tags'][0]
     except TypeError:
         raise UnknownImage(image)

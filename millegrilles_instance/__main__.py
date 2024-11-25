@@ -1,22 +1,23 @@
 import asyncio
 import logging
 import sys
+
 from asyncio import TaskGroup
 from concurrent.futures.thread import ThreadPoolExecutor
-
 from typing import Awaitable
 
+from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopListener
+from millegrilles_messages.bus.BusExceptions import ConfigurationFileError
+from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
+from millegrilles_messages.docker.DockerHandler import DockerState
 from millegrilles_instance.Certificats import GenerateurCertificatsHandler
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
+from millegrilles_instance.MaintenanceApplications import ApplicationsHandler
 from millegrilles_instance.Manager import InstanceManager
 from millegrilles_instance.WebServer import WebServer
-from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopListener
-from millegrilles_messages.bus.BusExceptions import ConfigurationFileError
-from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
 from millegrilles_instance.MgbusHandler import MgbusHandler
-from millegrilles_messages.docker.DockerHandler import DockerState, DockerHandler
 
 LOGGER = logging.getLogger(__name__)
 
@@ -83,8 +84,11 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
         # Docker not supported
         docker_handler = None
 
+    applications_handler = ApplicationsHandler(context, docker_handler)
+
     # Facade
-    manager = InstanceManager(context, generateur_certificats, docker_handler)
+    manager = InstanceManager(context, generateur_certificats, docker_handler, applications_handler)
+    context.add_reload_listener(manager.callback_changement_configuration)
 
     # Access modules
     web_server = WebServer(manager)

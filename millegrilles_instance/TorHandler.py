@@ -13,14 +13,14 @@ class CommandeOnionizeGetHostname(CommandeDocker):
     """
 
     def __init__(self):
-        super().__init__(None, aio=True)
+        super().__init__()
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.facteur_throttle = 0.1
 
-    def executer(self, docker_client: DockerClient):
+    async def executer(self, docker_client: DockerClient):
         container = trouver_onionize(docker_client)
         hostname = self.get_hostname(container)
-        self.callback(hostname)
+        await self._callback_asyncio(hostname)
 
     def get_hostname(self, container: Container):
         exit_code, hostname = container.exec_run('cat %s' % ONIONIZE_HOSTNAME_PATH)
