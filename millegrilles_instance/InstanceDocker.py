@@ -14,7 +14,7 @@ from typing import Optional
 from base64 import b64decode
 
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
-from millegrilles_instance.MaintenanceApplicationService import service_maintenance
+from millegrilles_instance.MaintenanceApplicationService import service_maintenance, get_service_status
 from millegrilles_instance.MaintenanceApplicationWeb import installer_archive, check_archive_stale
 from millegrilles_instance.ModulesRequisInstance import RequiredModules
 from millegrilles_instance.NginxUtils import ajouter_fichier_configuration
@@ -64,6 +64,7 @@ class InstanceDockerHandler:
             group.create_task(self.__application_maintenance())
             group.create_task(self.initialiser_docker())
             group.create_task(self.__configuration_udpate_thread())
+            group.create_task(self.__service_status_pull())
             group.create_task(self.__stop_thread())
 
     async def __stop_thread(self):
@@ -93,6 +94,20 @@ class InstanceDockerHandler:
 
     async def callback_changement_applications(self):
         self.__applications_changed.set()
+
+    async def __service_status_pull(self):
+        while self.__context.stopping is False:
+            try:
+                if self.__context.application_status.required_modules is not None:
+                    # Updates the status in context
+                    await get_service_status(self.__context, self.__docker_handler, self.__context.application_status.required_modules)
+            except:
+                self.__logger.exception("__service_status_pull Unhandled exception")
+
+            try:
+                await asyncio.wait_for(self.__applications_changed.wait(), 15)
+            except asyncio.TimeoutError:
+                pass
 
     async def __application_maintenance(self):
         while self.__context.stopping is False:

@@ -290,11 +290,11 @@ async def wait_for_application(context: InstanceContext, app_name: str):
     while True:
         app = context.application_status.apps.get(app_name)
         try:
-            if app['running'] is True:
+            if app['status']['running'] is True:
                 break
         except (TypeError, KeyError):
             pass
         LOGGER.info("Waiting for application %s" % app_name)
-        await context.wait(7)
+        await context.wait(5)
         if context.stopping:
             raise ForceTerminateExecution()
