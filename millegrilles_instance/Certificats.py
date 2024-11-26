@@ -987,7 +987,7 @@ async def get_configuration_passwords(context: InstanceContext) -> list:
     liste_noms_passwords = list()
     for c in configurations:
         try:
-            p = c['generateur']
+            p = c.get('generateur') or c['passwords']
             liste_noms_passwords.extend(p)
         except KeyError:
             pass

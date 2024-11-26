@@ -426,12 +426,14 @@ async def install_service(context: InstanceContext, docker_handler: DockerHandle
             image_tag, config_parsed, reinstaller=command.reinstall)
         try:
             resultat = await docker_handler.run_command(commande_creer_service)
+            return resultat
         except docker.errors.APIError as e:
             if e.status_code == 409:
                 pass  # Already installed (duplicate install command) - OK
+                return {'ok': True}
             else:
                 raise e
-        return resultat
+
     else:
         LOGGER.debug("installer_service() Invoque pour un service sans images : %s", service_name)
 
