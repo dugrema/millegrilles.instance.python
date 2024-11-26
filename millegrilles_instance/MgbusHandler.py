@@ -72,34 +72,6 @@ class MgbusHandler(MgbusHandlerInterface):
         raise NotImplementedError('Stop mgbus thread / unregister all channels')
 
     async def on_exclusive_message(self, message: MessageWrapper):
-        # Authorization check - 3.protege/CoreTopologie
-        enveloppe = message.certificat
-        try:
-            domaines = enveloppe.get_domaines
-        except ExtensionNotFound:
-            domaines = list()
-        try:
-            exchanges = enveloppe.get_exchanges
-        except ExtensionNotFound:
-            exchanges = list()
-
-        if 'CoreTopologie' in domaines and Constantes.SECURITE_PROTEGE in exchanges:
-            pass  # CoreTopologie
-        else:
-            return  # Ignore message
-
-        action = message.routage['action']
-
-        # if action == 'filehostingUpdate':
-        #     # File hosts updated, reload configuration
-        #     pass  # return await self.__solr_manager.reload_filehost_configuration()
-
-        self.__logger.info("on_exclusive_message Ignoring unknown action %s" % action)
-
-    async def on_application_message(self, message: MessageWrapper):
-        raise NotImplementedError()
-
-    async def on_request_message(self, message: MessageWrapper):
         # Authorization check
         enveloppe = message.certificat
         try:
@@ -111,16 +83,51 @@ class MgbusHandler(MgbusHandlerInterface):
         except ExtensionNotFound:
             exchanges = list()
 
-        if 'GrosFichiers' in domaines and Constantes.SECURITE_PROTEGE in exchanges:
-            pass  # GrosFichiers
-        else:
-            return  # Ignore message
-
-        payload = message.parsed
         action = message.routage['action']
 
-        # if action == ConstantesRelaiSolr.REQUETE_FICHIERS:
-        #     pass  # return await self.__solr_manager.query(user_id, payload)
+        if (Constantes.DOMAINE_CORE_TOPOLOGIE in domaines and Constantes.SECURITE_PROTEGE in exchanges and
+                action == ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE):
+            return await self.__manager.update_fiche_publique(message)
+
+        self.__logger.info("on_exclusive_message Ignoring unknown action %s" % action)
+
+    async def on_application_message(self, message: MessageWrapper):
+        # Authorization check
+        enveloppe = message.certificat
+        try:
+            delegation_globale = enveloppe.get_delegation_globale
+        except ExtensionNotFound:
+            delegation_globale = None
+
+        action = message.routage['action']
+
+        if (delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE and
+                action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES):
+            return await self.__manager.send_application_packages()
+
+        raise NotImplementedError()
+
+    async def on_request_message(self, message: MessageWrapper):
+        # Authorization check
+        enveloppe = message.certificat
+        try:
+            delegation_globale = enveloppe.get_delegation_globale
+        except ExtensionNotFound:
+            delegation_globale = None
+
+        action = message.routage['action']
+
+        if delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
+            if action == ConstantesInstance.COMMANDE_APPLICATION_INSTALLER:
+                raise NotImplementedError('todo')
+            elif action == ConstantesInstance.COMMANDE_APPLICATION_UPGRADE:
+                raise NotImplementedError('todo')
+            elif action == ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER:
+                raise NotImplementedError('todo')
+            elif action == ConstantesInstance.COMMANDE_APPLICATION_DEMARRER:
+                raise NotImplementedError('todo')
+            elif action == ConstantesInstance.COMMANDE_APPLICATION_ARRETER:
+                raise NotImplementedError('todo')
 
         self.__logger.info("on_request_message Ignoring unknown action %s" % action)
 

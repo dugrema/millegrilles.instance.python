@@ -1,7 +1,8 @@
 import asyncio
+import json
 import logging
+import lzma
 import threading
-import pathlib
 
 from asyncio import TaskGroup
 from os import path, makedirs
@@ -11,16 +12,14 @@ from uuid import uuid4
 from millegrilles_instance import ModulesRequisInstance
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance.Interfaces import MgbusHandlerInterface
-from millegrilles_instance.MaintenanceApplicationService import charger_configuration_docker, \
-    charger_configuration_application
+from millegrilles_instance.NginxHandler import NginxHandler
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
-from millegrilles_messages.docker.DockerCommandes import CommandeListerServices
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Certificats import GenerateurCertificatsHandler, preparer_certificats_web
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.MaintenanceApplications import ApplicationsHandler
-from millegrilles_messages.messages.Constantes import SECURITE_SECURE
+from millegrilles_messages.messages.MessagesModule import MessageWrapper
 
 LOGGER = logging.getLogger(__name__)
 
@@ -36,7 +35,8 @@ class InstanceManager:
     """
 
     def __init__(self, context: InstanceContext, generateur_certificats: GenerateurCertificatsHandler,
-                 docker_handler: Optional[InstanceDockerHandler], gestionnaire_applications: Optional[ApplicationsHandler]):
+                 docker_handler: Optional[InstanceDockerHandler], gestionnaire_applications: ApplicationsHandler,
+                 nginx_handler: NginxHandler):
 
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context = context
@@ -44,6 +44,7 @@ class InstanceManager:
         self.__docker_handler = docker_handler
         self.__gestionnaire_applications = gestionnaire_applications
         self.__mgbus_handler: Optional[MgbusHandlerInterface] = None
+        self.__nginx_handler: NginxHandler = nginx_handler
 
         self.__reload_configuration = threading.Event()
 
@@ -255,15 +256,54 @@ class InstanceManager:
         if securite == Constantes.SECURITE_PROTEGE:
             # Check that MQ and midcompte are running. Mongo is optional but is done before midcompte when required.
             await wait_for_application(self.__context, 'mq')
+            await wait_for_application(self.__context, 'mongo')     # TODO - support move secure
             await wait_for_application(self.__context, 'midcompte')
+            await wait_for_application(self.__context, 'core')      # TODO - support move secure
 
         # 4. Connect to mgbus (MQ)
         await self.__mgbus_handler.register()
+
+        # 5. Exchange updated information
+        try:
+            await self.__docker_handler.emettre_presence()
+            await self.send_application_packages()
+            await self.request_fiche_json()
+        except:
+            self.__logger.exception("Error during initial information exchange after connection to mgbus")
 
     async def stop_normal_operation(self):
         # Disconnect from mgbus
         await self.__mgbus_handler.unregister()
 
+    async def update_fiche_publique(self, message: MessageWrapper):
+        contenu = message.contenu
+        await asyncio.to_thread(self.__nginx_handler.sauvegarder_fichier_data, 'fiche.json', contenu, True)
+
+    async def send_application_packages(self):
+        self.__logger.info("Transmettre catalogues")
+        path_catalogues = self.context.configuration.path_catalogues
+        producer = await asyncio.wait_for(self.__context.get_producer(), 1)
+        for f in path_catalogues.iterdir():
+            if f.is_file() and f.name.endswith('.json.xz'):
+                with lzma.open(f, 'rt') as fichier:
+                    app_transaction = json.load(fichier)
+                commande = {"catalogue": app_transaction}
+                await producer.command(commande,
+                                       domain=Constantes.DOMAINE_CORE_CATALOGUES,
+                                       action='catalogueApplication',
+                                       exchange=Constantes.SECURITE_PROTEGE,
+                                       nowait=True)
+
+        return {'ok': True}
+
+    async def request_fiche_json(self):
+        producer = await asyncio.wait_for(self.__context.get_producer(), 1)
+        idmg = self.context.idmg
+        fiche_response = await producer.request({'idmg': idmg}, Constantes.DOMAINE_CORE_TOPOLOGIE,
+                                                'ficheMillegrille',
+                                                exchange=Constantes.SECURITE_PUBLIC)
+        contenu = fiche_response.contenu
+        await asyncio.to_thread(self.__nginx_handler.sauvegarder_fichier_data, 'fiche.json', contenu, True)
 
 async def wait_for_application(context: InstanceContext, app_name: str):
     while True:

@@ -148,6 +148,10 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         return pathlib.Path(self.__config_json)
 
     @property
+    def path_catalogues(self) -> pathlib.Path:
+        return pathlib.Path(self.__path_catalogues)
+
+    @property
     def certissuer_url(self) -> str:
         return self.__certissuer_url
 

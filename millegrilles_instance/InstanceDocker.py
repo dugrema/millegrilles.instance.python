@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import io
+import json
 import pathlib
 import tarfile
 import threading
@@ -19,10 +20,12 @@ from millegrilles_instance.MaintenanceApplicationService import service_maintena
 from millegrilles_instance.MaintenanceApplicationWeb import installer_archive, check_archive_stale
 from millegrilles_instance.ModulesRequisInstance import RequiredModules
 from millegrilles_instance.NginxUtils import ajouter_fichier_configuration
+
+from millegrilles_messages.messages import Constantes
+from millegrilles_messages.IpUtils import get_hostnames
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.docker.DockerHandler import DockerHandler, DockerState
 from millegrilles_messages.docker import DockerCommandes
-
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.docker.ParseConfiguration import ConfigurationService, WebApplicationConfiguration
 from millegrilles_messages.docker.DockerHandler import CommandeDocker
@@ -103,6 +106,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
                 if self.__context.application_status.required_modules is not None:
                     # Updates the status in context
                     await get_service_status(self.__context, self.__docker_handler, self.__context.application_status.required_modules)
+                await self.emettre_presence()
             except:
                 self.__logger.exception("__service_status_pull Unhandled exception")
 
@@ -132,12 +136,8 @@ class InstanceDockerHandler(DockerHandlerInterface):
 
         self.__logger.info("__application_maintenance Thread terminee")
 
-    async def emettre_presence(self, producer: MessageProducerFormatteur, info: Optional[dict] = None):
-        self.__logger.info("Emettre presence")
-        if info is not None:
-            info_updatee = info.copy()
-        else:
-            info_updatee = dict()
+    async def emettre_presence(self):
+        info_updatee = dict()
 
         commande = CommandeListeTopologie()
         await self.run_command(commande)
@@ -149,8 +149,51 @@ class InstanceDockerHandler(DockerHandlerInterface):
         if adresse_onion is not None:
             info_updatee['onion'] = adresse_onion
 
-        raise NotImplementedError('todo')
-        # await self.__etat_instance.emettre_presence(producer, info_updatee)
+        info_updatee['hostname'] = self.__context.hostname
+        info_updatee['domaine'] = self.__context.hostname
+        info_updatee['domaines'] = self.__context.hostnames
+        info_updatee['fqdn_detecte'] = get_hostnames(fqdn=True)[0]
+        info_updatee['ip_detectee'] = self.__context.ip_address
+        info_updatee['instance_id'] = self.__context.instance_id
+        info_updatee['securite'] = self.__context.securite
+
+        # Ajouter etat systeme
+        # info_updatee.update(self.__etat_systeme.etat)
+
+        # Faire la liste des applications installees
+        # liste_applications = await self.get_liste_configurations()
+        # info_updatee['applications_configurees'] = liste_applications
+
+        # Liste applications web
+        path_conf_applications = pathlib.Path(
+            self.__context.configuration.path_configuration,
+            ConstantesInstance.CONFIG_NOMFICHIER_CONFIGURATION_WEB_APPLICATIONS)
+        try:
+            with open(path_conf_applications, 'rt') as fichier:
+                configuration_webapps = json.load(fichier)
+
+            webapps_list = list()
+            # Merge avec la liste d'applications docker
+            for nom, app in configuration_webapps.items():
+                for links in app['links']:
+                    app_info = links.copy()
+                    app_info['name'] = nom
+                    webapps_list.append(app_info)
+
+            info_updatee['webapps'] = webapps_list
+
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.__logger.info('No web application configuration file present/valid')
+
+        niveau_securite = self.__context.securite
+        if niveau_securite == Constantes.SECURITE_SECURE:
+            # Downgrade 4.secure a niveau 3.protege
+            niveau_securite = Constantes.SECURITE_PROTEGE
+
+        producer = await asyncio.wait_for(self.__context.get_producer(), 3)
+        await producer.event(info_updatee, Constantes.DOMAINE_INSTANCE,
+                             ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
+                             exchange=niveau_securite)
 
     async def verifier_config_instance(self):
         instance_id = self.__context.instance_id
@@ -634,8 +677,8 @@ class InstanceDockerHandler(DockerHandlerInterface):
 
     async def verifier_tor(self):
         commande = CommandeOnionizeGetHostname()
-        self.__docker_handler.ajouter_commande(commande)
         try:
+            await self.__docker_handler.run_command(commande)
             hostname = await commande.get_resultat()
         except OnionizeNonDisponibleException:
             self.__logger.debug("Service onionize non demarre")

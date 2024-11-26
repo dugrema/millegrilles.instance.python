@@ -10,7 +10,6 @@ from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Interfaces import DockerHandlerInterface
 from millegrilles_instance.Structs import ApplicationInstallationStatus
 from millegrilles_messages.IpUtils import get_ip, get_hostnames
-from millegrilles_messages.bus.BusConfiguration import MilleGrillesBusConfiguration
 from millegrilles_messages.bus.BusContext import MilleGrillesBusContext
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
 from millegrilles_messages.bus.PikaMessageProducer import MilleGrillesPikaMessageProducer
@@ -122,6 +121,10 @@ class InstanceContext(MilleGrillesBusContext):
     @property
     def hostnames(self):
         return self.__hostnames
+
+    @property
+    def ip_address(self):
+        return self.__ip_address
 
     @property
     def csr_genere(self):

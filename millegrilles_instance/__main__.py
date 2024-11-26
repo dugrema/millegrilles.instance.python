@@ -68,7 +68,8 @@ async def main():
 
 
 async def wiring(context: InstanceContext) -> list[Awaitable]:
-    # Some threads get used to handle sync events for the duration of the execution. Ensure there are enough.
+    # Some executor threads get used to handle threading.Event triggers for the duration of the execution.
+    # Ensure there are enough.
     loop = asyncio.get_event_loop()
     loop.set_default_executor(ThreadPoolExecutor(max_workers=15))
 
@@ -89,7 +90,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     applications_handler = ApplicationsHandler(context, docker_handler)
 
     # Facade
-    manager = InstanceManager(context, generateur_certificats, docker_handler, applications_handler)
+    manager = InstanceManager(context, generateur_certificats, docker_handler, applications_handler, nginx_handler)
     context.add_reload_listener(manager.callback_changement_configuration)
 
     # Access modules
