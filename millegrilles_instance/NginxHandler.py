@@ -32,7 +32,7 @@ LOGGER = logging.getLogger(__name__)
 
 class NginxHandler:
 
-    def __init__(self, context: InstanceContext, docker_handler: Optional[DockerHandler]):
+    def __init__(self, context: InstanceContext, docker_handler: Optional[InstanceDockerHandler]):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context: InstanceContext = context
         self.__docker_handler = docker_handler
@@ -222,6 +222,9 @@ add_header "Onion-Location" "https://%s";
 
         if fichier_nouveau is True:
             await self.__docker_handler.redemarrer_nginx("EntretienNginx.verifier_tor Maj configuration TOR")
+
+    async def refresh_configuration(self, reason: str):
+        await self.__docker_handler.redemarrer_nginx(reason)
 
 
 def generer_configuration_nginx(context: InstanceContext, path_src_nginx: pathlib.Path) -> bool:

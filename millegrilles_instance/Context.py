@@ -10,7 +10,7 @@ from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Interfaces import DockerHandlerInterface
 from millegrilles_instance.Structs import ApplicationInstallationStatus
 from millegrilles_messages.IpUtils import get_ip, get_hostnames
-from millegrilles_messages.bus.BusContext import MilleGrillesBusContext
+from millegrilles_messages.bus.BusContext import MilleGrillesBusContext, ForceTerminateExecution
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
 from millegrilles_messages.bus.PikaMessageProducer import MilleGrillesPikaMessageProducer
 from millegrilles_messages.certificats.Generes import CleCsrGenere
@@ -45,10 +45,16 @@ class InstanceContext(MilleGrillesBusContext):
         return super().configuration
 
     async def run(self):
-        async with TaskGroup() as group:
-            group.create_task(super().run())
-            group.create_task(self.__reload_thread())
-            group.create_task(self.__stop_thread())
+        try:
+            async with TaskGroup() as group:
+                group.create_task(super().run())
+                group.create_task(self.__reload_thread())
+                group.create_task(self.__stop_thread())
+        except *Exception:  # Stop on any thread exception
+            if self.stopping is False:
+                self.__logger.exception("Context Unhandled error, closing")
+                self.stop()
+                raise ForceTerminateExecution()
 
     async def __reload_thread(self):
         while self.stopping is False:
@@ -155,33 +161,36 @@ class InstanceContext(MilleGrillesBusContext):
         self.__instance_id = instance_id
 
         try:
-            securite = configuration.get_securite()
-            idmg = configuration.get_idmg()
+            try:
+                securite = configuration.get_securite()
+                idmg = configuration.get_idmg()
 
-            self.__securite = securite
-            self.__idmg = idmg
-        except FileNotFoundError:
-            # System not configured yet
-            self.__securite = None
-            self.__idmg = None
+                self.__securite = securite
+                self.__idmg = idmg
+            except FileNotFoundError:
+                # System not configured yet
+                self.__securite = None
+                self.__idmg = None
 
-        try:
-            super().reload()
-        except FileNotFoundError:
-            # System not configured yet
-            self.__logger.info("Certificate not available yet, MQ Bus unavailable")
-        except CertificatExpire:
-            # The system certificate is expired
-            self.__logger.info("Certificate is expired, MQ Bus unavailable")
+            try:
+                super().reload()
+            except FileNotFoundError:
+                # System not configured yet
+                self.__logger.info("Certificate not available yet, MQ Bus unavailable")
+            except CertificatExpire:
+                # The system certificate is expired
+                self.__logger.info("Certificate is expired, MQ Bus unavailable")
 
-        self.__ip_address = get_ip()
-        self.__logger.debug("Local IP: %s" % self.__ip_address)
-        self.__hostname, self.__hostnames = get_hostnames(fqdn=True)
-        self.__logger.debug("Local domain: %s, domaines : %s" % (self.__hostname, self.__hostnames))
+            self.__ip_address = get_ip()
+            self.__logger.debug("Local IP: %s" % self.__ip_address)
+            self.__hostname, self.__hostnames = get_hostnames(fqdn=True)
+            self.__logger.debug("Local domain: %s, domaines : %s" % (self.__hostname, self.__hostnames))
 
-        # Call reload listeners
-        for listener in self.__reload_listeners:
-            listener()
+            # Call reload listeners
+            for listener in self.__reload_listeners:
+                listener()
+        finally:
+            self.__reload_done.set()
 
     def ssl_session(self, timeout: Optional[aiohttp.ClientTimeout] = None):
         ssl_context = self.ssl_context

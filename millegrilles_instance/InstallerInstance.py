@@ -48,12 +48,15 @@ async def installer_instance(context: InstanceContext, request: BaseRequest, hea
 
     if securite == Constantes.SECURITE_SECURE:
         await installer_secure(context, contenu, certificat_ca, idmg)
+        await context.delay_reload(3)
         return web.Response(status=201, headers=headers_response)
     elif securite == Constantes.SECURITE_PROTEGE:
         await installer_protege(context, contenu, certificat_ca, idmg)
+        await context.delay_reload(3)
         return web.Response(status=201, headers=headers_response)
     elif securite in [Constantes.SECURITE_PUBLIC, Constantes.SECURITE_PRIVE]:
         await installer_satellite(context, contenu, securite, certificat_ca, idmg)
+        await context.delay_reload(3)
         return web.Response(status=200, headers=headers_response)
     else:
         logger.error("installer_instance Mauvais type instance (%s)" % securite)
@@ -175,7 +178,7 @@ async def installer_satellite(context: InstanceContext, contenu: dict, securite:
     # await etat_instance.reload_configuration()
     # Donner 10 secondes pour terminer le traitement (e.g. reponse web)
     # await context.delay_reload(datetime.timedelta(seconds=10), force_restart=True)
-    await context.delay_reload(10)
+    # await context.delay_reload(10)
 
 
 async def configurer_idmg(context: InstanceContext, contenu: dict):

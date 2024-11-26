@@ -32,7 +32,7 @@ class ServiceStatus:
     disabled: bool
     docker_handle: Optional[Service]
 
-    def __init__(self, dep_configuration: dict, installed=False, replicas=None):
+    def __init__(self, dep_configuration: dict,  installed=False, replicas=None):
         self.name = dep_configuration['name']
         self.configuration = dep_configuration
         self.installed = installed
@@ -285,7 +285,7 @@ async def update_stale_configuration(context: InstanceContext, docker_handler: D
             await install_service(context, docker_handler, install_command)
 
 
-async def service_maintenance(context: InstanceContext, docker_handler: DockerHandler, config_modules: RequiredModules):
+async def service_maintenance(context: InstanceContext, docker_handler: DockerHandler, config_modules: RequiredModules) -> bool:
     # Try to update any stale configuration (e.g. expired certificates)
     await update_stale_configuration(context, docker_handler, config_modules)
 
@@ -301,6 +301,9 @@ async def service_maintenance(context: InstanceContext, docker_handler: DockerHa
         task_install = install_services(context, docker_handler, service_install_queue)
         await asyncio.gather(task_install, task_download)
         LOGGER.debug("Install missing or stopped services DONE")
+        return True
+
+    return False
 
 
 async def charger_configuration_docker(path_configuration: pathlib.Path, required_modules: RequiredModules) -> list:
@@ -413,7 +416,6 @@ async def install_service(context: InstanceContext, docker_handler: DockerHandle
                 # Mettre a jour configuration des liens web
                 LOGGER.info("installer_service Mettre a jour configuration web links pour %s", service_name)
                 sauvegarder_configuration_webapps(context, service_name, web_links)
-
 
     # S'assurer d'avoir l'image
     image = parser.image

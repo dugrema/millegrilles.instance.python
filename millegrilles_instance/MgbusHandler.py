@@ -9,7 +9,7 @@ from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.Interfaces import MgbusHandlerInterface
 from millegrilles_instance.Manager import InstanceManager
-from millegrilles_messages.bus.BusContext import MilleGrillesBusContext
+from millegrilles_messages.bus.BusContext import MilleGrillesBusContext, ForceTerminateExecution
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.bus.PikaChannel import MilleGrillesPikaChannel
 from millegrilles_messages.bus.PikaQueue import MilleGrillesPikaQueueConsumer, RoutingKey
@@ -28,9 +28,15 @@ class MgbusHandler(MgbusHandlerInterface):
         self.__task_group: Optional[TaskGroup] = None
 
     async def run(self):
-        async with TaskGroup() as group:
-            self.__task_group = group
-            group.create_task(self.__stop_thread())
+        try:
+            async with TaskGroup() as group:
+                self.__task_group = group
+                group.create_task(self.__stop_thread())
+        except *Exception:  # Stop on any thread exception
+            if self.__manager.context.stopping is False:
+                self.__logger.exception("GenerateurCertificatsHandler Unhandled error, closing")
+                self.__manager.context.stop()
+                raise ForceTerminateExecution()
         self.__task_group = None
 
     async def __stop_thread(self):

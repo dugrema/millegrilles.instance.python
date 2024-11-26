@@ -19,6 +19,7 @@ from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance.MaintenanceApplicationService import charger_configuration_docker, \
     charger_configuration_application
+from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.bus.PikaMessageProducer import MilleGrillesPikaMessageProducer
 from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.messages import Constantes
@@ -761,10 +762,16 @@ class GenerateurCertificatsHandler:
         return self.__event_setup_initial_certificats
 
     async def run(self):
-        async with TaskGroup() as group:
-            group.create_task(self.thread_entretien())
-            group.create_task(self.__thread_signature())
-            group.create_task(self.__stop_thread())
+        try:
+            async with TaskGroup() as group:
+                group.create_task(self.thread_entretien())
+                group.create_task(self.__thread_signature())
+                group.create_task(self.__stop_thread())
+        except *Exception:  # Stop on any thread exception
+            if self.__context.stopping is False:
+                self.__logger.exception("GenerateurCertificatsHandler Unhandled error, closing")
+                self.__context.stop()
+                raise ForceTerminateExecution()
 
     # async def threads(self):
     #     tasks = [

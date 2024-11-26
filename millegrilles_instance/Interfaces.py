@@ -3,6 +3,9 @@ class DockerHandlerInterface:
     def __init__(self):
         pass
 
+    async def redemarrer_nginx(self):
+        raise NotImplementedError('must implement')
+
 
 class MgbusHandlerInterface:
 

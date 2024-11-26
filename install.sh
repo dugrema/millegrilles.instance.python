@@ -22,5 +22,5 @@ if ! [ -d etc/catalogues/signed ]; then
 fi
 
 # Executer le script d'installation de base sans docker
-sudo -E ${REP_BIN}/install_instance.sh
+sudo -H -E ${REP_BIN}/install_instance.sh
 ${REP_BIN}/install_fixes.sh

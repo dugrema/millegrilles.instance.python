@@ -63,10 +63,13 @@ class InstanceManager:
         await self.__prepare_configuration()
 
     async def run(self):
-        async with TaskGroup() as group:
-            group.create_task(self.__stop_thread())
-            group.create_task(self.__reload_configuration_thread())
-            group.create_task(self.__runlevel_thread())
+        try:
+            async with TaskGroup() as group:
+                group.create_task(self.__stop_thread())
+                group.create_task(self.__reload_configuration_thread())
+                group.create_task(self.__runlevel_thread())
+        except *Exception:  # Stop on any thread exception
+            self.__logger.exception("InstanceManager Unhandled error, closing")
 
         if self.__context.stopping is False:
             self.__logger.error("InstanceManager stopping without stop flag set - force quitting")
@@ -88,8 +91,10 @@ class InstanceManager:
                 self.__logger.info("Changing runlevel from %d to %d" % (previous_runlevel, self.__runlevel))
 
                 try:
-                    if previous_runlevel == CONST_RUNLEVEL_NORMAL:
-                        await self.stop_normal_operation()
+                    if previous_runlevel == CONST_RUNLEVEL_INSTALLING:
+                        await self.__stop_runlevel_installation()
+                    elif previous_runlevel == CONST_RUNLEVEL_NORMAL:
+                        await self.__stop_normal_operation()
 
                     if runlevel == CONST_RUNLEVEL_EXPIRED:
                         await self.__start_runlevel_expired()
@@ -97,6 +102,8 @@ class InstanceManager:
                         await self.__start_runlevel_installation()
                     elif runlevel == CONST_RUNLEVEL_NORMAL:
                         await self.__start_runlevel_normal()
+                except (asyncio.CancelledError, ForceTerminateExecution) as e:
+                    raise e
                 except:
                     self.__logger.exception("Error during runlevel change - quitting")
                     self.__context.stop()
@@ -225,7 +232,15 @@ class InstanceManager:
         pass
 
     async def __start_runlevel_installation(self):
+        self.__logger.info("Starting runlevel INSTALLATION")
         await self.__docker_handler.callback_changement_applications()
+        await wait_for_application(self.__context, 'nginxinstall')
+        self.__logger.info("Ready to install - login using a web browser")
+
+    async def __stop_runlevel_installation(self):
+        # Installation just completed, reload all configuration
+        await self.__context.delay_reload(0)  # Reload without waiting
+        self.__logger.info("Stopped runlevel INSTALLATION")
 
     async def __start_runlevel_expired(self):
         raise NotImplementedError('todo')
@@ -238,8 +253,12 @@ class InstanceManager:
             await self.__change_runlevel(CONST_RUNLEVEL_INSTALLING)
             return
 
-        # 1. Cleanup from installation
+        self.__logger.info("Starting runlevel NORMAL")
+
+        # 1. Nginx Cleanup from installation
         await self.__docker_handler.nginx_installation_cleanup()
+        await asyncio.to_thread(self.__nginx_handler.generer_configuration_nginx)
+        await self.__nginx_handler.refresh_configuration("Switching to runlevel %d" % CONST_RUNLEVEL_NORMAL)
 
         # 2. Renew certificates locally with certissuer
         try:
@@ -252,6 +271,7 @@ class InstanceManager:
 
         # 3. Ensure middleware is running (nginx, mq, mongo, redis, midcompte)
         await self.__docker_handler.callback_changement_applications()
+
         await wait_for_application(self.__context, 'nginx')  # Always first application to start up
         if securite == Constantes.SECURITE_PROTEGE:
             # Check that MQ and midcompte are running. Mongo is optional but is done before midcompte when required.
@@ -261,19 +281,37 @@ class InstanceManager:
             await wait_for_application(self.__context, 'core')      # TODO - support move secure
 
         # 4. Connect to mgbus (MQ)
+        if self.__context.validateur_message is None:
+            self.__logger.info("Runlevel normal - reload configuration")
+            await self.__context.reload_wait()
+            if self.__context.validateur_message is None:
+                self.__logger.error("Error initializing context - stopping")
+                self.__context.stop()
+                raise ForceTerminateExecution()
+
+        self.__logger.info("Runlevel normal - register on mgbus")
         await self.__mgbus_handler.register()
 
         # 5. Exchange updated information
         try:
+            self.__logger.info("Runlevel normal - exchange information")
             await self.__docker_handler.emettre_presence()
             await self.send_application_packages()
-            await self.request_fiche_json()
+            for i in range(0, 3):
+                try:
+                    await self.request_fiche_json()
+                    break
+                except asyncio.TimeoutError:
+                    await self.context.wait(5)
         except:
             self.__logger.exception("Error during initial information exchange after connection to mgbus")
 
-    async def stop_normal_operation(self):
+        self.__logger.info("Runlevel normal READY")
+
+    async def __stop_normal_operation(self):
         # Disconnect from mgbus
         await self.__mgbus_handler.unregister()
+        self.__logger.info("Stopped runlevel NORMAL")
 
     async def update_fiche_publique(self, message: MessageWrapper):
         contenu = message.contenu

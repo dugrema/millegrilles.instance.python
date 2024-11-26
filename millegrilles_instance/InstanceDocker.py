@@ -64,13 +64,19 @@ class InstanceDockerHandler(DockerHandlerInterface):
         self.__applications_changed = asyncio.Event()
 
     async def run(self):
-        async with TaskGroup() as group:
-            group.create_task(self.__docker_handler.run())
-            group.create_task(self.__application_maintenance())
-            group.create_task(self.initialiser_docker())
-            group.create_task(self.__configuration_udpate_thread())
-            group.create_task(self.__service_status_pull())
-            group.create_task(self.__stop_thread())
+        try:
+            async with TaskGroup() as group:
+                group.create_task(self.__docker_handler.run())
+                group.create_task(self.__application_maintenance())
+                group.create_task(self.initialiser_docker())
+                group.create_task(self.__configuration_udpate_thread())
+                # group.create_task(self.__service_status_pull())
+                group.create_task(self.__stop_thread())
+        except *Exception:  # Stop on any thread exception
+            if self.__context.stopping is False:
+                self.__logger.exception("InstanceDockerHandler Unhandled error, closing")
+                self.__context.stop()
+                raise ForceTerminateExecution()
 
     async def __stop_thread(self):
         await self.__context.wait()
@@ -107,18 +113,20 @@ class InstanceDockerHandler(DockerHandlerInterface):
                     # Updates the status in context
                     await get_service_status(self.__context, self.__docker_handler, self.__context.application_status.required_modules)
                 await self.emettre_presence()
+            except (ValueNotAvailable, asyncio.TimeoutError):
+                self.__logger.debug("__service_status_pull Not ready, skipping emettre_presence")
             except:
                 self.__logger.exception("__service_status_pull Unhandled exception")
 
             try:
-                await asyncio.wait_for(self.__applications_changed.wait(), 15)
+                await self.__context.wait(15)
             except asyncio.TimeoutError:
                 pass
 
     async def __application_maintenance(self):
         while self.__context.stopping is False:
             try:
-                await asyncio.wait_for(self.__applications_changed.wait(), 600)
+                await asyncio.wait_for(self.__applications_changed.wait(), 15)
             except asyncio.TimeoutError:
                 pass
 
@@ -346,7 +354,9 @@ class InstanceDockerHandler(DockerHandlerInterface):
             raise ForceTerminateExecution()
 
     async def entretien_services(self, config_modules: RequiredModules):
-        await service_maintenance(self.__context, self.__docker_handler, config_modules)
+        changes = await service_maintenance(self.__context, self.__docker_handler, config_modules)
+        if changes:
+            await self.redemarrer_nginx("entretien_services: Services updated")
 
     async def get_params_env_service(self) -> dict:
         # Charger configurations
@@ -520,7 +530,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
             tar_content = tarfile.open(fileobj=server_file_obj)
             tar_content.extractall(path_scripts_app)
 
-        redemarrer_nginx = False
+        rafraichir_nginx = False
         if nginx is not None:
             self.__logger.debug("Conserver information nginx")
             try:
@@ -535,7 +545,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
                     path_nginx = self.__context.configuration.path_nginx
                     path_nginx_module = pathlib.Path(path_nginx, 'modules')
                     ajouter_fichier_configuration(self.__context, path_nginx_module, nom_fichier, contenu, params)
-                redemarrer_nginx = True
+                rafraichir_nginx = True
 
         # Deployer services
         if dependances is not None:
@@ -571,7 +581,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
                         scripts_module_path = [path.join(path_scripts, s) for s in scripts_module]
                         await self.executer_scripts_container(nom_module, scripts_module_path)
 
-        if redemarrer_nginx is True:
+        if rafraichir_nginx is True:
             await self.redemarrer_nginx("Application %s installee" % nom_application)
 
         return {'ok': True}
