@@ -66,9 +66,6 @@ class MgbusHandler(MgbusHandlerInterface):
         channel_requests = create_requests_channel(instance_id, niveau_securite_ajuste, context, self.on_request_message)
         await self.__manager.context.bus_connector.add_channel(channel_requests)
 
-        # channel_certificates = create_certificates_channel(instance_id, niveau_securite_ajuste, context, self.on_certificate_message)
-        # await self.__manager.context.bus_connector.add_channel(channel_certificates)
-
         # Start mgbus connector thread
         self.__task_group.create_task(self.__manager.context.bus_connector.run())
 
@@ -107,11 +104,19 @@ class MgbusHandler(MgbusHandlerInterface):
 
         action = message.routage['action']
 
-        if (delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE and
-                action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES):
-            return await self.__manager.send_application_packages()
+        if delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
+            if action == ConstantesInstance.COMMANDE_APPLICATION_INSTALLER:
+                return await self.__manager.install_application(message)
+            elif action == ConstantesInstance.COMMANDE_APPLICATION_UPGRADE:
+                return await self.__manager.upgrade_application(message)
+            elif action == ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER:
+                return await self.__manager.remove_application(message)
+            elif action == ConstantesInstance.COMMANDE_APPLICATION_DEMARRER:
+                return await self.__manager.start_application(message)
+            elif action == ConstantesInstance.COMMANDE_APPLICATION_ARRETER:
+                return await self.__manager.stop_application(message)
 
-        raise NotImplementedError()
+        self.__logger.info("on_application_message Ignoring unknown action %s" % action)
 
     async def on_request_message(self, message: MessageWrapper):
         # Authorization check
@@ -124,16 +129,10 @@ class MgbusHandler(MgbusHandlerInterface):
         action = message.routage['action']
 
         if delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
-            if action == ConstantesInstance.COMMANDE_APPLICATION_INSTALLER:
-                raise NotImplementedError('todo')
-            elif action == ConstantesInstance.COMMANDE_APPLICATION_UPGRADE:
-                raise NotImplementedError('todo')
-            elif action == ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER:
-                raise NotImplementedError('todo')
-            elif action == ConstantesInstance.COMMANDE_APPLICATION_DEMARRER:
-                raise NotImplementedError('todo')
-            elif action == ConstantesInstance.COMMANDE_APPLICATION_ARRETER:
-                raise NotImplementedError('todo')
+            if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
+                return await self.__manager.send_application_packages()
+            elif action == ConstantesInstance.REQUETE_GET_PASSWORDS:
+                return await self.__manager.get_instance_passwords(message)
 
         self.__logger.info("on_request_message Ignoring unknown action %s" % action)
 
@@ -196,44 +195,16 @@ def create_requests_channel(instance_id: str, niveau_securite: str, context: Ins
         niveau_securite_ajuste = niveau_securite
 
     q_channel = MilleGrillesPikaChannel(context, prefetch_count=3)
-    q = MilleGrillesPikaQueueConsumer(context, on_message, None, exclusive=True, arguments={'x-message-ttl': 30_000})
+    q = MilleGrillesPikaQueueConsumer(context, on_message, f'instance/{instance_id}/requests', arguments={'x-message-ttl': 30_000})
 
     # q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC,
     #                              f'commande.instance.{instance_id}.{ConstantesInstance.REQUETE_CONFIGURATION_ACME}'))
     q.add_routing_key(RoutingKey(niveau_securite_ajuste,
-                                 f'commande.instance.{instance_id}.{ConstantesInstance.REQUETE_GET_PASSWORDS}'))
+                                 f'requete.instance.{instance_id}.{ConstantesInstance.REQUETE_GET_PASSWORDS}'))
 
     if niveau_securite == Constantes.SECURITE_PROTEGE:
         q.add_routing_key(RoutingKey(Constantes.SECURITE_PROTEGE,
                                      f'commande.instance.{ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES}'))
 
-    # #         # RK Public pour toutes les instances
-    # #         res_configuration.ajouter_rk(Constantes.SECURITE_PUBLIC, 'requete.instance.%s.%s' % (
-    # #             instance_id, ConstantesInstance.REQUETE_CONFIGURATION_ACME))
-    # #         res_installation.ajouter_rk(niveau_securite_ajuste, 'requete.instance.%s.%s' % (
-    # #             instance_id, ConstantesInstance.REQUETE_GET_PASSWORDS))
-    # #         if niveau_securite == Constantes.SECURITE_PROTEGE:
-    # #             res_configuration.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
-
     q_channel.add_queue(q)
     return q_channel
-
-
-# def create_certificates_channel(instance_id: str, niveau_securite: str, context: InstanceContext,
-#                                 on_message: Callable[[MessageWrapper], Coroutine[Any, Any, None]]) -> MilleGrillesPikaChannel:
-#
-#     q_channel = MilleGrillesPikaChannel(context, prefetch_count=1)
-#     q = MilleGrillesPikaQueueConsumer(context, on_message, f'instance/{instance_id}/certificates',
-#                                       arguments={'x-message-ttl': 300_000})
-#
-#     # Configuration thread pour messages de signature de certificats
-#     #         # res_signature = RessourcesConsommation(
-#     #         #     self.callback_reply_q, channel_separe=True, est_asyncio=True, actif=True, auto_delete=True, exclusive=True)
-#     #
-#     #         # Commandes sur niveau 4.secure
-#     #         # if niveau_securite == Constantes.SECURITE_SECURE:
-#     #         #     res_signature.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_CSR)
-#     #         #     res_signature.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_COMPTE_USAGER)
-#     #         #     res_signature.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_PUBLICKEY_DOMAINE)
-#     #
-#     pass

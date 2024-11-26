@@ -14,8 +14,9 @@ from os import path, unlink, makedirs
 from typing import Optional
 from base64 import b64decode
 
+from millegrilles_instance.Certificats import generer_passwords
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
-from millegrilles_instance.Interfaces import DockerHandlerInterface
+from millegrilles_instance.Interfaces import DockerHandlerInterface, GenerateurCertificatsInterface
 from millegrilles_instance.MaintenanceApplicationService import service_maintenance, get_service_status
 from millegrilles_instance.MaintenanceApplicationWeb import installer_archive, check_archive_stale
 from millegrilles_instance.ModulesRequisInstance import RequiredModules
@@ -29,7 +30,6 @@ from millegrilles_messages.docker import DockerCommandes
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.docker.ParseConfiguration import ConfigurationService, WebApplicationConfiguration
 from millegrilles_messages.docker.DockerHandler import CommandeDocker
-from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.CommandesDocker import CommandeListeTopologie, CommandeExecuterScriptDansService, \
@@ -62,6 +62,11 @@ class InstanceDockerHandler(DockerHandlerInterface):
         self.__docker_handler = DockerHandler(docker_state)
         self.__verify_configuration_event = threading.Event()
         self.__applications_changed = asyncio.Event()
+
+        self.__generateur_certificats: Optional[GenerateurCertificatsInterface] = None
+
+    async def setup(self, generateur_certificats: GenerateurCertificatsInterface):
+        self.__generateur_certificats = generateur_certificats
 
     async def run(self):
         try:
@@ -111,7 +116,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
             try:
                 if self.__context.application_status.required_modules is not None:
                     # Updates the status in context
-                    await get_service_status(self.__context, self.__docker_handler, self.__context.application_status.required_modules)
+                    await get_service_status(self.__context, self, self.__context.application_status.required_modules)
                 await self.emettre_presence()
             except (ValueNotAvailable, asyncio.TimeoutError):
                 self.__logger.debug("__service_status_pull Not ready, skipping emettre_presence")
@@ -258,8 +263,8 @@ class InstanceDockerHandler(DockerHandlerInterface):
     async def assurer_clecertificat(self, nom_module: str, clecertificat: CleCertificat, combiner=False):
         """
         Commande pour s'assurer qu'un certificat et une cle sont insere dans docker.
-        :param label:
-        :param clecert:
+        :param nom_module:
+        :param clecertificat:
         :return:
         """
         enveloppe = clecertificat.enveloppe
@@ -379,7 +384,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
 
         return params
 
-    async def installer_service(self, nom_service: str, configuration: dict, params: dict, reinstaller=False):
+    async def installer_service(self, nom_service: str, in_configuration: dict, params: dict, reinstaller=False):
         # Copier params, ajouter info service
         params = params.copy()
         params['__nom_application'] = nom_service
@@ -394,10 +399,9 @@ class InstanceDockerHandler(DockerHandlerInterface):
             mq_hostname = 'mq'
         params['MQ_HOSTNAME'] = mq_hostname
         params['MQ_PORT'] = configuration.mq_port or '5673'
-        if configuration.idmg is not None:
-            params['__idmg'] = configuration.idmg
+        params['__idmg'] = self.__context.idmg
 
-        config_service = configuration.copy()
+        config_service = in_configuration.copy()
         try:
             config_service.update(config_service['config'])  # Combiner la configuration de base et du service
         except KeyError:
@@ -429,13 +433,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
         # S'assurer d'avoir l'image
         image = parser.image
         if image is not None:
-            # commande_image = DockerCommandes.CommandeGetImage(image, pull=True, aio=True)
-            # self.__docker_handler.ajouter_commande(commande_image)
-            # image_info = await commande_image.get_resultat()
-            #
-            # image_tag = image_info['tags'][0]
-            image_tag = await get_docker_image_tag(self.__context, self.__docker_handler, image, pull=True, app_name=image)
-
+            image_tag = await get_docker_image_tag(self.__context, self, image, pull=True, app_name=image)
             commande_creer_service = DockerCommandes.CommandeCreerService(image_tag, config_parsed, reinstaller=reinstaller)
             return await self.__docker_handler.run_command(commande_creer_service)
         else:
@@ -502,9 +500,10 @@ class InstanceDockerHandler(DockerHandlerInterface):
 
         commande_config_datees = DockerCommandes.CommandeGetConfigurationsDatees()
         await self.__docker_handler.run_command(commande_config_datees)
-
         commande_config_services = DockerCommandes.CommandeListerServices(filters={'name': nom_application})
-        resultat_config_datees = await self.__docker_handler.run_command(commande_config_services)
+        await self.__docker_handler.run_command(commande_config_services)
+
+        resultat_config_datees = await commande_config_datees.get_resultat()
         correspondance = resultat_config_datees['correspondance']
         service_existant = await commande_config_services.get_liste()
 
@@ -626,13 +625,12 @@ class InstanceDockerHandler(DockerHandlerInterface):
                     current['cert']
                 except KeyError:
                     self.__logger.info("generer_valeurs Generer certificat/secret pour %s" % nom_application)
-                    raise NotImplementedError('todo')
-                    # clecertificat = await self.__context.generateur_certificats.demander_signature(nom_application, certificat)
-                    # if clecertificat is None:
-                    #     raise Exception("generer_valeurs Erreur creation certificat %s" % nom_application)
-                    # # Importer toutes les cles dans docker
-                    # if self.__docker_initialise is True and clecertificat is not None:
-                    #     await self.assurer_clecertificat(nom_application, clecertificat)
+                    clecertificat = await self.__generateur_certificats.demander_signature(nom_application, certificat)
+                    if clecertificat is None:
+                        raise Exception("generer_valeurs Erreur creation certificat %s" % nom_application)
+                    # Importer toutes les cles dans docker
+                    if self.__docker_handler and clecertificat is not None:
+                        await self.assurer_clecertificat(nom_application, clecertificat)
 
             except KeyError:
                 pass
@@ -651,7 +649,8 @@ class InstanceDockerHandler(DockerHandlerInterface):
                         current[type_password]
                     except KeyError:
                         self.__logger.info("Generer password %s pour %s" % (label, nom_application))
-                        await self.__etat_instance.generer_passwords(self, [passwd_gen])
+                        # await self.__generateur_certificats.generer_passwords(self, [passwd_gen])
+                        await generer_passwords(self.__context, self, [passwd_gen])
 
             except KeyError:
                 pass

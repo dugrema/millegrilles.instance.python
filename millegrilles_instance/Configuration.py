@@ -152,6 +152,10 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         return pathlib.Path(self.__path_catalogues)
 
     @property
+    def path_docker_apps(self) -> pathlib.Path:
+        return pathlib.Path(self.__path_docker_apps)
+
+    @property
     def certissuer_url(self) -> str:
         return self.__certissuer_url
 

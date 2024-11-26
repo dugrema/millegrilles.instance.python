@@ -98,6 +98,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     bus_handler = MgbusHandler(manager)
 
     # Setup / injecting dependencies
+    await docker_handler.setup(generateur_certificats)
     await manager.setup(bus_handler)
     await web_server.setup()
     await nginx_handler.setup()

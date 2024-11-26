@@ -1,20 +1,18 @@
 import asyncio
-import base64
-import json
 import logging
 import time
 
-from typing import Union, Optional
+from typing import Optional
 
 from docker import DockerClient
-from docker.errors import APIError, NotFound
 from docker.models.containers import Container
 from docker.models.services import Service
 
 from millegrilles_instance.Context import InstanceContext
+from millegrilles_instance.Interfaces import DockerHandlerInterface
 from millegrilles_messages.docker import DockerCommandes
 from millegrilles_messages.docker.DockerCommandes import PullStatus
-from millegrilles_messages.docker.DockerHandler import CommandeDocker, DockerHandler
+from millegrilles_messages.docker.DockerHandler import CommandeDocker
 
 LOGGER = logging.getLogger(__name__)
 
@@ -186,7 +184,7 @@ def check_replicas(service: Service):
         return None
 
 
-async def get_docker_image_tag(context: InstanceContext, docker_handler: DockerHandler, image: str, pull=True, app_name: Optional[str] = None) -> str:
+async def get_docker_image_tag(context: InstanceContext, docker_handler: DockerHandlerInterface, image: str, pull=True, app_name: Optional[str] = None) -> str:
     commande_image = DockerCommandes.CommandeGetImage(image, pull=pull)
 
     image_info_coro = docker_handler.run_command(commande_image)

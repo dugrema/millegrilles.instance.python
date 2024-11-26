@@ -11,6 +11,7 @@ from docker.models.services import Service
 from millegrilles_instance.CommandesDocker import check_service_running, check_replicas, check_service_preparing, \
     get_docker_image_tag, UnknownImage
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
+from millegrilles_instance.Interfaces import DockerHandlerInterface
 from millegrilles_instance.MaintenanceApplicationWeb import check_archive_stale, installer_archive, \
     sauvegarder_configuration_webapps
 from millegrilles_instance.ModulesRequisInstance import RequiredModules
@@ -92,7 +93,7 @@ async def get_configuration_services(etat_instance, config_modules: RequiredModu
     return services
 
 
-async def get_service_status(context: InstanceContext, docker_handler: DockerHandler, config_modules: RequiredModules, missing_only=True) -> list[ServiceStatus]:
+async def get_service_status(context: InstanceContext, docker_handler: DockerHandlerInterface, config_modules: RequiredModules, missing_only=True) -> list[ServiceStatus]:
     # Get list of core services - they must be installed in order and running before installing other services/apps
     core_services = await get_configuration_services(context, config_modules)
 
@@ -218,7 +219,7 @@ async def download_docker_images(
 
 
 async def install_services(
-        etat_instance, docker_handler: DockerHandler,
+        context: InstanceContext, docker_handler: DockerHandlerInterface,
         service_queue: asyncio.Queue[Optional[ServiceInstallCommand]]):
     # Install all services in order. Return on first exception.
     while True:
@@ -231,7 +232,7 @@ async def install_services(
         service_name = service.name
         try:
             if service.installed is False:
-                await install_service(etat_instance, docker_handler, command)
+                await install_service(context, docker_handler, command)
             elif service.replicas == 0:
                 pass  # Service is manually disabled
             elif service.preparing and service.running is False:
@@ -247,7 +248,7 @@ async def install_services(
             LOGGER.exception("Error installing service %s, aborting for this cycle" % service_name)
 
 
-async def update_stale_configuration(context: InstanceContext, docker_handler: DockerHandler, config_modules: RequiredModules):
+async def update_stale_configuration(context: InstanceContext, docker_handler: DockerHandlerInterface, config_modules: RequiredModules):
     # Check if any existing configuration needs to be updated
     liste_services_docker = await get_service_status(context, docker_handler, config_modules, missing_only=False)
     mapped_services = dict()
@@ -358,7 +359,7 @@ async def charger_configuration_application(path_configuration: pathlib.Path) ->
     return configuration
 
 
-async def install_service(context: InstanceContext, docker_handler: DockerHandler, command: ServiceInstallCommand):
+async def install_service(context: InstanceContext, docker_handler: DockerHandlerInterface, command: ServiceInstallCommand):
     service_name = command.status.name
     LOGGER.info("Installing service %s" % service_name)
     image_tag = command.image_tag
@@ -427,7 +428,7 @@ async def install_service(context: InstanceContext, docker_handler: DockerHandle
     else:
         LOGGER.debug("installer_service() Invoque pour un service sans images : %s", service_name)
 
-async def get_params_env_service(context: InstanceContext, docker_handler: DockerHandler) -> dict:
+async def get_params_env_service(context: InstanceContext, docker_handler: DockerHandlerInterface) -> dict:
     # Charger configurations
     action_configurations = DockerCommandes.CommandeListerConfigs()
     await docker_handler.run_command(action_configurations)
@@ -507,7 +508,7 @@ def verifier_config_current(liste_config_datee: dict, container_config: Optional
 
 def trier_services(liste_services: list) -> list:
 
-    services_speciaux = ['mq', 'mongo', 'certissuer', 'midcompte', 'nginx', 'redis']
+    services_speciaux = ['nginx', 'redis', 'mq', 'mongo', 'certissuer', 'midcompte']
 
     map_services_parnom = dict()
     liste_services_finale = list()

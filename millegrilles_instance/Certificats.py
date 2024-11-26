@@ -16,12 +16,11 @@ from os import path, stat
 from typing import Optional
 
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
-from millegrilles_instance.InstanceDocker import InstanceDockerHandler
+from millegrilles_instance.Interfaces import GenerateurCertificatsInterface, DockerHandlerInterface
 from millegrilles_instance.MaintenanceApplicationService import charger_configuration_docker, \
     charger_configuration_application
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.bus.PikaMessageProducer import MilleGrillesPikaMessageProducer
-from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa
@@ -72,7 +71,7 @@ def preparer_certificats_web(path_secrets: str):
 
 
 async def generer_certificats_modules_satellites(producer: MessageProducerFormatteur, etat_instance,
-                                                 docker_handler: Optional[InstanceDockerHandler], configuration: dict):
+                                                 docker_handler: Optional[DockerHandlerInterface], configuration: dict):
     # S'assurer que tous les certificats sont presents et courants dans le repertoire secrets
     path_secrets = etat_instance.configuration.path_secrets
     for nom_module, value in configuration.items():
@@ -116,7 +115,7 @@ async def generer_certificats_modules_satellites(producer: MessageProducerFormat
             await docker_handler.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
 
 
-async def nettoyer_configuration_expiree(docker_handler: InstanceDockerHandler):
+async def nettoyer_configuration_expiree(docker_handler: DockerHandlerInterface):
     commande_config = DockerCommandes.CommandeGetConfigurationsDatees()
     await docker_handler.run_command(commande_config)
     config_datees = await commande_config.get_resultat()
@@ -429,7 +428,7 @@ async def signer_certificat_public_key_via_secure(etat_instance, message: dict) 
     return reponse
 
 
-async def generer_passwords(context: InstanceContext, docker_handler: Optional[InstanceDockerHandler],
+async def generer_passwords(context: InstanceContext, docker_handler: Optional[DockerHandlerInterface],
                             liste_passwords: list):
     """
     Generer les passwords manquants.
@@ -510,9 +509,9 @@ def generer_password(type_generateur='password', size: int = None):
 
 class CommandeSignature:
 
-    def __init__(self, context: InstanceContext, docker_handler: InstanceDockerHandler):
+    def __init__(self, context: InstanceContext, docker_handler: DockerHandlerInterface):
         self._context = context
-        self._docker_handler: InstanceDockerHandler = docker_handler
+        self._docker_handler: DockerHandlerInterface = docker_handler
         self.__event_done = asyncio.Event()
         self.__exception = None
         self.__result = None
@@ -596,7 +595,7 @@ def sauvegarder_clecert(path_secrets: pathlib.Path, nom_module: str, clecertific
 
 class CommandeSignatureInstance(CommandeSignature):
 
-    def __init__(self, context: InstanceContext, docker_handler: InstanceDockerHandler):
+    def __init__(self, context: InstanceContext, docker_handler: DockerHandlerInterface):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         super().__init__(context, docker_handler)
 
@@ -663,7 +662,7 @@ class CommandeSignatureInstance(CommandeSignature):
 
 class CommandeSignatureModule(CommandeSignature):
 
-    def __init__(self, context: InstanceContext, docker_handler: InstanceDockerHandler, nom_module: str,
+    def __init__(self, context: InstanceContext, docker_handler: DockerHandlerInterface, nom_module: str,
                  configuration: Optional[dict] = None):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         super().__init__(context, docker_handler)
@@ -694,7 +693,7 @@ class CommandeSignatureModule(CommandeSignature):
 
 class CommandeRotationMaitredescles(CommandeSignatureModule):
 
-    def __init__(self, context: InstanceContext, docker_handler: InstanceDockerHandler, nom_module: str,
+    def __init__(self, context: InstanceContext, docker_handler: DockerHandlerInterface, nom_module: str,
                  configuration: Optional[dict] = None,
                  enveloppe_courante: Optional[EnveloppeCertificat] = None):
         super().__init__(context, docker_handler, nom_module, configuration)
@@ -737,9 +736,10 @@ class CommandeRotationMaitredescles(CommandeSignatureModule):
         return clecertificat
 
 
-class GenerateurCertificatsHandler:
+class GenerateurCertificatsHandler(GenerateurCertificatsInterface):
 
-    def __init__(self, context: InstanceContext, docker_handler: Optional[DockerHandler]):
+    def __init__(self, context: InstanceContext, docker_handler: Optional[DockerHandlerInterface]):
+        super().__init__()
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context = context
         self.__docker_handler = docker_handler
@@ -987,7 +987,7 @@ async def get_configuration_passwords(context: InstanceContext) -> list:
     liste_noms_passwords = list()
     for c in configurations:
         try:
-            p = c['passwords']
+            p = c['generateur']
             liste_noms_passwords.extend(p)
         except KeyError:
             pass

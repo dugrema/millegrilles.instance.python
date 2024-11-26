@@ -3,11 +3,14 @@ import json
 import logging
 import lzma
 import threading
+import pathlib
 
 from asyncio import TaskGroup
 from os import path, makedirs
 from typing import Optional
 from uuid import uuid4
+
+from cryptography.x509 import ExtensionNotFound
 
 from millegrilles_instance import ModulesRequisInstance
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
@@ -334,6 +337,31 @@ class InstanceManager:
 
         return {'ok': True}
 
+    async def get_instance_passwords(self, message: MessageWrapper):
+        enveloppe = message.certificat
+
+        try:
+            delegation_globale = enveloppe.get_delegation_globale
+        except ExtensionNotFound:
+            delegation_globale = None
+
+        if delegation_globale != 'proprietaire':
+            return {"ok": False, "err": "Access denied"}
+
+        path_secrets = pathlib.Path(self.__context.configuration.path_secrets)
+        secrets = dict()
+        for file in path_secrets.iterdir():
+            if file.is_file() and file.name.startswith('passwd'):
+                with open(file, 'rt') as fichier:
+                    file_content = fichier.read(10240)
+                secrets[file.name] = file_content
+
+        # Retourner la reponse chiffree
+        producer = await self.__context.get_producer()
+        await producer.encrypt_reply(enveloppe, {"secrets": secrets}, message.reply_to, message.correlation_id)
+
+        return None
+
     async def request_fiche_json(self):
         producer = await asyncio.wait_for(self.__context.get_producer(), 1)
         idmg = self.context.idmg
@@ -342,6 +370,27 @@ class InstanceManager:
                                                 exchange=Constantes.SECURITE_PUBLIC)
         contenu = fiche_response.contenu
         await asyncio.to_thread(self.__nginx_handler.sauvegarder_fichier_data, 'fiche.json', contenu, True)
+
+    async def install_application(self, message: MessageWrapper):
+        configuration = message.parsed['configuration']
+        return await self.__gestionnaire_applications.installer_application(configuration, command=message)
+
+    async def upgrade_application(self, message: MessageWrapper):
+        configuration = message.parsed['configuration']
+        return await self.__gestionnaire_applications.upgrade_application(configuration, command=message)
+
+    async def remove_application(self, message: MessageWrapper):
+        nom_application = message.parsed['nom_application']
+        return await self.__gestionnaire_applications.supprimer_application(nom_application)
+
+    async def start_application(self, message: MessageWrapper):
+        nom_application = message.parsed['nom_application']
+        return await self.__gestionnaire_applications.demarrer_application(nom_application)
+
+    async def stop_application(self, message: MessageWrapper):
+        nom_application = message.parsed['nom_application']
+        return await self.__gestionnaire_applications.arreter_application(nom_application)
+
 
 async def wait_for_application(context: InstanceContext, app_name: str):
     while True:
