@@ -1,5 +1,3 @@
-import asyncio
-import datetime
 import logging
 import json
 import os
@@ -11,12 +9,9 @@ from typing import Optional
 
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.MaintenanceApplicationService import list_images, pull_images
-from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur, MessageWrapper
-from millegrilles_instance.EtatInstance import EtatInstance
-from millegrilles_instance.Exceptions import InstallationModeException
+from millegrilles_messages.messages.MessagesModule import MessageWrapper
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance import Constantes as ConstantesInstance
-# from millegrilles_instance.Configuration import sauvegarder_configuration_webapps
 
 LOGGER = logging.getLogger(__name__)
 
@@ -219,7 +214,7 @@ async def installer_application_sansdocker(context: InstanceContext, configurati
 
             # Verifier si certificat/cle existent deja
             path_cert = path.join(path_secrets, 'pki.%s.cert' % nom_application)
-            path_cle = path.join(path_secrets, 'pki.%s.cle' % nom_application)
+            path_cle = path.join(path_secrets, 'pki.%s.key' % nom_application)
             if path.exists(path_cert) is False or path.exists(path_cle) is False:
                 LOGGER.info("generer_valeurs Generer certificat/secret pour %s" % nom_application)
                 clecertificat = await context.generateur_certificats.demander_signature(

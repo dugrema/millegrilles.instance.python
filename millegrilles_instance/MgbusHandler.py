@@ -25,18 +25,13 @@ class MgbusHandler:
         self.__manager = manager
         self.__task_group: Optional[TaskGroup] = None
 
-    async def run(self):
-        async with TaskGroup() as group:
-            self.__task_group = group
-        self.__task_group = None
-
     async def register(self):
         self.__logger.info("Register with the MQ Bus")
 
         context = self.__manager.context
 
         instance_id = context.instance_id
-        niveau_securite = context.niveau_securite
+        niveau_securite = context.securite
 
         # RK uniquement 3.protege
         if niveau_securite == Constantes.SECURITE_SECURE:

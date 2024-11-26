@@ -8,14 +8,14 @@ class RequiredModules:
 
 
 CONFIG_MODULES_INSTALLATION = RequiredModules([
+    'docker.nginxinstall.json',
     'docker.certissuer.json',
     'docker.acme.json',
-    'docker.nginxinstall.json',
 ])
 
 CONFIG_MODULES_SECURE_EXPIRE = RequiredModules([
-    'docker.certissuer.json',
     'docker.nginx.json',
+    'docker.certissuer.json',
 ])
 
 CONFIG_CERTIFICAT_EXPIRE = RequiredModules([
@@ -23,16 +23,16 @@ CONFIG_CERTIFICAT_EXPIRE = RequiredModules([
 ])
 
 CONFIG_MODULES_SECURES = RequiredModules([
+    'docker.nginx.json',
     'docker.certissuer.json',
     'docker.acme.json',
-    'docker.nginx.json',
     'docker.redis.json',
 ])
 
 CONFIG_MODULES_PROTEGES = RequiredModules([
+    'docker.nginx.json',
     'docker.certissuer.json',
     'docker.acme.json',
-    'docker.nginx.json',
     'docker.redis.json',
     'docker.mq.json',
     'docker.mongo.json',

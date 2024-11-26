@@ -1,5 +1,4 @@
 import asyncio
-import json
 import logging
 import io
 import pathlib
@@ -8,13 +7,12 @@ import threading
 
 import docker.errors
 
-from asyncio import Event, TimeoutError, TaskGroup
+from asyncio import TaskGroup
 from docker.errors import APIError, NotFound
 from os import path, unlink, makedirs
 from typing import Optional
 from base64 import b64decode
 
-from millegrilles_instance.Constantes import FICHIER_ARCHIVES_APP
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.MaintenanceApplicationService import service_maintenance
 from millegrilles_instance.MaintenanceApplicationWeb import installer_archive, check_archive_stale
@@ -182,7 +180,7 @@ class InstanceDockerHandler:
         path_secrets = self.__context.configuration.path_secrets
 
         nom_certificat = 'pki.web.cert'
-        nom_cle = 'pki.web.cle'
+        nom_cle = 'pki.web.key'
         path_certificat = path.join(path_secrets, nom_certificat)
         path_cle = path.join(path_secrets, nom_cle)
 
@@ -280,6 +278,8 @@ class InstanceDockerHandler:
 
             commande_initialiser_network = DockerCommandes.CommandeCreerNetworkOverlay('millegrille_net')
             await self.__docker_handler.run_command(commande_initialiser_network)
+        except asyncio.CancelledError as e:
+            self.__logger.error("initialiser_docker Cancelled: %s" % str(e))
         except:
             self.__logger.exception("initialiser_docker Error initializing docker swarm/networking - quitting")
             self.__context.stop()

@@ -33,7 +33,7 @@ class NginxHandler:
 
     def __init__(self, context: InstanceContext):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        self.__context = context
+        self.__context: InstanceContext = context
         self.__docker_handler: Optional[InstanceDockerHandler] = None
 
         # self.__session: Optional[aiohttp.ClientSession] = None
@@ -72,12 +72,7 @@ class NginxHandler:
         await self.preparer_nginx()
 
     def __ssl_session(self, timeout: Optional[aiohttp.ClientTimeout] = None):
-        ssl_context = self.__context.ssl_context
-        if ssl_context is None:
-            raise ValueNotAvailable()
-        connector = aiohttp.TCPConnector(ssl=ssl_context)
-        session = aiohttp.ClientSession(timeout=timeout, connector=connector)
-        return session
+        return self.__context.ssl_session(timeout)
 
     async def __entretien(self, producer):
         self.__logger.debug("entretien debut")

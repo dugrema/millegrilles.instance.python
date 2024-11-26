@@ -1,3 +1,4 @@
+import aiohttp
 import asyncio
 import logging
 
@@ -9,6 +10,7 @@ from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Interfaces import DockerHandlerInterface
 from millegrilles_instance.Structs import ApplicationInstallationStatus
 from millegrilles_messages.IpUtils import get_ip, get_hostnames
+from millegrilles_messages.bus.BusConfiguration import MilleGrillesBusConfiguration
 from millegrilles_messages.bus.BusContext import MilleGrillesBusContext
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
 from millegrilles_messages.bus.PikaMessageProducer import MilleGrillesPikaMessageProducer
@@ -38,6 +40,10 @@ class InstanceContext(MilleGrillesBusContext):
         self.__reload_listeners: list[Callable[[], None]] = list()
         self.__application_status = ApplicationInstallationStatus()
         self.__reload_done = asyncio.Event()
+
+    @property
+    def configuration(self) -> ConfigurationInstance:
+        return super().configuration
 
     async def run(self):
         async with TaskGroup() as group:
@@ -173,6 +179,15 @@ class InstanceContext(MilleGrillesBusContext):
         # Call reload listeners
         for listener in self.__reload_listeners:
             listener()
+
+    def ssl_session(self, timeout: Optional[aiohttp.ClientTimeout] = None):
+        ssl_context = self.ssl_context
+        if ssl_context is None:
+            raise ValueNotAvailable()
+        connector = aiohttp.TCPConnector(ssl=ssl_context)
+        session = aiohttp.ClientSession(timeout=timeout, connector=connector)
+        return session
+
 
 
 class ValueNotAvailable(Exception):

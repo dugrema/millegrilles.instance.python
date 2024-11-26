@@ -85,6 +85,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
         context.add_reload_listener(docker_handler.callback_changement_configuration)
 
         # Conditional wiring
+        generateur_certificats.docker_handler = docker_handler
         nginx_handler.docker_handler = docker_handler
     else:
         # Docker not supported
@@ -108,10 +109,10 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     # Create tasks
     coros = [
         context.run(),
-        # bus_connector.run(),  # Handled in bus_handler to start/stop thread dynamically
+        # bus_connector.run(),  # Handled manager start/stop thread dynamically
         generateur_certificats.run(),
         manager.run(),
-        bus_handler.run(),
+        # bus_handler.run(),
         web_server.run(),
     ]
 

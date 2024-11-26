@@ -52,7 +52,7 @@ class WebServer:
             self.__logger.exception("Erreur fermeture webrunner")
 
     @property
-    def context(self):
+    def context(self) -> InstanceContext:
         return self.__manager.context
 
     def _charger_configuration(self):
@@ -109,7 +109,7 @@ class WebServer:
 
     async def handle_application_installation_status(self, request):
         status = {'ok': True}
-        apps_status = self.__etat_instance.application_status
+        apps_status = self.context.application_status
         status['apps'] = apps_status.apps
         status['lastUpdate'] = math.floor(apps_status.last_update.timestamp())
 
@@ -117,8 +117,9 @@ class WebServer:
         headers = headers_cors()
         return web.json_response(headers=headers, data=status)
 
-    async def handle_api_csr(self, request):
-        url_issuer = self.__etat_instance.certissuer_url
+    async def handle_api_csr(self, _request):
+        configuration = self.context.configuration
+        url_issuer = configuration.certissuer_url
         path_csr = path.join(url_issuer, 'csr')
         headers = headers_cors()
         async with aiohttp.ClientSession() as session:
@@ -127,7 +128,7 @@ class WebServer:
                 return web.Response(status=resp.status, text=text_response, headers=headers)
 
     async def handle_api_csr_instance(self, request):
-        csr_genere = self.__etat_instance.get_csr_genere()
+        csr_genere = self.context.csr_genere
         csr_pem = csr_genere.get_pem_csr()
         headers = headers_cors()
         return web.Response(text=csr_pem, headers=headers)
@@ -149,8 +150,8 @@ class WebServer:
     async def handle_installer(self, request):
         headers = headers_cors()
         try:
-            resultat = await installer_instance(self.__etat_instance, request, headers_response=headers)
-            await self.__etat_instance.delay_reload_configuration(datetime.timedelta(seconds=1))
+            resultat = await installer_instance(self.context, request, headers_response=headers)
+            await self.context.delay_reload(0.5)
             return web.json_response({'ok': True}, headers=headers, status=200)
 
         except millegrilles_instance.Exceptions.RedemarrageException:

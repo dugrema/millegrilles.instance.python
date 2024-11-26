@@ -62,7 +62,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         self.path_app_installation = '/var/opt/millegrilles/dist/installation'
         # self.ca_pem_path = '/var/opt/millegrilles/secrets/pki.millegrille.cert'
         self.web_cert_pem_path = '/var/opt/millegrilles/secrets/pki.web.cert'
-        self.web_key_pem_path = '/var/opt/millegrilles/secrets/pki.web.cle'
+        self.web_key_pem_path = '/var/opt/millegrilles/secrets/pki.web.key'
         self.port = 2443
 
         # Apply instance defaults - usual defaults are meant for usage in docker containers
@@ -100,7 +100,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         # self.path_app_installation = os.environ.get(ContantesInstance.WEB_APP_PATH) or str(pathlib.Path(self.__path_millegrilles, 'dist/installation'))
         # self.ca_pem_path = os.environ.get(ContantesInstance.ENV_CA_PEM) or self.ca_pem_path
         self.web_cert_pem_path = os.environ.get(ContantesInstance.ENV_WEB_CERT_PEM) or str(pathlib.Path(self.__path_secrets, 'pki.web.cert'))
-        self.web_key_pem_path = os.environ.get(ContantesInstance.ENV_WEB_KEY_PEM) or str(pathlib.Path(self.__path_secrets, 'pki.web.cle'))
+        self.web_key_pem_path = os.environ.get(ContantesInstance.ENV_WEB_KEY_PEM) or str(pathlib.Path(self.__path_secrets, 'pki.web.key'))
         self.port = int(os.environ.get(ContantesInstance.ENV_WEB_PORT) or self.port)
 
     def parse_args(self, args: argparse.Namespace):
@@ -134,6 +134,22 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
     @property
     def path_nginx(self) -> pathlib.Path:
         return pathlib.Path(self.__path_nginx)
+
+    @property
+    def path_idmg(self) -> pathlib.Path:
+        return pathlib.Path(self.__instance_idmg_path)
+
+    @property
+    def path_securite(self) -> pathlib.Path:
+        return pathlib.Path(self.__instance_securite_path)
+
+    @property
+    def path_config_json(self) -> pathlib.Path:
+        return pathlib.Path(self.__config_json)
+
+    @property
+    def certissuer_url(self) -> str:
+        return self.__certissuer_url
 
     def get_instance_id(self) -> str:
         with open(self.__instance_id_path, 'rt') as fp:
