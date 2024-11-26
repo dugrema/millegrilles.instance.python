@@ -72,25 +72,20 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     loop = asyncio.get_event_loop()
     loop.set_default_executor(ThreadPoolExecutor(max_workers=15))
 
-    # Services
+    # Handlers (services)
     bus_connector = MilleGrillesPikaConnector(context)
     context.bus_connector = bus_connector
-    generateur_certificats = GenerateurCertificatsHandler(context)
-    nginx_handler = NginxHandler(context)
 
     docker_state = DockerState(context)
-
     if docker_state.docker_present():
         docker_handler = InstanceDockerHandler(context, docker_state)
         context.add_reload_listener(docker_handler.callback_changement_configuration)
-
-        # Conditional wiring
-        generateur_certificats.docker_handler = docker_handler
-        nginx_handler.docker_handler = docker_handler
     else:
         # Docker not supported
         docker_handler = None
 
+    generateur_certificats = GenerateurCertificatsHandler(context, docker_handler)
+    nginx_handler = NginxHandler(context, docker_handler)
     applications_handler = ApplicationsHandler(context, docker_handler)
 
     # Facade
@@ -101,19 +96,18 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     web_server = WebServer(manager)
     bus_handler = MgbusHandler(manager)
 
-    # Setup
-    await manager.setup()
+    # Setup / injecting dependencies
+    await manager.setup(bus_handler)
     await web_server.setup()
     await nginx_handler.setup()
 
     # Create tasks
     coros = [
         context.run(),
-        # bus_connector.run(),  # Handled manager start/stop thread dynamically
         generateur_certificats.run(),
         manager.run(),
-        # bus_handler.run(),
         web_server.run(),
+        bus_handler.run(),
     ]
 
     if docker_handler:

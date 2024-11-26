@@ -738,10 +738,10 @@ class CommandeRotationMaitredescles(CommandeSignatureModule):
 
 class GenerateurCertificatsHandler:
 
-    def __init__(self, context: InstanceContext):
+    def __init__(self, context: InstanceContext, docker_handler: Optional[DockerHandler]):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context = context
-        self.__docker_handler = None
+        self.__docker_handler = docker_handler
         self.__derniere_notification: Optional[datetime.datetime] = None
         self.__intervalle_notifications = datetime.timedelta(hours=12)
 
@@ -755,14 +755,6 @@ class GenerateurCertificatsHandler:
 
     def set_configuration_modules_getter(self, getter):
         self.__get_configuration_modules = getter
-
-    @property
-    def docker_handler(self):
-        return self.__docker_handler
-
-    @docker_handler.setter
-    def docker_handler(self, docker_handler: DockerHandler):
-        self.__docker_handler = docker_handler
 
     @property
     def event_entretien_initial(self):

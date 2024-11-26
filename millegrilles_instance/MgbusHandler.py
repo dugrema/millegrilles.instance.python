@@ -1,4 +1,3 @@
-import asyncio
 import logging
 
 from asyncio import TaskGroup
@@ -6,7 +5,9 @@ from typing import Optional, Callable, Coroutine, Any
 
 from cryptography.x509 import ExtensionNotFound
 
+from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.Context import InstanceContext
+from millegrilles_instance.Interfaces import MgbusHandlerInterface
 from millegrilles_instance.Manager import InstanceManager
 from millegrilles_messages.bus.BusContext import MilleGrillesBusContext
 from millegrilles_messages.messages import Constantes
@@ -15,15 +16,25 @@ from millegrilles_messages.bus.PikaQueue import MilleGrillesPikaQueueConsumer, R
 from millegrilles_messages.messages.MessagesModule import MessageWrapper
 
 
-class MgbusHandler:
+class MgbusHandler(MgbusHandlerInterface):
     """
     MQ access module
     """
 
     def __init__(self, manager: InstanceManager):
+        super().__init__()
         self.__logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
         self.__manager = manager
         self.__task_group: Optional[TaskGroup] = None
+
+    async def run(self):
+        async with TaskGroup() as group:
+            self.__task_group = group
+            group.create_task(self.__stop_thread())
+        self.__task_group = None
+
+    async def __stop_thread(self):
+        await self.__manager.context.wait()
 
     async def register(self):
         self.__logger.info("Register with the MQ Bus")
@@ -49,8 +60,8 @@ class MgbusHandler:
         channel_requests = create_requests_channel(instance_id, niveau_securite_ajuste, context, self.on_request_message)
         await self.__manager.context.bus_connector.add_channel(channel_requests)
 
-        channel_certificates = create_certificates_channel(instance_id, niveau_securite_ajuste, context, self.on_certificate_message)
-        await self.__manager.context.bus_connector.add_channel(channel_certificates)
+        # channel_certificates = create_certificates_channel(instance_id, niveau_securite_ajuste, context, self.on_certificate_message)
+        # await self.__manager.context.bus_connector.add_channel(channel_certificates)
 
         # Start mgbus connector thread
         self.__task_group.create_task(self.__manager.context.bus_connector.run())
@@ -117,95 +128,99 @@ class MgbusHandler:
         raise NotImplementedError()
 
 
-def create_exclusive_q_channel(context: MilleGrillesBusContext, on_message: Callable[[MessageWrapper], Coroutine[Any, Any, None]]) -> MilleGrillesPikaChannel:
+def create_exclusive_q_channel(context: MilleGrillesBusContext,
+                               on_message: Callable[[MessageWrapper], Coroutine[Any, Any, None]]) -> MilleGrillesPikaChannel:
     exclusive_q_channel = MilleGrillesPikaChannel(context, prefetch_count=20)
-    exclusive_q = MilleGrillesPikaQueueConsumer(context, on_message, None, exclusive=True, arguments={'x-message-ttl': 300000})
-    # exclusive_q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC, 'evenement.CoreTopologie.filehostingUpdate'))
+    exclusive_q = MilleGrillesPikaQueueConsumer(context, on_message, None, exclusive=True, arguments={'x-message-ttl': 60_000})
+
+    exclusive_q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC, 'evenement.MaitreDesCles.certMaitreDesCles'))
+    exclusive_q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC,
+                                           f'evenement.CoreTopologie.{ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE}'))
+
     exclusive_q_channel.add_queue(exclusive_q)
+
     return exclusive_q_channel
 
 def create_applications_channel(instance_id: str, niveau_securite: str, context: InstanceContext,
                                 on_message: Callable[[MessageWrapper], Coroutine[Any, Any, None]]) -> MilleGrillesPikaChannel:
-    pass
+
+    q_channel = MilleGrillesPikaChannel(context, prefetch_count=1)
+    q = MilleGrillesPikaQueueConsumer(context, on_message, f'instance/{instance_id}/applications',
+                                      arguments={'x-message-ttl': 300_000})
+
+    if niveau_securite == Constantes.SECURITE_SECURE:
+        # Downgrade securite a 3.protege pour recevoir les commandes
+        niveau_securite_ajuste = Constantes.SECURITE_PROTEGE
+    else:
+        niveau_securite_ajuste = niveau_securite
+
+    q.add_routing_key(RoutingKey(niveau_securite_ajuste,
+                                 f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_INSTALLER}'))
+    q.add_routing_key(RoutingKey(niveau_securite_ajuste,
+                                 f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_UPGRADE}'))
+    q.add_routing_key(RoutingKey(niveau_securite_ajuste,
+                                 f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER}'))
+    q.add_routing_key(RoutingKey(niveau_securite_ajuste,
+                                 f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_DEMARRER}'))
+    q.add_routing_key(RoutingKey(niveau_securite_ajuste,
+                                 f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_ARRETER}'))
+    # q.add_routing_key(RoutingKey(niveau_securite_ajuste,
+    #                              f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_REQUETE_CONFIG}'))
+    # q.add_routing_key(RoutingKey(niveau_securite_ajuste,
+    #                              f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER}'))
+
+    q_channel.add_queue(q)
+    return q_channel
+
 
 def create_requests_channel(instance_id: str, niveau_securite: str, context: InstanceContext,
                                 on_message: Callable[[MessageWrapper], Coroutine[Any, Any, None]]) -> MilleGrillesPikaChannel:
-    pass
 
-def create_certificates_channel(instance_id: str, niveau_securite: str, context: InstanceContext,
-                                on_message: Callable[[MessageWrapper], Coroutine[Any, Any, None]]) -> MilleGrillesPikaChannel:
-    pass
+    if niveau_securite == Constantes.SECURITE_SECURE:
+        # Downgrade securite a 3.protege pour recevoir les commandes
+        niveau_securite_ajuste = Constantes.SECURITE_PROTEGE
+    else:
+        niveau_securite_ajuste = niveau_securite
+
+    q_channel = MilleGrillesPikaChannel(context, prefetch_count=3)
+    q = MilleGrillesPikaQueueConsumer(context, on_message, None, exclusive=True, arguments={'x-message-ttl': 30_000})
+
+    # q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC,
+    #                              f'commande.instance.{instance_id}.{ConstantesInstance.REQUETE_CONFIGURATION_ACME}'))
+    q.add_routing_key(RoutingKey(niveau_securite_ajuste,
+                                 f'commande.instance.{instance_id}.{ConstantesInstance.REQUETE_GET_PASSWORDS}'))
+
+    if niveau_securite == Constantes.SECURITE_PROTEGE:
+        q.add_routing_key(RoutingKey(Constantes.SECURITE_PROTEGE,
+                                     f'commande.instance.{ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES}'))
+
+    # #         # RK Public pour toutes les instances
+    # #         res_configuration.ajouter_rk(Constantes.SECURITE_PUBLIC, 'requete.instance.%s.%s' % (
+    # #             instance_id, ConstantesInstance.REQUETE_CONFIGURATION_ACME))
+    # #         res_installation.ajouter_rk(niveau_securite_ajuste, 'requete.instance.%s.%s' % (
+    # #             instance_id, ConstantesInstance.REQUETE_GET_PASSWORDS))
+    # #         if niveau_securite == Constantes.SECURITE_PROTEGE:
+    # #             res_configuration.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
+
+    q_channel.add_queue(q)
+    return q_channel
 
 
-# instance_id = self.__etat_instance.instance_id
+# def create_certificates_channel(instance_id: str, niveau_securite: str, context: InstanceContext,
+#                                 on_message: Callable[[MessageWrapper], Coroutine[Any, Any, None]]) -> MilleGrillesPikaChannel:
 #
-#         niveau_securite = self.__etat_instance.niveau_securite
+#     q_channel = MilleGrillesPikaChannel(context, prefetch_count=1)
+#     q = MilleGrillesPikaQueueConsumer(context, on_message, f'instance/{instance_id}/certificates',
+#                                       arguments={'x-message-ttl': 300_000})
 #
-#         # RK uniquement 3.protege
-#         if niveau_securite == Constantes.SECURITE_SECURE:
-#             # Downgrade securite a 3.protege pour recevoir les commandes
-#             niveau_securite_ajuste = Constantes.SECURITE_PROTEGE
-#         else:
-#             niveau_securite_ajuste = niveau_securite
-#
-#         # Configuration thread pour messages d'installation
-#         res_installation = RessourcesConsommation(
-#             self.callback_reply_q, channel_separe=True, est_asyncio=True, actif=True)
-#
-#         res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
-#             instance_id, ConstantesInstance.COMMANDE_APPLICATION_INSTALLER))
-#         res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
-#             instance_id, ConstantesInstance.COMMANDE_APPLICATION_UPGRADE))
-#         res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
-#             instance_id, ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER))
-#         res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
-#             instance_id, ConstantesInstance.COMMANDE_APPLICATION_DEMARRER))
-#         res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
-#             instance_id, ConstantesInstance.COMMANDE_APPLICATION_ARRETER))
-#         res_installation.ajouter_rk(niveau_securite_ajuste, 'requete.instance.%s.%s' % (
-#             instance_id, ConstantesInstance.COMMANDE_APPLICATION_REQUETE_CONFIG))
-#         res_installation.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
-#             instance_id, ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER))
-#
-#         # Configuration thread pour messages de signature de certificats
-#         # res_signature = RessourcesConsommation(
-#         #     self.callback_reply_q, channel_separe=True, est_asyncio=True, actif=True, auto_delete=True, exclusive=True)
-#
-#         # Commandes sur niveau 4.secure
-#         # if niveau_securite == Constantes.SECURITE_SECURE:
-#         #     res_signature.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_CSR)
-#         #     res_signature.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_COMPTE_USAGER)
-#         #     res_signature.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_PUBLICKEY_DOMAINE)
-#
-#         # Configuration thread pour messages de configuration
-#         res_configuration = RessourcesConsommation(
-#             self.callback_reply_q, channel_separe=True, est_asyncio=True, actif=True)
-#
-#         # Ecouter le certificat de maitre des cles
-#         res_configuration.ajouter_rk(niveau_securite, 'evenement.MaitreDesCles.certMaitreDesCles')
-#
-#         # RK globaux sur exchange 1.public
-#         res_configuration.ajouter_rk(Constantes.SECURITE_PUBLIC, 'evenement.CoreTopologie.%s' % ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE)
-#
-#         # RK Public pour toutes les instances
-#         res_configuration.ajouter_rk(Constantes.SECURITE_PUBLIC, 'requete.instance.%s.%s' % (
-#             instance_id, ConstantesInstance.REQUETE_CONFIGURATION_ACME))
-#         res_installation.ajouter_rk(niveau_securite_ajuste, 'requete.instance.%s.%s' % (
-#             instance_id, ConstantesInstance.REQUETE_GET_PASSWORDS))
-#
-#         # RK globaux (meme niveau que l'instance - sauf 4.secure qui est downgrade a 3.protege)
-#         res_configuration.ajouter_rk(niveau_securite_ajuste, 'commande.instance.%s.%s' % (
-#             instance_id, ConstantesInstance.COMMANDE_CONFIGURER_DOMAINE))
-#
-#         res_configuration.ajouter_rk(Constantes.SECURITE_PUBLIC, 'evenement.CoreTopologie.%s' % (
-#             ConstantesInstance.EVENEMENT_TOPOLOGIE_MODIFICATION_CONSIGNATION))
-#
-#         if niveau_securite == Constantes.SECURITE_PROTEGE:
-#             res_configuration.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES)
-#
-#         reply_res = RessourcesConsommation(self.callback_reply_q)
-#
-#         messages_thread.set_reply_ressources(reply_res)
-#         messages_thread.ajouter_consumer(res_installation)
-#         # messages_thread.ajouter_consumer(res_signature)
-#         messages_thread.ajouter_consumer(res_configuration)
+#     # Configuration thread pour messages de signature de certificats
+#     #         # res_signature = RessourcesConsommation(
+#     #         #     self.callback_reply_q, channel_separe=True, est_asyncio=True, actif=True, auto_delete=True, exclusive=True)
+#     #
+#     #         # Commandes sur niveau 4.secure
+#     #         # if niveau_securite == Constantes.SECURITE_SECURE:
+#     #         #     res_signature.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_CSR)
+#     #         #     res_signature.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_COMPTE_USAGER)
+#     #         #     res_signature.ajouter_rk(niveau_securite, 'commande.instance.%s' % ConstantesInstance.COMMANDE_SIGNER_PUBLICKEY_DOMAINE)
+#     #
+#     pass

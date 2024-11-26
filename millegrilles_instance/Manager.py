@@ -10,6 +10,7 @@ from uuid import uuid4
 
 from millegrilles_instance import ModulesRequisInstance
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
+from millegrilles_instance.Interfaces import MgbusHandlerInterface
 from millegrilles_instance.MaintenanceApplicationService import charger_configuration_docker, \
     charger_configuration_application
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
@@ -42,6 +43,7 @@ class InstanceManager:
         self.__generateur_certificats = generateur_certificats
         self.__docker_handler = docker_handler
         self.__gestionnaire_applications = gestionnaire_applications
+        self.__mgbus_handler: Optional[MgbusHandlerInterface] = None
 
         self.__reload_configuration = threading.Event()
 
@@ -52,10 +54,11 @@ class InstanceManager:
     def context(self) -> InstanceContext:
         return self.__context
 
-    async def setup(self):
+    async def setup(self, mgbus_handler: MgbusHandlerInterface):
         """
         Call this before starting run threads.
         """
+        self.__mgbus_handler = mgbus_handler
         await self.__prepare_configuration()
 
     async def run(self):
@@ -139,30 +142,6 @@ class InstanceManager:
 
         # Initial load of the configuration
         await asyncio.to_thread(self.context.reload)
-
-    # async def __preparer_environnement(self):
-    #     """
-    #     Examine environnement, preparer au besoin (folders, docker, ports, etc)
-    #     :return:
-    #     """
-    #     self.__logger.info("Preparer l'environnement")
-    #
-    #     makedirs(self.__configuration.path_secrets, 0o700, exist_ok=True)
-    #     makedirs(self.__configuration.path_secrets_partages, 0o710, exist_ok=True)
-    #
-    #     self.preparer_folder_configuration()
-    #     await self.__etat_instance.reload_configuration()  # Genere les certificats sur premier acces
-    #
-    #     self.__etat_instance.ajouter_listener(self.changer_etat_execution)
-    #
-    #     self.__etat_instance.generateur_certificats = GenerateurCertificatsHandler(self.__etat_instance)
-    #
-    #     self.__web_server = WebServer(self.__etat_instance)
-    #     self.__web_server.setup()
-    #
-    #     await self.demarrer_client_docker()  # Demarre si docker est actif
-    #
-    #     await self.__etat_instance.reload_configuration()
 
     async def __prepare_folder_configuration(self):
         configuration: ConfigurationInstance = self.__context.configuration
@@ -279,11 +258,11 @@ class InstanceManager:
             await wait_for_application(self.__context, 'midcompte')
 
         # 4. Connect to mgbus (MQ)
-        raise NotImplementedError('todo')  # TODO - trouver comment appeler MgbusHandler.register()
+        await self.__mgbus_handler.register()
 
     async def stop_normal_operation(self):
         # Disconnect from mgbus
-        raise NotImplementedError('todo')  # TODO - trouver comment appeler MgbusHandler.unregister()
+        await self.__mgbus_handler.unregister()
 
 
 async def wait_for_application(context: InstanceContext, app_name: str):

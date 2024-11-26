@@ -14,6 +14,7 @@ from typing import Optional
 from base64 import b64decode
 
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
+from millegrilles_instance.Interfaces import DockerHandlerInterface
 from millegrilles_instance.MaintenanceApplicationService import service_maintenance, get_service_status
 from millegrilles_instance.MaintenanceApplicationWeb import installer_archive, check_archive_stale
 from millegrilles_instance.ModulesRequisInstance import RequiredModules
@@ -48,9 +49,10 @@ from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname, Onioni
     #
     #     self.__docker_initialise = False
 
-class InstanceDockerHandler:
+class InstanceDockerHandler(DockerHandlerInterface):
 
     def __init__(self, context: InstanceContext, docker_state: DockerState):
+        super().__init__()
         self.__logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
         self.__context = context
         self.__docker_state = docker_state

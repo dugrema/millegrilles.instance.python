@@ -19,6 +19,7 @@ from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance.NginxUtils import ajouter_fichier_configuration
+from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.CleCertificat import CleCertificat
@@ -31,42 +32,15 @@ LOGGER = logging.getLogger(__name__)
 
 class NginxHandler:
 
-    def __init__(self, context: InstanceContext):
+    def __init__(self, context: InstanceContext, docker_handler: Optional[DockerHandler]):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context: InstanceContext = context
-        self.__docker_handler: Optional[InstanceDockerHandler] = None
+        self.__docker_handler = docker_handler
 
-        # self.__session: Optional[aiohttp.ClientSession] = None
-
-        # ca_path = context.configuration.instance_ca_pem_path
-        # lf.__sslcontext = ssl.create_default_context(cafile=ca_path)
-
-        # try:
-        #     self.__sslcontext.load_cert_chain(context.configuration.instance_cert_pem_path,
-        #                                       context.configuration.instance_key_pem_path)
-        # except FileNotFoundError:
-        #     pass
-
-        # self.__entretien_initial_complete = False
         self.__url_nginx = 'https://127.0.0.1:443'
         self.__url_nginx_sslclient = 'https://127.0.0.1:444'
 
         self.__repertoire_configuration_pret = False
-
-        # Information de CoreTopologie pour la consignation de fichiers
-        self.__configuration_consignation: Optional[dict] = None
-        self.__date_changement_consignation: Optional[datetime.datetime] = None
-        # self.__intervalle_verification_consignation = datetime.timedelta(minutes=5)
-
-    def set_docker_handler(self, docker_handler: InstanceDockerHandler):
-        self.__docker_handler = docker_handler
-
-    # async def creer_session(self):
-    #     if self.__context.configuration.instance_password_mq_path is not None:
-    #         with open(self.__context.configuration.instance_password_mq_path, 'r') as fichier:
-    #             password_mq = fichier.read().strip()
-    #         basic_auth = aiohttp.BasicAuth('admin', password_mq)
-    #         self.__session = aiohttp.ClientSession(auth=basic_auth)
 
     async def setup(self):
         await self.preparer_nginx()
