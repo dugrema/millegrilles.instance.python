@@ -6,6 +6,7 @@ import json
 
 from typing import Optional
 
+import docker.errors
 from docker.models.services import Service
 
 from millegrilles_instance.CommandesDocker import check_service_running, check_replicas, check_service_preparing, \
@@ -423,7 +424,13 @@ async def install_service(context: InstanceContext, docker_handler: DockerHandle
     if image is not None:
         commande_creer_service = DockerCommandes.CommandeCreerService(
             image_tag, config_parsed, reinstaller=command.reinstall)
-        resultat = await docker_handler.run_command(commande_creer_service)
+        try:
+            resultat = await docker_handler.run_command(commande_creer_service)
+        except docker.errors.APIError as e:
+            if e.status_code == 409:
+                pass  # Already installed (duplicate install command) - OK
+            else:
+                raise e
         return resultat
     else:
         LOGGER.debug("installer_service() Invoque pour un service sans images : %s", service_name)

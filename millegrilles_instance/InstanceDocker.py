@@ -366,13 +366,16 @@ class InstanceDockerHandler(DockerHandlerInterface):
     async def get_params_env_service(self) -> dict:
         # Charger configurations
         action_configurations = DockerCommandes.CommandeListerConfigs()
-        docker_configs = await self.__docker_handler.run_command(action_configurations)
+        await self.__docker_handler.run_command(action_configurations)
+        docker_configs  = await action_configurations.get_resultat()
 
         action_secrets = DockerCommandes.CommandeListerSecrets()
-        docker_secrets = await self.__docker_handler.run_command(action_secrets)
+        await self.__docker_handler.run_command(action_secrets)
+        docker_secrets = await action_secrets.get_resultat()
 
         action_datees = DockerCommandes.CommandeGetConfigurationsDatees()
-        config_datees = await self.__docker_handler.run_command(action_datees)
+        await self.__docker_handler.run_command(action_datees)
+        config_datees = await action_datees.get_resultat()
 
         params = {
             'HOSTNAME': self.__context.hostname,
