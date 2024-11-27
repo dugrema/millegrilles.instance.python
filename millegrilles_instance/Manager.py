@@ -299,7 +299,7 @@ class InstanceManager:
         # 5. Exchange updated information
         try:
             self.__logger.info("Runlevel normal - exchange information")
-            await self.__docker_handler.emettre_presence()
+            await self.__docker_handler.emettre_presence(timeout=20)  # Wait 20 secs max for connection to mqbus
             await self.send_application_packages()
             for i in range(0, 3):
                 try:
@@ -324,7 +324,7 @@ class InstanceManager:
     async def send_application_packages(self):
         self.__logger.info("Transmettre catalogues")
         path_catalogues = self.context.configuration.path_catalogues
-        producer = await asyncio.wait_for(self.__context.get_producer(), 1)
+        producer = await asyncio.wait_for(self.__context.get_producer(), 3)
         for f in path_catalogues.iterdir():
             if f.is_file() and f.name.endswith('.json.xz'):
                 with lzma.open(f, 'rt') as fichier:
@@ -364,7 +364,7 @@ class InstanceManager:
         return None
 
     async def request_fiche_json(self):
-        producer = await asyncio.wait_for(self.__context.get_producer(), 1)
+        producer = await asyncio.wait_for(self.__context.get_producer(), 3)
         idmg = self.context.idmg
         fiche_response = await producer.request({'idmg': idmg}, Constantes.DOMAINE_CORE_TOPOLOGIE,
                                                 'ficheMillegrille',

@@ -145,7 +145,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
     #
     #     self.__logger.info("__application_maintenance Thread terminee")
 
-    async def emettre_presence(self):
+    async def emettre_presence(self, timeout=1):
         info_updatee = dict()
 
         commande = CommandeListeTopologie()
@@ -200,7 +200,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
             niveau_securite = Constantes.SECURITE_PROTEGE
 
         try:
-            producer = await asyncio.wait_for(self.__context.get_producer(), 1)
+            producer = await asyncio.wait_for(self.__context.get_producer(), timeout)
             await producer.event(info_updatee, Constantes.DOMAINE_INSTANCE,
                                  ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
                                  exchange=niveau_securite)
