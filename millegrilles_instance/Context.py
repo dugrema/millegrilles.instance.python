@@ -75,6 +75,7 @@ class InstanceContext(MilleGrillesBusContext):
     def update_application_status(self, app_name: str, status: dict):
         self.__application_status.update(app_name, status)
 
+
     @property
     def bus_connector(self) -> MilleGrillesPikaConnector:
         if self.__bus_connector is None:

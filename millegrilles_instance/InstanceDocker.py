@@ -3,18 +3,19 @@ import logging
 import json
 import pathlib
 import threading
+from queue import Queue
 
 import docker.errors
 
 from asyncio import TaskGroup
 from docker.errors import APIError, NotFound
 from os import path, unlink
-from typing import Optional
+from typing import Optional, Any
 
 from millegrilles_instance.Certificats import generer_passwords
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.Interfaces import DockerHandlerInterface, GenerateurCertificatsInterface
-from millegrilles_instance.MaintenanceApplicationService import get_service_status, ServiceStatus, ServiceDependency
+from millegrilles_instance.MaintenanceApplicationService import ServiceStatus, ServiceDependency
 from millegrilles_instance.MaintenanceApplicationWeb import installer_archive, check_archive_stale
 from millegrilles_instance.NginxUtils import ajouter_fichier_configuration
 
@@ -60,6 +61,8 @@ class InstanceDockerHandler(DockerHandlerInterface):
         # self.__applications_changed = asyncio.Event()
 
         self.__generateur_certificats: Optional[GenerateurCertificatsInterface] = None
+        self.__events_stream: Optional[Any] = None
+        self.__event_queue = Queue(maxsize=10)
 
     async def setup(self, generateur_certificats: GenerateurCertificatsInterface):
         self.__generateur_certificats = generateur_certificats
@@ -72,6 +75,10 @@ class InstanceDockerHandler(DockerHandlerInterface):
                 group.create_task(self.initialiser_docker())
                 group.create_task(self.__configuration_udpate_thread())
                 # group.create_task(self.__service_status_pull())
+
+                group.create_task(asyncio.to_thread(self.__event_thread))
+                group.create_task(self.__process_docker_event_thread())
+
                 group.create_task(self.__stop_thread())
         except *Exception:  # Stop on any thread exception
             if self.__context.stopping is False:
@@ -83,7 +90,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
         await self.__context.wait()
         # Release threads
         self.__verify_configuration_event.set()
-        # self.__applications_changed.set()
+        self.__events_stream.close()
 
     async def __configuration_udpate_thread(self):
         while self.__context.stopping is False:
@@ -107,22 +114,22 @@ class InstanceDockerHandler(DockerHandlerInterface):
     # async def callback_changement_applications(self):
     #     self.__applications_changed.set()
 
-    async def __service_status_pull(self):
-        while self.__context.stopping is False:
-            try:
-                if self.__context.application_status.required_modules is not None:
-                    # Updates the status in context
-                    await get_service_status(self.__context, self, self.__context.application_status.required_modules)
-                await self.emettre_presence()
-            except (ValueNotAvailable, asyncio.TimeoutError):
-                self.__logger.debug("__service_status_pull Not ready, skipping emettre_presence")
-            except:
-                self.__logger.exception("__service_status_pull Unhandled exception")
-
-            try:
-                await self.__context.wait(15)
-            except asyncio.TimeoutError:
-                pass
+    # async def __service_status_pull(self):
+    #     while self.__context.stopping is False:
+    #         try:
+    #             if self.__context.application_status.required_modules is not None:
+    #                 # Updates the status in context
+    #                 await get_service_status(self.__context, self, self.__context.application_status.required_modules)
+    #             await self.emettre_presence()
+    #         except (ValueNotAvailable, asyncio.TimeoutError):
+    #             self.__logger.debug("__service_status_pull Not ready, skipping emettre_presence")
+    #         except:
+    #             self.__logger.exception("__service_status_pull Unhandled exception")
+    #
+    #         try:
+    #             await self.__context.wait(15)
+    #         except asyncio.TimeoutError:
+    #             pass
 
     # async def __application_maintenance(self):
     #     while self.__context.stopping is False:
@@ -701,3 +708,79 @@ class InstanceDockerHandler(DockerHandlerInterface):
         self.__logger.debug("Adresse onionize : %s" % hostname)
         return hostname
 
+    def __event_thread(self):
+        self.__events_stream = self.__docker_state.docker.events(decode=True)
+        try:
+            for event in self.__events_stream:
+                self.__event_queue.put(event)
+        finally:
+            self.__event_queue.put(None)
+
+    async def __process_docker_event_thread(self):
+        while self.__context.stopping is False:
+            event = await asyncio.to_thread(self.__event_queue.get)
+            if event is None or self.__context.stopping:
+                return  # Stopping
+
+            self.__logger.debug("Docker event: %s", event)
+
+            try:
+                try:
+                    event_type = event['Type']
+                    attributes = event['Actor']['Attributes']
+                except KeyError:
+                    continue  # Not handled
+
+                if event_type == 'container':
+                    try:
+                        status = event['status']
+                        name = attributes['com.docker.swarm.service.name']
+                    except KeyError:
+                        continue  # Unhandled
+
+                    try:
+                        app_status = self.__context.application_status.apps[name]
+                    except KeyError:
+                        app_status = {'name': name, 'status': dict()}
+
+                    if status == 'start':
+                        self.__logger.debug("Container for service %s has started", name)
+                        app_status['status']['installed'] = True
+                        self.__context.update_application_status(name, app_status)
+                        await self.emettre_presence(3)
+                    elif status in ['die', 'destroy']:
+                        self.__logger.debug("Container for service %s has stopped", name)
+                        app_status['status']['installed'] = False
+                        self.__context.update_application_status(name, app_status)
+                        await self.emettre_presence(3)
+
+                elif event_type == 'service':
+                    try:
+                        action = event['Action']
+                        name = attributes['name']
+                    except KeyError:
+                        continue  # Unhandled
+
+                    try:
+                        app_status = self.__context.application_status.apps[name]
+                    except KeyError:
+                        app_status = {'name': name, 'status': dict()}
+
+                    if action == 'create':
+                        self.__logger.debug("Service %s was created", name)
+                        app_status['status']['running'] = True
+                        self.__context.update_application_status(name, app_status)
+                        await self.emettre_presence(3)
+                    elif action == 'remove':
+                        self.__logger.debug("Service %s was removed", name)
+                        app_status['status']['running'] = False
+                        self.__context.update_application_status(name, app_status)
+                        await self.emettre_presence(3)
+                    elif action == 'update':
+                        replicas_new = attributes.get('replicas.new')
+                        if replicas_new is not None:
+                            app_status['status']['disabled'] = replicas_new == '0'
+                            self.__context.update_application_status(name, app_status)
+                            await self.emettre_presence(3)
+            except:
+                self.__logger.exception("Error handling docker event")

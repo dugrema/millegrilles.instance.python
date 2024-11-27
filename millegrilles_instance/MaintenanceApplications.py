@@ -34,6 +34,7 @@ class ApplicationsHandler:
             async with TaskGroup() as group:
                 group.create_task(self.__stop_thread())
                 group.create_task(self.__application_maintenance_thread())
+                group.create_task(self.__application_restart_thread())
         except *Exception as e:
             if self.__context.stopping:
                 self.__logger.info('Exception on close %s' % str(e))
@@ -246,10 +247,28 @@ class ApplicationsHandler:
     async def callback_changement_applications(self):
         self.__applications_changed.set()
 
+    async def __application_restart_thread(self):
+        """
+        Monitors stopped applications to trigger a restart
+        """
+        while self.__context.stopping is False:
+            for app_name, value in self.__context.application_status.apps.items():
+                try:
+                    status = value['status']
+                except KeyError:
+                    pass
+                else:
+                    if status.get('disabled') is False and status.get('running') is False:
+                        self.__logger.info("Restarting stopped services")
+                        self.__applications_changed.set()  # Trigger application maintenance cycle
+                        break
+
+            await self.__context.wait(5)
+
     async def __application_maintenance_thread(self):
         while self.__context.stopping is False:
             try:
-                await asyncio.wait_for(self.__applications_changed.wait(), 15)
+                await asyncio.wait_for(self.__applications_changed.wait(), 900)
             except asyncio.TimeoutError:
                 pass
 
