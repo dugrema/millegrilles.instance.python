@@ -10,7 +10,7 @@ from typing import Optional
 
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.MaintenanceApplicationService import list_images, pull_images, get_service_status, \
-    download_docker_images, install_services, ServiceInstallCommand
+    download_docker_images, ServiceInstallCommand, ServiceStatus
 from millegrilles_instance.MaintenanceApplicationWeb import sauvegarder_configuration_webapps
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages.MessagesModule import MessageWrapper
@@ -45,9 +45,10 @@ class ApplicationsHandler:
     async def __stop_thread(self):
         await self.__context.wait()
 
-    async def installer_application(self, app_configuration: dict, reinstaller=False, command: Optional[MessageWrapper] = None):
-        nom_application = app_configuration['nom']
-        web_links = app_configuration.get('web')
+    async def installer_application(self, app_configuration: ServiceStatus, reinstaller=False, command: Optional[MessageWrapper] = None):
+        nom_application = app_configuration.name
+        self.__logger.info("Installing application %s" % nom_application)
+        web_links = app_configuration.web_config
         if web_links:
             sauvegarder_configuration_webapps(self.__context, nom_application, web_links)
 
@@ -55,25 +56,29 @@ class ApplicationsHandler:
         path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
         self.__logger.debug("Sauvegarder configuration pour app %s vers %s" % (nom_application, path_app))
         with open(path_app, 'w') as fichier:
-            json.dump(app_configuration, fichier, indent=2)
+            json.dump(app_configuration.to_dict(), fichier, indent=2)
 
         producer = await self.__context.get_producer()
         if self.__docker_handler is not None:
-            resultat = await self.__docker_handler.installer_application(self.__context, app_configuration, reinstaller)
+            resultat = await self.__docker_handler.installer_application(app_configuration, reinstaller)
             if command:
                 # Emit OK response, installation is beginning
                 await producer.reply(resultat, command.reply_to, command.correlation_id)
             await self.__docker_handler.emettre_presence()
+            self.__logger.info("Application %s installed" % nom_application)
             return resultat
         else:
-            return await installer_application_sansdocker(self.__context, app_configuration)
+            resultat = await installer_application_sansdocker(self.__context, app_configuration)
+            self.__logger.info("Application %s installed" % nom_application)
+            return resultat
 
-    async def upgrade_application(self, configuration: dict, command: Optional[MessageWrapper] = None):
-        nom_application = configuration['nom']
-        web_links = configuration.get('web')
+    async def upgrade_application(self, app_value: dict, command: Optional[MessageWrapper] = None):
+        app_status = ServiceStatus(app_value)
+        nom_application = app_status.name
+        web_links = app_status.web_config
 
         # Downloader toutes les images a l'avance
-        images = list_images(configuration)
+        images = list_images(app_status)
         all_found = await pull_images(self.__context, self.__docker_handler, images, nom_application)
 
         if all_found is False:
@@ -86,14 +91,14 @@ class ApplicationsHandler:
         path_app = path.join(path_docker_apps, 'app.%s.json' % nom_application)
         self.__logger.debug("Sauvegarder configuration pour app %s vers %s" % (nom_application, path_app))
         with open(path_app, 'w') as fichier:
-            json.dump(configuration, fichier, indent=2)
+            json.dump(app_status.to_dict(), fichier, indent=2)
 
         if self.__docker_handler is not None:
-            resultat = await self.__docker_handler.installer_application(self.__context, configuration, True)
+            resultat = await self.__docker_handler.installer_application(app_status, True)
             await self.__docker_handler.emettre_presence()
             return resultat
         else:
-            return await installer_application_sansdocker(self.__context, configuration)
+            return await installer_application_sansdocker(self.__context, app_status)
 
     async def demarrer_application(self, nom_application: str):
         if self.__docker_handler is not None:
@@ -219,12 +224,12 @@ class ApplicationsHandler:
 
         pass
 
-    async def __restart_service_process(self, input_q: asyncio.Queue[Optional[ServiceInstallCommand]]):
+    async def __restart_service_process(self, input_q: asyncio.Queue[Optional[ServiceStatus]]):
         while True:
-            command = await input_q.get()
-            if command is None:
+            service_status = await input_q.get()
+            if service_status is None:
                 return  # Exit condition
-            await self.__docker_handler.demarrer_application(command.status.name)
+            await self.__docker_handler.demarrer_application(service_status.name)
         pass
 
     async def __install_service_process(self, input_q: asyncio.Queue[Optional[ServiceInstallCommand]]):
@@ -232,9 +237,10 @@ class ApplicationsHandler:
             command = await input_q.get()
             if command is None:
                 return  # Exit condition
-            app_name = command.status.name
-            app_configuration = {'nom': app_name, 'dependances': [command.status.configuration]}
-            await self.__docker_handler.installer_application(self.__context, app_configuration)
+            # app_name = command.status.name
+            # app_configuration = {'nom': app_name, 'dependances': [command.status.configuration]}
+            self.__logger.info("Installing application %s" % command.status.name)
+            await self.__docker_handler.installer_application(command.status)
         pass
 
     async def callback_changement_applications(self):
@@ -263,7 +269,7 @@ class ApplicationsHandler:
         self.__logger.info("__application_maintenance Thread terminee")
 
 
-async def installer_application_sansdocker(context: InstanceContext, configuration: dict):
+async def installer_application_sansdocker(context: InstanceContext, configuration: ServiceStatus):
     raise NotImplementedError('fix me')
     # """ Installe un certificat d'application sur une instance sans docker (e.g. RPi) """
     # nom_application = configuration['nom']

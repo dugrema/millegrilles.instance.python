@@ -191,7 +191,7 @@ async def get_docker_image_tag(context: InstanceContext, docker_handler: DockerH
 
     # Status updates
     async def status_callback(status: PullStatus):
-        LOGGER.info("CommandeGetImage %s status: %s" % (image, status.status_str()))
+        LOGGER.debug("CommandeGetImage %s status: %s" % (image, status.status_str()))
     progress_coro = commande_image.progress_coro(status_callback)
 
     coros = [image_info_coro, progress_coro]

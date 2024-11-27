@@ -37,7 +37,7 @@ def ajouter_fichier_configuration(context: InstanceContext, path_nginx_modules: 
         with open(path_destination, 'r') as fichier_existant:
             contenu_existant = fichier_existant.read()
             if contenu_existant != contenu:
-                LOGGER.info("ajouter_fichier_configuration Detecte changement fichier config\nOriginal\n%s\n-------\nNouveau\n%s" % (contenu_existant, contenu))
+                LOGGER.debug("ajouter_fichier_configuration Detecte changement fichier config\nOriginal\n%s\n-------\nNouveau\n%s" % (contenu_existant, contenu))
                 changement_detecte = True
     except FileNotFoundError:
         changement_detecte = True

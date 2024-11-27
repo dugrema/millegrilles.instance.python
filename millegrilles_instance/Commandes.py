@@ -7,6 +7,7 @@ from cryptography.x509.extensions import ExtensionNotFound
 from os import listdir, path
 from typing import Optional
 
+from millegrilles_instance.MaintenanceApplicationService import ServiceStatus
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 from millegrilles_messages.messages.MessagesModule import MessageWrapper
@@ -163,7 +164,8 @@ class CommandHandler:
         contenu = message.parsed
         # nom_application = contenu['nom_application']
         configuration = contenu['configuration']
-        return await self._gestionnaire_applications.installer_application(configuration, command=message)
+        app_status = ServiceStatus(configuration)
+        return await self._gestionnaire_applications.installer_application(app_status, command=message)
 
     async def supprimer_application(self, message: MessageWrapper):
         contenu = message.parsed
@@ -209,7 +211,9 @@ class CommandHandler:
         with open(path_fichier, 'w') as fichier:
             fichier.write(configuration_str)
 
-        return await self._gestionnaire_applications.installer_application(configuration, reinstaller=True)
+        app_status = ServiceStatus(configuration)
+
+        return await self._gestionnaire_applications.installer_application(app_status, reinstaller=True)
 
     async def upgrade_application(self, message: MessageWrapper):
         contenu = message.parsed

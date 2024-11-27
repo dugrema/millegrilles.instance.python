@@ -316,7 +316,7 @@ async def generer_nouveau_certificat(client_session: ClientSession,
     if clecertificat.cle_correspondent() is False:
         raise Exception("Erreur cert/cle ne correspondent pas")
 
-    logger.info("generer_nouveau_certificat Reponse certissuer certificat %s\n%s" % (nom_module, ''.join(certificat)))
+    logger.debug("generer_nouveau_certificat Reponse certissuer certificat %s\n%s" % (nom_module, ''.join(certificat)))
     return clecertificat
 
 
@@ -917,7 +917,7 @@ class GenerateurCertificatsHandler(GenerateurCertificatsInterface):
                 enveloppe = None
 
             if doit_generer:
-                self.__logger.info("generer_commandes_modules Generer nouveau certificat pour %s" % nom_module)
+                self.__logger.debug("generer_commandes_modules Generer nouveau certificat pour %s" % nom_module)
                 if 'maitredescles' in roles:
                     expire = detail_expiration.get('expire')
                     if expire is None:
@@ -958,17 +958,26 @@ async def get_configuration_certificats(context: InstanceContext) -> dict:
     path_configuration = context.configuration.path_configuration
     path_configuration_docker = pathlib.Path(path_configuration, 'docker')
     config_modules = context.application_status.required_modules
-    configurations = await charger_configuration_docker(path_configuration_docker, config_modules)
-    configurations_apps = await charger_configuration_application(path_configuration_docker)
-    configurations.extend(configurations_apps)
 
     # map configuration certificat
     config_certificats = dict()
-    for c in configurations:
+
+    configurations = await charger_configuration_docker(path_configuration_docker, config_modules)
+    for dep in configurations:
         try:
-            certificat = c['certificat']
-            nom = c['name']
+            certificat = dep['certificat']
+            nom = dep['name']
             config_certificats[nom] = certificat
+        except KeyError:
+            pass
+
+    configurations_apps = await charger_configuration_application(path_configuration_docker)
+    for app_configuration in configurations_apps:
+        try:
+            for dep in app_configuration['dependances']:
+                certificat = dep['certificat']
+                nom = dep['name']
+                config_certificats[nom] = certificat
         except KeyError:
             pass
 

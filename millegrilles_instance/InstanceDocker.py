@@ -1,25 +1,21 @@
 import asyncio
 import logging
-import io
 import json
 import pathlib
-import tarfile
 import threading
 
 import docker.errors
 
 from asyncio import TaskGroup
 from docker.errors import APIError, NotFound
-from os import path, unlink, makedirs
+from os import path, unlink
 from typing import Optional
-from base64 import b64decode
 
 from millegrilles_instance.Certificats import generer_passwords
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.Interfaces import DockerHandlerInterface, GenerateurCertificatsInterface
-from millegrilles_instance.MaintenanceApplicationService import service_maintenance, get_service_status
+from millegrilles_instance.MaintenanceApplicationService import get_service_status, ServiceStatus, ServiceDependency
 from millegrilles_instance.MaintenanceApplicationWeb import installer_archive, check_archive_stale
-from millegrilles_instance.ModulesRequisInstance import RequiredModules
 from millegrilles_instance.NginxUtils import ajouter_fichier_configuration
 
 from millegrilles_messages.messages import Constantes
@@ -203,10 +199,13 @@ class InstanceDockerHandler(DockerHandlerInterface):
             # Downgrade 4.secure a niveau 3.protege
             niveau_securite = Constantes.SECURITE_PROTEGE
 
-        producer = await asyncio.wait_for(self.__context.get_producer(), 3)
-        await producer.event(info_updatee, Constantes.DOMAINE_INSTANCE,
-                             ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
-                             exchange=niveau_securite)
+        try:
+            producer = await asyncio.wait_for(self.__context.get_producer(), 1)
+            await producer.event(info_updatee, Constantes.DOMAINE_INSTANCE,
+                                 ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE,
+                                 exchange=niveau_securite)
+        except asyncio.TimeoutError:
+            self.__logger.info("Error emitting status - timeout getting mgbus producer")
 
     async def verifier_config_instance(self):
         instance_id = self.__context.instance_id
@@ -392,7 +391,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
 
         return params
 
-    async def installer_service(self, nom_service: str, in_configuration: dict, params: dict, reinstaller=False):
+    async def installer_service(self, nom_service: str, dependency: ServiceDependency, params: dict, reinstaller=False):
         # Copier params, ajouter info service
         params = params.copy()
         params['__nom_application'] = nom_service
@@ -412,13 +411,13 @@ class InstanceDockerHandler(DockerHandlerInterface):
         except ValueNotAvailable:
             pass
 
-        config_service = in_configuration.copy()
-        try:
-            config_service.update(config_service['config'])  # Combiner la configuration de base et du service
-        except KeyError:
-            pass
+        docker_service_configuration = dependency.configuration.copy()
+        # try:
+        #     config_service.update(config_service['config'])  # Combiner la configuration de base et du service
+        # except KeyError:
+        #     pass
 
-        parser = ConfigurationService(config_service, params)
+        parser = ConfigurationService(docker_service_configuration, params)
         parser.parse()
         config_parsed = parser.generer_docker_config()
 
@@ -504,10 +503,10 @@ class InstanceDockerHandler(DockerHandlerInterface):
         except AttributeError:
             return result
 
-    async def installer_application(self, context: InstanceContext, configuration: dict, reinstaller=False):
-        nom_application = configuration['nom']
-        nginx = configuration.get('nginx')
-        dependances = configuration['dependances']
+    async def installer_application(self, application: ServiceStatus, reinstaller=False):
+        nom_application = application.name
+        nginx = application.nginx
+        dependances = application.dependencies
 
         commande_config_datees = DockerCommandes.CommandeGetConfigurationsDatees()
         await self.__docker_handler.run_command(commande_config_datees)
@@ -524,21 +523,21 @@ class InstanceDockerHandler(DockerHandlerInterface):
         # Generer certificats/passwords
         await self.generer_valeurs(correspondance, dependances, nom_application)
 
-        # Copier scripts
-        try:
-            scripts_base64 = configuration['scripts_content']
-        except KeyError:
-            pass
-        else:
-            path_scripts = '/var/opt/millegrilles/scripts'
-            makedirs(path_scripts, mode=0o755, exist_ok=True)
-            path_scripts_app = path.join(path_scripts, nom_application)
-            makedirs(path_scripts_app, mode=0o755, exist_ok=True)
-
-            tar_scripts_bytes = b64decode(scripts_base64)
-            server_file_obj = io.BytesIO(tar_scripts_bytes)
-            tar_content = tarfile.open(fileobj=server_file_obj)
-            tar_content.extractall(path_scripts_app)
+        # # Copier scripts
+        # try:
+        #     scripts_base64 = configuration['scripts_content']
+        # except KeyError:
+        #     pass
+        # else:
+        #     path_scripts = '/var/opt/millegrilles/scripts'
+        #     makedirs(path_scripts, mode=0o755, exist_ok=True)
+        #     path_scripts_app = path.join(path_scripts, nom_application)
+        #     makedirs(path_scripts_app, mode=0o755, exist_ok=True)
+        #
+        #     tar_scripts_bytes = b64decode(scripts_base64)
+        #     server_file_obj = io.BytesIO(tar_scripts_bytes)
+        #     tar_content = tarfile.open(fileobj=server_file_obj)
+        #     tar_content.extractall(path_scripts_app)
 
         rafraichir_nginx = False
         if nginx is not None:
@@ -560,36 +559,36 @@ class InstanceDockerHandler(DockerHandlerInterface):
         # Deployer services
         if dependances is not None:
             for dep in dependances:
-                nom_module = dep['name']
+                nom_module = dep.name
 
                 # Installer web apps en premier
-                if dep.get('archives') is not None:
+                if dep.archives is not None:
                     try:
-                        web_links = configuration['web']
+                        web_links = application.web_config
                     except KeyError:
                         web_links = dict()
                     # Installer webapp
-                    for archive in dep['archives']:
-                        app_name = dep['name']
+                    for archive in dep.archives:
+                        app_name = dep.name
                         config = WebApplicationConfiguration(archive)
                         if await asyncio.to_thread(check_archive_stale, self.__context, config):
                             await asyncio.to_thread(installer_archive, self.__context, app_name, config,
                                                     web_links)
 
-                if dep.get('image') is not None:
+                if dep.image is not None:
                     params = await self.get_params_env_service()
                     params['__nom_application'] = nom_application
                     resultat_installation = await self.installer_service(nom_module, dep, params, reinstaller)
 
-                    try:
-                        scripts_module = configuration['scripts_installation'][nom_module]
-                    except KeyError:
-                        pass
-                    else:
-                        path_rep = configuration.get('scripts_path') or '/var/opt/millegrilles_scripts'
-                        path_scripts = path.join(path_rep, nom_application)
-                        scripts_module_path = [path.join(path_scripts, s) for s in scripts_module]
-                        await self.executer_scripts_container(nom_module, scripts_module_path)
+                    # try:
+                    #     scripts_module = configuration['scripts_installation'][nom_module]
+                    # except KeyError:
+                    #     pass
+                    # else:
+                    #     path_rep = configuration.get('scripts_path') or '/var/opt/millegrilles_scripts'
+                    #     path_scripts = path.join(path_rep, nom_application)
+                    #     scripts_module_path = [path.join(path_scripts, s) for s in scripts_module]
+                    #     await self.executer_scripts_container(nom_module, scripts_module_path)
 
         if rafraichir_nginx is True:
             await self.redemarrer_nginx("Application %s installee" % nom_application)
@@ -621,33 +620,31 @@ class InstanceDockerHandler(DockerHandlerInterface):
             else:
                 self.__logger.info("Resultat execution %s\n%s" % (code, output))
 
-    async def generer_valeurs(self, correspondance, dependances, nom_application):
+    async def generer_valeurs(self, correspondance: dict, dependances: list[ServiceDependency], nom_application: str):
         if dependances is None:
             return  # Rien a faire
 
         for dep in dependances:
+            certificat = dep.certificate
+            if certificat is None:
+                continue
+
+            # Verifier si certificat/cle existent deja
             try:
-                certificat = dep['certificat']
-
-                # Verifier si certificat/cle existent deja
-                try:
-                    current = correspondance['pki.%s' % nom_application]['current']
-                    current['key']
-                    current['cert']
-                except KeyError:
-                    self.__logger.info("generer_valeurs Generer certificat/secret pour %s" % nom_application)
-                    clecertificat = await self.__generateur_certificats.demander_signature(nom_application, certificat)
-                    if clecertificat is None:
-                        raise Exception("generer_valeurs Erreur creation certificat %s" % nom_application)
-                    # Importer toutes les cles dans docker
-                    if self.__docker_handler and clecertificat is not None:
-                        await self.assurer_clecertificat(nom_application, clecertificat)
-
+                current = correspondance['pki.%s' % nom_application]['current']
+                current['key']
+                current['cert']
             except KeyError:
-                pass
+                self.__logger.debug("generer_valeurs Generer certificat/secret pour %s" % nom_application)
+                clecertificat = await self.__generateur_certificats.demander_signature(nom_application, certificat)
+                if clecertificat is None:
+                    raise Exception("generer_valeurs Erreur creation certificat %s" % nom_application)
+                # Importer toutes les cles dans docker
+                if self.__docker_handler and clecertificat is not None:
+                    await self.assurer_clecertificat(nom_application, clecertificat)
 
-            try:
-                generateur = dep.get('passwords') or dep['generateur']
+            generateur = dep.passwords
+            if generateur:
                 for passwd_gen in generateur:
                     if isinstance(passwd_gen, str):
                         label = passwd_gen
@@ -662,9 +659,6 @@ class InstanceDockerHandler(DockerHandlerInterface):
                         self.__logger.info("Generer password %s pour %s" % (label, nom_application))
                         # await self.__generateur_certificats.generer_passwords(self, [passwd_gen])
                         await generer_passwords(self.__context, self, [passwd_gen])
-
-            except KeyError:
-                pass
 
     async def demarrer_application(self, nom_application: str):
         commande_image = DockerCommandes.CommandeDemarrerService(nom_application, replicas=1)

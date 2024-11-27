@@ -86,7 +86,7 @@ def installer_archive(context: InstanceContext, app_name: str, archive: WebAppli
         # Verifier hachage, lance exception si incorrect
         verificateur.verify()
 
-        LOGGER.info('Extracting %s' % file_download_path)
+        LOGGER.debug('Extracting %s' % file_download_path)
         with tarfile.open(file_download_path, 'r:gz') as fichier:
             fichier.extractall(tmp_extract_path)
 

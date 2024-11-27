@@ -15,6 +15,7 @@ from cryptography.x509 import ExtensionNotFound
 from millegrilles_instance import ModulesRequisInstance
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance.Interfaces import MgbusHandlerInterface
+from millegrilles_instance.MaintenanceApplicationService import ServiceStatus
 from millegrilles_instance.NginxHandler import NginxHandler
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages import Constantes
@@ -238,7 +239,7 @@ class InstanceManager:
         self.__logger.info("Starting runlevel INSTALLATION")
         await self.__gestionnaire_applications.callback_changement_applications()
         await wait_for_application(self.__context, 'nginxinstall')
-        self.__logger.info("Ready to install - login using a web browser")
+        self.__logger.info("Ready to install\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
 
     async def __stop_runlevel_installation(self):
         # Installation just completed, reload all configuration
@@ -373,7 +374,8 @@ class InstanceManager:
 
     async def install_application(self, message: MessageWrapper):
         configuration = message.parsed['configuration']
-        return await self.__gestionnaire_applications.installer_application(configuration, command=message)
+        app_status = ServiceStatus(configuration)
+        return await self.__gestionnaire_applications.installer_application(app_status, command=message)
 
     async def upgrade_application(self, message: MessageWrapper):
         configuration = message.parsed['configuration']

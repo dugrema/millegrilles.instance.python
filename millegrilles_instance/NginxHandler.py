@@ -270,7 +270,7 @@ def generer_configuration_nginx(context: InstanceContext, path_src_nginx: pathli
         # Verifier si le fichier existe dans la destination
         path_destination = path.join(path_nginx_modules, fichier)
         if initial_override or path.exists(path_destination) is False:
-            LOGGER.info("Generer fichier configuration nginx %s" % fichier)
+            LOGGER.debug("Generer fichier configuration nginx %s" % fichier)
             path_source = path.join(repertoire_src_nginx, fichier)
             with open(path_source, 'r') as fichier_input:
                 contenu = fichier_input.read()

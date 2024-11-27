@@ -12,53 +12,99 @@ from docker.models.services import Service
 from millegrilles_instance.CommandesDocker import check_service_running, check_replicas, check_service_preparing, \
     get_docker_image_tag, UnknownImage
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
-# from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance.Interfaces import DockerHandlerInterface
 from millegrilles_instance.MaintenanceApplicationWeb import check_archive_stale, installer_archive, \
     sauvegarder_configuration_webapps
 from millegrilles_instance.ModulesRequisInstance import RequiredModules
-from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.docker import DockerCommandes
 from millegrilles_messages.docker.ParseConfiguration import ConfigurationService
 
 LOGGER = logging.getLogger(__name__)
 
+class ServiceDependency:
+    name: str
+    image: Optional[str]
+    archives: Optional[dict]
+    certificate: Optional[dict]
+    config: Optional[dict]
+    secrets: Optional[dict]
+    passwords: Optional[list]
+
+    def __init__(self, value: dict):
+        self.__value = value
+        self.name = value['name']
+        self.image = value.get('image')
+        self.archives = value.get('archives')
+        self.certificate = value.get('certificat')
+        self.config = value.get('config')
+        self.secrets = value.get('secrets')
+        self.passwords = value.get('passwords') or value.get('generateur')
+
+    @property
+    def configuration(self):
+        return self.__value
 
 class ServiceStatus:
     name: str
-    configuration: dict
+    # configuration: dict
+    dependencies: Optional[list[ServiceDependency]]
     installed: bool
     running: bool
     preparing: bool
     replicas: Optional[int]
-    web_config: Optional[dict]
     disabled: bool
     docker_handle: Optional[Service]
 
-    def __init__(self, dep_configuration: dict,  installed=False, replicas=None):
-        self.name = dep_configuration['name']
-        self.configuration = dep_configuration
+    def __init__(self, app_configuration: dict,  installed=False, replicas=None):
+        self.__app_configuration = app_configuration
+        self.name = app_configuration['nom']
         self.installed = installed
         self.running = False
         self.preparing = False
         self.replicas = replicas
-        self.web_config = None
         self.disabled = False
         self.docker_handle = None
+
+        try:
+            dependencies = app_configuration['dependances']
+        except KeyError:
+            self.dependencies = None
+        else:
+            deps = list()
+            for d in dependencies:
+                deps.append(ServiceDependency(d))
+            self.dependencies = deps
+
+    @property
+    def nginx(self) -> Optional[dict]:
+        return self.__app_configuration.get('nginx')
+
+    @property
+    def web_config(self) -> Optional[dict]:
+        return self.__app_configuration.get('web')
+
+    def to_dict(self):
+        return self.__app_configuration
 
     def __repr__(self):
         return 'ServiceStatus ' + self.name
 
+    @staticmethod
+    def from_dependency(dep: dict):
+        return ServiceStatus({'nom': dep['name'], 'dependances': [dep]})
+
+
 class ServiceInstallCommand:
     status: ServiceStatus       # Status
-    image_tag: Optional[str]    # Docker image reference
+    image_tag: Optional[dict[str, str]]    # Docker image reference
     web_only: bool
     reinstall: bool
     upgrade: bool
 
-    def __init__(self, status: ServiceStatus, image_tag: Optional[str] = None, web_only = False, reinstall = False, upgrade = False):
+    def __init__(self, status: ServiceStatus, image_tags: Optional[dict[str, str]] = None, web_only = False,
+                 reinstall = False, upgrade = False):
         self.status = status
-        self.image_tag = image_tag
+        self.image_tag = image_tags
         self.web_only = web_only
         self.reinstall = reinstall
         self.upgrade = upgrade
@@ -71,26 +117,29 @@ async def get_configuration_services(etat_instance, config_modules: RequiredModu
     path_configuration = etat_instance.configuration.path_configuration
     path_configuration_docker = pathlib.Path(path_configuration, 'docker')
     path_configuration_webappconfig = pathlib.Path(path_configuration, 'webappconfig')
-    configurations = await charger_configuration_docker(path_configuration_docker, config_modules)
-    configurations_apps = await charger_configuration_application(path_configuration_docker)
-    configurations.extend(configurations_apps)
+    dependances = await charger_configuration_docker(path_configuration_docker, config_modules)
 
-    # map configuration certificat
+    # map configuration
     services = list()
-    for c in configurations:
+    for dep in dependances:
         try:
-            status = ServiceStatus(c)
+            status = ServiceStatus.from_dependency(dep)
+            services.append(status)
+        except KeyError:
+            pass
+
+    configurations_apps = await charger_configuration_application(path_configuration_docker)
+    for app in configurations_apps:
+        try:
+            status = ServiceStatus(app)
             services.append(status)
         except KeyError:
             pass
 
     configuration_webapps = await charger_configuration_webapps(path_configuration_webappconfig)
     for webapp in configuration_webapps:
-        web_config = webapp['web']
-        for dep in webapp['dependances']:
-            status = ServiceStatus(dep)
-            status.web_config = web_config
-            services.append(status)
+        status = ServiceStatus(webapp)
+        services.append(status)
 
     return services
 
@@ -102,7 +151,7 @@ async def get_service_status(context: InstanceContext, docker_handler: DockerHan
     config_modules = context.application_status.required_modules
     core_services = await get_configuration_services(context, config_modules)
 
-    mapped_services = dict()
+    mapped_services: dict[str, ServiceStatus] = dict()
     for service in core_services:
         mapped_services[service.name] = service
 
@@ -135,29 +184,29 @@ async def get_service_status(context: InstanceContext, docker_handler: DockerHan
 
     for service_name, service_config in mapped_services.items():
         try:
-            mapped_service = mapped_services[service_name]
+            # mapped_service: ServiceStatus = mapped_services[service_name]
             web_service = web_app_configuration[service_name]
-            if mapped_service.configuration.get('image') is None and web_service:
-                # This is purely a web application, no docker component
-                service_config.web_only = True
+            for app_dependency in service_config.dependencies:
+                if app_dependency.image is None and web_service:
+                    # This is purely a web application, no docker component
+                    service_config.web_only = True
 
-                # Check if the application is installed
-                path_webapps = pathlib.Path(context.configuration.path_nginx)
-                configuration = mapped_service.configuration
-                for archive in configuration['archives']:
-                    location = archive['location']
-                    module, app_path = location.split(":")
-                    if module == 'nginx':
-                        path_webapp = pathlib.Path(path_webapps, app_path)
-                        path_version_file = pathlib.Path(path_webapp, '.version')
-                        try:
-                            with open(path_version_file, 'rt') as fichier:
-                                version = fichier.readline()
-                        except FileNotFoundError:
-                            version = None
-                        if version == archive['digest']:
-                            mapped_service.installed = True
-                            mapped_service.running = True
+                    # Check if the application is installed
+                    path_webapps = pathlib.Path(context.configuration.path_nginx)
+                    for archive in app_dependency.archives:
+                        location = archive['location']
+                        module, app_path = location.split(":")
+                        if module == 'nginx':
+                            path_webapp = pathlib.Path(path_webapps, app_path)
+                            path_version_file = pathlib.Path(path_webapp, '.version')
+                            try:
+                                with open(path_version_file, 'rt') as fichier:
+                                    version = fichier.readline()
+                            except FileNotFoundError:
+                                version = None
+                            if version == archive['digest']:
+                                service_config.installed = True
+                                service_config.running = True
         except KeyError:
             pass # Not a web application
 
@@ -194,35 +243,38 @@ async def download_docker_images(
 
     try:
         while True:
-            service = await input_queue.get()
+            service: ServiceStatus = await input_queue.get()
             if service is None:
                 return  # Exit condition
 
-            service_name = service.name
-            try:
-                image = service.configuration['image']
-            except KeyError:
-                try:
-                    if len(service.configuration.get('archives')) > 0:
-                        # Install service with web apps only
-                        command = ServiceInstallCommand(service, None, True)
-                        await service_queue.put(command)
-                    else:
-                        LOGGER.debug("Nothing to download for service %s without image or archives" % service.name)
-                except TypeError:
-                    LOGGER.debug("Nothing to download for service %s without image or archives" % service.name)
-            else:
-                try:
-                    image_tag = await get_docker_image_tag(etat_instance, docker_handler, image, pull=False)
-                except UnknownImage:
-                    LOGGER.info('Image %s missing locally, downloading' % image)
+            image_tags = dict()
+            for app_dependency in service.dependencies:
+                service_name = service.name
+                image = app_dependency.image
+                if image is None:
                     try:
-                        image_tag = await get_docker_image_tag(etat_instance, docker_handler, image, pull=True, app_name=service_name)
+                        if len(app_dependency.archives) > 0:
+                            # Install service with web apps only
+                            command = ServiceInstallCommand(service, None, True)
+                            await service_queue.put(command)
+                        else:
+                            LOGGER.debug("Nothing to download for service %s without image or archives" % service.name)
+                    except TypeError:
+                        LOGGER.debug("Nothing to download for service %s without image or archives" % service.name)
+                else:
+                    try:
+                        image_tag = await get_docker_image_tag(etat_instance, docker_handler, image, pull=False)
                     except UnknownImage:
-                        LOGGER.error("Unnkown docker image: %s. Stopping service download/installation" % image)
-                        break
+                        LOGGER.info('Image %s missing locally, downloading' % image)
+                        try:
+                            image_tag = await get_docker_image_tag(etat_instance, docker_handler, image, pull=True, app_name=service_name)
+                        except UnknownImage:
+                            LOGGER.error("Unnkown docker image: %s. Stopping service download/installation" % image)
+                            break
 
-                command = ServiceInstallCommand(service, image_tag)
+                    image_tags[service_name] = image_tag
+
+                command = ServiceInstallCommand(service, image_tags)
                 await service_queue.put(command)
     finally:
         await service_queue.put(None)  # Ensure install thread finishes
@@ -254,6 +306,8 @@ async def install_services(
                 await docker_handler.run_command(restart_command)
             else:
                 raise Exception('install_services Service in unknown state: %s' % service_name)
+        except asyncio.CancelledError as e:
+            raise e
         except Exception:
             LOGGER.exception("Error installing service %s, aborting for this cycle" % service_name)
 
@@ -290,11 +344,14 @@ async def update_stale_configuration(context: InstanceContext, docker_handler: D
         if is_current is False:
             LOGGER.info("Service %s stale, update config/secrets" % service.name)
             service_status = mapped_services[service.name]
-            image = service_status.configuration['image']
-            image_tag = await get_docker_image_tag(context, docker_handler, image)
-            install_command = ServiceInstallCommand(service, image_tag, False, True)
-            await install_service(context, docker_handler, install_command)
-
+            for dep in service_status.dependencies:
+                image = dep.image
+                if image:
+                    image_tag = await get_docker_image_tag(context, docker_handler, image)
+                else:
+                    image_tag = None
+                install_command = ServiceInstallCommand(service, image_tag, False, True)
+                await install_service(context, docker_handler, install_command)
 
 async def service_maintenance(context: InstanceContext, docker_handler: DockerHandlerInterface):
     # Try to update any stale configuration (e.g. expired certificates)
@@ -317,7 +374,7 @@ async def service_maintenance(context: InstanceContext, docker_handler: DockerHa
     # return False
 
 
-async def charger_configuration_docker(path_configuration: pathlib.Path, required_modules: RequiredModules) -> list:
+async def charger_configuration_docker(path_configuration: pathlib.Path, required_modules: RequiredModules) -> list[dict]:
     configuration = []
     for filename in required_modules.modules:
         path_fichier = pathlib.Path(path_configuration, filename)
@@ -358,9 +415,9 @@ async def charger_configuration_application(path_configuration: pathlib.Path) ->
                 with open(path_fichier, 'rb') as fichier:
                     contenu = json.load(fichier)
 
-                deps = contenu['dependances']
+                # deps = contenu['dependances']
 
-                configuration.extend(deps)
+                configuration.append(contenu)
             except FileNotFoundError:
                 LOGGER.error("Fichier de module manquant : %s" % path_fichier)
             except TypeError:
@@ -393,58 +450,62 @@ async def install_service(context: InstanceContext, docker_handler: DockerHandle
     except ValueNotAvailable:
         pass
 
-    config_service = command.status.configuration.copy()
-    try:
-        config_service.update(config_service['config'])  # Combiner la configuration de base et du service
-    except KeyError:
-        pass
-
-    parser = ConfigurationService(config_service, params)
-    parser.parse()
-    config_parsed = parser.generer_docker_config()
-
-    # Creer node-labels pour les constraints
-    constraints = parser.constraints
-    list_labels = list()
-    try:
-        for constraint in constraints:
-            nom_constraint = constraint.split('=')[0]
-            nom_constraint = nom_constraint.replace('node.labels.', '').strip()
-            list_labels.append(nom_constraint)
-        commande_ajouter_labels = DockerCommandes.CommandeEnsureNodeLabels(list_labels)
-        await docker_handler.run_command(commande_ajouter_labels)
-    except TypeError:
-        pass  # Aucune constraint
-
-    # Installer les archives si presentes
-    if parser.archives:
-        for archive in parser.archives:
-            service_name = command.status.name
-            web_links = command.status.configuration.get('web') or command.status.web_config
-            if await asyncio.to_thread(check_archive_stale, context, archive):
-                await asyncio.to_thread(installer_archive, context, service_name, archive, web_links)
-            else:
-                # Mettre a jour configuration des liens web
-                LOGGER.info("installer_service Mettre a jour configuration web links pour %s", service_name)
-                sauvegarder_configuration_webapps(context, service_name, web_links)
-
-    # S'assurer d'avoir l'image
-    image = parser.image
-    if image is not None:
-        commande_creer_service = DockerCommandes.CommandeCreerService(
-            image_tag, config_parsed, reinstaller=command.reinstall)
+    for dep in command.status.dependencies:
+        config_service = dep.configuration.copy()
         try:
-            resultat = await docker_handler.run_command(commande_creer_service)
-            return resultat
-        except docker.errors.APIError as e:
-            if e.status_code == 409:
-                pass  # Already installed (duplicate install command) - OK
-                return {'ok': True}
-            else:
-                raise e
+            config_service.update(config_service['config'])  # Combiner la configuration de base et du service
+        except KeyError:
+            pass
 
-    else:
-        LOGGER.debug("installer_service() Invoque pour un service sans images : %s", service_name)
+        parser = ConfigurationService(config_service, params)
+        parser.parse()
+        config_parsed = parser.generer_docker_config()
+
+        # Creer node-labels pour les constraints
+        constraints = parser.constraints
+        list_labels = list()
+        try:
+            for constraint in constraints:
+                nom_constraint = constraint.split('=')[0]
+                nom_constraint = nom_constraint.replace('node.labels.', '').strip()
+                list_labels.append(nom_constraint)
+            commande_ajouter_labels = DockerCommandes.CommandeEnsureNodeLabels(list_labels)
+            await docker_handler.run_command(commande_ajouter_labels)
+        except TypeError:
+            pass  # Aucune constraint
+
+        # Installer les archives si presentes
+        if parser.archives:
+            for archive in parser.archives:
+                service_name = command.status.name
+                web_links = command.status.web_config['web']
+                # web_links = command.status.configuration.get('web') or command.status.web_config
+                if await asyncio.to_thread(check_archive_stale, context, archive):
+                    await asyncio.to_thread(installer_archive, context, service_name, archive, web_links)
+                else:
+                    # Mettre a jour configuration des liens web
+                    LOGGER.info("installer_service Mettre a jour configuration web links pour %s", service_name)
+                    sauvegarder_configuration_webapps(context, service_name, web_links)
+
+        # S'assurer d'avoir l'image
+        image = parser.image
+        if image is not None:
+            commande_creer_service = DockerCommandes.CommandeCreerService(
+                image_tag, config_parsed, reinstaller=command.reinstall)
+            try:
+                resultat = await docker_handler.run_command(commande_creer_service)
+                return resultat
+            except docker.errors.APIError as e:
+                if e.status_code == 409:
+                    # Already installed (duplicate install command) - OK
+                    return {'ok': True}
+                else:
+                    raise e
+
+        else:
+            LOGGER.debug("installer_service() Invoque pour un service sans images : %s", service_name)
+
+    pass
 
 async def get_params_env_service(context: InstanceContext, docker_handler: DockerHandlerInterface) -> dict:
     # Charger configurations
@@ -473,10 +534,6 @@ async def get_params_env_service(context: InstanceContext, docker_handler: Docke
     }
 
     return params
-
-
-async def remove_service(etat_instance, docker_handler: DockerHandler, app_name: str):
-    pass
 
 
 def verifier_config_current(liste_config_datee: dict, container_config: Optional[list], container_secrets: Optional[list]):
@@ -549,11 +606,11 @@ def trier_services(liste_services: list) -> list:
     return liste_services_finale
 
 
-def list_images(package_configuration: dict):
+def list_images(package_configuration: ServiceStatus):
     images = set()
-    for dep in package_configuration['dependances']:
+    for dep in package_configuration.dependencies:
         try:
-            images.add(dep['image'])
+            images.add(dep.image)
         except KeyError:
             pass
     return images
