@@ -6,6 +6,7 @@ from asyncio import TaskGroup
 from concurrent.futures.thread import ThreadPoolExecutor
 from typing import Awaitable
 
+from millegrilles_instance.SystemStatus import SystemStatus
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopListener
 from millegrilles_messages.bus.BusExceptions import ConfigurationFileError
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
@@ -76,6 +77,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     # Handlers (services)
     bus_connector = MilleGrillesPikaConnector(context)
     context.bus_connector = bus_connector
+    system_status = SystemStatus(context)
 
     docker_state = DockerState(context)
     if docker_state.docker_present():
@@ -107,6 +109,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     coros = [
         context.run(),
         generateur_certificats.run(),
+        system_status.run(),
         applications_handler.run(),
         manager.run(),
         web_server.run(),

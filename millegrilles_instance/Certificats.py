@@ -978,7 +978,7 @@ async def get_configuration_certificats(context: InstanceContext) -> dict:
                 certificat = dep['certificat']
                 nom = dep['name']
                 config_certificats[nom] = certificat
-        except KeyError:
+        except (TypeError, KeyError):
             pass
 
     return config_certificats

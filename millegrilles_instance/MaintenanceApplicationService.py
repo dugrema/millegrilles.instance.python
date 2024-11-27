@@ -66,14 +66,12 @@ class ServiceStatus:
         self.docker_handle = None
 
         try:
-            dependencies = app_configuration['dependances']
-        except KeyError:
-            self.dependencies = None
-        else:
             deps = list()
-            for d in dependencies:
+            for d in app_configuration['dependances']:
                 deps.append(ServiceDependency(d))
             self.dependencies = deps
+        except (TypeError, KeyError):
+            self.dependencies = None
 
     @property
     def nginx(self) -> Optional[dict]:
@@ -207,6 +205,10 @@ async def get_service_status(context: InstanceContext, docker_handler: DockerHan
                             if version == archive['digest']:
                                 service_config.installed = True
                                 service_config.running = True
+        except TypeError:
+            # No dependencies, pure web config (e.g. mqadmin)
+            service_config.installed = True
+            service_config.running = True
         except KeyError:
             pass # Not a web application
 
@@ -248,7 +250,15 @@ async def download_docker_images(
                 return  # Exit condition
 
             image_tags = dict()
-            for app_dependency in service.dependencies:
+
+            dependencies = service.dependencies
+            if dependencies is None:
+                # Nothing to download
+                command = ServiceInstallCommand(service, image_tags)
+                await service_queue.put(command)
+                continue  # Done
+
+            for app_dependency in dependencies:
                 service_name = service.name
                 image = app_dependency.image
                 if image is None:

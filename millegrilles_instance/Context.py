@@ -40,6 +40,8 @@ class InstanceContext(MilleGrillesBusContext):
         self.__application_status = ApplicationInstallationStatus()
         self.__reload_done = asyncio.Event()
 
+        self.__current_system_state: Optional[dict] = None  # Property set externally by the SystemStatus thread
+
     @property
     def configuration(self) -> ConfigurationInstance:
         return super().configuration
@@ -49,6 +51,7 @@ class InstanceContext(MilleGrillesBusContext):
             async with TaskGroup() as group:
                 group.create_task(super().run())
                 group.create_task(self.__reload_thread())
+                group.create_task(self.__presence_thread())
                 group.create_task(self.__stop_thread())
         except *Exception:  # Stop on any thread exception
             if self.stopping is False:
@@ -65,9 +68,37 @@ class InstanceContext(MilleGrillesBusContext):
                 await asyncio.sleep(reload_value)
             await asyncio.to_thread(self.reload)
 
+    async def __presence_thread(self):
+        while self.stopping is False:
+            try:
+                producer = await self.get_producer()
+            except asyncio.TimeoutError:
+                # Producer not ready yet
+                await self.wait(5)
+                continue
+
+            status_content = {
+                'hostname': self.hostname,
+                'hostnames': self.hostnames,
+                'ip': self.ip_address,
+                'security': self.securite,
+            }
+            status_content.update(self.__current_system_state)
+            event_content = {'status': status_content}
+            try:
+                await producer.event(event_content, 'instance', 'presenceInstance', exchange=self.securite)
+            except asyncio.TimeoutError:
+                self.__logger.debug("Timeout sending presence event")
+            except asyncio.CancelledError as e:
+                raise e
+            except:
+                self.__logger.exception("Unhandled error sending presence event")
+            await self.wait(20)
+
     async def __stop_thread(self):
         await self.wait()
         await self.__reload_q.put(None)
+        raise ForceTerminateExecution()  # Kick out the __presence_thread thread if stuck on get_producer
 
     def add_reload_listener(self, listener: Callable[[], None]):
         self.__reload_listeners.append(listener)
@@ -142,6 +173,14 @@ class InstanceContext(MilleGrillesBusContext):
     @property
     def application_status(self) -> ApplicationInstallationStatus:
         return self.__application_status
+
+    @property
+    def current_system_state(self) -> dict:
+        return self.__current_system_state
+
+    @current_system_state.setter
+    def current_system_state(self, value: dict):
+        self.__current_system_state = value
 
     def clear_csr_genere(self):
         self.__csr_genere = None
