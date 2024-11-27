@@ -61,7 +61,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
         self.__docker_state = docker_state
         self.__docker_handler = DockerHandler(docker_state)
         self.__verify_configuration_event = threading.Event()
-        self.__applications_changed = asyncio.Event()
+        # self.__applications_changed = asyncio.Event()
 
         self.__generateur_certificats: Optional[GenerateurCertificatsInterface] = None
 
@@ -72,7 +72,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
         try:
             async with TaskGroup() as group:
                 group.create_task(self.__docker_handler.run())
-                group.create_task(self.__application_maintenance())
+                # group.create_task(self.__application_maintenance())
                 group.create_task(self.initialiser_docker())
                 group.create_task(self.__configuration_udpate_thread())
                 # group.create_task(self.__service_status_pull())
@@ -87,7 +87,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
         await self.__context.wait()
         # Release threads
         self.__verify_configuration_event.set()
-        self.__applications_changed.set()
+        # self.__applications_changed.set()
 
     async def __configuration_udpate_thread(self):
         while self.__context.stopping is False:
@@ -108,8 +108,8 @@ class InstanceDockerHandler(DockerHandlerInterface):
         self.__logger.info("callback_changement_configuration - Reload configuration")
         self.__verify_configuration_event.set()
 
-    async def callback_changement_applications(self):
-        self.__applications_changed.set()
+    # async def callback_changement_applications(self):
+    #     self.__applications_changed.set()
 
     async def __service_status_pull(self):
         while self.__context.stopping is False:
@@ -128,26 +128,26 @@ class InstanceDockerHandler(DockerHandlerInterface):
             except asyncio.TimeoutError:
                 pass
 
-    async def __application_maintenance(self):
-        while self.__context.stopping is False:
-            try:
-                await asyncio.wait_for(self.__applications_changed.wait(), 15)
-            except asyncio.TimeoutError:
-                pass
-
-            if self.__context.stopping:
-                return  # Stopping
-
-            self.__logger.debug("__application_maintenance Debut Entretien")
-            self.__applications_changed.clear()
-            try:
-                config_modules = self.__context.application_status.required_modules
-                await service_maintenance(self.__context, self.__docker_handler, config_modules)
-            except:
-                self.__logger.exception("__application_maintenance Error during maintenance")
-            self.__logger.debug("Fin Entretien EtatDockerInstanceSync")
-
-        self.__logger.info("__application_maintenance Thread terminee")
+    # async def __application_maintenance(self):
+    #     while self.__context.stopping is False:
+    #         try:
+    #             await asyncio.wait_for(self.__applications_changed.wait(), 15)
+    #         except asyncio.TimeoutError:
+    #             pass
+    #
+    #         if self.__context.stopping:
+    #             return  # Stopping
+    #
+    #         self.__logger.debug("__application_maintenance Debut Entretien")
+    #         self.__applications_changed.clear()
+    #         try:
+    #             config_modules = self.__context.application_status.required_modules
+    #             await service_maintenance(self.__context, self.__docker_handler, config_modules)
+    #         except:
+    #             self.__logger.exception("__application_maintenance Error during maintenance")
+    #         self.__logger.debug("Fin Entretien EtatDockerInstanceSync")
+    #
+    #     self.__logger.info("__application_maintenance Thread terminee")
 
     async def emettre_presence(self):
         info_updatee = dict()
@@ -358,10 +358,11 @@ class InstanceDockerHandler(DockerHandlerInterface):
             self.__context.stop()
             raise ForceTerminateExecution()
 
-    async def entretien_services(self, config_modules: RequiredModules):
-        changes = await service_maintenance(self.__context, self.__docker_handler, config_modules)
-        if changes:
-            await self.redemarrer_nginx("entretien_services: Services updated")
+    # async def entretien_services(self):
+    #     await service_maintenance(self.__context, self)
+    #     # changes = await service_maintenance(self.__context, self)
+    #     #if changes:
+    #     #    await self.redemarrer_nginx("entretien_services: Services updated")
 
     async def get_params_env_service(self) -> dict:
         # Charger configurations
@@ -379,11 +380,15 @@ class InstanceDockerHandler(DockerHandlerInterface):
 
         params = {
             'HOSTNAME': self.__context.hostname,
-            'IDMG': self.__context.idmg,
             '__secrets': docker_secrets,
             '__configs': docker_configs,
             '__docker_config_datee': config_datees['correspondance'],
         }
+
+        try:
+            params['IDMG'] = self.__context.idmg
+        except ValueNotAvailable:
+            pass
 
         return params
 
@@ -402,7 +407,10 @@ class InstanceDockerHandler(DockerHandlerInterface):
             mq_hostname = 'mq'
         params['MQ_HOSTNAME'] = mq_hostname
         params['MQ_PORT'] = configuration.mq_port or '5673'
-        params['__idmg'] = self.__context.idmg
+        try:
+            params['__idmg'] = self.__context.idmg
+        except ValueNotAvailable:
+            pass
 
         config_service = in_configuration.copy()
         try:
@@ -639,7 +647,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
                 pass
 
             try:
-                generateur = dep['generateur']
+                generateur = dep.get('passwords') or dep['generateur']
                 for passwd_gen in generateur:
                     if isinstance(passwd_gen, str):
                         label = passwd_gen

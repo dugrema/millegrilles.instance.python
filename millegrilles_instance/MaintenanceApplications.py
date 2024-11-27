@@ -1,15 +1,18 @@
+import asyncio
 import logging
 import json
 import os
 import pathlib
 
+from asyncio import TaskGroup
 from os import path
-
 from typing import Optional
 
-from millegrilles_instance.Context import InstanceContext
-from millegrilles_instance.MaintenanceApplicationService import list_images, pull_images
+from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
+from millegrilles_instance.MaintenanceApplicationService import list_images, pull_images, get_service_status, \
+    download_docker_images, install_services, ServiceInstallCommand
 from millegrilles_instance.MaintenanceApplicationWeb import sauvegarder_configuration_webapps
+from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages.MessagesModule import MessageWrapper
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance import Constantes as ConstantesInstance
@@ -21,8 +24,26 @@ class ApplicationsHandler:
 
     def __init__(self, context: InstanceContext, docker_handler: Optional[InstanceDockerHandler]):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        self.__context = context
+        self.__context: InstanceContext = context
         self.__docker_handler = docker_handler
+
+        self.__applications_changed = asyncio.Event()
+
+    async def run(self):
+        try:
+            async with TaskGroup() as group:
+                group.create_task(self.__stop_thread())
+                group.create_task(self.__application_maintenance_thread())
+        except *Exception as e:
+            if self.__context.stopping:
+                self.__logger.info('Exception on close %s' % str(e))
+            else:
+                self.__logger.exception("Unhandled exception - quitting")
+                self.__context.stop()
+                raise ForceTerminateExecution()
+
+    async def __stop_thread(self):
+        await self.__context.wait()
 
     async def installer_application(self, app_configuration: dict, reinstaller=False, command: Optional[MessageWrapper] = None):
         nom_application = app_configuration['nom']
@@ -149,12 +170,97 @@ class ApplicationsHandler:
             os.unlink(path_app)
             reponse = {'ok': True}
 
-        #if nginx_restart:
-        #    self.__logger.warning("Restarting nginx after removing %s" % nom_application)
-        #    await self.__etat_docker.redemarrer_nginx("Application %s retiree" % nom_application)
+        if nginx_restart:
+           self.__logger.warning("Restarting nginx after removing %s" % nom_application)
+           await self.__docker_handler.redemarrer_nginx("Application %s retiree" % nom_application)
 
         return reponse
 
+    async def __run_application_maintenance(self):
+        # Configure and install missing services
+        missing_services = await get_service_status(self.__context, self.__docker_handler)
+        if len(missing_services) > 0:
+            LOGGER.info("Install %d missing or stopped services" % len(missing_services))
+            LOGGER.debug("Missing services\n%s" % missing_services)
+
+            restart_services_queue = asyncio.Queue()
+            missing_services_queue = asyncio.Queue()
+            download_done_queue = asyncio.Queue()
+
+            # Run download, configure and install in parallel. If install fails, download keeps going.
+            try:
+                async with TaskGroup() as group:
+                    group.create_task(download_docker_images(self.__context, self.__docker_handler, missing_services_queue, download_done_queue))
+                    group.create_task(self.__restart_service_process(restart_services_queue))
+                    group.create_task(self.__install_service_process(download_done_queue))
+
+                    # Fill the missing services queue to start processing
+                    for s in missing_services:
+                        if s.installed:
+                            # Restart only
+                            await restart_services_queue.put(s)
+                        else:
+                            await missing_services_queue.put(s)
+
+                    # Done, stop all processing
+                    await restart_services_queue.put(None)
+                    await missing_services_queue.put(None)
+
+            except *Exception as e:  # Fail immediately on first exception
+                raise e
+
+            # Emit updated system status
+            try:
+                await self.__docker_handler.emettre_presence()
+            except ValueNotAvailable:
+                pass   # System not initialized (e.g. installation mode)
+
+            LOGGER.debug("Install missing or stopped services DONE")
+
+        pass
+
+    async def __restart_service_process(self, input_q: asyncio.Queue[Optional[ServiceInstallCommand]]):
+        while True:
+            command = await input_q.get()
+            if command is None:
+                return  # Exit condition
+            await self.__docker_handler.demarrer_application(command.status.name)
+        pass
+
+    async def __install_service_process(self, input_q: asyncio.Queue[Optional[ServiceInstallCommand]]):
+        while True:
+            command = await input_q.get()
+            if command is None:
+                return  # Exit condition
+            app_name = command.status.name
+            app_configuration = {'nom': app_name, 'dependances': [command.status.configuration]}
+            await self.__docker_handler.installer_application(self.__context, app_configuration)
+        pass
+
+    async def callback_changement_applications(self):
+        self.__applications_changed.set()
+
+    async def __application_maintenance_thread(self):
+        while self.__context.stopping is False:
+            try:
+                await asyncio.wait_for(self.__applications_changed.wait(), 15)
+            except asyncio.TimeoutError:
+                pass
+
+            if self.__context.stopping:
+                return  # Stopping
+
+            self.__logger.debug("__application_maintenance Debut Entretien")
+            self.__applications_changed.clear()
+            try:
+                await self.__run_application_maintenance()
+            except asyncio.CancelledError as e:
+                raise e
+            except:
+                self.__logger.exception("__application_maintenance Error during maintenance")
+            self.__logger.debug("Fin Entretien EtatDockerInstanceSync")
+
+        self.__logger.info("__application_maintenance Thread terminee")
 
 
 async def installer_application_sansdocker(context: InstanceContext, configuration: dict):

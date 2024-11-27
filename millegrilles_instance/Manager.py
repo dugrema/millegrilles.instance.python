@@ -230,13 +230,13 @@ class InstanceManager:
 
         if current_runlevel != CONST_RUNLEVEL_INIT:
             # Trigger application maintenance
-            await self.__docker_handler.callback_changement_applications()
+            await self.__gestionnaire_applications.callback_changement_applications()
 
         pass
 
     async def __start_runlevel_installation(self):
         self.__logger.info("Starting runlevel INSTALLATION")
-        await self.__docker_handler.callback_changement_applications()
+        await self.__gestionnaire_applications.callback_changement_applications()
         await wait_for_application(self.__context, 'nginxinstall')
         self.__logger.info("Ready to install - login using a web browser")
 
@@ -273,7 +273,7 @@ class InstanceManager:
             self.context.stop()
 
         # 3. Ensure middleware is running (nginx, mq, mongo, redis, midcompte)
-        await self.__docker_handler.callback_changement_applications()
+        await self.__gestionnaire_applications.callback_changement_applications()
 
         await wait_for_application(self.__context, 'nginx')  # Always first application to start up
         if securite == Constantes.SECURITE_PROTEGE:

@@ -12,6 +12,7 @@ from docker.models.services import Service
 from millegrilles_instance.CommandesDocker import check_service_running, check_replicas, check_service_preparing, \
     get_docker_image_tag, UnknownImage
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
+# from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance.Interfaces import DockerHandlerInterface
 from millegrilles_instance.MaintenanceApplicationWeb import check_archive_stale, installer_archive, \
     sauvegarder_configuration_webapps
@@ -94,8 +95,11 @@ async def get_configuration_services(etat_instance, config_modules: RequiredModu
     return services
 
 
-async def get_service_status(context: InstanceContext, docker_handler: DockerHandlerInterface, config_modules: RequiredModules, missing_only=True) -> list[ServiceStatus]:
+async def get_service_status(context: InstanceContext, docker_handler: DockerHandlerInterface,
+                             missing_only=True) -> list[ServiceStatus]:
+
     # Get list of core services - they must be installed in order and running before installing other services/apps
+    config_modules = context.application_status.required_modules
     core_services = await get_configuration_services(context, config_modules)
 
     mapped_services = dict()
@@ -184,11 +188,16 @@ async def get_service_status(context: InstanceContext, docker_handler: DockerHan
 
 
 async def download_docker_images(
-        etat_instance, docker_handler: DockerHandler, services: list[ServiceStatus],
+        etat_instance, docker_handler: DockerHandlerInterface,
+        input_queue: asyncio.Queue[Optional[ServiceStatus]],
         service_queue: asyncio.Queue[Optional[ServiceInstallCommand]]):
 
     try:
-        for service in services:
+        while True:
+            service = await input_queue.get()
+            if service is None:
+                return  # Exit condition
+
             service_name = service.name
             try:
                 image = service.configuration['image']
@@ -249,9 +258,9 @@ async def install_services(
             LOGGER.exception("Error installing service %s, aborting for this cycle" % service_name)
 
 
-async def update_stale_configuration(context: InstanceContext, docker_handler: DockerHandlerInterface, config_modules: RequiredModules):
+async def update_stale_configuration(context: InstanceContext, docker_handler: DockerHandlerInterface):
     # Check if any existing configuration needs to be updated
-    liste_services_docker = await get_service_status(context, docker_handler, config_modules, missing_only=False)
+    liste_services_docker = await get_service_status(context, docker_handler, missing_only=False)
     mapped_services = dict()
     for service in liste_services_docker:
         mapped_services[service.name] = service
@@ -287,25 +296,25 @@ async def update_stale_configuration(context: InstanceContext, docker_handler: D
             await install_service(context, docker_handler, install_command)
 
 
-async def service_maintenance(context: InstanceContext, docker_handler: DockerHandler, config_modules: RequiredModules) -> bool:
+async def service_maintenance(context: InstanceContext, docker_handler: DockerHandlerInterface):
     # Try to update any stale configuration (e.g. expired certificates)
-    await update_stale_configuration(context, docker_handler, config_modules)
+    await update_stale_configuration(context, docker_handler)
 
-    # Configure and install missing services
-    missing_services = await get_service_status(context, docker_handler, config_modules)
-    if len(missing_services) > 0:
-        LOGGER.info("Install %d missing or stopped services" % len(missing_services))
-        LOGGER.debug("Missing services %s" % missing_services)
-
-        service_install_queue = asyncio.Queue()
-        # Run download and install in parallel. If install fails, download keeps going.
-        task_download = download_docker_images(context, docker_handler, missing_services, service_install_queue)
-        task_install = install_services(context, docker_handler, service_install_queue)
-        await asyncio.gather(task_install, task_download)
-        LOGGER.debug("Install missing or stopped services DONE")
-        return True
-
-    return False
+    # # Configure and install missing services
+    # missing_services = await get_service_status(context, docker_handler, config_modules)
+    # if len(missing_services) > 0:
+    #     LOGGER.info("Install %d missing or stopped services" % len(missing_services))
+    #     LOGGER.debug("Missing services %s" % missing_services)
+    #
+    #     service_install_queue = asyncio.Queue()
+    #     # Run download and install in parallel. If install fails, download keeps going.
+    #     task_download = download_docker_images(context, docker_handler, missing_services, service_install_queue)
+    #     task_install = install_services(context, docker_handler, service_install_queue)
+    #     await asyncio.gather(task_install, task_download)
+    #     LOGGER.debug("Install missing or stopped services DONE")
+    #     return True
+    #
+    # return False
 
 
 async def charger_configuration_docker(path_configuration: pathlib.Path, required_modules: RequiredModules) -> list:

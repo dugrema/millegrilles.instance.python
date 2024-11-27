@@ -107,6 +107,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     coros = [
         context.run(),
         generateur_certificats.run(),
+        applications_handler.run(),
         manager.run(),
         web_server.run(),
         bus_handler.run(),
