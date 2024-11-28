@@ -28,10 +28,10 @@ from millegrilles_messages.messages.MessagesModule import MessageWrapper
 
 LOGGER = logging.getLogger(__name__)
 
-CONST_RUNLEVEL_INIT = 0         # Nothing finished loading yet
-CONST_RUNLEVEL_INSTALLING = 1   # No configuration (idmg, securite), waiting for admin
-CONST_RUNLEVEL_EXPIRED = 2      # Instance certificate is expired, auto-renewal not possible
-CONST_RUNLEVEL_NORMAL = 3       # Everything is ok, do checkup and then run until stopped
+# CONST_RUNLEVEL_INIT = 0         # Nothing finished loading yet
+# CONST_RUNLEVEL_INSTALLING = 1   # No configuration (idmg, securite), waiting for admin
+# CONST_RUNLEVEL_EXPIRED = 2      # Instance certificate is expired, auto-renewal not possible
+# CONST_RUNLEVEL_NORMAL = 3       # Everything is ok, do checkup and then run until stopped
 
 
 class InstanceManager:
@@ -53,7 +53,7 @@ class InstanceManager:
 
         # self.__reload_configuration = threading.Event()
 
-        self.__runlevel = CONST_RUNLEVEL_INIT
+        # self.__runlevel = CONST_RUNLEVEL_INIT
         self.__runlevel_changed = asyncio.Event()
 
         self.__loop = asyncio.get_event_loop()
@@ -88,28 +88,29 @@ class InstanceManager:
         self.__logger.debug("InstanceManager thread done")
 
     async def __change_runlevel(self, level: int):
-        self.__runlevel = level
+        self.__context.runlevel = level
+        # self.__runlevel = level
         self.__runlevel_changed.set()
 
     async def __runlevel_thread(self):
-        previous_runlevel = CONST_RUNLEVEL_INIT
+        previous_runlevel = InstanceContext.CONST_RUNLEVEL_INIT
         while self.__context.stopping is False:
             self.__runlevel_changed.clear()
-            runlevel = self.__runlevel
+            runlevel = self.context.runlevel
             if runlevel != previous_runlevel:
-                self.__logger.info("Changing runlevel from %d to %d" % (previous_runlevel, self.__runlevel))
+                self.__logger.info("Changing runlevel from %d to %d" % (previous_runlevel, runlevel))
 
                 try:
-                    if previous_runlevel == CONST_RUNLEVEL_INSTALLING:
+                    if previous_runlevel == InstanceContext.CONST_RUNLEVEL_INSTALLING:
                         await self.__stop_runlevel_installation()
-                    elif previous_runlevel == CONST_RUNLEVEL_NORMAL:
+                    elif previous_runlevel == InstanceContext.CONST_RUNLEVEL_NORMAL:
                         await self.__stop_normal_operation()
 
-                    if runlevel == CONST_RUNLEVEL_EXPIRED:
+                    if runlevel == InstanceContext.CONST_RUNLEVEL_EXPIRED:
                         await self.__start_runlevel_expired()
-                    elif runlevel == CONST_RUNLEVEL_INSTALLING:
+                    elif runlevel == InstanceContext.CONST_RUNLEVEL_INSTALLING:
                         await self.__start_runlevel_installation()
-                    elif runlevel == CONST_RUNLEVEL_NORMAL:
+                    elif runlevel == InstanceContext.CONST_RUNLEVEL_NORMAL:
                         await self.__start_runlevel_normal()
                 except (asyncio.CancelledError, ForceTerminateExecution) as e:
                     raise e
@@ -198,13 +199,13 @@ class InstanceManager:
                 expired = None  # No valid certificate
 
         docker_present = self.__docker_handler is not None
-        current_runlevel = self.__runlevel
+        current_runlevel = self.context.runlevel
 
         if securite is None:
             if docker_present:
                 self.__logger.info("Installation mode with docker")
                 self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_INSTALLATION
-                await self.__change_runlevel(CONST_RUNLEVEL_INSTALLING)
+                await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_INSTALLING)
             else:
                 self.__logger.info("Installation mode without docker")
                 raise NotImplementedError('Installation mode without docker not supported')
@@ -215,7 +216,7 @@ class InstanceManager:
                     self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_SECURE_EXPIRE
                 else:
                     self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_CERTIFICAT_EXPIRE
-                await self.__change_runlevel(CONST_RUNLEVEL_EXPIRED)
+                await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_EXPIRED)
             else:
                 self.__logger.info("Recovery mode without docker")
                 raise NotImplementedError('Recovery mode without docker not supported')
@@ -241,9 +242,9 @@ class InstanceManager:
                 raise ValueError('Unsupported security mode: %s' % securite)
 
             # Change runlevel to normal. This will run through the process to make system operational.
-            await self.__change_runlevel(CONST_RUNLEVEL_NORMAL)
+            await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_NORMAL)
 
-        if current_runlevel != CONST_RUNLEVEL_INIT:
+        if current_runlevel != InstanceContext.CONST_RUNLEVEL_INIT:
             # Trigger application maintenance
             await self.__gestionnaire_applications.callback_changement_applications()
 
@@ -271,7 +272,7 @@ class InstanceManager:
             securite = self.__context.securite
         except ValueNotAvailable:
             self.__logger.error("Security level not available, downgrading to installation mode")
-            await self.__change_runlevel(CONST_RUNLEVEL_INSTALLING)
+            await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_INSTALLING)
             return
 
         self.__logger.info("Starting runlevel NORMAL")
@@ -279,7 +280,7 @@ class InstanceManager:
         # 1. Nginx Cleanup from installation
         await self.__docker_handler.nginx_installation_cleanup()
         await asyncio.to_thread(self.__nginx_handler.generer_configuration_nginx)
-        await self.__nginx_handler.refresh_configuration("Switching to runlevel %d" % CONST_RUNLEVEL_NORMAL)
+        await self.__nginx_handler.refresh_configuration("Switching to runlevel %d" % InstanceContext.CONST_RUNLEVEL_NORMAL)
 
         # 2. Renew certificates locally with certissuer
         try:

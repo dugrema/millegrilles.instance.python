@@ -23,6 +23,11 @@ LOGGER = logging.getLogger(__name__)
 
 class InstanceContext(MilleGrillesBusContext):
 
+    CONST_RUNLEVEL_INIT = 0  # Nothing finished loading yet
+    CONST_RUNLEVEL_INSTALLING = 1  # No configuration (idmg, securite), waiting for admin
+    CONST_RUNLEVEL_EXPIRED = 2  # Instance certificate is expired, auto-renewal not possible
+    CONST_RUNLEVEL_NORMAL = 3  # Everything is ok, do checkup and then run until stopped
+
     def __init__(self, configuration: ConfigurationInstance):
         super().__init__(configuration, False)
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
@@ -43,6 +48,7 @@ class InstanceContext(MilleGrillesBusContext):
         self.__reload_done = asyncio.Event()
 
         self.__current_system_state: Optional[dict] = None  # Property set externally by the SystemStatus thread
+        self.__runlevel = InstanceContext.CONST_RUNLEVEL_INIT
 
     @property
     def configuration(self) -> ConfigurationInstance:
@@ -120,6 +126,14 @@ class InstanceContext(MilleGrillesBusContext):
 
     def update_application_status(self, app_name: str, status: dict):
         self.__application_status.update(app_name, status)
+
+    @property
+    def runlevel(self):
+        return self.__runlevel
+
+    @runlevel.setter
+    def runlevel(self, value: int):
+        self.__runlevel = value
 
     @property
     def bus_connector(self) -> MilleGrillesPikaConnector:

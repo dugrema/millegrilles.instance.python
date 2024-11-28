@@ -70,17 +70,26 @@ class WebServer:
 
     async def handle_api_info(self, request):
         try:
-            reponse = {
-                'instance_id': self.context.instance_id,
-                'securite': self.context.securite,
-                'idmg': self.context.idmg,
-            }
+            instance_id = self.context.instance_id
         except ValueNotAvailable:
-            reponse = {
-                'instance_id': None,
-                'securite': None,
-                'idmg': None,
-            }
+            instance_id = self.context.configuration.get_instance_id()
+
+        runlevel = self.context.runlevel
+
+        reponse = {
+            'instance_id': instance_id,
+            'runlevel': runlevel,
+            'securite': None,
+            'idmg': None,
+            'ca': None,
+            'certificat': None
+        }
+
+        try:
+            reponse['securite'] = self.context.securite
+            reponse['idmg'] = self.context.idmg
+        except ValueNotAvailable:
+            pass
 
         try:
             reponse['ca'] = self.context.ca.certificat_pem

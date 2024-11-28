@@ -798,7 +798,7 @@ class GenerateurCertificatsHandler(GenerateurCertificatsInterface):
             try:
                 await self.entretien_repertoire_secrets()
             except CertificatExpire:
-                self.__logger.exception("Instance certificate expired")
+                self.__logger.warning("Instance certificate expired")
                 await self.__context.wait(30)
                 continue
             except Exception:
@@ -870,7 +870,7 @@ class GenerateurCertificatsHandler(GenerateurCertificatsInterface):
         try:
             enveloppe_instance = self.__context.signing_key.enveloppe
         except AttributeError:
-            # Certificate is expired/invalid, it was not even loaded
+            # Certificate is expired/invalid, it was not
             raise CertificatExpire()
 
         expiration_instance = enveloppe_instance.calculer_expiration()
