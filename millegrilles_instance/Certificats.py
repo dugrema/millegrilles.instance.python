@@ -18,7 +18,7 @@ from typing import Optional
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.Interfaces import GenerateurCertificatsInterface, DockerHandlerInterface
 from millegrilles_instance.MaintenanceApplicationService import charger_configuration_docker, \
-    charger_configuration_application
+    charger_configuration_application, update_stale_configuration
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.bus.PikaMessageProducer import MilleGrillesPikaMessageProducer
 from millegrilles_messages.messages import Constantes
@@ -700,19 +700,18 @@ class CommandeRotationMaitredescles(CommandeSignatureModule):
         self.__enveloppe_courante = enveloppe_courante
 
     async def _run(self):
-        producer = await self._context.get_producer()
-
         async with self._context.ssl_session() as session:
             value = self._configuration or dict()
             nom_local_certificat = value.get('nom') or self._nom_module
 
             clecertificat = await generer_nouveau_certificat(
-                producer, session, self._context, nom_local_certificat, value)
+                session, self._context, nom_local_certificat, value)
 
         # Executer une rotation du certificat - le maitre des cles va chiffrer la cle symmetrique pour
         # ce nouveau certificat. Permet de continuer au demarrage avec le nouveau certificat sans
         # interruptions.
         if self.__enveloppe_courante:
+            producer = await self._context.get_producer()
             fingerprint = self.__enveloppe_courante.fingerprint
             commande = {
                 'certificat': clecertificat.enveloppe.chaine_pem(),
@@ -777,20 +776,9 @@ class GenerateurCertificatsHandler(GenerateurCertificatsInterface):
                 raise e
         self.__logger.debug("GenerateurCertificatsHandler thread done")
 
-    # async def threads(self):
-    #     tasks = [
-    #         asyncio.create_task(self.thread_entretien()),
-    #         asyncio.create_task(self.__thread_signature()),
-    #         asyncio.create_task(self.__stop_thread()),
-    #     ]
-    #     try:
-    #         await asyncio.gather(*tasks)
-    #     finally:
-    #         self.__event_setup_initial_certificats.set()  # Liberer event pour fermeture
-
     async def thread_entretien(self):
         """
-        Entretien des certificats. Gerer le repertoire de secrets et docker (si disponible).
+        Entretien des certificats. Gerer le repertoire de secrets et services docker (si disponible).
         """
         while self.__context.stopping is False:
             self.__logger.debug("thread_entretien Debut entretien")
@@ -806,6 +794,7 @@ class GenerateurCertificatsHandler(GenerateurCertificatsInterface):
 
             if self.__docker_handler is not None:
                 try:
+                    # Apply all the new certificates to existing docker services
                     await self.entretien_modules()
                 except Exception:
                     self.__logger.exception("thread_entretien Erreur entretien_repertoire_secrets")
@@ -860,6 +849,9 @@ class GenerateurCertificatsHandler(GenerateurCertificatsInterface):
                 await nettoyer_configuration_expiree(self.__docker_handler)
             except Exception:
                 self.__logger.exception('entretien_docker Erreur nettoyer_configuration_expiree')
+
+        # Reconfigure all modules with the most recent docker config/secret information
+        await update_stale_configuration(self.__context, self.__docker_handler)
 
     async def entretien_certificat_instance(self):
         try:
@@ -942,8 +934,13 @@ class GenerateurCertificatsHandler(GenerateurCertificatsInterface):
                     commande = CommandeSignatureModule(self.__context, self.__docker_handler, nom_module, value)
                 await self.__q_signer.put(commande)
 
-                await commande.done()
-                clecertificat = CleCertificat.from_files(path_cle, path_certificat)
+                try:
+                    await commande.done()
+                    clecertificat = CleCertificat.from_files(path_cle, path_certificat)
+                except asyncio.CancelledError as e:
+                    raise e
+                except:
+                    self.__logger.exception("Error generating new certificate for %s", nom_module)
 
             if clecertificat and self.__docker_handler:
                 await self.__docker_handler.assurer_clecertificat(nom_module, clecertificat, combiner_certificat)

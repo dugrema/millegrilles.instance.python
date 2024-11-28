@@ -186,7 +186,9 @@ class ApplicationsHandler:
 
     async def __run_application_maintenance(self):
         # Configure and install missing services
+        await self.__context.wait(5)  # Give time to commands to take effect before reading state
         missing_services = await get_service_status(self.__context, self.__docker_handler, missing_only=True)
+
         if len(missing_services) > 0:
             LOGGER.info("Install %d missing or stopped services" % len(missing_services))
             LOGGER.debug("Missing services\n%s" % missing_services)

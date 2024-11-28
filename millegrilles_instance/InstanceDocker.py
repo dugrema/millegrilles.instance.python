@@ -63,7 +63,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
         self.__generateur_certificats: Optional[GenerateurCertificatsInterface] = None
         self.__events_stream: Optional[Any] = None
         # self.__event_queue = Queue(maxsize=10)
-        self.__event_queue = asyncio.Queue(maxsize=10)
+        self.__event_queue = asyncio.Queue(maxsize=1)  # Note: more than 1 risks causing a loop because of the docker.events() feed
 
         self.__loop = asyncio.get_event_loop()
         self.__verify_configuration_event = asyncio.Event()

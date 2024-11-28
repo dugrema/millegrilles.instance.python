@@ -49,6 +49,7 @@ class InstanceContext(MilleGrillesBusContext):
 
         self.__current_system_state: Optional[dict] = None  # Property set externally by the SystemStatus thread
         self.__runlevel = InstanceContext.CONST_RUNLEVEL_INIT
+        self.__loop = asyncio.get_event_loop()
 
     @property
     def configuration(self) -> ConfigurationInstance:
@@ -258,7 +259,7 @@ class InstanceContext(MilleGrillesBusContext):
             for listener in self.__reload_listeners:
                 listener()
         finally:
-            self.__reload_done.set()
+            self.__loop.call_soon_threadsafe(self.__reload_done.set)
 
     def ssl_session(self, timeout: Optional[aiohttp.ClientTimeout] = None):
         ssl_context = self.ssl_context

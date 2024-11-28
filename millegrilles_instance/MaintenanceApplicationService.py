@@ -363,25 +363,25 @@ async def update_stale_configuration(context: InstanceContext, docker_handler: D
                 install_command = ServiceInstallCommand(service, image_tag, False, True)
                 await install_service(context, docker_handler, install_command)
 
-async def service_maintenance(context: InstanceContext, docker_handler: DockerHandlerInterface):
-    # Try to update any stale configuration (e.g. expired certificates)
-    await update_stale_configuration(context, docker_handler)
-
-    # # Configure and install missing services
-    # missing_services = await get_service_status(context, docker_handler, config_modules)
-    # if len(missing_services) > 0:
-    #     LOGGER.info("Install %d missing or stopped services" % len(missing_services))
-    #     LOGGER.debug("Missing services %s" % missing_services)
-    #
-    #     service_install_queue = asyncio.Queue()
-    #     # Run download and install in parallel. If install fails, download keeps going.
-    #     task_download = download_docker_images(context, docker_handler, missing_services, service_install_queue)
-    #     task_install = install_services(context, docker_handler, service_install_queue)
-    #     await asyncio.gather(task_install, task_download)
-    #     LOGGER.debug("Install missing or stopped services DONE")
-    #     return True
-    #
-    # return False
+# async def service_maintenance(context: InstanceContext, docker_handler: DockerHandlerInterface):
+#     # Try to update any stale configuration (e.g. expired certificates)
+#     await update_stale_configuration(context, docker_handler)
+#
+#     # # Configure and install missing services
+#     # missing_services = await get_service_status(context, docker_handler, config_modules)
+#     # if len(missing_services) > 0:
+#     #     LOGGER.info("Install %d missing or stopped services" % len(missing_services))
+#     #     LOGGER.debug("Missing services %s" % missing_services)
+#     #
+#     #     service_install_queue = asyncio.Queue()
+#     #     # Run download and install in parallel. If install fails, download keeps going.
+#     #     task_download = download_docker_images(context, docker_handler, missing_services, service_install_queue)
+#     #     task_install = install_services(context, docker_handler, service_install_queue)
+#     #     await asyncio.gather(task_install, task_download)
+#     #     LOGGER.debug("Install missing or stopped services DONE")
+#     #     return True
+#     #
+#     # return False
 
 
 async def charger_configuration_docker(path_configuration: pathlib.Path, required_modules: RequiredModules) -> list[dict]:
@@ -488,7 +488,10 @@ async def install_service(context: InstanceContext, docker_handler: DockerHandle
         if parser.archives:
             for archive in parser.archives:
                 service_name = command.status.name
-                web_links = command.status.web_config['web']
+                try:
+                    web_links = command.status.web_config['web']
+                except TypeError:
+                    web_links = None  # No links to configure
                 # web_links = command.status.configuration.get('web') or command.status.web_config
                 if await asyncio.to_thread(check_archive_stale, context, archive):
                     await asyncio.to_thread(installer_archive, context, service_name, archive, web_links)
