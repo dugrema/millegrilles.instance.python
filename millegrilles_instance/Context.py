@@ -6,9 +6,11 @@ from asyncio import TaskGroup
 
 from typing import Optional, Callable
 
+from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Interfaces import DockerHandlerInterface
 from millegrilles_instance.Structs import ApplicationInstallationStatus
+from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_messages.IpUtils import get_ip, get_hostnames
 from millegrilles_messages.bus.BusContext import MilleGrillesBusContext, ForceTerminateExecution
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
@@ -77,6 +79,11 @@ class InstanceContext(MilleGrillesBusContext):
                 await self.wait(5)
                 continue
 
+            event_security_level = self.__securite
+            if event_security_level == Constantes.SECURITE_SECURE:
+                # Downgrade 4.secure a niveau 3.protege
+                event_security_level = Constantes.SECURITE_PROTEGE
+
             status_content = {
                 'hostname': self.hostname,
                 'hostnames': self.hostnames,
@@ -86,7 +93,8 @@ class InstanceContext(MilleGrillesBusContext):
             status_content.update(self.__current_system_state)
             event_content = {'status': status_content}
             try:
-                await producer.event(event_content, 'instance', 'presenceInstance', exchange=self.securite)
+                await producer.event(event_content, Constantes.DOMAINE_INSTANCE,
+                                     ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE_V2, exchange=event_security_level)
             except asyncio.TimeoutError:
                 self.__logger.debug("Timeout sending presence event")
             except asyncio.CancelledError as e:
@@ -105,7 +113,6 @@ class InstanceContext(MilleGrillesBusContext):
 
     def update_application_status(self, app_name: str, status: dict):
         self.__application_status.update(app_name, status)
-
 
     @property
     def bus_connector(self) -> MilleGrillesPikaConnector:

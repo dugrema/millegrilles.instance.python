@@ -153,6 +153,52 @@ class InstanceDockerHandler(DockerHandlerInterface):
     #     self.__logger.info("__application_maintenance Thread terminee")
 
     async def emettre_presence(self, timeout=1):
+
+        # Liste services, containers
+        commande = CommandeListeTopologie()
+        await self.run_command(commande)
+        info_applications = await commande.get_info()
+
+        # Liste applications web
+        path_conf_applications = pathlib.Path(
+            self.__context.configuration.path_configuration,
+            ConstantesInstance.CONFIG_NOMFICHIER_CONFIGURATION_WEB_APPLICATIONS)
+        try:
+            with open(path_conf_applications, 'rt') as fichier:
+                configuration_webapps = json.load(fichier)
+
+            webapps_list = list()
+            # Merge avec la liste d'applications docker
+            for nom, app in configuration_webapps.items():
+                for links in app['links']:
+                    app_info = links.copy()
+                    app_info['name'] = nom
+                    webapps_list.append(app_info)
+
+            info_applications['webapps'] = webapps_list
+        except (FileNotFoundError, json.JSONDecodeError):
+            self.__logger.info('No web application configuration file present/valid')
+
+        info_applications['complete'] = True
+        del info_applications['info']
+
+        niveau_securite = self.__context.securite
+        if niveau_securite == Constantes.SECURITE_SECURE:
+            # Downgrade 4.secure a niveau 3.protege
+            niveau_securite = Constantes.SECURITE_PROTEGE
+
+        try:
+            producer = await asyncio.wait_for(self.__context.get_producer(), timeout)
+            await producer.event(info_applications, Constantes.DOMAINE_INSTANCE,
+                                 ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE_APPLICATIONS,
+                                 exchange=niveau_securite)
+
+            await self.__emettre_presence_old(timeout)  # TODO Old style - to be removed
+
+        except asyncio.TimeoutError:
+            self.__logger.info("Error emitting status - timeout getting mgbus producer")
+
+    async def __emettre_presence_old(self, timeout=1):
         info_updatee = dict()
 
         commande = CommandeListeTopologie()
