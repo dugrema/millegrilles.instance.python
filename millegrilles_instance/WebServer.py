@@ -7,8 +7,6 @@ import json
 import math
 
 from aiohttp import web
-from asyncio import Event
-from asyncio.exceptions import TimeoutError
 from os import path
 from ssl import SSLContext
 from typing import Optional
@@ -16,6 +14,7 @@ from typing import Optional
 import millegrilles_instance.Exceptions
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.Manager import InstanceManager
+from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance.InstallerInstance import installer_instance, configurer_idmg
 from millegrilles_messages.messages.CleCertificat import CleCertificat
@@ -31,7 +30,6 @@ class WebServer:
         self.__manager = manager
 
         self.__app = web.Application()
-        self.__stop_event: Optional[Event] = None
         self.__ssl_context: Optional[SSLContext] = None
 
         self.__webrunner: Optional[WebRunner] = None
@@ -42,14 +40,6 @@ class WebServer:
         self._preparer_routes()
 
         self.__webrunner = WebRunner(self.context, self.__app, ipv6=self.__ipv6)
-
-    async def fermer(self):
-        self.__stop_event.set()
-
-        try:
-            await self.__webrunner.stop()
-        except Exception:
-            self.__logger.exception("Erreur fermeture webrunner")
 
     @property
     def context(self) -> InstanceContext:
@@ -69,7 +59,7 @@ class WebServer:
 
             web.post('/installation/api/installer', self.handle_installer),
             web.post('/installation/api/configurerIdmg', self.handle_configurer_idmg),
-            web.post('/installation/api/changerDomaine', self.handle_changer_domaine),
+            # web.post('/installation/api/changerDomaine', self.handle_changer_domaine),
             web.post('/installation/api/configurerMQ', self.handle_configurer_mq),
             web.post('/installation/api/installerCertificat', self.handle_installer_certificat),
 
@@ -151,18 +141,15 @@ class WebServer:
         headers = headers_cors()
         try:
             resultat = await installer_instance(self.context, request, headers_response=headers)
+            # Reload context with delay to allow sending response
             await self.context.delay_reload(0.5)
             return web.json_response({'ok': True}, headers=headers, status=200)
-
         except millegrilles_instance.Exceptions.RedemarrageException:
-            self.__stop_event.set()
-            return web.Response(headers=headers, status=200)
+            # Reload context with delay to allow sending response
+            await self.context.delay_reload(0.5)
+            return web.json_response({'ok': True}, headers=headers, status=200)
         except:
-            self.__logger.exception("Erreur installation")
-            #await self.fermer()
-            #await self.__etat_instance.stop()
-            # return web.Response(headers=headers, status=500)
-            #return web.Response(headers=headers, status=200)
+            self.__logger.exception("Installation error")
             return web.Response(headers=headers, status=500)
 
     async def handle_configurer_idmg(self, request: web.Request):
@@ -170,25 +157,25 @@ class WebServer:
         self.__logger.debug("installer_instance contenu\n%s" % json.dumps(contenu, indent=2))
         return await configurer_idmg(self.__etat_instance, contenu)
 
-    async def handle_changer_domaine(self, request: web.Request):
-        enveloppe_message = await request.json()
-        self.__logger.debug("handle_changer_domaine contenu\n%s" % json.dumps(enveloppe_message, indent=2))
-
-        # Valider message - delegation globale
-        enveloppe = await self.__etat_instance.validateur_message.verifier(enveloppe_message)
-        if enveloppe.get_delegation_globale != Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
-            self.__logger.error("Requete handle_configurer_mq() avec certificat sans delegation globale")
-            return web.HTTPForbidden()
-
-        contenu = json.loads(enveloppe_message['contenu'])
-
-        # Conserver hostname
-        hostname = contenu['hostname']
-        self.__etat_instance.maj_configuration_json({'hostname': hostname})
-        # await self.__etat_instance.reload_configuration()
-        await self.__etat_instance.delay_reload_configuration(duration=datetime.timedelta(seconds=1))
-
-        return web.json_response({'ok': True}, headers=headers_cors())
+    # async def handle_changer_domaine(self, request: web.Request):
+    #     enveloppe_message = await request.json()
+    #     self.__logger.debug("handle_changer_domaine contenu\n%s" % json.dumps(enveloppe_message, indent=2))
+    #
+    #     # Valider message - delegation globale
+    #     enveloppe = await self.__etat_instance.validateur_message.verifier(enveloppe_message)
+    #     if enveloppe.get_delegation_globale != Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
+    #         self.__logger.error("Requete handle_configurer_mq() avec certificat sans delegation globale")
+    #         return web.HTTPForbidden()
+    #
+    #     contenu = json.loads(enveloppe_message['contenu'])
+    #
+    #     # Conserver hostname
+    #     hostname = contenu['hostname']
+    #     self.__etat_instance.maj_configuration_json({'hostname': hostname})
+    #     # await self.__etat_instance.reload_configuration()
+    #     await self.__etat_instance.delay_reload_configuration(duration=datetime.timedelta(seconds=1))
+    #
+    #     return web.json_response({'ok': True}, headers=headers_cors())
 
     async def handle_configurer_mq(self, request: web.Request):
         enveloppe_message = await request.json()
@@ -253,29 +240,24 @@ class WebServer:
 
         return web.json_response({'ok': True}, headers=headers_cors())
 
-    async def entretien(self):
-        self.__logger.debug('Entretien')
-
-    async def run(self, stop_event: Optional[Event] = None):
-        if stop_event is not None:
-            self.__stop_event = stop_event
-        else:
-            self.__stop_event = Event()
-
+    async def run(self):
         try:
             await self.__webrunner.start()
-            self.__logger.info("Site demarre")
-
-            while not self.__stop_event.is_set():
-                await self.entretien()
-                try:
-                    await asyncio.wait_for(self.__stop_event.wait(), 30)
-                except TimeoutError:
-                    pass
-
+            self.__logger.info("Web server started on port %s" % self.context.configuration.port)
+            await self.context.wait()
+        except asyncio.CancelledError as e:
+            if self.context.stopping is False:
+                self.__logger.exception("Web server - thread cancelled, quitting")
+                self.context.stop()
+                raise ForceTerminateExecution()
+            raise e
+        except ForceTerminateExecution as e:
+            raise e
+        except:
+            self.__logger.exception("Web server - Unhandled error")
         finally:
-            self.__logger.info("Site arrete")
             # await self.__webrunner.stop()
+            self.__logger.info("Web server stopped")
 
 
 class WebRunner:
@@ -303,11 +285,14 @@ class WebRunner:
         ssl_context = self.charger_ssl()
 
         self.__site = web.TCPSite(self._runner, '0.0.0.0', self._port, ssl_context=ssl_context)
+
         if self.__ipv6 is True:
             self.__site_ipv6 = web.TCPSite(self._runner, '::', self._port, ssl_context=ssl_context)
-            await asyncio.gather(self.__site.start(), self.__site_ipv6.start())
-        else:
-            await asyncio.gather(self.__site.start())
+            await self.__site_ipv6.start()
+
+        await self.__site.start()
+
+        self.__logger.debug("Web server started")
 
     async def stop(self):
         try:
@@ -332,17 +317,3 @@ def headers_cors() -> dict:
         'Access-Control-Allow-Headers': 'DNT,User-Agent,X-Requested-With,If-Modified-Since,Cache-Control,Content-Type,Range',
         'Access-Control-Expose-Headers': 'Content-Length,Content-Range',
     }
-
-
-def main():
-    logging.basicConfig()
-    logging.getLogger(__name__).setLevel(logging.DEBUG)
-    logging.getLogger('millegrilles').setLevel(logging.DEBUG)
-
-    server = WebServer()
-    server.setup()
-    asyncio.run(server.run())
-
-
-if __name__  == '__main__':
-    main()

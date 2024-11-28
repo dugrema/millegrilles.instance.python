@@ -23,6 +23,7 @@ from millegrilles_instance.Certificats import GenerateurCertificatsHandler, prep
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.MaintenanceApplications import ApplicationsHandler
+from millegrilles_messages.messages.EnveloppeCertificat import CertificatExpire
 from millegrilles_messages.messages.MessagesModule import MessageWrapper
 
 LOGGER = logging.getLogger(__name__)
@@ -50,10 +51,13 @@ class InstanceManager:
         self.__mgbus_handler: Optional[MgbusHandlerInterface] = None
         self.__nginx_handler: NginxHandler = nginx_handler
 
-        self.__reload_configuration = threading.Event()
+        # self.__reload_configuration = threading.Event()
 
         self.__runlevel = CONST_RUNLEVEL_INIT
         self.__runlevel_changed = asyncio.Event()
+
+        self.__loop = asyncio.get_event_loop()
+        self.__reload_configuration = asyncio.Event()
 
     @property
     def context(self) -> InstanceContext:
@@ -67,6 +71,7 @@ class InstanceManager:
         await self.__prepare_configuration()
 
     async def run(self):
+        self.__logger.debug("InstanceManager thread started")
         try:
             async with TaskGroup() as group:
                 group.create_task(self.__stop_thread())
@@ -80,7 +85,7 @@ class InstanceManager:
             self.__context.stop()
             raise ForceTerminateExecution()
 
-        self.__logger.info("run() stopping")
+        self.__logger.debug("InstanceManager thread done")
 
     async def __change_runlevel(self, level: int):
         self.__runlevel = level
@@ -118,11 +123,13 @@ class InstanceManager:
             await self.__runlevel_changed.wait()
 
     def callback_changement_configuration(self):
-        self.__reload_configuration.set()
+        # self.__reload_configuration.set()
+        self.__loop.call_soon_threadsafe(self.__reload_configuration.set)
 
     async def __reload_configuration_thread(self):
         while self.context.stopping is False:
-            await asyncio.to_thread(self.__reload_configuration.wait)
+            # await asyncio.to_thread(self.__reload_configuration.wait)
+            await self.__reload_configuration.wait()
             if self.context.stopping:
                 return  # Exit condition
             self.__reload_configuration.clear()
@@ -153,7 +160,10 @@ class InstanceManager:
         await self.__prepare_self_signed_web_certificates()
 
         # Initial load of the configuration
-        await asyncio.to_thread(self.context.reload)
+        try:
+            await asyncio.to_thread(self.context.reload)
+        except CertificatExpire:
+            self.__logger.warning("__prepare_configuration Certificate is expired - context only partially loaded")
 
     async def __prepare_folder_configuration(self):
         configuration: ConfigurationInstance = self.__context.configuration
@@ -181,7 +191,11 @@ class InstanceManager:
             expiration = clecert.enveloppe.calculer_expiration()
             expired = expiration is None or expiration.get('expire') is True
         except AttributeError:
-            expired = None  # No valid certificate
+            if securite:
+                # System is set-up but no certificate was loaded - it is expired/invalid
+                expired = True
+            else:
+                expired = None  # No valid certificate
 
         docker_present = self.__docker_handler is not None
         current_runlevel = self.__runlevel
@@ -247,7 +261,10 @@ class InstanceManager:
         self.__logger.info("Stopped runlevel INSTALLATION")
 
     async def __start_runlevel_expired(self):
-        raise NotImplementedError('todo')
+        self.__logger.info("Starting runlevel EXPIRED")
+        await self.__gestionnaire_applications.callback_changement_applications()
+        await wait_for_application(self.__context, 'nginx')
+        self.__logger.info("Ready for recovery\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
 
     async def __start_runlevel_normal(self):
         try:

@@ -24,7 +24,7 @@ from millegrilles_messages.bus.PikaMessageProducer import MilleGrillesPikaMessag
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa
-from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
+from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat, CertificatExpire
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.GenerateursSecrets import GenerateurEd25519, GenerateurRsa
 from millegrilles_messages.docker import DockerCommandes
@@ -762,16 +762,20 @@ class GenerateurCertificatsHandler(GenerateurCertificatsInterface):
         return self.__event_setup_initial_certificats
 
     async def run(self):
+        self.__logger.debug("GenerateurCertificatsHandler thread started")
         try:
             async with TaskGroup() as group:
                 group.create_task(self.thread_entretien())
                 group.create_task(self.__thread_signature())
                 group.create_task(self.__stop_thread())
-        except *Exception:  # Stop on any thread exception
+        except *Exception as e:  # Stop on any thread exception
             if self.__context.stopping is False:
                 self.__logger.exception("GenerateurCertificatsHandler Unhandled error, closing")
                 self.__context.stop()
                 raise ForceTerminateExecution()
+            else:
+                raise e
+        self.__logger.debug("GenerateurCertificatsHandler thread done")
 
     # async def threads(self):
     #     tasks = [
@@ -793,6 +797,10 @@ class GenerateurCertificatsHandler(GenerateurCertificatsInterface):
 
             try:
                 await self.entretien_repertoire_secrets()
+            except CertificatExpire:
+                self.__logger.exception("Instance certificate expired")
+                await self.__context.wait(30)
+                continue
             except Exception:
                 self.__logger.exception("thread_entretien Erreur entretien_repertoire_secrets")
 
@@ -826,6 +834,10 @@ class GenerateurCertificatsHandler(GenerateurCertificatsInterface):
         # Detecter expiration certificat instance
         try:
             await self.entretien_certificat_instance()
+        except CertificatExpire as e:
+            raise e
+        except asyncio.CancelledError as e:
+            raise e
         except Exception:
             self.__logger.exception("entretien_repertoire_secrets Erreur entretien certificat instance")
 
@@ -855,18 +867,16 @@ class GenerateurCertificatsHandler(GenerateurCertificatsInterface):
         except ValueNotAvailable:
             return  # Installation mode
 
-        enveloppe_instance = self.__context.signing_key.enveloppe
+        try:
+            enveloppe_instance = self.__context.signing_key.enveloppe
+        except AttributeError:
+            # Certificate is expired/invalid, it was not even loaded
+            raise CertificatExpire()
+
         expiration_instance = enveloppe_instance.calculer_expiration()
         if expiration_instance.get('expire') is True:
-            if self.__context.attente_renouvellement_certificat:
-                self.__logger.info("entretien_certificat_instance Attente de renouvellement du certificat")
-                return  # Rien a faire, on attend
-
-            self.__logger.error("Certificat d'instance expire (%s), on redemarre l'instance en mode d'attente de renouvellement manuel")
-            # Fermer l'instance, elle va redemarrer en mode expire (similare a mode d'installation locked)
-            #await self.__context.stop()
-            # TODO - shut down mgbus, drop cert config, go into certificate restoration mode
-            raise NotImplementedError('TODO')
+            self.__logger.info("entretien_certificat_instance Instance certificate has expired.")
+            raise CertificatExpire()
 
         elif expiration_instance.get('renouveler') is True:
             self.__logger.info("Certificat d'instance peut etre renouvele")

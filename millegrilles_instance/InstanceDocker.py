@@ -57,12 +57,16 @@ class InstanceDockerHandler(DockerHandlerInterface):
         self.__context = context
         self.__docker_state = docker_state
         self.__docker_handler = DockerHandler(docker_state)
-        self.__verify_configuration_event = threading.Event()
+        # self.__verify_configuration_event = threading.Event()
         # self.__applications_changed = asyncio.Event()
 
         self.__generateur_certificats: Optional[GenerateurCertificatsInterface] = None
         self.__events_stream: Optional[Any] = None
-        self.__event_queue = Queue(maxsize=10)
+        # self.__event_queue = Queue(maxsize=10)
+        self.__event_queue = asyncio.Queue(maxsize=10)
+
+        self.__loop = asyncio.get_event_loop()
+        self.__verify_configuration_event = asyncio.Event()
 
     async def setup(self, generateur_certificats: GenerateurCertificatsInterface):
         self.__generateur_certificats = generateur_certificats
@@ -71,16 +75,17 @@ class InstanceDockerHandler(DockerHandlerInterface):
         try:
             async with TaskGroup() as group:
                 group.create_task(self.__docker_handler.run())
-                # group.create_task(self.__application_maintenance())
                 group.create_task(self.initialiser_docker())
                 group.create_task(self.__configuration_udpate_thread())
-                # group.create_task(self.__service_status_pull())
 
+                # Docker event stream threads
                 group.create_task(asyncio.to_thread(self.__event_thread))
                 group.create_task(self.__process_docker_event_thread())
+                group.create_task(asyncio.to_thread(self.__stop_sync_thread))
 
                 group.create_task(self.__stop_thread())
         except *Exception:  # Stop on any thread exception
+            self.__logger.exception("InstanceDockerHandler")
             if self.__context.stopping is False:
                 self.__logger.exception("InstanceDockerHandler Unhandled error, closing")
                 self.__context.stop()
@@ -94,9 +99,15 @@ class InstanceDockerHandler(DockerHandlerInterface):
 
     async def __configuration_udpate_thread(self):
         while self.__context.stopping is False:
-            await asyncio.to_thread(self.__verify_configuration_event.wait, 600)
-            if self.__context.stopping:
+            # await asyncio.to_thread(self.__verify_configuration_event.wait, 600)
+            try:
+                await asyncio.wait_for(self.__verify_configuration_event.wait(), 600)
                 return  # Stopping
+            except asyncio.TimeoutError:
+                pass
+
+            # if self.__context.stopping:
+            #     return  # Stopping
 
             self.__verify_configuration_event.clear()
 
@@ -109,7 +120,8 @@ class InstanceDockerHandler(DockerHandlerInterface):
 
     def callback_changement_configuration(self):
         self.__logger.info("callback_changement_configuration - Reload configuration")
-        self.__verify_configuration_event.set()
+        # self.__verify_configuration_event.set()
+        self.__loop.call_soon_threadsafe(self.__verify_configuration_event.set)
 
     # async def callback_changement_applications(self):
     #     self.__applications_changed.set()
@@ -153,6 +165,10 @@ class InstanceDockerHandler(DockerHandlerInterface):
     #     self.__logger.info("__application_maintenance Thread terminee")
 
     async def emettre_presence(self, timeout=1):
+        try:
+            niveau_securite = self.__context.securite
+        except ValueNotAvailable:
+            return  # System not initialized
 
         # Liste services, containers
         commande = CommandeListeTopologie()
@@ -182,7 +198,6 @@ class InstanceDockerHandler(DockerHandlerInterface):
         info_applications['complete'] = True
         del info_applications['info']
 
-        niveau_securite = self.__context.securite
         if niveau_securite == Constantes.SECURITE_SECURE:
             # Downgrade 4.secure a niveau 3.protege
             niveau_securite = Constantes.SECURITE_PROTEGE
@@ -404,7 +419,12 @@ class InstanceDockerHandler(DockerHandlerInterface):
             commande_initialiser_network = DockerCommandes.CommandeCreerNetworkOverlay('millegrille_net')
             await self.__docker_handler.run_command(commande_initialiser_network)
         except asyncio.CancelledError as e:
-            self.__logger.error("initialiser_docker Cancelled: %s" % str(e))
+            if self.__context.stopping is False:
+                self.__logger.exception("initialiser_docker Cancelled error - quitting")
+                self.__context.stop()
+                raise ForceTerminateExecution()
+            else:
+                self.__logger.error("initialiser_docker Cancelled")
         except:
             self.__logger.exception("initialiser_docker Error initializing docker swarm/networking - quitting")
             self.__context.stop()
@@ -754,17 +774,25 @@ class InstanceDockerHandler(DockerHandlerInterface):
         self.__logger.debug("Adresse onionize : %s" % hostname)
         return hostname
 
+    def __stop_sync_thread(self):
+        """ Waits on the threading.Event to ensure the docker stream is closed even if the asyncio loop quits early """
+        self.__context.wait_sync()
+        self.__events_stream.close()
+
     def __event_thread(self):
         self.__events_stream = self.__docker_state.docker.events(decode=True)
         try:
             for event in self.__events_stream:
-                self.__event_queue.put(event)
+                # self.__event_queue.put(event)
+                asyncio.run_coroutine_threadsafe(self.__event_queue.put(event), self.__loop)
         finally:
-            self.__event_queue.put(None)
+            # self.__event_queue.put(None)
+            asyncio.run_coroutine_threadsafe(self.__event_queue.put(None), self.__loop)
 
     async def __process_docker_event_thread(self):
         while self.__context.stopping is False:
-            event = await asyncio.to_thread(self.__event_queue.get)
+            # event = await asyncio.to_thread(self.__event_queue.get)
+            event = await self.__event_queue.get()
             if event is None or self.__context.stopping:
                 return  # Stopping
 

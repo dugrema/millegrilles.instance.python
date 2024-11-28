@@ -30,6 +30,7 @@ async def force_terminate_task_group():
 
 
 async def main():
+    asyncio.get_event_loop().set_debug(True)
     config = ConfigurationInstance.load()
     try:
         context = InstanceContext(config)
@@ -50,9 +51,6 @@ async def main():
     try:
         # Use taskgroup to run all threads
         async with TaskGroup() as group:
-            for coro in coros:
-                group.create_task(coro)
-
             # Create a listener that fires a task to cancel all other tasks
             async def stop_group():
                 group.create_task(force_terminate_task_group())
@@ -60,12 +58,16 @@ async def main():
             stop_listener = StopListener(stop_group)
             context.register_stop_listener(stop_listener)
 
+            for coro in coros:
+                group.create_task(coro)
+
+        return  # All done, quitting with no errors
     except* (ForceTerminateExecution, asyncio.CancelledError):
         # Result of the termination task
         LOGGER.error("__main__ Force termination exception")
         context.stop()
 
-    pass  # All done, quitting with no errors
+    sys.exit(3)
 
 
 async def wiring(context: InstanceContext) -> list[Awaitable]:

@@ -30,6 +30,7 @@ class ApplicationsHandler:
         self.__applications_changed = asyncio.Event()
 
     async def run(self):
+        self.__logger.debug("ApplicationsHandler thread started")
         try:
             async with TaskGroup() as group:
                 group.create_task(self.__stop_thread())
@@ -42,6 +43,7 @@ class ApplicationsHandler:
                 self.__logger.exception("Unhandled exception - quitting")
                 self.__context.stop()
                 raise ForceTerminateExecution()
+        self.__logger.debug("ApplicationsHandler thread done")
 
     async def __stop_thread(self):
         await self.__context.wait()

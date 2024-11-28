@@ -49,6 +49,7 @@ class InstanceContext(MilleGrillesBusContext):
         return super().configuration
 
     async def run(self):
+        self.__logger.debug("InstanceContext thread started")
         try:
             async with TaskGroup() as group:
                 group.create_task(super().run())
@@ -56,10 +57,13 @@ class InstanceContext(MilleGrillesBusContext):
                 group.create_task(self.__presence_thread())
                 group.create_task(self.__stop_thread())
         except *Exception:  # Stop on any thread exception
+            self.__logger.exception("InstanceContext Error")
             if self.stopping is False:
                 self.__logger.exception("Context Unhandled error, closing")
                 self.stop()
+                await asyncio.sleep(1)
                 raise ForceTerminateExecution()
+        self.__logger.debug("InstanceContext thread done")
 
     async def __reload_thread(self):
         while self.stopping is False:
@@ -68,7 +72,10 @@ class InstanceContext(MilleGrillesBusContext):
                 return  # Done
             if reload_value > 0:
                 await asyncio.sleep(reload_value)
-            await asyncio.to_thread(self.reload)
+            try:
+                await asyncio.to_thread(self.reload)
+            except CertificatExpire:
+                self.__logger.exception("Certificate expired - context only partially reloaded")
 
     async def __presence_thread(self):
         while self.stopping is False:

@@ -1,7 +1,7 @@
 {
   "name": "certissuer",
   "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2024.6.59",
-  "args": ["-m", "millegrilles_certissuer", "--verbose"],
+  "args": ["-m", "millegrilles_certissuer"],
   "env": {
     "WEB_PORT": "2080"
   },

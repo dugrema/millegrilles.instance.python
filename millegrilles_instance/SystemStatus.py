@@ -16,12 +16,14 @@ class SystemStatus:
         self.__current_state = dict()
 
     async def run(self):
+        self.__logger.debug("SystemStatus thread started")
         try:
             async with TaskGroup() as group:
                 group.create_task(self.__polling_thread())
                 group.create_task(self.__apc_thread())
         except *Exception as e:  # Fail on first exception
             raise e
+        self.__logger.debug("SystemStatus thread done")
 
     @property
     def current_state(self):

@@ -28,6 +28,7 @@ class MgbusHandler(MgbusHandlerInterface):
         self.__task_group: Optional[TaskGroup] = None
 
     async def run(self):
+        self.__logger.debug("MgbusHandler thread started")
         try:
             async with TaskGroup() as group:
                 self.__task_group = group
@@ -38,6 +39,7 @@ class MgbusHandler(MgbusHandlerInterface):
                 self.__manager.context.stop()
                 raise ForceTerminateExecution()
         self.__task_group = None
+        self.__logger.debug("MgbusHandler thread done")
 
     async def __stop_thread(self):
         await self.__manager.context.wait()
