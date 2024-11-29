@@ -13,6 +13,7 @@ from millegrilles_instance.MaintenanceApplicationService import list_images, pul
     download_docker_images, ServiceInstallCommand, ServiceStatus
 from millegrilles_instance.MaintenanceApplicationWeb import sauvegarder_configuration_webapps
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
+from millegrilles_messages.docker.DockerCommandes import CommandPruneCleanup
 from millegrilles_messages.messages.MessagesModule import MessageWrapper
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance import Constantes as ConstantesInstance
@@ -230,7 +231,8 @@ class ApplicationsHandler:
 
             LOGGER.debug("Install missing or stopped services DONE")
 
-        pass
+        # Cleanup containers, dangling volumes
+        await self.__docker_handler.run_command(CommandPruneCleanup())
 
     async def __restart_service_process(self, input_q: asyncio.Queue[Optional[ServiceStatus]]):
         while True:
