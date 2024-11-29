@@ -11,6 +11,7 @@ from typing import Optional
 from uuid import uuid4
 
 from cryptography.x509 import ExtensionNotFound
+from docker.errors import APIError
 
 from millegrilles_instance import ModulesRequisInstance
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
@@ -261,10 +262,21 @@ class InstanceManager:
         self.__logger.info("Starting runlevel INSTALLATION")
 
         # Read current application status
-        await self.__gestionnaire_applications.update_application_status()
+        try:
+            await self.__gestionnaire_applications.update_application_status()
+        except APIError as e:
+            if e.status_code == 503:
+                # Not a swarm manager, nothing is installed yet
+                await self.__docker_handler.initialiser_docker()
+                await self.__gestionnaire_applications.update_application_status()
+            else:
+                raise e
 
-        # self.__context.initial_application_configuration_update.set()  # Release app update thread
+        # Release configuration/app update threads
+        self.__docker_handler.callback_changement_configuration()
+        self.__context.initial_application_configuration_update.set()
         await self.__gestionnaire_applications.callback_changement_applications()
+
         await wait_for_application(self.__context, 'nginxinstall')
         self.__logger.info("Ready to install\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
 

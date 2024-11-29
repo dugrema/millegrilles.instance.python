@@ -59,7 +59,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
         try:
             async with TaskGroup() as group:
                 group.create_task(self.__docker_handler.run())
-                group.create_task(self.initialiser_docker())
+                # group.create_task(self.initialiser_docker())
                 group.create_task(self.__configuration_udpate_thread())
 
                 # Docker event stream threads
@@ -87,7 +87,8 @@ class InstanceDockerHandler(DockerHandlerInterface):
             # await asyncio.to_thread(self.__verify_configuration_event.wait, 600)
             try:
                 await asyncio.wait_for(self.__verify_configuration_event.wait(), 600)
-                return  # Stopping
+                if self.__context.stopping:
+                    return  # Stopping
             except asyncio.TimeoutError:
                 pass
 
