@@ -61,6 +61,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
                 group.create_task(self.__docker_handler.run())
                 # group.create_task(self.initialiser_docker())
                 group.create_task(self.__configuration_udpate_thread())
+                group.create_task(self.__emettre_presence_thread())
 
                 # Docker event stream threads
                 group.create_task(asyncio.to_thread(self.__event_thread))
@@ -157,11 +158,11 @@ class InstanceDockerHandler(DockerHandlerInterface):
     async def emettre_presence(self, timeout=1):
         self.__emettre_presence_event.set()
 
-    async def __emettre_presence__thread(self):
+    async def __emettre_presence_thread(self):
         while self.__context.stopping is False:
             self.__emettre_presence_event.clear()
             try:
-                await self.__emettre_presence()
+                await self.__emettre_presence_applications()
             except asyncio.CancelledError as e:
                 raise e
             except asyncio.TimeoutError:
@@ -171,7 +172,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
             await self.__context.wait(5)
             await self.__emettre_presence_event.wait()
 
-    async def __emettre_presence(self):
+    async def __emettre_presence_applications(self):
         timeout = 5
         try:
             niveau_securite = self.__context.securite
@@ -207,6 +208,8 @@ class InstanceDockerHandler(DockerHandlerInterface):
         info_applications['complete'] = True
         del info_applications['info']
 
+        instance_id = self.__context.instance_id
+
         if niveau_securite == Constantes.SECURITE_SECURE:
             # Downgrade 4.secure a niveau 3.protege
             niveau_securite = Constantes.SECURITE_PROTEGE
@@ -215,7 +218,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
             producer = await asyncio.wait_for(self.__context.get_producer(), timeout)
             await producer.event(info_applications, Constantes.DOMAINE_INSTANCE,
                                  ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE_APPLICATIONS,
-                                 exchange=niveau_securite)
+                                 exchange=niveau_securite, partition=instance_id)
 
             await self.__emettre_presence_old(info_applications_old, timeout)  # TODO Old style - to be removed
 

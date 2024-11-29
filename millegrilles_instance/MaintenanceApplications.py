@@ -223,13 +223,13 @@ class ApplicationsHandler:
             except *Exception as e:  # Fail immediately on first exception
                 raise e
 
-            # Emit updated system status
-            try:
-                await self.__docker_handler.emettre_presence()
-            except ValueNotAvailable:
-                pass   # System not initialized (e.g. installation mode)
-
             LOGGER.debug("Install missing or stopped services DONE")
+
+        # Emit updated system status
+        try:
+            await self.__docker_handler.emettre_presence()
+        except ValueNotAvailable:
+            pass   # System not initialized (e.g. installation mode)
 
         # Cleanup containers, dangling volumes
         await self.__docker_handler.run_command(CommandPruneCleanup())
