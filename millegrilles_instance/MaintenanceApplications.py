@@ -9,7 +9,7 @@ from os import path
 from typing import Optional
 
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
-from millegrilles_instance.MaintenanceApplicationService import list_images, pull_images, get_service_status, \
+from millegrilles_instance.MaintenanceApplicationService import list_images, pull_images, update_service_status, \
     download_docker_images, ServiceInstallCommand, ServiceStatus
 from millegrilles_instance.MaintenanceApplicationWeb import sauvegarder_configuration_webapps
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
@@ -184,14 +184,17 @@ class ApplicationsHandler:
 
         return reponse
 
+    async def update_application_status(self):
+        await update_service_status(self.__context, self.__docker_handler)
+
     async def __run_application_maintenance(self):
         # Configure and install missing services
         await self.__context.wait(5)  # Give time to commands to take effect before reading state
-        missing_services = await get_service_status(self.__context, self.__docker_handler, missing_only=True)
+        missing_services = await update_service_status(self.__context, self.__docker_handler, missing_only=True)
 
         if len(missing_services) > 0:
-            LOGGER.info("Install %d missing or stopped services" % len(missing_services))
-            LOGGER.debug("Missing services\n%s" % missing_services)
+            missing_services_str = [s.name for s in missing_services]
+            LOGGER.info("Install %d missing or stopped services: \n%s", len(missing_services), missing_services_str)
 
             restart_services_queue = asyncio.Queue()
             missing_services_queue = asyncio.Queue()
@@ -263,13 +266,15 @@ class ApplicationsHandler:
                     pass
                 else:
                     if status.get('disabled') is False and status.get('running') is False:
-                        self.__logger.info("Restarting stopped services")
+                        # self.__logger.info("Restarting stopped services")
                         self.__applications_changed.set()  # Trigger application maintenance cycle
                         break
 
             await self.__context.wait(5)
 
     async def __application_maintenance_thread(self):
+        await self.__context.initial_application_configuration_update.wait()
+
         while self.__context.stopping is False:
             try:
                 await asyncio.wait_for(self.__applications_changed.wait(), 900)
@@ -287,7 +292,9 @@ class ApplicationsHandler:
                 raise e
             except:
                 self.__logger.exception("__application_maintenance Error during maintenance")
+
             self.__logger.debug("Fin Entretien EtatDockerInstanceSync")
+            await self.__context.wait(20)  # Give some time to get the changes in place
 
         self.__logger.info("__application_maintenance Thread terminee")
 

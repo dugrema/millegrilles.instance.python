@@ -30,7 +30,6 @@ async def force_terminate_task_group():
 
 
 async def main():
-    asyncio.get_event_loop().set_debug(True)
     config = ConfigurationInstance.load()
     try:
         context = InstanceContext(config)

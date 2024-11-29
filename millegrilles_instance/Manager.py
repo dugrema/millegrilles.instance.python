@@ -77,6 +77,7 @@ class InstanceManager:
                 group.create_task(self.__stop_thread())
                 group.create_task(self.__reload_configuration_thread())
                 group.create_task(self.__runlevel_thread())
+                group.create_task(self.__entretien_inital_attente_thread())
         except *Exception:  # Stop on any thread exception
             self.__logger.exception("InstanceManager Unhandled error, closing")
 
@@ -126,6 +127,12 @@ class InstanceManager:
     def callback_changement_configuration(self):
         # self.__reload_configuration.set()
         self.__loop.call_soon_threadsafe(self.__reload_configuration.set)
+
+    async def __entretien_inital_attente_thread(self):
+        await self.__generateur_certificats.event_entretien_initial.wait()
+        # Initial maintenance done
+        self.__context.initial_application_configuration_update.set()
+        self.__logger.debug("__entretien_inital_attente_thread DONE")
 
     async def __reload_configuration_thread(self):
         while self.context.stopping is False:
@@ -252,6 +259,11 @@ class InstanceManager:
 
     async def __start_runlevel_installation(self):
         self.__logger.info("Starting runlevel INSTALLATION")
+
+        # Read current application status
+        await self.__gestionnaire_applications.update_application_status()
+
+        # self.__context.initial_application_configuration_update.set()  # Release app update thread
         await self.__gestionnaire_applications.callback_changement_applications()
         await wait_for_application(self.__context, 'nginxinstall')
         self.__logger.info("Ready to install\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
@@ -263,6 +275,11 @@ class InstanceManager:
 
     async def __start_runlevel_expired(self):
         self.__logger.info("Starting runlevel EXPIRED")
+
+        # Read current application status
+        await self.__gestionnaire_applications.update_application_status()
+
+        # self.__context.initial_application_configuration_update.set()  # Release app update thread
         await self.__gestionnaire_applications.callback_changement_applications()
         await wait_for_application(self.__context, 'nginx')
         self.__logger.info("Ready for recovery\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
@@ -276,6 +293,9 @@ class InstanceManager:
             return
 
         self.__logger.info("Starting runlevel NORMAL")
+
+        # Read current application status
+        await self.__gestionnaire_applications.update_application_status()
 
         # 1. Nginx Cleanup from installation
         await self.__docker_handler.nginx_installation_cleanup()

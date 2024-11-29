@@ -2,8 +2,6 @@ import asyncio
 import logging
 import json
 import pathlib
-import threading
-from queue import Queue
 
 import docker.errors
 
@@ -34,21 +32,6 @@ from millegrilles_instance.CommandesDocker import CommandeListeTopologie, Comman
 from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname, OnionizeNonDisponibleException
 
 
-# LOGGER = logging.getLogger(__name__)
-
-
-# class EtatDockerInstanceSync:
-
-    # def __init__(self, context: InstanceContext, docker_handler: DockerHandler):
-    #     self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-    #     self.__context = context
-    #     self.__docker_handler = docker_handler  # DockerHandler
-    #
-    #     self.__context.ajouter_listener(self.callback_changement_configuration)
-    #     self.__context.generateur_certificats.etat_docker = self
-    #
-    #     self.__docker_initialise = False
-
 class InstanceDockerHandler(DockerHandlerInterface):
 
     def __init__(self, context: InstanceContext, docker_state: DockerState):
@@ -67,6 +50,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
 
         self.__loop = asyncio.get_event_loop()
         self.__verify_configuration_event = asyncio.Event()
+        self.__emettre_presence_event = asyncio.Event()
 
     async def setup(self, generateur_certificats: GenerateurCertificatsInterface):
         self.__generateur_certificats = generateur_certificats
@@ -94,6 +78,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
     async def __stop_thread(self):
         await self.__context.wait()
         # Release threads
+        self.__emettre_presence_event.set()
         self.__verify_configuration_event.set()
         self.__events_stream.close()
 
@@ -163,8 +148,25 @@ class InstanceDockerHandler(DockerHandlerInterface):
     #         self.__logger.debug("Fin Entretien EtatDockerInstanceSync")
     #
     #     self.__logger.info("__application_maintenance Thread terminee")
-
     async def emettre_presence(self, timeout=1):
+        self.__emettre_presence_event.set()
+
+    async def __emettre_presence__thread(self):
+        while self.__context.stopping is False:
+            self.__emettre_presence_event.clear()
+            try:
+                await self.__emettre_presence()
+            except asyncio.CancelledError as e:
+                raise e
+            except asyncio.TimeoutError:
+                self.__logger.info("Timeout emitting presence")
+            except:
+                self.__logger.exception("Unhandled error emitting presence")
+            await self.__context.wait(5)
+            await self.__emettre_presence_event.wait()
+
+    async def __emettre_presence(self):
+        timeout = 5
         try:
             niveau_securite = self.__context.securite
         except ValueNotAvailable:
@@ -174,6 +176,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
         commande = CommandeListeTopologie()
         await self.run_command(commande)
         info_applications = await commande.get_info()
+        info_applications_old = info_applications.copy()
 
         # Liste applications web
         path_conf_applications = pathlib.Path(
@@ -208,17 +211,17 @@ class InstanceDockerHandler(DockerHandlerInterface):
                                  ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE_APPLICATIONS,
                                  exchange=niveau_securite)
 
-            await self.__emettre_presence_old(timeout)  # TODO Old style - to be removed
+            await self.__emettre_presence_old(info_applications_old, timeout)  # TODO Old style - to be removed
 
         except asyncio.TimeoutError:
             self.__logger.info("Error emitting status - timeout getting mgbus producer")
 
-    async def __emettre_presence_old(self, timeout=1):
+    async def __emettre_presence_old(self, info_instance: dict, timeout=1):
         info_updatee = dict()
 
-        commande = CommandeListeTopologie()
-        await self.run_command(commande)
-        info_instance = await commande.get_info()
+        # commande = CommandeListeTopologie()
+        # await self.run_command(commande)
+        # info_instance = await commande.get_info()
         info_updatee.update(info_instance)
 
         # Trouver l'addresse .onion (TOR) si disponible
@@ -796,7 +799,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
             if event is None or self.__context.stopping:
                 return  # Stopping
 
-            self.__logger.debug("Docker event: %s", event)
+            # self.__logger.debug("Docker event: %s", event)
 
             try:
                 try:

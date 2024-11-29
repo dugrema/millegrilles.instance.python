@@ -51,6 +51,9 @@ class InstanceContext(MilleGrillesBusContext):
         self.__runlevel = InstanceContext.CONST_RUNLEVEL_INIT
         self.__loop = asyncio.get_event_loop()
 
+        # Flag to prevent maintenance before the initial application check/update
+        self.__initial_application_configuration_update = asyncio.Event()
+
     @property
     def configuration(self) -> ConfigurationInstance:
         return super().configuration
@@ -120,6 +123,7 @@ class InstanceContext(MilleGrillesBusContext):
     async def __stop_thread(self):
         await self.wait()
         await self.__reload_q.put(None)
+        self.__initial_application_configuration_update.set()
         raise ForceTerminateExecution()  # Kick out the __presence_thread thread if stuck on get_producer
 
     def add_reload_listener(self, listener: Callable[[], None]):
@@ -210,6 +214,10 @@ class InstanceContext(MilleGrillesBusContext):
     @current_system_state.setter
     def current_system_state(self, value: dict):
         self.__current_system_state = value
+
+    @property
+    def initial_application_configuration_update(self) -> asyncio.Event:
+        return self.__initial_application_configuration_update
 
     def clear_csr_genere(self):
         self.__csr_genere = None

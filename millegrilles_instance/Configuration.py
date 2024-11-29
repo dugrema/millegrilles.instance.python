@@ -1,3 +1,4 @@
+import asyncio
 import argparse
 import logging
 import os
@@ -20,6 +21,7 @@ def __adjust_logging(args: argparse.Namespace):
     logging.basicConfig(format=logging_format)
 
     if args.verbose is True:
+        asyncio.get_event_loop().set_debug(True)  # Asyncio warnings
         for log in LOGGING_NAMES:
             logging.getLogger(log).setLevel(logging.DEBUG)
     else:

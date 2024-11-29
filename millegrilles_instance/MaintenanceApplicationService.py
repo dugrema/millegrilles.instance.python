@@ -142,8 +142,8 @@ async def get_configuration_services(etat_instance, config_modules: RequiredModu
     return services
 
 
-async def get_service_status(context: InstanceContext, docker_handler: DockerHandlerInterface,
-                             missing_only=True) -> list[ServiceStatus]:
+async def update_service_status(context: InstanceContext, docker_handler: DockerHandlerInterface,
+                                missing_only=True) -> list[ServiceStatus]:
 
     # Get list of core services - they must be installed in order and running before installing other services/apps
     config_modules = context.application_status.required_modules
@@ -324,7 +324,7 @@ async def install_services(
 
 async def update_stale_configuration(context: InstanceContext, docker_handler: DockerHandlerInterface):
     # Check if any existing configuration needs to be updated
-    liste_services_docker = await get_service_status(context, docker_handler, missing_only=False)
+    liste_services_docker = await update_service_status(context, docker_handler, missing_only=False)
     mapped_services = dict()
     for service in liste_services_docker:
         mapped_services[service.name] = service

@@ -25,15 +25,22 @@ class CommandeListeTopologie(CommandeDocker):
         self.facteur_throttle = 0.25  # Utilise pour throttling, represente un cout relatif de la commande
 
     async def executer(self, docker_client: DockerClient):
-        info = docker_client.info()
-        containers = parse_liste_containers(docker_client.containers.list(all=True))
-        services = parse_list_service(docker_client.services.list())
+        info = await asyncio.to_thread(docker_client.info)
+        # containers = parse_liste_containers(docker_client.containers.list(all=True))
+        containers_list = await asyncio.to_thread(docker_client.containers.list, all=True)
+        containers = parse_liste_containers(containers_list)
+        # services = parse_list_service(docker_client.services.list())
+        services_list = await asyncio.to_thread(docker_client.services.list)
+        services = parse_list_service(services_list)
         await self._callback_asyncio({'info': info, 'containers': containers, 'services': services})
 
     async def get_info(self) -> dict:
         resultat = await self.attendre()
         info = resultat['args'][0]
         return info
+
+    def __repr__(self):
+        return 'CommandeListeTopologie'
 
 
 class CommandeExecuterScriptDansService(CommandeDocker):
@@ -77,25 +84,28 @@ class CommandeExecuterScriptDansService(CommandeDocker):
         info = resultat['args'][0]
         return info
 
+    def __repr__(self):
+        return f'CommandeExecuterScriptDansService {self.__nom_service}: {self.__path_script}'
 
-class CommandeGetServicesBackup(CommandeDocker):
-    """
-    Retourne la liste de tous les services avec un label "backup_scripts"
-    """
 
-    def __init__(self):
-        super().__init__()
-        self.facteur_throttle = 0.25
-
-    async def executer(self, docker_client: DockerClient):
-        liste_services = docker_client.services.list(filters={"label": "backup_scripts"})
-        services = parse_list_service(liste_services)
-        await self._callback_asyncio(services)
-
-    async def get_services(self) -> dict:
-        resultat = await self.attendre()
-        info = resultat['args'][0]
-        return info
+# class CommandeGetServicesBackup(CommandeDocker):
+#     """
+#     Retourne la liste de tous les services avec un label "backup_scripts"
+#     """
+#
+#     def __init__(self):
+#         super().__init__()
+#         self.facteur_throttle = 0.25
+#
+#     async def executer(self, docker_client: DockerClient):
+#         liste_services = docker_client.services.list(filters={"label": "backup_scripts"})
+#         services = parse_list_service(liste_services)
+#         await self._callback_asyncio(services)
+#
+#     async def get_services(self) -> dict:
+#         resultat = await self.attendre()
+#         info = resultat['args'][0]
+#         return info
 
 
 def parse_list_service(services: list) -> dict:
