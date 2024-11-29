@@ -101,6 +101,11 @@ class InstanceDockerHandler(DockerHandlerInterface):
                 await self.verifier_config_instance()
             except asyncio.CancelledError:
                 return
+            except APIError as e:
+                if e.status_code == 503:
+                    self.__logger.warning("__configuration_udpate_thread Swarm not configured yet")
+                else:
+                    raise e
             except:
                 self.__logger.exception("Error reloading configuration")
 

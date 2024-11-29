@@ -278,6 +278,7 @@ class InstanceManager:
         await self.__gestionnaire_applications.callback_changement_applications()
 
         await wait_for_application(self.__context, 'nginxinstall')
+        await wait_for_application(self.__context, 'coupdoeil2')
         self.__logger.info("Ready to install\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
 
     async def __stop_runlevel_installation(self):
