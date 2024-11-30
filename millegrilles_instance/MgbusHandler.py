@@ -137,7 +137,9 @@ class MgbusHandler(MgbusHandlerInterface):
             if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
                 return await self.__manager.send_application_packages()
         elif delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
-            if action == ConstantesInstance.REQUETE_GET_PASSWORDS:
+            if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
+                return await self.__manager.send_application_packages()
+            elif action == ConstantesInstance.REQUETE_GET_PASSWORDS:
                 return await self.__manager.get_instance_passwords(message)
 
         self.__logger.info("on_request_message Ignoring unknown action %s" % action)
