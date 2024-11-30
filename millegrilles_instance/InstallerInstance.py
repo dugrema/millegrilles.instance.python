@@ -141,10 +141,10 @@ async def installer_protege(context: InstanceContext, contenu: dict, certificat_
     path_config_json = configuration.path_config_json
     contenu_config = {
         'instance_id': configuration.get_instance_id(),
-        'hostname': contenu['hostname'],
-        'mq_host': contenu['host'],
-        'mq_port': contenu['port'],
-        'securite': contenu['securite']
+        'hostname': context.hostname,
+        'mq_host': context.hostname,
+        'mq_port': context.configuration.mq_port,
+        'securite': Constantes.SECURITE_PROTEGE
     }
     with open(path_config_json, 'w') as fichier:
         json.dump(contenu_config, fichier)
