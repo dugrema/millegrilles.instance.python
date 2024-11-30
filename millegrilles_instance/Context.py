@@ -26,7 +26,8 @@ class InstanceContext(MilleGrillesBusContext):
     CONST_RUNLEVEL_INIT = 0  # Nothing finished loading yet
     CONST_RUNLEVEL_INSTALLING = 1  # No configuration (idmg, securite), waiting for admin
     CONST_RUNLEVEL_EXPIRED = 2  # Instance certificate is expired, auto-renewal not possible
-    CONST_RUNLEVEL_NORMAL = 3  # Everything is ok, do checkup and then run until stopped
+    CONST_RUNLEVEL_LOCAL = 3  # Preparing what can be done locally (e.g. certificates on 3.protege) before going to NORMAL
+    CONST_RUNLEVEL_NORMAL = 4  # Everything is ok, do checkup and then run until stopped
 
     def __init__(self, configuration: ConfigurationInstance):
         super().__init__(configuration, False)
@@ -233,6 +234,7 @@ class InstanceContext(MilleGrillesBusContext):
 
     def reload(self):
         configuration: ConfigurationInstance = self.configuration
+        configuration.reload()
 
         instance_id = configuration.get_instance_id()
         self.__instance_id = instance_id
@@ -252,11 +254,10 @@ class InstanceContext(MilleGrillesBusContext):
             try:
                 super().reload()
             except FileNotFoundError:
-                # System not configured yet
-                self.__logger.info("Certificate not available yet, MQ Bus unavailable")
+                self.__logger.warning("Certificate not available yet, MQ Bus unavailable")
             except CertificatExpire:
                 # The system certificate is expired
-                self.__logger.info("Certificate is expired, MQ Bus unavailable")
+                self.__logger.warning("Certificate is expired, MQ Bus unavailable")
 
             self.__ip_address = get_ip()
             self.__logger.debug("Local IP: %s" % self.__ip_address)

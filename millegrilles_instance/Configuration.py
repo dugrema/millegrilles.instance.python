@@ -3,11 +3,12 @@ import argparse
 import logging
 import os
 import pathlib
+import json
 
 from typing import Optional
 
 from millegrilles_instance import Constantes as ContantesInstance
-from millegrilles_messages.bus.BusConfiguration import MilleGrillesBusConfiguration
+from millegrilles_messages.bus.BusConfiguration import MilleGrillesBusConfiguration, ENV_MQ_HOSTNAME, ENV_MQ_PORT
 
 LOGGING_NAMES = [__name__, 'millegrilles_messages', 'millegrilles_instance']
 
@@ -124,7 +125,25 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         args = _parse_command_line()
         config.parse_config()
         config.parse_args(args)
+        config.reload()
         return config
+
+    def reload(self):
+        """
+        Reload values from config.json
+        """
+        try:
+            with open(self.__config_json, 'rt') as fp:
+                config = json.load(fp)
+        except FileNotFoundError:
+            self.__logger.debug("config.json not found")
+
+        self.mq_hostname = os.environ.get(ENV_MQ_HOSTNAME) or config.get('mq_host') or self.mq_hostname
+        try:
+            mq_port = int(os.environ.get(ENV_MQ_PORT) or config.get('mq_port'))
+            self.mq_port = mq_port or self.mq_port
+        except (TypeError, ValueError):
+            pass
 
     @property
     def path_millegrilles(self) -> pathlib.Path:

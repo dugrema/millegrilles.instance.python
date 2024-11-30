@@ -29,11 +29,6 @@ from millegrilles_messages.messages.MessagesModule import MessageWrapper
 
 LOGGER = logging.getLogger(__name__)
 
-# CONST_RUNLEVEL_INIT = 0         # Nothing finished loading yet
-# CONST_RUNLEVEL_INSTALLING = 1   # No configuration (idmg, securite), waiting for admin
-# CONST_RUNLEVEL_EXPIRED = 2      # Instance certificate is expired, auto-renewal not possible
-# CONST_RUNLEVEL_NORMAL = 3       # Everything is ok, do checkup and then run until stopped
-
 
 class InstanceManager:
     """
@@ -112,6 +107,8 @@ class InstanceManager:
                         await self.__start_runlevel_expired()
                     elif runlevel == InstanceContext.CONST_RUNLEVEL_INSTALLING:
                         await self.__start_runlevel_installation()
+                    elif runlevel == InstanceContext.CONST_RUNLEVEL_LOCAL:
+                        await self.__start_runlevel_local()
                     elif runlevel == InstanceContext.CONST_RUNLEVEL_NORMAL:
                         await self.__start_runlevel_normal()
                 except (asyncio.CancelledError, ForceTerminateExecution) as e:
@@ -249,8 +246,8 @@ class InstanceManager:
             else:
                 raise ValueError('Unsupported security mode: %s' % securite)
 
-            # Change runlevel to normal. This will run through the process to make system operational.
-            await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_NORMAL)
+            # Change runlevel to local. This will run through the process to make system operational.
+            await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_LOCAL)
 
         if current_runlevel != InstanceContext.CONST_RUNLEVEL_INIT:
             # Trigger application maintenance
@@ -297,6 +294,37 @@ class InstanceManager:
         await wait_for_application(self.__context, 'nginx')
         self.__logger.info("Ready for recovery\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
 
+    async def __start_runlevel_local(self):
+        try:
+            securite = self.__context.securite
+        except ValueNotAvailable:
+            self.__logger.error("Security level not available, downgrading to installation mode")
+            await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_INSTALLING)
+            return
+
+        self.__logger.info("Starting runlevel LOCAL")
+
+        # Read current application status
+        await self.__gestionnaire_applications.update_application_status()
+
+        # 1. Nginx Cleanup from installation
+        await self.__docker_handler.nginx_installation_cleanup()
+        await asyncio.to_thread(self.__nginx_handler.generer_configuration_nginx)
+        await self.__nginx_handler.refresh_configuration("Switching to runlevel %d" % InstanceContext.CONST_RUNLEVEL_NORMAL)
+
+        if securite in [Constantes.SECURITE_PROTEGE, Constantes.SECURITE_SECURE]:
+            # Renew certificates locally with certissuer
+            try:
+                await self.__generateur_certificats.entretien_certificat_instance()
+                await self.__generateur_certificats.entretien_modules()
+                await self.context.wait(2)
+            except:
+                self.__logger.exception("Error maintaining certificates - quitting")
+                self.context.stop()
+
+        self.__logger.info("Runlevel LOCAL done")
+        await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_NORMAL)
+
     async def __start_runlevel_normal(self):
         try:
             securite = self.__context.securite
@@ -307,35 +335,16 @@ class InstanceManager:
 
         self.__logger.info("Starting runlevel NORMAL")
 
-        # Read current application status
-        await self.__gestionnaire_applications.update_application_status()
-
-        # 1. Nginx Cleanup from installation
-        await self.__docker_handler.nginx_installation_cleanup()
-        await asyncio.to_thread(self.__nginx_handler.generer_configuration_nginx)
-        await self.__nginx_handler.refresh_configuration("Switching to runlevel %d" % InstanceContext.CONST_RUNLEVEL_NORMAL)
-
-        # 2. Renew certificates locally with certissuer
-        try:
-            await self.__generateur_certificats.entretien_certificat_instance()
-            await self.__generateur_certificats.entretien_modules()
-            await self.context.wait(2)
-        except:
-            self.__logger.exception("Error maintaining certificates - quitting")
-            self.context.stop()
-
-        # 3. Ensure middleware is running (nginx, mq, mongo, redis, midcompte)
-        await self.__gestionnaire_applications.callback_changement_applications()
-
-        await wait_for_application(self.__context, 'nginx')  # Always first application to start up
         if securite == Constantes.SECURITE_PROTEGE:
+            # Ensure middleware is running (nginx, mq, mongo, redis, midcompte)
+            await self.__gestionnaire_applications.callback_changement_applications()
+
+            # Note - only wait on the 3.protege instance because it is the one with the bus. This avoids connection errors.
+            # All other server instances should connect as soons as possible.
             # Check that MQ and midcompte are running. Mongo is optional but is done before midcompte when required.
             await wait_for_application(self.__context, 'mq')
-            await wait_for_application(self.__context, 'mongo')     # TODO - support move secure
-            await wait_for_application(self.__context, 'midcompte')
-            await wait_for_application(self.__context, 'core')      # TODO - support move secure
 
-        # 4. Connect to mgbus (MQ)
+        # Connect to mgbus (MQ)
         if self.__context.validateur_message is None:
             self.__logger.info("Runlevel normal - reload configuration")
             await self.__context.reload_wait()
@@ -350,11 +359,12 @@ class InstanceManager:
         # 5. Exchange updated information
         try:
             self.__logger.info("Runlevel normal - exchange information")
-            await self.__docker_handler.emettre_presence(timeout=20)  # Wait 20 secs max for connection to mqbus
-            await self.send_application_packages()
             for i in range(0, 3):
                 try:
+                    await self.__docker_handler.emettre_presence(timeout=20)  # Wait 20 secs max for connection to mqbus
                     await self.request_fiche_json()
+                    if securite == Constantes.SECURITE_PROTEGE:
+                        await self.send_application_packages()
                     break
                 except asyncio.TimeoutError:
                     await self.context.wait(5)
