@@ -164,7 +164,7 @@ class WebServer:
     async def handle_configurer_idmg(self, request: web.Request):
         contenu = await request.json()
         self.__logger.debug("installer_instance contenu\n%s" % json.dumps(contenu, indent=2))
-        return await configurer_idmg(self.__etat_instance, contenu)
+        return await configurer_idmg(self.context, contenu)
 
     # async def handle_changer_domaine(self, request: web.Request):
     #     enveloppe_message = await request.json()

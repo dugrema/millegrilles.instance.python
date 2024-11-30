@@ -205,13 +205,19 @@ async def configurer_idmg(context: InstanceContext, contenu: dict):
         logger.error("configurer_idmg Parametres securite/idmg manquants")
         return web.HTTPBadRequest()
 
-    if context.idmg is not None:
+    try:
+        idmg = context.idmg
         logger.error("Tentative de configurer idmg %s sur instance deja barree" % idmg)
         return web.HTTPForbidden()
+    except ValueNotAvailable:
+        pass  # Ok
 
-    if context.securite is not None:
+    try:
+        securite = context.securite
         logger.error("Tentative de configurer securite %s sur instance deja barree" % securite)
         return web.HTTPForbidden()
+    except ValueNotAvailable:
+        pass  # Ok
 
     # Installer le certificat d'instance
     configuration = context.configuration
