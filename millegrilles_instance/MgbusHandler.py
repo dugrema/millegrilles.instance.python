@@ -124,22 +124,23 @@ class MgbusHandler(MgbusHandlerInterface):
         # Authorization check
         enveloppe = message.certificat
         try:
+            exchanges = enveloppe.get_exchanges
+        except ExtensionNotFound:
+            exchanges = list()
+        try:
             delegation_globale = enveloppe.get_delegation_globale
         except ExtensionNotFound:
             delegation_globale = None
 
         action = message.routage['action']
-
-        if delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
+        if Constantes.SECURITE_PROTEGE in exchanges:
             if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
                 return await self.__manager.send_application_packages()
-            elif action == ConstantesInstance.REQUETE_GET_PASSWORDS:
+        elif delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
+            if action == ConstantesInstance.REQUETE_GET_PASSWORDS:
                 return await self.__manager.get_instance_passwords(message)
 
         self.__logger.info("on_request_message Ignoring unknown action %s" % action)
-
-    async def on_certificate_message(self, message: MessageWrapper):
-        raise NotImplementedError()
 
 
 def create_exclusive_q_channel(context: MilleGrillesBusContext,
@@ -147,7 +148,6 @@ def create_exclusive_q_channel(context: MilleGrillesBusContext,
     exclusive_q_channel = MilleGrillesPikaChannel(context, prefetch_count=20)
     exclusive_q = MilleGrillesPikaQueueConsumer(context, on_message, None, exclusive=True, arguments={'x-message-ttl': 60_000})
 
-    # exclusive_q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC, 'evenement.MaitreDesCles.certMaitreDesCles'))
     exclusive_q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC,
                                            f'evenement.CoreTopologie.{ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE}'))
 
@@ -178,10 +178,6 @@ def create_applications_channel(instance_id: str, niveau_securite: str, context:
                                  f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_DEMARRER}'))
     q.add_routing_key(RoutingKey(niveau_securite_ajuste,
                                  f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_ARRETER}'))
-    # q.add_routing_key(RoutingKey(niveau_securite_ajuste,
-    #                              f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_REQUETE_CONFIG}'))
-    # q.add_routing_key(RoutingKey(niveau_securite_ajuste,
-    #                              f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_CONFIGURER}'))
 
     q_channel.add_queue(q)
     return q_channel
@@ -199,8 +195,6 @@ def create_requests_channel(instance_id: str, niveau_securite: str, context: Ins
     q_channel = MilleGrillesPikaChannel(context, prefetch_count=3)
     q = MilleGrillesPikaQueueConsumer(context, on_message, f'instance/{instance_id}/requests', arguments={'x-message-ttl': 30_000})
 
-    # q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC,
-    #                              f'commande.instance.{instance_id}.{ConstantesInstance.REQUETE_CONFIGURATION_ACME}'))
     q.add_routing_key(RoutingKey(niveau_securite_ajuste,
                                  f'requete.instance.{instance_id}.{ConstantesInstance.REQUETE_GET_PASSWORDS}'))
 
