@@ -279,7 +279,7 @@ class ApplicationsHandler:
 
         while self.__context.stopping is False:
             try:
-                await asyncio.wait_for(self.__applications_changed.wait(), 900)
+                await asyncio.wait_for(self.__applications_changed.wait(), 300)
             except asyncio.TimeoutError:
                 pass
 

@@ -59,8 +59,8 @@ class MgbusHandler(MgbusHandlerInterface):
         else:
             niveau_securite_ajuste = niveau_securite
 
-        # channel_exclusive = create_exclusive_q_channel(context, self.on_exclusive_message)
-        # await self.__manager.context.bus_connector.add_channel(channel_exclusive)
+        channel_exclusive = create_exclusive_q_channel(context, self.on_exclusive_message)
+        await self.__manager.context.bus_connector.add_channel(channel_exclusive)
 
         channel_applications = create_applications_channel(instance_id, niveau_securite_ajuste, context, self.on_application_message)
         await self.__manager.context.bus_connector.add_channel(channel_applications)
@@ -142,18 +142,18 @@ class MgbusHandler(MgbusHandlerInterface):
         raise NotImplementedError()
 
 
-# def create_exclusive_q_channel(context: MilleGrillesBusContext,
-#                                on_message: Callable[[MessageWrapper], Coroutine[Any, Any, None]]) -> MilleGrillesPikaChannel:
-#     exclusive_q_channel = MilleGrillesPikaChannel(context, prefetch_count=20)
-#     exclusive_q = MilleGrillesPikaQueueConsumer(context, on_message, None, exclusive=True, arguments={'x-message-ttl': 60_000})
-#
-#     exclusive_q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC, 'evenement.MaitreDesCles.certMaitreDesCles'))
-#     exclusive_q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC,
-#                                            f'evenement.CoreTopologie.{ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE}'))
-#
-#     exclusive_q_channel.add_queue(exclusive_q)
-#
-#     return exclusive_q_channel
+def create_exclusive_q_channel(context: MilleGrillesBusContext,
+                               on_message: Callable[[MessageWrapper], Coroutine[Any, Any, None]]) -> MilleGrillesPikaChannel:
+    exclusive_q_channel = MilleGrillesPikaChannel(context, prefetch_count=20)
+    exclusive_q = MilleGrillesPikaQueueConsumer(context, on_message, None, exclusive=True, arguments={'x-message-ttl': 60_000})
+
+    # exclusive_q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC, 'evenement.MaitreDesCles.certMaitreDesCles'))
+    exclusive_q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC,
+                                           f'evenement.CoreTopologie.{ConstantesInstance.EVENEMENT_TOPOLOGIE_FICHEPUBLIQUE}'))
+
+    exclusive_q_channel.add_queue(exclusive_q)
+
+    return exclusive_q_channel
 
 def create_applications_channel(instance_id: str, niveau_securite: str, context: InstanceContext,
                                 on_message: Callable[[MessageWrapper], Coroutine[Any, Any, None]]) -> MilleGrillesPikaChannel:

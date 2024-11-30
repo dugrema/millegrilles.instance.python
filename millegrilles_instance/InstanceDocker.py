@@ -185,6 +185,10 @@ class InstanceDockerHandler(DockerHandlerInterface):
         info_applications = await commande.get_info()
         info_applications_old = info_applications.copy()
 
+        # Faire la liste des applications installees
+        liste_applications = await self.get_liste_configurations()
+        info_applications['configured_applications'] = liste_applications
+
         # Liste applications web
         path_conf_applications = pathlib.Path(
             self.__context.configuration.path_configuration,
@@ -286,6 +290,27 @@ class InstanceDockerHandler(DockerHandlerInterface):
                                  exchange=niveau_securite)
         except asyncio.TimeoutError:
             self.__logger.info("Error emitting status - timeout getting mgbus producer")
+
+    async def get_liste_configurations(self) -> list:
+        """
+        Charge l'information de configuration de toutes les applications connues.
+        :return:
+        """
+        info_configuration = list()
+        path_docker_apps = self.__context.configuration.path_docker_apps
+        try:
+            for fichier_config in path_docker_apps.iterdir():
+                if not fichier_config.name.startswith('app.'):
+                    continue  # Skip, ce n'est pas une application
+                with open(path.join(path_docker_apps, fichier_config), 'rb') as fichier:
+                    contenu = json.load(fichier)
+                nom = contenu['nom']
+                version = contenu['version']
+                info_configuration.append({'name': nom, 'version': version})
+        except FileNotFoundError:
+            self.__logger.debug("get_liste_configurations Path catalogues docker non trouve")
+
+        return info_configuration
 
     async def verifier_config_instance(self):
         instance_id = self.__context.instance_id
