@@ -93,19 +93,11 @@ async def installer_secure(context: InstanceContext, contenu: dict, certificat_c
         fichier.write(clecsr.get_pem_cle())
 
     path_config_json = configuration.path_config_json
-    try:
-        with open(path_config_json, 'r') as fichier:
-            contenu_config = json.load(fichier)
-    except FileNotFoundError:
-        contenu_config = dict()
-
-    contenu_config.update({
+    contenu_config = {
         'instance_id': configuration.get_instance_id(),
-        'hostname': contenu['hostname'],
-        'mq_host': contenu['host'],
-        'mq_port': contenu['port'],
-        'securite': contenu['securite']
-    })
+        'hostname': context.hostname,
+        'securite': Constantes.SECURITE_SECURE
+    }
     with open(path_config_json, 'w') as fichier:
         json.dump(contenu_config, fichier)
 

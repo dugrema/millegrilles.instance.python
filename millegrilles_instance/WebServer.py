@@ -190,7 +190,7 @@ class WebServer:
         enveloppe_message = await request.json()
 
         # Valider message - delegation globale
-        enveloppe = await self.__etat_instance.validateur_message.verifier(enveloppe_message)
+        enveloppe = await self.context.validateur_message.verifier(enveloppe_message)
         if enveloppe.get_delegation_globale != Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
             self.__logger.error("Requete handle_configurer_mq() avec certificat sans delegation globale")
             return web.HTTPForbidden()
@@ -198,13 +198,19 @@ class WebServer:
         contenu = json.loads(enveloppe_message['contenu'])
         self.__logger.debug("handle_configurer_mq contenu\n%s" % json.dumps(contenu, indent=2))
 
-        config_dict = {
-            'mq_host': contenu['host'],
-            'mq_port': int(contenu['port']),
-        }
-        self.__etat_instance.maj_configuration_json(config_dict)
+        config_json_path = self.context.configuration.path_config_json
+        with open(config_json_path, 'rt+') as fp:
+            config = json.load(fp)
+            config.update({
+                'mq_host': contenu['host'],
+                'mq_port': int(contenu['port']),
+            })
+            fp.seek(0)
+            json.dump(config, fp)
+            fp.truncate()
+
         # await self.__etat_instance.reload_configuration()
-        await self.__etat_instance.delay_reload_configuration(duration=datetime.timedelta(seconds=1))
+        await self.context.delay_reload(1)
 
         return web.json_response({'ok': True}, headers=headers_cors())
 
