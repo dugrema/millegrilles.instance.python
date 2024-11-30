@@ -64,12 +64,15 @@ class ApplicationsHandler:
 
         producer = await self.__context.get_producer()
         if self.__docker_handler is not None:
-            resultat = await self.__docker_handler.installer_application(app_configuration, reinstaller)
-            if command:
-                # Emit OK response, installation is beginning
-                await producer.reply(resultat, command.reply_to, command.correlation_id)
-            await self.__docker_handler.emettre_presence()
-            self.__logger.info("Application %s installed" % nom_application)
+            try:
+                resultat = await self.__docker_handler.installer_application(app_configuration, reinstaller)
+                if command:
+                    # Emit OK response, installation is beginning
+                    await producer.reply(resultat, command.reply_to, command.correlation_id)
+                await self.__docker_handler.emettre_presence()
+                self.__logger.info("Application %s installed" % nom_application)
+            except Exception as e:
+                resultat = {'ok': False, 'err': str(e)}
             return resultat
         else:
             resultat = await installer_application_sansdocker(self.__context, app_configuration)
@@ -239,7 +242,7 @@ class ApplicationsHandler:
             service_status = await input_q.get()
             if service_status is None:
                 return  # Exit condition
-            await self.__docker_handler.demarrer_application(service_status.name)
+            await self.__docker_handler.redemarrer_application(service_status.name)
         pass
 
     async def __install_service_process(self, input_q: asyncio.Queue[Optional[ServiceInstallCommand]]):

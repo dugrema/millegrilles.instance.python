@@ -224,7 +224,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
                                  ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE_APPLICATIONS,
                                  exchange=niveau_securite, partition=instance_id)
 
-            await self.__emettre_presence_old(info_applications_old, timeout)  # TODO Old style - to be removed
+            # await self.__emettre_presence_old(info_applications_old, timeout)  # TODO Old style - to be removed
 
         except asyncio.TimeoutError:
             self.__logger.info("Error emitting status - timeout getting mgbus producer")
@@ -628,7 +628,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
         service_existant = await commande_config_services.get_liste()
 
         if len(service_existant) > 0 and reinstaller is False:
-            return {'ok': False, 'err': 'Service deja installe'}
+            return {'ok': True, 'message': 'Service deja installe'}
 
         # Generer certificats/passwords
         await self.generer_valeurs(correspondance, dependances, nom_application)
@@ -772,18 +772,26 @@ class InstanceDockerHandler(DockerHandlerInterface):
 
     async def demarrer_application(self, nom_application: str):
         commande_image = DockerCommandes.CommandeDemarrerService(nom_application, replicas=1)
-        resultat = await self.__docker_handler.run_command(commande_image)
+        await self.__docker_handler.run_command(commande_image)
+        resultat = await commande_image.get_resultat()
         return {'ok': resultat}
+
+    async def redemarrer_application(self, nom_application: str):
+        commande_image = DockerCommandes.CommandeRedemarrerService(nom_application, force=True)
+        await self.__docker_handler.run_command(commande_image)
+        return {'ok': True}
 
     async def arreter_application(self, nom_application: str):
         commande_image = DockerCommandes.CommandeArreterService(nom_application)
-        resultat = await self.__docker_handler.run_command(commande_image)
+        await self.__docker_handler.run_command(commande_image)
+        resultat = await commande_image.get_resultat()
         return {'ok': resultat}
 
     async def supprimer_application(self, nom_application: str):
         commande_image = DockerCommandes.CommandeSupprimerService(nom_application)
         try:
-            resultat = await self.__docker_handler.run_command(commande_image)
+            await self.__docker_handler.run_command(commande_image)
+            resultat = await commande_image.get_resultat()
         except APIError as apie:
             if apie.status_code == 404:
                 resultat = True  # Ok, deja supprime

@@ -92,6 +92,23 @@ async def installer_secure(context: InstanceContext, contenu: dict, certificat_c
     with open(path_key, 'w') as fichier:
         fichier.write(clecsr.get_pem_cle())
 
+    path_config_json = configuration.path_config_json
+    try:
+        with open(path_config_json, 'r') as fichier:
+            contenu_config = json.load(fichier)
+    except FileNotFoundError:
+        contenu_config = dict()
+
+    contenu_config.update({
+        'instance_id': configuration.get_instance_id(),
+        'hostname': contenu['hostname'],
+        'mq_host': contenu['host'],
+        'mq_port': contenu['port'],
+        'securite': contenu['securite']
+    })
+    with open(path_config_json, 'w') as fichier:
+        json.dump(contenu_config, fichier)
+
 
 async def installer_protege(context: InstanceContext, contenu: dict, certificat_ca: str, idmg: str):
     # Injecter un CSR pour generer un certificat d'instance local
@@ -121,10 +138,16 @@ async def installer_protege(context: InstanceContext, contenu: dict, certificat_
     with open(path_key, 'w') as fichier:
         fichier.write(clecsr.get_pem_cle())
 
-    # Declencher le recharger de la configuration de l'instance
-    # Va aussi installer les nouveaux elements de configuration/secrets dans docker
-    # await etat_instance.reload_configuration()
-    #raise ConstantesInstance("installation completee")
+    path_config_json = configuration.path_config_json
+    contenu_config = {
+        'instance_id': configuration.get_instance_id(),
+        'hostname': contenu['hostname'],
+        'mq_host': contenu['host'],
+        'mq_port': contenu['port'],
+        'securite': contenu['securite']
+    }
+    with open(path_config_json, 'w') as fichier:
+        json.dump(contenu_config, fichier)
 
 
 async def installer_satellite(context: InstanceContext, contenu: dict, securite: str, certificat_ca: str, idmg: str):
@@ -145,7 +168,6 @@ async def installer_satellite(context: InstanceContext, contenu: dict, securite:
     path_securite = configuration.path_securite
     path_cert = configuration.cert_path
     path_key = configuration.key_path
-    path_config_json = configuration.path_config_json
     with open(path_idmg, 'w') as fichier:
         fichier.write(idmg)
     if certificat_ca is not None:
@@ -158,27 +180,20 @@ async def installer_satellite(context: InstanceContext, contenu: dict, securite:
     with open(path_key, 'w') as fichier:
         fichier.write(cle_pem)
 
-    try:
-        with open(path_config_json, 'r') as fichier:
-            contenu_config = json.load(fichier)
-    except FileNotFoundError:
-        contenu_config = dict()
-
-    contenu_config.update({
+    path_config_json = configuration.path_config_json
+    contenu_config = {
+        'instance_id': configuration.get_instance_id(),
         'hostname': contenu['hostname'],
         'mq_host': contenu['host'],
         'mq_port': contenu['port'],
         'securite': contenu['securite']
-    })
+    }
     with open(path_config_json, 'w') as fichier:
         json.dump(contenu_config, fichier)
 
-    # Declencher le recharger de la configuration de l'instance
-    # Va aussi installer les nouveaux elements de configuration/secrets dans docker
-    # await etat_instance.reload_configuration()
-    # Donner 10 secondes pour terminer le traitement (e.g. reponse web)
-    # await context.delay_reload(datetime.timedelta(seconds=10), force_restart=True)
-    # await context.delay_reload(10)
+    # Recharger de la configuration de l'instance
+    # Donner un delai pour terminer le traitement (e.g. reponse web)
+    await context.delay_reload(1)
 
 
 async def configurer_idmg(context: InstanceContext, contenu: dict):
