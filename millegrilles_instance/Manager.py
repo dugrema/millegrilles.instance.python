@@ -310,7 +310,8 @@ class InstanceManager:
         # 1. Nginx Cleanup from installation
         await self.__docker_handler.nginx_installation_cleanup()
         await asyncio.to_thread(self.__nginx_handler.generer_configuration_nginx)
-        await self.__nginx_handler.refresh_configuration("Switching to runlevel %d" % InstanceContext.CONST_RUNLEVEL_NORMAL)
+        await self.__nginx_handler.refresh_configuration(
+            "Switching to runlevel %d" % InstanceContext.CONST_RUNLEVEL_LOCAL)
 
         if securite in [Constantes.SECURITE_PROTEGE, Constantes.SECURITE_SECURE]:
             # Renew certificates locally with certissuer
