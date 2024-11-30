@@ -291,7 +291,7 @@ class InstanceManager:
 
         # self.__context.initial_application_configuration_update.set()  # Release app update thread
         await self.__gestionnaire_applications.callback_changement_applications()
-        await wait_for_application(self.__context, 'nginx')
+        # await wait_for_application(self.__context, 'nginx')
         self.__logger.info("Ready for recovery\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
 
     async def __start_runlevel_local(self):

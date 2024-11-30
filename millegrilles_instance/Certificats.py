@@ -279,7 +279,7 @@ async def generer_nouveau_certificat(client_session: ClientSession,
     formatteur_message = context.formatteur
     message_signe, _uuid = formatteur_message.signer_message(Constantes.KIND_DOCUMENT, configuration)
 
-    logger.debug("generer_nouveau_certificat Demande de signature de certificat pour %s => %s\n%s" % (nom_module, message_signe, csr_str))
+    logger.debug("generer_nouveau_certificat Demande de signature de certificat pour %s => %s\n%s", nom_module, message_signe, csr_str)
     url_issuer = context.configuration.certissuer_url
     path_csr = path.join(url_issuer, 'signerModule')
     try:
@@ -289,7 +289,7 @@ async def generer_nouveau_certificat(client_session: ClientSession,
 
         certificat = reponse['certificat']
     except (ClientConnectorError, ClientResponseError) as e:
-        logger.warning("generer_nouveau_certificat Certissuer local non disponible, fallback CorePki (Erreur https : %s)" % str(e))
+        logger.debug("generer_nouveau_certificat Certissuer local non disponible, fallback CorePki (Erreur https : %s)", e)
         try:
             producer = await asyncio.wait_for(context.get_producer(), 2)
             if producer is not None:
@@ -298,7 +298,7 @@ async def generer_nouveau_certificat(client_session: ClientSession,
                         configuration, 'CorePki', 'signerCsr', exchange=Constantes.SECURITE_PUBLIC)
                     reponse = message_reponse.parsed
                     certificat = reponse['certificat']
-                    logger.info("generer_nouveau_certificat Certificat %s recu via MQ pour" % nom_module)
+                    logger.info("generer_nouveau_certificat Certificat %s recu via MQ pour %s", nom_module)
                 except Exception as e:
                     logger.exception(
                         "generer_nouveau_certificat ERRERUR Generation certificat %s : echec creation certificat en https et mq" % nom_module)

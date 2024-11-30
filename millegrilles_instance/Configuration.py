@@ -137,6 +137,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
                 config = json.load(fp)
         except FileNotFoundError:
             self.__logger.debug("config.json not found")
+            return
 
         self.mq_hostname = os.environ.get(ENV_MQ_HOSTNAME) or config.get('mq_host') or self.mq_hostname
         try:
