@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 from docker.models.containers import Container
@@ -13,21 +14,21 @@ class CommandeAcmeIssue(CommandeDocker):
     """
 
     def __init__(self, domain: str, params: Optional[dict] = None):
-        super().__init__(None, aio=True)
+        super().__init__()
         self.__domain = domain
         self.__params = params
 
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.facteur_throttle = 0.1
 
-    def executer(self, docker_client: DockerClient):
-        container = trouver_acme(docker_client)
+    async def executer(self, docker_client: DockerClient):
+        container = await asyncio.to_thread(trouver_acme, docker_client)
         try:
             exit_code, str_resultat = self.issue(container)
-            self.callback({'code': exit_code, 'resultat': str_resultat})
+            await self._callback_asyncio({'code': exit_code, 'resultat': str_resultat})
         except Exception as e:
             self.__logger.exception("Erreur executer()")
-            self.callback({'code': -1, 'resultat': str(e)})
+            await self._callback_asyncio({'code': -1, 'resultat': str(e)})
 
     async def get_resultat(self) -> dict:
         resultat = await self.attendre()
@@ -48,22 +49,22 @@ class CommandeAcmeExtractCertificates(CommandeDocker):
     """
 
     def __init__(self, domain: str, extract_directory='/root'):
-        super().__init__(None, aio=True)
+        super().__init__()
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__domain = domain
         self.__directory = extract_directory
         self.facteur_throttle = 0.1
 
-    def executer(self, docker_client: DockerClient):
-        container = trouver_acme(docker_client)
+    async def executer(self, docker_client: DockerClient):
+        container = await asyncio.to_thread(trouver_acme, docker_client)
         try:
             exit_code, str_resultat, key_pem, cert_pem = self.get_certificat(container)
-            self.callback({'code': exit_code, 'resultat': str_resultat, 'key': key_pem, 'cert': cert_pem})
+            await self._callback_asyncio({'code': exit_code, 'resultat': str_resultat, 'key': key_pem, 'cert': cert_pem})
         except AcmeNonDisponibleException:
-            self.callback({'code': -2})
+            await self._callback_asyncio({'code': -2})
         except Exception as e:
             self.__logger.exception("Erreur executer()")
-            self.callback({'code': -1, 'resultat': str(e)})
+            await self._callback_asyncio({'code': -1, 'resultat': str(e)})
 
     def get_certificat(self, container: Container):
         key_file_path = path.join(self.__directory, 'key.pem')

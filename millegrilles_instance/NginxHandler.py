@@ -1,15 +1,11 @@
 import asyncio
-import datetime
 import json
 import os
-from asyncio import to_thread
 
-import urllib3
 import pathlib
 
 import aiohttp
 import logging
-import ssl
 
 from aiohttp.client_exceptions import ClientConnectorError
 from os import path, makedirs
@@ -19,7 +15,6 @@ from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance.NginxUtils import ajouter_fichier_configuration
-from millegrilles_messages.docker.DockerHandler import DockerHandler
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.CleCertificat import CleCertificat
@@ -48,15 +43,21 @@ class NginxHandler:
     def __ssl_session(self, timeout: Optional[aiohttp.ClientTimeout] = None):
         return self.__context.ssl_session(timeout)
 
-    async def __entretien(self, producer):
-        self.__logger.debug("entretien debut")
-        try:
-            await self.__verifier_certificat_web()
-            await self.__verifier_tor()
-            await self.__load_fiche()
-        except Exception as e:
-            self.__logger.exception("Erreur verification nginx https")
-        self.__logger.debug("entretien fin")
+    async def run(self):
+        await self.__maintenance()
+
+    async def __maintenance(self):
+        while self.__context.stopping is False:
+            try:
+                await self.__verifier_certificat_web()
+                await self.__verifier_tor()
+                await self.__load_fiche()
+            except asyncio.CancelledError as e:
+                raise e
+            except Exception:
+                self.__logger.exception("Unhandled error checking nginx status")
+            await self.__context.wait(300)
+        self.__logger.debug("Nginx maintenance thread DONE")
 
     async def __load_fiche(self):
         try:
@@ -172,8 +173,8 @@ class NginxHandler:
 
         # S'assurer que le certificat installe est le meme que celui recu
         configuration = self.__context.configuration
-        path_cle_web = configuration.path_cle_web
-        path_cert_web = configuration.path_certificat_web
+        path_cle_web = configuration.web_key_pem_path
+        path_cert_web = configuration.web_cert_pem_path
 
         remplacer = False
         try:
@@ -201,8 +202,8 @@ class NginxHandler:
 
     async def __verifier_tor(self):
         commande = CommandeOnionizeGetHostname()
-        await self.__docker_handler.run_command(commande)
         try:
+            await self.__docker_handler.run_command(commande)
             hostname = await commande.get_resultat()
         except OnionizeNonDisponibleException:
             self.__logger.debug("Service onionize non demarre")

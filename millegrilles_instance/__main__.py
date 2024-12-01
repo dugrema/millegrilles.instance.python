@@ -115,6 +115,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
         manager.run(),
         web_server.run(),
         bus_handler.run(),
+        nginx_handler.run(),
     ]
 
     if docker_handler:
