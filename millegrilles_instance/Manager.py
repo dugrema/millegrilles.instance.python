@@ -350,8 +350,8 @@ class InstanceManager:
             # All other server instances should connect as soons as possible.
             # Check that MQ and midcompte are running. Mongo is optional but is done before midcompte when required.
             await wait_for_application(self.__context, 'nginx')
-            await wait_for_application(self.__context, 'midcompte')
             await wait_for_application(self.__context, 'mq')
+            await wait_for_application(self.__context, 'midcompte')
 
         # Connect to mgbus (MQ)
         if self.__context.validateur_message is None:
