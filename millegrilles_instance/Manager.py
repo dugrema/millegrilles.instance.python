@@ -2,7 +2,6 @@ import asyncio
 import json
 import logging
 import lzma
-import threading
 import pathlib
 
 from asyncio import TaskGroup
@@ -206,6 +205,15 @@ class InstanceManager:
         docker_present = self.__docker_handler is not None
         current_runlevel = self.context.runlevel
 
+        disabled_file = pathlib.Path(self.context.configuration.path_configuration, 'disabled_modules.json')
+        try:
+            with open(disabled_file, 'rt') as fp:
+                file_content = json.load(fp)
+            disabled_modules = file_content['disabled']
+            self.__logger.info("Disabling required modules: %s", disabled_modules)
+        except (FileNotFoundError, json.JSONDecodeError, KeyError):
+            disabled_modules = list()
+
         if securite is None:
             if docker_present:
                 self.__logger.info("Installation mode with docker")
@@ -248,6 +256,9 @@ class InstanceManager:
 
             # Change runlevel to local. This will run through the process to make system operational.
             await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_LOCAL)
+
+        for disabled_module in disabled_modules:
+            self.__context.application_status.required_modules.modules.remove(disabled_module)
 
         if current_runlevel != InstanceContext.CONST_RUNLEVEL_INIT:
             # Trigger application maintenance
