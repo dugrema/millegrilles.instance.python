@@ -349,6 +349,8 @@ class InstanceManager:
             # Note - only wait on the 3.protege instance because it is the one with the bus. This avoids connection errors.
             # All other server instances should connect as soons as possible.
             # Check that MQ and midcompte are running. Mongo is optional but is done before midcompte when required.
+            await wait_for_application(self.__context, 'nginx')
+            await wait_for_application(self.__context, 'midcompte')
             await wait_for_application(self.__context, 'mq')
 
         # Connect to mgbus (MQ)

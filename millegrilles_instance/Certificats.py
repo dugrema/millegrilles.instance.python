@@ -298,7 +298,7 @@ async def generer_nouveau_certificat(client_session: ClientSession,
                         configuration, 'CorePki', 'signerCsr', exchange=Constantes.SECURITE_PUBLIC)
                     reponse = message_reponse.parsed
                     certificat = reponse['certificat']
-                    logger.info("generer_nouveau_certificat Certificat %s recu via MQ pour %s", nom_module)
+                    logger.info("generer_nouveau_certificat Certificat recu via MQ pour %s", nom_module)
                 except Exception as e:
                     logger.exception(
                         "generer_nouveau_certificat ERRERUR Generation certificat %s : echec creation certificat en https et mq" % nom_module)
