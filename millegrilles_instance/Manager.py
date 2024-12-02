@@ -364,6 +364,10 @@ class InstanceManager:
             await wait_for_application(self.__context, 'mq')
             await wait_for_application(self.__context, 'midcompte')
 
+            # Restart nginx to ensure configuration is ready for creating bus account
+            await self.__docker_handler.redemarrer_nginx('Midcompte ready - ensure configuration is updated')
+            await self.__context.wait(3)
+
         # Connect to mgbus (MQ)
         if self.__context.validateur_message is None:
             self.__logger.info("Runlevel normal - reload configuration")
