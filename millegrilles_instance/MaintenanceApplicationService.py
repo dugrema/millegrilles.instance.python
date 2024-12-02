@@ -166,9 +166,14 @@ async def update_service_status(context: InstanceContext, docker_handler: Docker
         web_app_configuration = dict()
 
     for service in liste_services_docker:
-        service_name = service.name
         try:
-            mapped_service = mapped_services[service_name]
+            labels = service.attrs['Spec']['Labels']
+            package_name = labels['package_name']
+        except KeyError:
+            package_name = service.name
+
+        try:
+            mapped_service = mapped_services[package_name]
             mapped_service.docker_handle = service
             mapped_service.installed = True
             mapped_service.running = check_service_running(service) > 0

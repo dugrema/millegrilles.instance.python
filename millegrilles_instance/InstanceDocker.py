@@ -501,12 +501,13 @@ class InstanceDockerHandler(DockerHandlerInterface):
 
         return params
 
-    async def installer_service(self, nom_service: str, dependency: ServiceDependency, params: dict, reinstaller=False):
+    async def installer_service(self, package_name: str, nom_application: str, dependency: ServiceDependency, params: dict, reinstaller=False):
         # Copier params, ajouter info service
         params = params.copy()
-        params['__nom_application'] = nom_service
-        params['__certificat_info'] = {'label_prefix': 'pki.%s' % nom_service}
-        params['__password_info'] = {'label_prefix': 'passwd.%s' % nom_service}
+        params['__package_name'] = package_name
+        params['__nom_application'] = nom_application
+        params['__certificat_info'] = {'label_prefix': 'pki.%s' % nom_application}
+        params['__password_info'] = {'label_prefix': 'passwd.%s' % nom_application}
         params['__instance_id'] = self.__context.instance_id
 
         configuration = self.__context.configuration
@@ -557,7 +558,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
             commande_creer_service = DockerCommandes.CommandeCreerService(image_tag, config_parsed, reinstaller=reinstaller)
             return await self.__docker_handler.run_command(commande_creer_service)
         else:
-            self.__logger.warning("installer_service() Invoque pour un service sans images : %s", nom_service)
+            self.__logger.warning("installer_service() Invoque pour un service (%s) sans images : %s", package_name, nom_application)
 
     async def maj_configuration_datee_service(self, nom_service: str, configuration: dict):
 
@@ -688,7 +689,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
                 if dep.image is not None:
                     params = await self.get_params_env_service()
                     params['__nom_application'] = nom_application
-                    resultat_installation = await self.installer_service(nom_module, dep, params, reinstaller)
+                    resultat_installation = await self.installer_service(nom_application, nom_module, dep, params, reinstaller)
 
                     # try:
                     #     scripts_module = configuration['scripts_installation'][nom_module]
