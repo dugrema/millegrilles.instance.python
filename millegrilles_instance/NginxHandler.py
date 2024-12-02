@@ -15,6 +15,7 @@ from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance.NginxUtils import ajouter_fichier_configuration
+from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.CleCertificat import CleCertificat
@@ -45,6 +46,10 @@ class NginxHandler:
 
     async def run(self):
         await self.__maintenance()
+        if self.__context.stopping is False:
+            self.__logger.error("NginxHandler thread stopped improperly - quitting")
+            self.__context.stop()
+            raise ForceTerminateExecution()
 
     async def __maintenance(self):
         while self.__context.stopping is False:
@@ -150,8 +155,8 @@ class NginxHandler:
         """
         hostname = self.__context.hostname
         commande = CommandeAcmeExtractCertificates(hostname)
-        await self.__docker_handler.run_command(commande)
         try:
+            await self.__docker_handler.run_command(commande)
             resultat = await commande.get_resultat()
         except AcmeNonDisponibleException:
             self.__logger.debug("Service ACME non demarre")
