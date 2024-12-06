@@ -1,6 +1,6 @@
 {
   "name": "protected_webapi",
-  "image": "docker.maple.maceroc.com:5000/millegrilles_web_python:2024.7.38",
+  "image": "docker.maple.maceroc.com:5000/millegrilles_web_python:2024.9.46",
   "args": ["-m", "millegrilles_web"],
   "archives": [
     {
@@ -21,9 +21,9 @@
     "REDIS_HOSTNAME": "redis",
     "REDIS_PORT": "6379",
     "REDIS_PASSWORD_PATH": "/run/secrets/passwd.redis.txt",
-    "CERT_PEM": "/run/secrets/cert.pem",
-    "KEY_PEM": "/run/secrets/key.pem",
-    "CA_PEM": "/run/secrets/millegrille.cert.pem",
+    "CERT_PATH": "/run/secrets/cert.pem",
+    "KEY_PATH": "/run/secrets/key.pem",
+    "CA_PATH": "/run/secrets/millegrille.cert.pem",
     "WEB_PORT": "1443"
   },
   "constraints": [
