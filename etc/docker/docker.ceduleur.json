@@ -1,15 +1,15 @@
 {
   "name": "ceduleur",
-  "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2024.6.59",
+  "image": "docker.maple.maceroc.com:5000/millegrilles_midcompte_python:2024.9.91",
   "args": ["-m", "millegrilles_ceduleur"],
   "certificat": {
     "roles": ["ceduleur"],
     "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"]
   },
   "env": {
-    "CA_PEM": "/run/secrets/pki.millegrille.cert",
-    "CERT_PEM": "/run/secrets/cert.pem",
-    "KEY_PEM": "/run/secrets/key.pem",
+    "CA_PATH": "/run/secrets/pki.millegrille.cert",
+    "CERT_PATH": "/run/secrets/cert.pem",
+    "KEY_PATH": "/run/secrets/key.pem",
     "MQ_HOSTNAME": "${MQ_HOSTNAME}",
     "MQ_PORT": "${MQ_PORT}",
     "REDIS_HOSTNAME": "redis",
