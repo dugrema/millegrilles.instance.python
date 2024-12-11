@@ -6,17 +6,13 @@
   "passwords": ["mongo"],
   "args": [
     "mongod",
-    "--replSet", "rs0",
     "--tlsMode", "requireTLS",
     "--tlsCertificateKeyFile", "/run/secrets/mongo.key_cert.pem",
     "--tlsCAFile", "/run/secrets/millegrille.cert.pem",
+    "--replSet", "rs0",
     "--clusterAuthMode", "x509",
     "--tlsClusterFile", "/run/secrets/mongo.key_cert.pem"
   ],
-  "env": {
-    "MONGO_INITDB_ROOT_USERNAME": "admin",
-    "MONGO_INITDB_ROOT_PASSWORD_FILE": "/run/secrets/mongo.root.password"
-  },
   "mounts": [{"source": "mongo-data", "target":  "/data/db", "type": "volume"}],
   "constraints": ["node.labels.millegrilles.database == true"],
   "configs": [
