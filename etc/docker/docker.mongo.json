@@ -6,9 +6,12 @@
   "passwords": ["mongo"],
   "args": [
     "mongod",
+    "--replSet", "rs0",
     "--tlsMode", "requireTLS",
     "--tlsCertificateKeyFile", "/run/secrets/mongo.key_cert.pem",
-    "--tlsCAFile", "/run/secrets/millegrille.cert.pem"
+    "--tlsCAFile", "/run/secrets/millegrille.cert.pem",
+    "--clusterAuthMode", "x509",
+    "--tlsClusterFile", "/run/secrets/mongo.key_cert.pem"
   ],
   "env": {
     "MONGO_INITDB_ROOT_USERNAME": "admin",
