@@ -3,6 +3,11 @@
   "image": "mongo:6",
   "hostname": "mongo",
   "certificat": {"roles": ["mongo"], "dns": {"localhost": true, "hostnames": ["mongo"], "domain": true}, "combiner_keycert": true},
+  "container_init": {
+    "args": ["mongod", "--replSet", "rs0"],
+    "env": {"MONGO_INITDB_ROOT_USERNAME": "admin", "MONGO_INITDB_ROOT_PASSWORD": "${SECRETS/passwd.mongo.txt}"},
+    "mounts": [{"source": "mongo-data", "target": "/data/db", "type": "volume"}]
+  },
   "passwords": ["mongo"],
   "args": [
     "mongod",
@@ -13,7 +18,11 @@
     "--clusterAuthMode", "x509",
     "--tlsClusterFile", "/run/secrets/mongo.key_cert.pem"
   ],
-  "mounts": [{"source": "mongo-data", "target":  "/data/db", "type": "volume"}],
+  "env": {
+    "MONGO_INITDB_ROOT_USERNAME": "admin",
+    "MONGO_INITDB_ROOT_PASSWORD_FILE": "/run/secrets/mongo.root.password"
+  },
+  "mounts": [{"source": "mongo-data", "target": "/data/db", "type": "volume"}],
   "constraints": ["node.labels.millegrilles.database == true"],
   "configs": [
     {
@@ -37,10 +46,7 @@
       "filename": "mongo.root.password"
     }
   ],
-  "networks": [{
-    "target": "millegrille_net",
-    "aliases": ["mongo"]
-  }],
+  "networks": [{"target": "millegrille_net", "aliases": ["mongo"]}],
   "labels": {
     "millegrille": "${IDMG}",
     "install_priority": "1",
@@ -55,8 +61,5 @@
     "delay": 5000000000,
     "max_attempts": 1000
   },
- "mode": {
-    "mode": "replicated",
-    "replicas": 1
-  }
+  "mode": {"mode": "replicated", "replicas": 1}
 }

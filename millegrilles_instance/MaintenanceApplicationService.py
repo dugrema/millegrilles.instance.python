@@ -21,6 +21,18 @@ from millegrilles_messages.docker.ParseConfiguration import ConfigurationService
 
 LOGGER = logging.getLogger(__name__)
 
+
+class ContainerInit:
+    args: Optional[list[str]]
+    env: Optional[dict[str, str]]
+    mounts: Optional[list[dict[str, str]]]
+
+    def __init__(self, value: dict):
+        self.args = value.get('args')
+        self.env = value.get('env')
+        self.mounts = value.get('mounts')
+
+
 class ServiceDependency:
     name: str
     image: Optional[str]
@@ -29,8 +41,14 @@ class ServiceDependency:
     config: Optional[dict]
     secrets: Optional[dict]
     passwords: Optional[list]
+    container_init: Optional[ContainerInit]
 
     def __init__(self, value: dict):
+        try:
+            container_init = ContainerInit(value['container_init'])
+        except KeyError:
+            container_init = None
+
         self.__value = value
         self.name = value['name']
         self.image = value.get('image')
@@ -39,6 +57,7 @@ class ServiceDependency:
         self.config = value.get('config')
         self.secrets = value.get('secrets')
         self.passwords = value.get('passwords') or value.get('generateur')
+        self.container_init = container_init
 
     @property
     def configuration(self):

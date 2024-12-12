@@ -1,12 +1,15 @@
 import asyncio
 import logging
 import time
+import pathlib
 
 from typing import Optional
 
 from docker import DockerClient
+from docker.errors import ContainerError
 from docker.models.containers import Container
 from docker.models.services import Service
+from docker.types import Mount
 
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.Interfaces import DockerHandlerInterface
@@ -86,6 +89,47 @@ class CommandeExecuterScriptDansService(CommandeDocker):
 
     def __repr__(self):
         return f'CommandeExecuterScriptDansService {self.__nom_service}: {self.__path_script}'
+
+
+class CommandeExecuterContainerInit(CommandeDocker):
+
+    def __init__(self, image: str, params):
+        super().__init__()
+        self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        self.__image = image
+        self.__container_init = params
+        self.facteur_throttle = 2.0
+
+    async def executer(self, docker_client: DockerClient):
+        mounts = list()
+        for mount in self.__container_init.mounts:
+            mounts.append(Mount(type=mount['type'], source=mount['source'], target=mount['target']))
+
+        secret_values = pathlib.Path('/var/opt/millegrilles/secrets')
+        password_dict = dict()
+        for file_path in secret_values.iterdir():
+            if file_path.is_file() and file_path.name.endswith('.txt'):
+                with open(file_path, 'rt') as fp:
+                    password_dict[file_path.name] = fp.read().strip()
+
+        environment = dict()
+        for key, value in self.__container_init.env.items():
+            if value.startswith("${SECRETS/"):
+                secret_file_name = value.split("/")[1][:-1]
+                password = password_dict.get(secret_file_name)
+                environment[key] = password
+            else:
+                environment[key] = value
+
+        try:
+            result = await asyncio.to_thread(
+                docker_client.containers.run, image=self.__image, command=self.__container_init.args,
+                mounts=mounts, environment=environment)
+        except ContainerError as e:
+            await self._callback_asyncio({'done': True, 'code': e.exit_status, 'err': e.stderr})
+            return
+
+        await self._callback_asyncio({'done': True, 'ok': True})
 
 
 # class CommandeGetServicesBackup(CommandeDocker):

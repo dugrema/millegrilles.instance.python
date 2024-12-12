@@ -28,7 +28,7 @@ from millegrilles_messages.docker.DockerHandler import CommandeDocker
 
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.CommandesDocker import CommandeListeTopologie, CommandeExecuterScriptDansService, \
-    get_docker_image_tag
+    get_docker_image_tag, CommandeExecuterContainerInit
 from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname, OnionizeNonDisponibleException
 
 
@@ -687,6 +687,12 @@ class InstanceDockerHandler(DockerHandlerInterface):
                                                     web_links)
 
                 if dep.image is not None:
+                    if dep.container_init is not None:
+                        # Run an initialization container first
+                        command = CommandeExecuterContainerInit(dep.image, dep.container_init)
+                        result = await self.__docker_handler.run_command(command)
+                        pass
+
                     params = await self.get_params_env_service()
                     params['__nom_application'] = nom_application
                     resultat_installation = await self.installer_service(nom_application, nom_module, dep, params, reinstaller)
