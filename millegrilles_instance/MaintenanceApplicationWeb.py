@@ -108,8 +108,10 @@ def installer_archive(context: InstanceContext, app_name: str, archive: WebAppli
             pass  # Ok
 
         # Conserver l'information d'installation
+        path_archives_json = pathlib.Path(context.configuration.path_configuration,
+                                          ConstantesInstance.FICHIER_CONFIG_ARCHIVES_APP_JSON)
         try:
-            with open(ConstantesInstance.FICHIER_ARCHIVES_APP, 'rt+') as fichier:
+            with open(path_archives_json, 'rt+') as fichier:
                 # Read file
                 try:
                     config_locale = json.load(fichier)
@@ -128,7 +130,7 @@ def installer_archive(context: InstanceContext, app_name: str, archive: WebAppli
                 fichier.truncate()
         except FileNotFoundError:
             # New file
-            with open(ConstantesInstance.FICHIER_ARCHIVES_APP, 'wt') as fichier:
+            with open(path_archives_json, 'wt') as fichier:
                 config_locale = {archive.location: archive.__dict__}
                 json.dump(config_locale, fichier)
 

@@ -95,6 +95,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         """
         super().parse_config()
 
+        self.__path_millegrilles = os.environ.get(ContantesInstance.MILLEGRILLES_PATH_ENV) or self.__path_millegrilles
         self.__path_configuration = os.environ.get(ContantesInstance.INSTANCE_CONFIG_PATH) or self.__path_configuration
         self.__path_secrets = os.environ.get(ContantesInstance.INSTANCE_SECRETS_PATH) or self.__path_secrets
         self.__path_secrets_partages = os.environ.get(ContantesInstance.INSTANCE_SECRETS_PARTAGES_PATH) or str(pathlib.Path(self.__path_millegrilles, 'secrets_partages'))
