@@ -11,6 +11,7 @@ from docker.models.containers import Container
 from docker.models.services import Service
 from docker.types import Mount
 
+from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.Interfaces import DockerHandlerInterface
 from millegrilles_messages.docker import DockerCommandes
@@ -93,9 +94,10 @@ class CommandeExecuterScriptDansService(CommandeDocker):
 
 class CommandeExecuterContainerInit(CommandeDocker):
 
-    def __init__(self, image: str, params):
+    def __init__(self, config: ConfigurationInstance, image: str, params):
         super().__init__()
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        self.__config = config
         self.__image = image
         self.__container_init = params
         self.facteur_throttle = 2.0
@@ -105,7 +107,8 @@ class CommandeExecuterContainerInit(CommandeDocker):
         for mount in self.__container_init.mounts:
             mounts.append(Mount(type=mount['type'], source=mount['source'], target=mount['target']))
 
-        secret_values = pathlib.Path('/var/opt/millegrilles/secrets')
+        # secret_values = pathlib.Path('/var/opt/millegrilles/secrets')
+        secret_values = self.__config.path_secrets
         password_dict = dict()
         for file_path in secret_values.iterdir():
             if file_path.is_file() and file_path.name.endswith('.txt'):

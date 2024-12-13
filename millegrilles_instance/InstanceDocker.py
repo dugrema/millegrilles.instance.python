@@ -689,7 +689,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
                 if dep.image is not None:
                     if dep.container_init is not None:
                         # Run an initialization container first
-                        command = CommandeExecuterContainerInit(dep.image, dep.container_init)
+                        command = CommandeExecuterContainerInit(self.__context.configuration, dep.image, dep.container_init)
                         result = await self.__docker_handler.run_command(command)
                         pass
 
