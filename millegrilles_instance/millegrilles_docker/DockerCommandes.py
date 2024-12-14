@@ -13,7 +13,7 @@ from docker.models.services import Service
 from docker.models.volumes import Volume
 
 
-from millegrilles_docker.DockerHandler import CommandeDocker
+from millegrilles_instance.millegrilles_docker.DockerHandler import CommandeDocker
 
 
 # class CommandeListerContainers(CommandeDocker):

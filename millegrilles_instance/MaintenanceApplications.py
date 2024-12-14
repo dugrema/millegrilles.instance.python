@@ -13,7 +13,7 @@ from millegrilles_instance.MaintenanceApplicationService import list_images, pul
     download_docker_images, ServiceInstallCommand, ServiceStatus
 from millegrilles_instance.MaintenanceApplicationWeb import sauvegarder_configuration_webapps
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
-from millegrilles_docker.DockerCommandes import CommandPruneCleanup
+from millegrilles_instance.millegrilles_docker.DockerCommandes import CommandPruneCleanup
 from millegrilles_messages.messages.MessagesModule import MessageWrapper
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance import Constantes as ConstantesInstance

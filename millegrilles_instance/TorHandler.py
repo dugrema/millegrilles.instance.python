@@ -2,7 +2,7 @@ import logging
 
 from docker.models.containers import Container
 
-from millegrilles_docker.DockerHandler import CommandeDocker, DockerClient, DockerHandlerException
+from millegrilles_instance.millegrilles_docker.DockerHandler import CommandeDocker, DockerClient, DockerHandlerException
 
 ONIONIZE_HOSTNAME_PATH = '/var/lib/tor/onion_services/nginx/hostname'
 

@@ -12,7 +12,7 @@ from typing import Optional
 
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.Context import InstanceContext
-from millegrilles_docker.ParseConfiguration import WebApplicationConfiguration
+from millegrilles_instance.millegrilles_docker.ParseConfiguration import WebApplicationConfiguration
 from millegrilles_messages.messages.Hachage import VerificateurHachage
 
 CONST_VERSION_FILE = '.version'

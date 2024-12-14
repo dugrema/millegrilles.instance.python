@@ -1,6 +1,6 @@
 from typing import Optional
 
-from millegrilles_docker.DockerHandler import CommandeDocker
+from millegrilles_instance.millegrilles_docker.DockerHandler import CommandeDocker
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 
 

@@ -10,7 +10,7 @@ from millegrilles_instance.SystemStatus import SystemStatus
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopListener
 from millegrilles_messages.bus.BusExceptions import ConfigurationFileError
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
-from millegrilles_docker.DockerHandler import DockerState
+from millegrilles_instance.millegrilles_docker.DockerHandler import DockerState
 from millegrilles_instance.NginxHandler import NginxHandler
 from millegrilles_instance.Certificats import GenerateurCertificatsHandler
 from millegrilles_instance.Configuration import ConfigurationInstance
