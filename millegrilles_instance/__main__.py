@@ -81,12 +81,12 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     system_status = SystemStatus(context)
 
     docker_state = DockerState(context)
-    if docker_state.docker_present():
-        docker_handler = InstanceDockerHandler(context, docker_state)
-        context.add_reload_listener(docker_handler.callback_changement_configuration)
-    else:
+    if docker_state.docker_present() is False:
         # Docker not supported
-        docker_handler = None
+        raise Exception('Docker environment not detected')
+
+    docker_handler = InstanceDockerHandler(context, docker_state)
+    context.add_reload_listener(docker_handler.callback_changement_configuration)
 
     generateur_certificats = GenerateurCertificatsHandler(context, docker_handler)
     nginx_handler = NginxHandler(context, docker_handler)

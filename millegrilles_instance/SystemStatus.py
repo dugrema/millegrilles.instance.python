@@ -47,17 +47,26 @@ class SystemStatus:
         info_systeme['disk'] = self.partition_usage()
         info_systeme['load_average'] = [round(l * 100) / 100 for l in list(psutil.getloadavg())]
 
-        system_temperature = psutil.sensors_temperatures()
-        if system_temperature and len(system_temperature) > 0:
-            info_systeme['system_temperature'] = system_temperature
+        try:
+            system_temperature = psutil.sensors_temperatures()
+            if system_temperature and len(system_temperature) > 0:
+                info_systeme['system_temperature'] = system_temperature
+        except AttributeError:
+            pass
 
-        system_fans = psutil.sensors_fans()
-        if system_fans and len(system_fans) > 0:
-            info_systeme['system_fans'] = system_fans
+        try:
+            system_fans = psutil.sensors_fans()
+            if system_fans and len(system_fans) > 0:
+                info_systeme['system_fans'] = system_fans
+        except AttributeError:
+            pass
 
-        system_battery = psutil.sensors_battery()
-        if system_battery:
-            info_systeme['system_battery'] = system_battery
+        try:
+            system_battery = psutil.sensors_battery()
+            if system_battery:
+                info_systeme['system_battery'] = system_battery
+        except AttributeError:
+            pass
 
         if self.__apc_info:
             info_systeme['apc'] = self.__apc_info
