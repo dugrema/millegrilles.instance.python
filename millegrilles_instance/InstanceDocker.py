@@ -528,7 +528,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
         # except KeyError:
         #     pass
 
-        parser = ConfigurationService(docker_service_configuration, params)
+        parser = ConfigurationService(self.__context, docker_service_configuration, params)
         parser.parse()
         config_parsed = parser.generer_docker_config()
 
@@ -566,7 +566,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
         params['__nom_application'] = nom_service
 
         # Copier params, ajouter info service
-        parser = ConfigurationService(configuration, params)
+        parser = ConfigurationService(self.__context, configuration, params)
         parser.parse()
         config_parsed = parser.generer_docker_config()
 

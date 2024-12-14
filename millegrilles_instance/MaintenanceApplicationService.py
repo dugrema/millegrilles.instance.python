@@ -491,7 +491,7 @@ async def install_service(context: InstanceContext, docker_handler: DockerHandle
         except KeyError:
             pass
 
-        parser = ConfigurationService(config_service, params)
+        parser = ConfigurationService(context, config_service, params)
         parser.parse()
         config_parsed = parser.generer_docker_config()
 

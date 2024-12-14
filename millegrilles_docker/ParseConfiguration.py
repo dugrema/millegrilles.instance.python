@@ -7,6 +7,8 @@ from urllib.parse import urlparse
 from docker.types import NetworkAttachmentConfig, Resources, RestartPolicy, ServiceMode, EndpointSpec, Mount, \
     SecretReference, ConfigReference
 
+from millegrilles_instance.Context import InstanceContext
+
 
 class WebApplicationConfiguration:
 
@@ -37,8 +39,9 @@ class ConfigurationService:
     Converti format config MilleGrilles en format du module docker
     """
 
-    def __init__(self, configuration: dict, params: Optional[dict] = None):
+    def __init__(self, context: InstanceContext, configuration: dict, params: Optional[dict] = None):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        self.__context = context
         self.__configuration = configuration
         self.__params = params
         self.__parsed: Optional[dict] = None
@@ -140,10 +143,22 @@ class ConfigurationService:
         except KeyError:
             return
 
+        # Variables that can be used in the mount source
+        mount_variables = {
+            'MILLEGRILLES_PATH': str(self.__context.configuration.path_millegrilles),
+            'SECRETS_PATH': str(self.__context.configuration.path_secrets),
+            'CONFIGURATION_PATH': str(self.__context.configuration.path_configuration),
+            'NGINX_PATH': str(self.__context.configuration.path_nginx),
+        }
+
         mounts_list = list()
         for mount in mounts:
             target = self._mapping_valeur(mount['target'])
             source = self._mapping_valeur(mount['source'])
+
+            # Replace source variables
+            source = source.format(**mount_variables)
+
             volume_type = mount['type']
             read_only = mount.get('read_only') or False
             mount_obj = Mount(target, source, volume_type, read_only)
