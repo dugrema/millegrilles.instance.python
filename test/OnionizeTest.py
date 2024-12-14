@@ -1,7 +1,7 @@
 import asyncio
 import logging
 
-from millegrilles_messages.docker.DockerHandler import DockerState, DockerHandler
+from millegrilles_messages.docker_obsolete.DockerHandler import DockerState, DockerHandler
 from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname
 
 logger = logging.getLogger("__main__")

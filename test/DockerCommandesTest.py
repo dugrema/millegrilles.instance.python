@@ -4,8 +4,8 @@ import logging
 from asyncio import Event as EventAsyncio, TimeoutError
 from threading import Event
 
-from millegrilles_messages.docker.DockerHandler import DockerHandler, DockerState
-from millegrilles_messages.docker.DockerCommandes import CommandeGetConfigurationsDatees, CommandeListerConfigs, \
+from millegrilles_messages.docker_obsolete.DockerHandler import DockerHandler, DockerState
+from millegrilles_messages.docker_obsolete.DockerCommandes import CommandeGetConfigurationsDatees, CommandeListerConfigs, \
     CommandeListerSecrets, CommandeEnsureNodeLabels
 
 logger = logging.getLogger(__name__)

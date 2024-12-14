@@ -4,7 +4,7 @@ import logging
 from asyncio import Event as EventAsyncio, TimeoutError
 from os import environ
 
-from millegrilles_messages.docker.DockerHandler import DockerState, DockerHandler
+from millegrilles_messages.docker_obsolete.DockerHandler import DockerState, DockerHandler
 from millegrilles_instance.AcmeHandler import CommandeAcmeIssue, CommandeAcmeExtractCertificates
 
 logger = logging.getLogger("__main__")
