@@ -8,7 +8,7 @@
   "constraints": [
     "node.labels.millegrilles.certissuer == true"
   ],
-  "mounts": [{"source": "/var/opt/millegrilles", "target":  "/var/opt/millegrilles", "type": "bind"}],
+  "mounts": [{"source": "{MILLEGRILLES_PATH}", "target":  "/var/opt/millegrilles", "type": "bind"}],
   "networks": [{
     "target": "millegrille_net"
   }],

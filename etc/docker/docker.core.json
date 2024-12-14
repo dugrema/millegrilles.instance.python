@@ -27,7 +27,7 @@
     "node.labels.millegrilles.database == true"
   ],
   "mounts": [
-    {"source": "/var/opt/millegrilles/configuration", "target": "/var/opt/millegrilles/configuration", "type": "bind", "read_only": true},
+    {"source": "{CONFIGURATION_PATH}", "target": "/var/opt/millegrilles/configuration", "type": "bind", "read_only": true},
     {"source": "millegrilles-domain-archives", "target": "/var/opt/millegrilles/archives", "type": "volume"}
   ],
   "configs": [

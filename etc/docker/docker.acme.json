@@ -4,7 +4,7 @@
   "args": ["daemon"],
   "mounts": [
     {"source": "acmesh-data", "target":  "/acme.sh", "type": "volume"},
-    {"source": "/var/opt/millegrilles/nginx/html", "target":  "/usr/share/nginx/html", "type": "bind"}
+    {"source": "{NGINX_PATH}/html", "target":  "/usr/share/nginx/html", "type": "bind"}
   ],
   "constraints": [
     "node.labels.millegrilles.nginx == true"
