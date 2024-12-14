@@ -8,7 +8,6 @@ import math
 import urllib.parse
 
 from aiohttp import web
-from os import path
 from ssl import SSLContext
 from typing import Optional
 
