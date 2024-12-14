@@ -27,7 +27,7 @@ from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat, CertificatExpire
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.GenerateursSecrets import GenerateurEd25519, GenerateurRsa
-from millegrilles_messages.docker import DockerCommandes
+from millegrilles_docker import DockerCommandes
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 
 from millegrilles_instance import Constantes as ContantesInstance

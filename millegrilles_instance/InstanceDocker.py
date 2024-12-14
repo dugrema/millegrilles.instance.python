@@ -20,11 +20,11 @@ from millegrilles_instance.NginxUtils import ajouter_fichier_configuration
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.IpUtils import get_hostnames
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
-from millegrilles_messages.docker.DockerHandler import DockerHandler, DockerState
-from millegrilles_messages.docker import DockerCommandes
+from millegrilles_docker.DockerHandler import DockerHandler, DockerState
+from millegrilles_docker import DockerCommandes
 from millegrilles_messages.messages.CleCertificat import CleCertificat
-from millegrilles_messages.docker.ParseConfiguration import ConfigurationService, WebApplicationConfiguration
-from millegrilles_messages.docker.DockerHandler import CommandeDocker
+from millegrilles_docker.ParseConfiguration import ConfigurationService, WebApplicationConfiguration
+from millegrilles_docker.DockerHandler import CommandeDocker
 
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_instance.CommandesDocker import CommandeListeTopologie, CommandeExecuterScriptDansService, \

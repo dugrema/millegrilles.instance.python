@@ -14,9 +14,9 @@ from docker.types import Mount
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.Interfaces import DockerHandlerInterface
-from millegrilles_messages.docker import DockerCommandes
-from millegrilles_messages.docker.DockerCommandes import PullStatus
-from millegrilles_messages.docker.DockerHandler import CommandeDocker
+from millegrilles_docker import DockerCommandes
+from millegrilles_docker.DockerCommandes import PullStatus
+from millegrilles_docker.DockerHandler import CommandeDocker
 
 LOGGER = logging.getLogger(__name__)
 

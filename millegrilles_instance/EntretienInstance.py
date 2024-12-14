@@ -14,7 +14,7 @@ from asyncio import Event, TimeoutError
 from millegrilles_instance.MaintenanceApplicationWeb import entretien_webapps_installation
 from millegrilles_instance.ModulesRequisInstance import CONFIG_MODULES_INSTALLATION, CONFIG_MODULES_SECURE_EXPIRE, \
     CONFIG_CERTIFICAT_EXPIRE, CONFIG_MODULES_SECURES, CONFIG_MODULES_PROTEGES, CONFIG_MODULES_PRIVES
-from millegrilles_messages.docker.Entretien import TacheEntretien
+from millegrilles_docker.Entretien import TacheEntretien
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.messages.MessagesThread import MessagesThread
 from millegrilles_instance.EtatInstance import EtatInstance

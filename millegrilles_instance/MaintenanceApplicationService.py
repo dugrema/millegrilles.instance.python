@@ -16,8 +16,8 @@ from millegrilles_instance.Interfaces import DockerHandlerInterface
 from millegrilles_instance.MaintenanceApplicationWeb import check_archive_stale, installer_archive, \
     sauvegarder_configuration_webapps
 from millegrilles_instance.ModulesRequisInstance import RequiredModules
-from millegrilles_messages.docker import DockerCommandes
-from millegrilles_messages.docker.ParseConfiguration import ConfigurationService
+from millegrilles_docker import DockerCommandes
+from millegrilles_docker.ParseConfiguration import ConfigurationService
 
 LOGGER = logging.getLogger(__name__)
 

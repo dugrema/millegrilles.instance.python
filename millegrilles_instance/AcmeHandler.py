@@ -5,7 +5,7 @@ from docker.models.containers import Container
 from os import path
 from typing import Optional
 
-from millegrilles_messages.docker.DockerHandler import CommandeDocker, DockerClient, DockerHandlerException
+from millegrilles_docker.DockerHandler import CommandeDocker, DockerClient, DockerHandlerException
 
 
 class CommandeAcmeIssue(CommandeDocker):
