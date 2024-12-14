@@ -1,6 +1,8 @@
 # Parsing de la configuration d'un service/container
 import logging
+import os
 import urllib.parse
+
 from typing import Optional, Any
 from urllib.parse import urlparse
 
@@ -156,11 +158,13 @@ class ConfigurationService:
         for mount in mounts:
             target = self._mapping_valeur(mount['target'])
             source = self._mapping_valeur(mount['source'])
+            volume_type = mount['type']
 
             # Replace source variables
+            if volume_type == 'bind':
+                source = source.replace("/", os.sep)  # Replace the os separator
             source = source.format(**mount_variables)
 
-            volume_type = mount['type']
             read_only = mount.get('read_only') or False
             mount_obj = Mount(target, source, volume_type, read_only)
             mounts_list.append(mount_obj)

@@ -1,6 +1,7 @@
 import asyncio
 import json
 import os
+import urllib.parse
 
 import pathlib
 
@@ -66,7 +67,7 @@ class NginxHandler:
 
     async def __load_fiche(self):
         try:
-            path_fiche = path.join(self.__url_nginx_sslclient, 'fiche.json')
+            path_fiche = urllib.parse.urljoin(self.__url_nginx_sslclient, 'fiche.json')
             async with self.__ssl_session(aiohttp.ClientTimeout(total=10, connect=3)) as session:
                 async with session.head(path_fiche) as reponse:
                     pass
@@ -94,7 +95,7 @@ class NginxHandler:
                 fiche_contenu = reponse_fiche.contenu
                 self.__logger.debug("Fiche chargee via requete : %s" % fiche_contenu)
                 path_nginx = self.__context.configuration.path_nginx
-                path_fiche_json = path.join(path_nginx, 'html', 'fiche.json')
+                path_fiche_json = urllib.parse.urljoin(path_nginx, 'html', 'fiche.json')
                 self.sauvegarder_fichier_data(path_fiche_json, fiche_contenu)
             else:
                 self.__logger.warning("Error accessing fiche.json via https, response code %d" % reponse.status)

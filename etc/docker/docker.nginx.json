@@ -8,9 +8,9 @@
     "ONIONSERVICE_PORT": "443"
   },
   "mounts": [
-    {"source": "{NGINX_PATH}", "target": "/var/opt/millegrilles/nginx/data", "type": "bind", "read_only": true},
-    {"source": "{NGINX_PATH}", "target": "/etc/nginx/conf.d/modules", "type": "bind", "read_only": true},
-    {"source": "{NGINX_PATH}", "target": "/usr/share/nginx/html", "type": "bind", "read_only": true}
+    {"source": "{NGINX_PATH}/data", "target": "/var/opt/millegrilles/nginx/data", "type": "bind", "read_only": true},
+    {"source": "{NGINX_PATH}/modules", "target": "/etc/nginx/conf.d/modules", "type": "bind", "read_only": true},
+    {"source": "{NGINX_PATH}/html", "target": "/usr/share/nginx/html", "type": "bind", "read_only": true}
   ],
   "constraints": [
     "node.labels.millegrilles.nginx == true"
