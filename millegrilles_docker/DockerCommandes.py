@@ -591,7 +591,11 @@ class CommandeGetImage(CommandeDocker):
         pull_generator = client.api.pull(repository, tag, stream=True)
         layers = dict()
         for line in pull_generator:
-            value = json.loads(line)
+            try:
+                value = json.loads(line)
+            except json.JSONDecodeError:
+                self.__logger.debug("Error parsing download info: %s" % line)
+                continue
 
             try:
                 status = value['status']

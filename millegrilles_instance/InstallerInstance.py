@@ -1,6 +1,7 @@
 import aiohttp
 import json
 import logging
+import urllib.parse
 
 from os import path
 from typing import Optional
@@ -240,7 +241,7 @@ async def installer_certificat_intermediaire(url_certissuer: str, contenu: dict)
         'securite': securite,
     }
 
-    path_installer_certissuer = path.join(url_certissuer, 'installer')
+    path_installer_certissuer = urllib.parse.urljoin(url_certissuer, 'installer')
     async with aiohttp.ClientSession() as session:
         async with session.post(path_installer_certissuer, json=req) as resp:
             resp.raise_for_status()

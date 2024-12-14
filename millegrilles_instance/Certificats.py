@@ -6,6 +6,8 @@ import logging
 import math
 import pathlib
 import secrets
+import urllib.parse
+
 from asyncio import TaskGroup
 
 import docker.errors
@@ -181,7 +183,7 @@ async def renouveler_certificat_instance_protege(context: InstanceContext) -> Cl
 
     logger.debug("Demande de signature de certificat pour instance protegee => %s\n%s" % (message_signe, csr_str))
     url_issuer = context.configuration.certissuer_url
-    path_csr = path.join(url_issuer, 'renouvelerInstance')
+    path_csr = urllib.parse.urljoin(url_issuer, 'renouvelerInstance')
     try:
         async with context.ssl_session() as session:
             async with session.post(path_csr, json=message_signe) as resp:
@@ -281,7 +283,7 @@ async def generer_nouveau_certificat(client_session: ClientSession,
 
     logger.debug("generer_nouveau_certificat Demande de signature de certificat pour %s => %s\n%s", nom_module, message_signe, csr_str)
     url_issuer = context.configuration.certissuer_url
-    path_csr = path.join(url_issuer, 'signerModule')
+    path_csr = urllib.parse.urljoin(url_issuer, 'signerModule')
     try:
         async with client_session.post(path_csr, json=message_signe) as resp:
             resp.raise_for_status()
@@ -357,7 +359,7 @@ async def demander_nouveau_certificat(producer: MessageProducerFormatteur, conte
         message_signe, _uuid = formatteur_message.signer_message(Constantes.KIND_DOCUMENT, commande)
 
         url_issuer = context.configuration.certissuer_url
-        path_csr = path.join(url_issuer, 'renouvelerInstance')
+        path_csr = urllib.parse.urljoin(url_issuer, 'renouvelerInstance')
         async with context.ssl_session() as session:
             async with session.post(path_csr, json=message_signe) as resp:
                 resp.raise_for_status()
@@ -387,7 +389,7 @@ async def signer_certificat_instance_secure(etat_instance, message: dict) -> Cle
     logger.debug("Demande de signature de certificat via instance secure => %s" % message)
     client_session = etat_instance.client_session
     url_issuer = etat_instance.certissuer_url
-    path_csr = path.join(url_issuer, 'signerModule')
+    path_csr = urllib.parse.urljoin(url_issuer, 'signerModule')
     async with client_session.post(path_csr, json=message) as resp:
         resp.raise_for_status()
         reponse = await resp.json()
@@ -403,7 +405,7 @@ async def signer_certificat_usager_via_secure(etat_instance, message: dict) -> C
     logger.debug("Demande de signature de certificat via instance secure => %s" % message)
     client_session = etat_instance.client_session
     url_issuer = etat_instance.certissuer_url
-    path_csr = path.join(url_issuer, 'signerUsager')
+    path_csr = urllib.parse.urljoin(url_issuer, 'signerUsager')
     async with client_session.post(path_csr, json=message) as resp:
         resp.raise_for_status()
         reponse = await resp.json()
@@ -419,7 +421,7 @@ async def signer_certificat_public_key_via_secure(etat_instance, message: dict) 
     logger.debug("Demande de signature de certificat via instance secure => %s" % message)
     client_session = etat_instance.client_session
     url_issuer = etat_instance.certissuer_url
-    path_csr = path.join(url_issuer, 'signerPublickeyDomaine')
+    path_csr = urllib.parse.urljoin(url_issuer, 'signerPublickeyDomaine')
     async with client_session.post(path_csr, json=message) as resp:
         resp.raise_for_status()
         reponse = await resp.json()

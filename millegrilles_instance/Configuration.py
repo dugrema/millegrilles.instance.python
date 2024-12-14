@@ -149,7 +149,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
 
     @property
     def path_millegrilles(self) -> pathlib.Path:
-        return pathlib.Path(CONST_PATH_MILLEGRILLES)
+        return pathlib.Path(self.__path_millegrilles)
 
     @property
     def path_configuration(self) -> pathlib.Path:

@@ -5,6 +5,7 @@ import asyncio
 import logging
 import json
 import math
+import urllib.parse
 
 from aiohttp import web
 from os import path
@@ -119,7 +120,7 @@ class WebServer:
     async def handle_api_csr(self, _request):
         configuration = self.context.configuration
         url_issuer = configuration.certissuer_url
-        path_csr = path.join(url_issuer, 'csr')
+        path_csr = urllib.parse.urljoin(url_issuer, 'csr')
         headers = headers_cors()
         async with aiohttp.ClientSession() as session:
             async with session.get(path_csr) as resp:
