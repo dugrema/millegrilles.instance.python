@@ -1,10 +1,10 @@
-SET MILLEGRILLES_ROOT=%USERPROFILE%\millegrilles
+SET MILLEGRILLES_ROOT=%USERPROFILE%\AppData\Local\millegrilles
 SET PYTHON_EXE=%MILLEGRILLES_ROOT%\venv\Scripts\python.exe
 
 call %MILLEGRILLES_ROOT%\venv\Scripts\activate.bat
 %PYTHON_EXE% --version
 
-cd /d %MILLEGRILLES_ROOT%\git\millegrilles.instance.python
+cd /d %MILLEGRILLES_ROOT%\python
 
 SET WEB_PORT=5443
 SET MILLEGRILLES_PATH=%MILLEGRILLES_ROOT%\data
