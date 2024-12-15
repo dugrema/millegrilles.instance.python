@@ -290,7 +290,7 @@ async def generer_nouveau_certificat(client_session: ClientSession,
             reponse = await resp.json()
 
         certificat = reponse['certificat']
-    except (ClientConnectorError, ClientResponseError) as e:
+    except (AttributeError, ClientConnectorError, ClientResponseError) as e:
         logger.debug("generer_nouveau_certificat Certissuer local non disponible, fallback CorePki (Erreur https : %s)", e)
         try:
             producer = await asyncio.wait_for(context.get_producer(), 2)
