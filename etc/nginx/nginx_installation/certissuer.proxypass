@@ -1,2 +1,3 @@
 # http://certissuer:8380
-proxy_pass {certissuer_url};
+# proxy_pass {certissuer_url};
+proxy_pass http://certissuer:2080;

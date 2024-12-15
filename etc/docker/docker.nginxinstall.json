@@ -26,6 +26,10 @@
       "filename": "webkey.pem"
     }
   ],
+  "networks": [{
+    "target": "millegrille_net",
+    "aliases": ["nginx"]
+  }],
   "labels": {
     "install_priority": "1"
   },
