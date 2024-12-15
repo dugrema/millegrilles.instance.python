@@ -27,3 +27,4 @@ call %PYTHON_VENV%\Scripts\activate.bat
 
 echo Pret a demarrer. 
 echo Utilisez le script %MILLEGRILLES_ROOT%\startMillegrilles.bat pour demarrer l'agent d'instance.
+pause

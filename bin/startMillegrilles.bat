@@ -9,4 +9,5 @@ cd /d %MILLEGRILLES_ROOT%\python
 SET WEB_PORT=5443
 SET MILLEGRILLES_PATH=%MILLEGRILLES_ROOT%\data
 SET MQ_HOSTNAME=localhost
+SET HOST_DOCKER_INTERNAL=host.docker.internal
 %PYTHON_EXE% -m millegrilles_instance --verbose
