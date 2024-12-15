@@ -19,8 +19,11 @@ def ajouter_fichier_configuration(context: InstanceContext, path_nginx_modules: 
     params.update({
         'nodename': context.hostname,
         'hostname': context.hostname,
+        'docker_hostname': context.configuration.host_docker_internal,
+        # 'instance_url': 'https://%s:2443' % context.hostname,
         'instance_url': 'https://%s:2443' % context.hostname,
-        'certissuer_url': 'http://%s:2080' % context.hostname,
+        # 'certissuer_url': 'http://%s:2080' % context.hostname,
+        'certissuer_url': 'http://certissuer:2080',
         'midcompte_url': 'https://midcompte:2444',
         'MQ_HOST': configuration.mq_hostname,
     })
