@@ -10,6 +10,7 @@ PATH_VAR_CONFIGURATION_CATALOGUES="/var/opt/millegrilles/configuration/catalogue
 PATH_VAR_CONFIGURATION_WEBAPPCONFIG="/var/opt/millegrilles/configuration/webappconfig"
 PATH_VAR_CONFIGURATION_NGINX="/var/opt/millegrilles/configuration/nginx"
 PATH_VAR_CONFIGURATION_PYTHON="/var/opt/millegrilles/python"
+PATH_VAR_NGINX="/var/opt/millegrilles/nginx"
 
 PATH_SCRIPT=`readlink -f "$0"`
 PATH_DIR_BIN=`dirname "${PATH_SCRIPT}"`
@@ -38,6 +39,8 @@ echo "$PATH_DIR_NGINX"
 sudo -u mginstance mkdir -p "${PATH_VAR_CONFIGURATION_NGINX}"
 sudo cp -rv ${PATH_DIR_NGINX}/* "${PATH_VAR_CONFIGURATION_NGINX}"
 sudo chown mginstance:millegrilles "${PATH_VAR_CONFIGURATION_NGINX}"
+sudo cp -rv ${PATH_DIR_NGINX}/html "${PATH_VAR_NGINX}"
+sudo chown mginstance:millegrilles "${PATH_DIR_NGINX}"
 
 # Copier les regles de validation pour accepter les catalogues d'un idmg tiers
 sudo cp ${PATH_DIR_ETC}/idmg_validation.json "${PATH_VAR_CONFIGURATION}"
