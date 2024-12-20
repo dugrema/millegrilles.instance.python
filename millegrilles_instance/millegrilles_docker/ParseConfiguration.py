@@ -152,7 +152,7 @@ class ConfigurationService:
             'CONFIGURATION_PATH': str(self.__context.configuration.path_configuration),
             'NGINX_PATH': str(self.__context.configuration.path_nginx),
         }
-        print("Mount variables: %s" % mount_variables)
+        self.__logger.debug("Mount variables: %s" % mount_variables)
 
         mounts_list = list()
         for mount in mounts:
