@@ -1,14 +1,3 @@
-error_page 401 = @error401;
-error_page 403 = @error403;
-
-# If the user is not logged in, redirect them to the login URL
-location @error401 {{
-  return 307 https://$http_host/millegrilles;
-}}
-location @error403 {{
-  return 307 https://$http_host/millegrilles;
-}}
-
 error_page 400 /error/error400.html;
 error_page 404 /error/error404.html;
 error_page 429 /error/error429.html;

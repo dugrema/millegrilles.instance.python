@@ -4,3 +4,16 @@ error_page 401 = @error401;
 location @error401 {{
   return 307 https://$http_host/millegrilles;
 }}
+
+error_page 400 /error/error400.html;
+error_page 404 /error/error404.html;
+error_page 429 /error/error429.html;
+error_page 500 /error/error500.html;
+error_page 502 /error/error502.html;
+error_page 503 /error/error503.html;
+error_page 504 /error/error504.html;
+
+location /error {{
+  root /usr/share/nginx/html;
+  internal;
+}}
