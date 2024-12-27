@@ -4,6 +4,7 @@ import os
 import pathlib
 import logging
 import sys
+from json import JSONDecodeError
 
 from typing import Optional
 
@@ -29,22 +30,15 @@ from millegrilles_messages.messages.CleCertificat import CleCertificat
 
 # Prod
 DIRECTORY_URL_PROD = 'https://acme-v02.api.letsencrypt.org/directory'
-
 # This is the staging point for ACME-V2 within Let's Encrypt.
 DIRECTORY_URL_STAGING = 'https://acme-staging-v02.api.letsencrypt.org/directory'
-USER_AGENT = 'python-acme'
 
-# PATH_WELLKNOWN = '/var/opt/millegrilles/nginx/html'
-# PATH_SECRETS = '/var/opt/millegrilles/secrets'
+USER_AGENT = 'python-acme'
 
 # Account key size
 ACC_KEY_BITS = 2048
-
 # Certificate private key size
 CERT_PKEY_BITS = 2048
-
-# Domain name for the certificate.
-# DOMAIN = 'chalet2.pivoine.maceroc.com'
 
 LOGGER = logging.getLogger(__name__)
 
@@ -67,12 +61,26 @@ class CertbotHandler:
         else:
             self.__le_directory = DIRECTORY_URL_PROD
 
-        self.__email = 'md.accounts1@mdugre.info'
+        self.__email: Optional[str] = None
 
     async def setup(self):
         path_secrets = self.__context.configuration.path_secrets
         self.__account_key_path = pathlib.Path(path_secrets, 'certbot_key.json')
         self.__account_res_path = pathlib.Path(path_secrets, 'certbot_account.json')
+
+        email = os.environ.get('EMAIL')
+        if email:
+            self.__email = email
+        else:
+            acme_config_path = pathlib.Path(self.__context.configuration.path_configuration, 'acme.json')
+            try:
+                with open(acme_config_path, 'rt') as fp:
+                    config_acme = json.load(fp)
+                self.__email = config_acme['email']
+            except (KeyError, JSONDecodeError):
+                self.__logger.warning("Error loading ACME email value from acme.json")
+            except FileNotFoundError:
+                self.__logger.debug("No acme.json file found")
 
         acc_key = await get_account_key(self.__account_key_path)
         self.__client = await create_client(acc_key)
@@ -130,7 +138,7 @@ async def create_client(acc_key: jose.JWKRSA) -> client.ClientV2:
     return client_acme
 
 
-async def get_account(account_res_path: pathlib.Path, email_str: str, client_acme: client.ClientV2) -> messages.RegistrationResource:
+async def get_account(account_res_path: pathlib.Path, email_str: Optional[str], client_acme: client.ClientV2) -> messages.RegistrationResource:
     # Terms of Service URL is in client_acme.directory.meta.terms_of_service
     # Registration Resource: regr
     # Creates account with contact information.
@@ -140,6 +148,8 @@ async def get_account(account_res_path: pathlib.Path, email_str: str, client_acm
             regr_state = await asyncio.to_thread(client_acme.query_registration, regr)
             return regr_state.body
     except FileNotFoundError:
+        if email_str is None:
+            raise ValueError('missing email - set as environment varilable EMAIL')
         email = (email_str)
         regr: messages.RegistrationResource = await asyncio.to_thread(
             client_acme.new_account,
