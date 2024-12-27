@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import time
+from asyncio import TaskGroup
 
 from typing import Optional
 
@@ -243,20 +244,13 @@ def check_replicas(service: Service):
 async def get_docker_image_tag(context: InstanceContext, docker_handler: DockerHandlerInterface, image: str, pull=True, app_name: Optional[str] = None) -> str:
     commande_image = DockerCommandes.CommandeGetImage(image, pull=pull)
 
-    image_info_coro = docker_handler.run_command(commande_image)
+    async with TaskGroup() as group:
+        if app_name:
+            # Thread to read status from state
+            group.create_task(download_update_callback(context, app_name, commande_image))
 
-    # Status updates
-    async def status_callback(status: PullStatus):
-        LOGGER.debug("CommandeGetImage %s status: %s" % (image, status.status_str()))
-    progress_coro = commande_image.progress_coro(status_callback)
-
-    coros = [image_info_coro, progress_coro]
-
-    if app_name:
-        download_update_coro = download_update_callback(context, app_name, commande_image)
-        coros.append(download_update_coro)
-
-    result = await asyncio.gather(*coros)
+        # Create download task
+        group.create_task(docker_handler.run_command(commande_image))
 
     try:
         image_info = await commande_image.get_resultat()
@@ -267,7 +261,11 @@ async def get_docker_image_tag(context: InstanceContext, docker_handler: DockerH
 
 
 async def download_update_callback(context: InstanceContext, app_name:str, commande_image: DockerCommandes.CommandeGetImage):
+    log_update_count = 0
     while True:
+        log_update_count += 1
+        if log_update_count % 5 == 0:
+            LOGGER.info("CommandeGetImage %s status: %s" % (app_name, commande_image.pull_status.status_str()))
         status = commande_image.pull_status.__dict__()
         context.update_application_status(app_name, {'download': status})
         try:

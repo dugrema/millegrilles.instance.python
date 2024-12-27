@@ -574,7 +574,7 @@ class CommandeGetImage(CommandeDocker):
                 image_repository = nom_image
 
             try:
-                self.download_package(docker_client, image_repository, tag)
+                await asyncio.to_thread(self.download_package, docker_client, image_repository, tag)
                 reponse = await asyncio.to_thread(docker_client.images.get, self.__nom_image)
                 await self._callback_asyncio({'id': reponse.id, 'tags': reponse.tags})
                 return
