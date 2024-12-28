@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import os
 import sys
 
 from asyncio import TaskGroup
@@ -7,6 +8,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from typing import Awaitable
 
 from millegrilles_instance.SystemStatus import SystemStatus
+from millegrilles_instance.millegrilles_acme.AcmeClient import AcmeHandler
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopListener
 from millegrilles_messages.bus.BusExceptions import ConfigurationFileError
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
@@ -80,6 +82,10 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     context.bus_connector = bus_connector
     system_status = SystemStatus(context)
 
+    acme_handler = None
+    if os.environ.get("DISABLE_ACME") is None:
+        acme_handler = AcmeHandler(context)
+
     docker_state = DockerState(context)
     if docker_state.docker_present() is False:
         # Docker not supported
@@ -105,6 +111,8 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     await manager.setup(bus_handler)
     await web_server.setup()
     await nginx_handler.setup()
+    if acme_handler:
+        await acme_handler.setup()
 
     # Create tasks
     coros = [
@@ -117,6 +125,9 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
         bus_handler.run(),
         nginx_handler.run(),
     ]
+
+    if acme_handler:
+        coros.append(acme_handler.run())
 
     if docker_handler:
         coros.append(docker_handler.run())

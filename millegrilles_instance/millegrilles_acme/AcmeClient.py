@@ -49,7 +49,7 @@ RENEWAL_PERIOD_DAYS = 14
 
 LOGGER = logging.getLogger(__name__)
 
-class CertbotHandler:
+class AcmeHandler:
 
     def __init__(self, context: InstanceContext):
         self.__logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
@@ -346,7 +346,7 @@ async def main():
         LOGGER.error("Error loading configuration files %s, quitting" % str(e))
         sys.exit(1)  # Quit
 
-    handler = CertbotHandler(context)
+    handler = AcmeHandler(context)
     await handler.setup()
     # clecert = await handler.issue_certificate()
     # LOGGER.info("New web certificate expiry: %s" % clecert.enveloppe.not_valid_after)
