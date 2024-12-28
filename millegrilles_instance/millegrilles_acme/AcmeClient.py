@@ -83,7 +83,7 @@ class CertbotHandler:
                 self.__logger.debug("No acme.json file found")
 
         acc_key = await get_account_key(self.__account_key_path)
-        self.__client = await create_client(acc_key)
+        self.__client = await create_client(self.__le_directory, acc_key)
         self.__regr = await get_account(self.__account_res_path, self.__email, self.__client)
 
     async def issue_certificate(self) -> CleCertificat:
@@ -130,15 +130,16 @@ async def get_account_key(keypath: pathlib.Path) -> jose.JWKRSA:
     return acc_key
 
 
-async def create_client(acc_key: jose.JWKRSA) -> client.ClientV2:
+async def create_client(directory_path: str, acc_key: jose.JWKRSA) -> client.ClientV2:
     net = client.ClientNetwork(acc_key, user_agent=USER_AGENT)
     # directory = client.ClientV2.get_directory(DIRECTORY_URL_PROD, net)
-    directory = client.ClientV2.get_directory(DIRECTORY_URL_STAGING, net)
+    directory = client.ClientV2.get_directory(directory_path, net)
     client_acme = client.ClientV2(directory, net=net)
     return client_acme
 
 
-async def get_account(account_res_path: pathlib.Path, email_str: Optional[str], client_acme: client.ClientV2) -> messages.RegistrationResource:
+async def get_account(account_res_path: pathlib.Path, email_str: Optional[str],
+                      client_acme: client.ClientV2) -> messages.RegistrationResource:
     # Terms of Service URL is in client_acme.directory.meta.terms_of_service
     # Registration Resource: regr
     # Creates account with contact information.
