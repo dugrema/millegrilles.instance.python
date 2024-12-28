@@ -505,6 +505,9 @@ class InstanceManager:
             return {'ok': False, 'err': 'Acme disabled'}
         try:
             await self.__acme_handler.issue_certificate()
+            # Trigger installation on new certificate
+            await self.__docker_handler.verifier_certificat_web()
+            await self.__generateur_certificats.entretien_modules()
             return {'ok': True}
         except Exception as e:
             self.__logger.exception("Error issuing ACME certificate")
