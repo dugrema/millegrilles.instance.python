@@ -17,6 +17,7 @@ from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance.Interfaces import MgbusHandlerInterface
 from millegrilles_instance.MaintenanceApplicationService import ServiceStatus
 from millegrilles_instance.NginxHandler import NginxHandler
+from millegrilles_instance.millegrilles_acme.AcmeClient import AcmeHandler
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Certificats import GenerateurCertificatsHandler, preparer_certificats_web
@@ -36,7 +37,7 @@ class InstanceManager:
 
     def __init__(self, context: InstanceContext, generateur_certificats: GenerateurCertificatsHandler,
                  docker_handler: Optional[InstanceDockerHandler], gestionnaire_applications: ApplicationsHandler,
-                 nginx_handler: NginxHandler):
+                 nginx_handler: NginxHandler, acme_handler: Optional[AcmeHandler]):
 
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context = context
@@ -45,6 +46,7 @@ class InstanceManager:
         self.__gestionnaire_applications = gestionnaire_applications
         self.__mgbus_handler: Optional[MgbusHandlerInterface] = None
         self.__nginx_handler: NginxHandler = nginx_handler
+        self.__acme_handler: Optional[AcmeHandler] = acme_handler
 
         # self.__reload_configuration = threading.Event()
 
@@ -477,6 +479,36 @@ class InstanceManager:
     async def stop_application(self, message: MessageWrapper):
         nom_application = message.parsed['nom_application']
         return await self.__gestionnaire_applications.arreter_application(nom_application)
+
+    async def get_acme_configuration(self) -> Optional[dict]:
+        try:
+            response = self.__acme_handler.get_configuration()
+            response['ok'] = True
+            return response
+        except AttributeError:
+            # No handler
+            return {'ok': False, 'err': 'Acme disabled'}
+
+    async def update_acme_configuration(self, message: MessageWrapper) -> dict:
+        try:
+            config = message.parsed
+            await self.__acme_handler.update_configuration(config)
+            return {'ok': True}
+        except AttributeError:
+            return {'ok': False, 'err': 'Acme disabled'}
+
+    async def issue_acme_certificate(self, message: MessageWrapper):
+        try:
+            config = message.parsed
+            await self.__acme_handler.update_configuration(config)
+        except AttributeError:
+            return {'ok': False, 'err': 'Acme disabled'}
+        try:
+            await self.__acme_handler.issue_certificate()
+            return {'ok': True}
+        except Exception as e:
+            self.__logger.exception("Error issuing ACME certificate")
+            return {'ok': False, 'err': str(e)}
 
 
 async def wait_for_application(context: InstanceContext, app_name: str):

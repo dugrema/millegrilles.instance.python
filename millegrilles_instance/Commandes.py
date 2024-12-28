@@ -84,6 +84,8 @@ class CommandHandler:
                             return await self._etat_instance.entretien_nginx.charger_configuration_consignation(producer)
 
             if exchange == Constantes.SECURITE_PUBLIC and delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
+                # if action == ConstantesInstance.REQUETE_CONFIGURATION_ACME:
+                #     return await self.get_configuration_acme(message)
                 if action == ConstantesInstance.REQUETE_CONFIGURATION_ACME:
                     return await self.get_configuration_acme(message)
 
@@ -261,6 +263,7 @@ class CommandHandler:
             return {'ok': False, 'err': str(e)}
 
     async def get_configuration_acme(self, message: MessageWrapper):
+        
         path_configuration = self._etat_instance.configuration.path_configuration
         path_fichier_acme = path.join(path_configuration, ConstantesInstance.CONFIG_NOMFICHIER_ACME)
         try:

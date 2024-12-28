@@ -73,6 +73,20 @@ class AcmeHandler:
         self.__current_certificate: Optional[CleCertificat] = None
 
     async def setup(self):
+        email = os.environ.get('EMAIL')
+        if email:
+            self.__email = email
+        else:
+            acme_config_path = pathlib.Path(self.__context.configuration.path_configuration, 'acme.json')
+            try:
+                with open(acme_config_path, 'rt') as fp:
+                    config_acme = json.load(fp)
+                self.__email = config_acme['email']
+            except (KeyError, JSONDecodeError):
+                self.__logger.warning("Error loading ACME email value from acme.json")
+            except FileNotFoundError:
+                self.__logger.debug("No acme.json file found")
+
         try:
             self.__current_certificate = await load_current_certificate(self.__context.configuration.path_secrets)
         except FileNotFoundError:
@@ -87,20 +101,6 @@ class AcmeHandler:
         path_secrets = self.__context.configuration.path_secrets
         self.__account_key_path = pathlib.Path(path_secrets, 'certbot_key.json')
         self.__account_res_path = pathlib.Path(path_secrets, 'certbot_account.json')
-
-        email = os.environ.get('EMAIL')
-        if email:
-            self.__email = email
-        else:
-            acme_config_path = pathlib.Path(self.__context.configuration.path_configuration, 'acme.json')
-            try:
-                with open(acme_config_path, 'rt') as fp:
-                    config_acme = json.load(fp)
-                self.__email = config_acme['email']
-            except (KeyError, JSONDecodeError):
-                self.__logger.warning("Error loading ACME email value from acme.json")
-            except FileNotFoundError:
-                self.__logger.debug("No acme.json file found")
 
         acc_key = await get_account_key(self.__account_key_path)
         le_client = await create_client(self.__le_directory, acc_key)
@@ -159,6 +159,32 @@ class AcmeHandler:
 
             # Wait 30 minutes until retry
             await self.__context.wait(1800)
+
+    def get_configuration(self) -> dict:
+        return {'email': self.__email}
+
+    async def update_configuration(self, configuration: dict):
+        acme_config_path = pathlib.Path(self.__context.configuration.path_configuration, 'acme.json')
+        try:
+            with open(acme_config_path, 'rt') as fp:
+                config_acme = json.load(fp)
+        except (KeyError, JSONDecodeError):
+            self.__logger.warning("Error loading ACME value from acme.json, overriding file")
+            config_acme = dict()
+        except FileNotFoundError:
+            config_acme = dict()  # Ok, new file
+        try:
+            email = configuration['email']
+            if email == '':
+                email = None
+            config_acme['email'] = email
+            self.__email = email
+        except KeyError:
+            pass
+
+        # Override file
+        with open(acme_config_path, 'wt') as fp:
+            json.dump(config_acme, fp)
 
 
 async def new_csr_comp(domain_names: list[str]):

@@ -99,7 +99,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     applications_handler = ApplicationsHandler(context, docker_handler)
 
     # Facade
-    manager = InstanceManager(context, generateur_certificats, docker_handler, applications_handler, nginx_handler)
+    manager = InstanceManager(context, generateur_certificats, docker_handler, applications_handler, nginx_handler, acme_handler)
     context.add_reload_listener(manager.callback_changement_configuration)
 
     # Access modules
