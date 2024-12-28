@@ -1,9 +1,14 @@
 import asyncio
+import datetime
 import json
 import os
 import pathlib
 import logging
 import sys
+from asyncio import TaskGroup
+
+import pytz
+
 from json import JSONDecodeError
 
 from typing import Optional
@@ -24,7 +29,6 @@ from cryptography.hazmat.backends import default_backend
 
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
-from millegrilles_instance.EtatInstance import EtatInstance
 from millegrilles_messages.bus.BusExceptions import ConfigurationFileError
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 
@@ -39,6 +43,9 @@ USER_AGENT = 'python-acme'
 ACC_KEY_BITS = 2048
 # Certificate private key size
 CERT_PKEY_BITS = 2048
+
+RENEWAL_PERIOD_DAYS = 14
+# RENEWAL_PERIOD_DAYS = 90
 
 LOGGER = logging.getLogger(__name__)
 
@@ -63,7 +70,20 @@ class CertbotHandler:
 
         self.__email: Optional[str] = None
 
+        self.__current_certificate: Optional[CleCertificat] = None
+
     async def setup(self):
+        try:
+            self.__current_certificate = await load_current_certificate(self.__context.configuration.path_secrets)
+        except FileNotFoundError:
+            self.__logger.info("Current web certificate not present")
+        except ValueError:
+            self.__logger.info("Current web certificate invalid or self-signed")
+
+    async def __initialize_client(self):
+        if self.__client is not None:
+            raise Exception('Let\'s Encrypt Client already initialized')
+
         path_secrets = self.__context.configuration.path_secrets
         self.__account_key_path = pathlib.Path(path_secrets, 'certbot_key.json')
         self.__account_res_path = pathlib.Path(path_secrets, 'certbot_account.json')
@@ -83,19 +103,62 @@ class CertbotHandler:
                 self.__logger.debug("No acme.json file found")
 
         acc_key = await get_account_key(self.__account_key_path)
-        self.__client = await create_client(self.__le_directory, acc_key)
-        self.__regr = await get_account(self.__account_res_path, self.__email, self.__client)
+        le_client = await create_client(self.__le_directory, acc_key)
+        regr = await get_account(self.__account_res_path, self.__email, le_client)
+
+        self.__client = le_client
+        self.__regr = regr
 
     async def issue_certificate(self) -> CleCertificat:
+        """
+        Issues a new certificate. Use for initial issuance or forced renewal.
+        """
+        if self.__client is None:
+            await self.__initialize_client()
+
         # Filter known hostnames to remove any local (non-internet) names (e.g. localhost, test1, etc.)
         hostnames = [h for h in self.__context.hostnames if len(h.split('.')) > 0]
         if len(hostnames) == 0:
             raise Exception('No hostnames found')
+
         path_html = pathlib.Path(self.__context.configuration.path_nginx, 'html')
-        cert, key = await issue_certificate(path_html, hostnames, self.__client)
+        cle_certificat = await issue_certificate(path_html, hostnames, self.__client)
         path_secrets = self.__context.configuration.path_secrets
-        await asyncio.to_thread(rotate_certificate, path_secrets, cert, key)
-        return CleCertificat.from_pems(key, cert)
+        await asyncio.to_thread(rotate_certificate, path_secrets, cle_certificat)
+
+        self.__current_certificate = cle_certificat
+
+        return self.__current_certificate
+
+    async def run(self):
+        async with TaskGroup() as group:
+            group.create_task(self.__maintain_certificate_thread())
+
+    async def __maintain_certificate_thread(self):
+        """
+        Thread that auto-renews an ACME provided certificate.
+        """
+        while self.__context.stopping is False:
+            if self.__current_certificate:
+                not_after_date = self.__current_certificate.enveloppe.not_valid_after
+                expiration = not_after_date - datetime.timedelta(days=RENEWAL_PERIOD_DAYS)
+                now = datetime.datetime.now(tz=pytz.UTC)
+                if expiration < now:
+                    self.__logger.info("Renewing web certificate with LE")
+                    try:
+                        clecert = await self.issue_certificate()
+                        self.__logger.info("Web certificate renewed, new expiration is %s" % clecert.enveloppe.not_valid_after)
+                    except:
+                        self.__logger.exception("Error renewing certificate")
+                else:
+                    # Wait until renewal is due
+                    wait_time = expiration - now
+                    self.__logger.info("Waiting until renewal for web certificate: %s (%s)" % (expiration, wait_time))
+                    await self.__context.wait(wait_time.seconds + 120)
+                    continue  # Renew
+
+            # Wait 30 minutes until retry
+            await self.__context.wait(1800)
 
 
 async def new_csr_comp(domain_names: list[str]):
@@ -209,7 +272,7 @@ def perform_http01(path_html: pathlib.Path, client_acme: client.ClientV2, challb
         challenge_local_path.unlink(missing_ok=True)
 
 
-async def issue_certificate(path_html: pathlib.Path, domains: list[str], client_acme: client.ClientV2) -> (str, bytes):
+async def issue_certificate(path_html: pathlib.Path, domains: list[str], client_acme: client.ClientV2) -> CleCertificat:
     # Create domain private key and CSR
     pkey_pem, csr_pem = await new_csr_comp(domains)
     # Issue certificate
@@ -217,11 +280,17 @@ async def issue_certificate(path_html: pathlib.Path, domains: list[str], client_
     challb = select_http01_chall(orderr)
 
     cert = await asyncio.to_thread(perform_http01, path_html, client_acme, challb, orderr)
-    LOGGER.info("Received new certificate\n%s" % cert)
+    LOGGER.debug("Received new certificate\n%s" % cert)
 
-    return cert, pkey_pem
+    cle_certificat = CleCertificat.from_pems(pkey_pem, cert)
+    if cle_certificat.cle_correspondent() is False:
+        raise ValueError("Error - web cert/key do not match")
 
-def rotate_certificate(path_secrets: pathlib.Path, cert: str, key: bytes):
+    LOGGER.info("New web certificate expiry: %s" % cle_certificat.enveloppe.not_valid_after)
+
+    return cle_certificat
+
+def rotate_certificate(path_secrets: pathlib.Path, cle_certificat: CleCertificat):
     path_key_new = pathlib.Path(path_secrets, 'pki.web.key.new')
     path_key = pathlib.Path(path_secrets, 'pki.web.key')
     path_key_old = pathlib.Path(path_secrets, 'pki.web.key.old')
@@ -230,9 +299,10 @@ def rotate_certificate(path_secrets: pathlib.Path, cert: str, key: bytes):
     path_cert_old = pathlib.Path(path_secrets, 'pki.web.cert.old')
 
     with open(path_key_new, 'wb') as fp:
-        fp.write(key)
+        fp.write(cle_certificat.private_key_bytes())
     with open(path_cert_new, 'wt') as fp:
-        fp.write(cert)
+        pem_chain = '\n'.join(cle_certificat.enveloppe.chaine_pem())
+        fp.write(pem_chain)
 
     path_key_old.unlink(missing_ok=True)
     path_cert_old.unlink(missing_ok=True)
@@ -252,6 +322,20 @@ def rotate_certificate(path_secrets: pathlib.Path, cert: str, key: bytes):
     pass
 
 
+async def load_current_certificate(secret_path: pathlib.Path) -> CleCertificat:
+    path_cert = pathlib.Path(secret_path, 'pki.web.cert')
+    path_key = pathlib.Path(secret_path, 'pki.web.key')
+    clecert: CleCertificat = await asyncio.to_thread(CleCertificat.from_files, path_key, path_cert)
+
+    if clecert.enveloppe.is_ca:
+        raise ValueError("Self-signed certificate")
+
+    if clecert.cle_correspondent() is False:
+        raise ValueError('Web key/cert do not correspond')
+
+    return clecert
+
+
 async def main():
     LOGGER.info("Starting")
     config = ConfigurationInstance.load()
@@ -264,8 +348,12 @@ async def main():
 
     handler = CertbotHandler(context)
     await handler.setup()
-    clecert = await handler.issue_certificate()
-    LOGGER.info("New certificate expiry: %s" % clecert.enveloppe.not_valid_after)
+    # clecert = await handler.issue_certificate()
+    # LOGGER.info("New web certificate expiry: %s" % clecert.enveloppe.not_valid_after)
+
+    LOGGER.info("Waiting until renewal")
+    await handler.run()
+
     LOGGER.info("Done")
 
 
