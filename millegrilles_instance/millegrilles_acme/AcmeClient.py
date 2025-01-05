@@ -69,23 +69,33 @@ class AcmeHandler:
             self.__le_directory = DIRECTORY_URL_PROD
 
         self.__email: Optional[str] = None
+        self.__additional_domains: Optional[list[str]] = None
 
         self.__current_certificate: Optional[CleCertificat] = None
 
     async def setup(self):
+        acme_config_path = pathlib.Path(self.__context.configuration.path_configuration, 'acme.json')
+        try:
+            with open(acme_config_path, 'rt') as fp:
+                config_acme = json.load(fp)
+        except JSONDecodeError:
+            self.__logger.warning("Error loading ACME email value from acme.json")
+        except FileNotFoundError:
+            self.__logger.debug("No acme.json file found")
+        else:
+            try:
+                self.__email = config_acme['email']
+            except KeyError:
+                pass  # No email
+            try:
+                self.__additional_domains = config_acme['additionalDomains']
+            except KeyError:
+                pass  # No additional domains
+
         email = os.environ.get('EMAIL')
         if email:
+            # Email override
             self.__email = email
-        else:
-            acme_config_path = pathlib.Path(self.__context.configuration.path_configuration, 'acme.json')
-            try:
-                with open(acme_config_path, 'rt') as fp:
-                    config_acme = json.load(fp)
-                self.__email = config_acme['email']
-            except (KeyError, JSONDecodeError):
-                self.__logger.warning("Error loading ACME email value from acme.json")
-            except FileNotFoundError:
-                self.__logger.debug("No acme.json file found")
 
         try:
             self.__current_certificate = await load_current_certificate(self.__context.configuration.path_secrets)
@@ -120,6 +130,11 @@ class AcmeHandler:
         hostnames = [h for h in self.__context.hostnames if len(h.split('.')) > 0]
         if len(hostnames) == 0:
             raise Exception('No hostnames found')
+        self.__logger.debug("Local hostnames: %s", hostnames)
+
+        if self.__additional_domains:
+            self.__logger.debug("Additional domains: %s", self.__additional_domains)
+            hostnames.extend(self.__additional_domains)
 
         path_html = pathlib.Path(self.__context.configuration.path_nginx, 'html')
         cle_certificat = await issue_certificate(path_html, hostnames, self.__client)
@@ -161,7 +176,7 @@ class AcmeHandler:
             await self.__context.wait(1800)
 
     def get_configuration(self) -> dict:
-        return {'email': self.__email}
+        return {'email': self.__email, 'additionalDomains': self.__additional_domains}
 
     async def update_configuration(self, configuration: dict):
         acme_config_path = pathlib.Path(self.__context.configuration.path_configuration, 'acme.json')
@@ -173,6 +188,7 @@ class AcmeHandler:
             config_acme = dict()
         except FileNotFoundError:
             config_acme = dict()  # Ok, new file
+
         try:
             email = configuration['email']
             if email == '':
@@ -180,7 +196,16 @@ class AcmeHandler:
             config_acme['email'] = email
             self.__email = email
         except KeyError:
-            pass
+            self.__email = None
+
+        try:
+            additional_domains = configuration['additionalDomains']
+            if len(additional_domains) == 0:
+                additional_domains = None
+            config_acme['additionalDomains'] = additional_domains
+            self.__additional_domains = additional_domains
+        except KeyError:
+            self.__additional_domains = None
 
         # Override file
         with open(acme_config_path, 'wt') as fp:
