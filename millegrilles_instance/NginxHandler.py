@@ -18,9 +18,9 @@ from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance.NginxUtils import ajouter_fichier_configuration
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages import Constantes
-from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
-from millegrilles_messages.messages.CleCertificat import CleCertificat
-from millegrilles_instance.AcmeHandler import CommandeAcmeExtractCertificates, AcmeNonDisponibleException
+# from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
+# from millegrilles_messages.messages.CleCertificat import CleCertificat
+# from millegrilles_instance.AcmeHandler import CommandeAcmeExtractCertificates, AcmeNonDisponibleException
 from millegrilles_instance.TorHandler import CommandeOnionizeGetHostname, OnionizeNonDisponibleException
 
 
@@ -55,7 +55,7 @@ class NginxHandler:
     async def __maintenance(self):
         while self.__context.stopping is False:
             try:
-                await self.__verifier_certificat_web()
+                # await self.__verifier_certificat_web()
                 await self.__verifier_tor()
                 await self.__load_fiche()
             except asyncio.CancelledError as e:
@@ -149,62 +149,62 @@ class NginxHandler:
         with open(path_nginx_fichier, 'wb') as output:
             output.write(contenu)
 
-    async def __verifier_certificat_web(self):
-        """
-        Verifier si le certificat web doit etre change (e.g. maj ACME)
-        :return:
-        """
-        hostname = self.__context.hostname
-        commande = CommandeAcmeExtractCertificates(hostname)
-        try:
-            await self.__docker_handler.run_command(commande)
-            resultat = await commande.get_resultat()
-        except AcmeNonDisponibleException:
-            self.__logger.debug("Service ACME non demarre")
-            return
-
-        exit_code = resultat['code']
-        str_resultat = resultat['resultat']
-        key_pem = resultat['key']
-        cert_pem = resultat['cert']
-
-        if exit_code != 0:
-            self.__logger.debug("Aucun certificat web avec ACME pour %s\n%s" % (hostname, str_resultat))
-            return
-
-        enveloppe_acme = CleCertificat.from_pems(key_pem, cert_pem)
-        if enveloppe_acme.cle_correspondent() is False:
-            self.__logger.warning("Cle/certificat ACME ne correspondent pas (etat inconsistent)")
-            return
-
-        # S'assurer que le certificat installe est le meme que celui recu
-        configuration = self.__context.configuration
-        path_cle_web = configuration.web_key_pem_path
-        path_cert_web = configuration.web_cert_pem_path
-
-        remplacer = False
-        try:
-            cert_courant = EnveloppeCertificat.from_file(path_cert_web)
-        except FileNotFoundError:
-            self.__logger.info("Fichier certificat web absent, on utilise la version ACME")
-            remplacer = True
-        else:
-            if cert_courant.not_valid_before < enveloppe_acme.enveloppe.not_valid_before:
-                self.__logger.info("Fichier certificat ACME plus recent que le certificat courant, on l'applique")
-                remplacer = True
-            elif cert_courant.is_root_ca:
-                self.__logger.info("Fichier certificat local est self-signed, on applique le cert ACME")
-                remplacer = True
-
-        if remplacer is True:
-            self.__logger.info("Remplacer le certificat web nginx")
-            with open(path_cle_web, 'w') as fichier:
-                fichier.write(key_pem)
-            with open(path_cert_web, 'w') as fichier:
-                fichier.write(cert_pem)
-
-            self.__logger.info("Redemarrer nginx avec le nouveau certificat web")
-            await self.__docker_handler.redemarrer_nginx("EntetienNginx.verifier_certificat_web Nouveau certificat web")
+    # async def __verifier_certificat_web(self):
+    #     """
+    #     Verifier si le certificat web doit etre change (e.g. maj ACME)
+    #     :return:
+    #     """
+    #     hostname = self.__context.hostname
+    #     commande = CommandeAcmeExtractCertificates(hostname)
+    #     try:
+    #         await self.__docker_handler.run_command(commande)
+    #         resultat = await commande.get_resultat()
+    #     except AcmeNonDisponibleException:
+    #         self.__logger.debug("Service ACME non demarre")
+    #         return
+    #
+    #     exit_code = resultat['code']
+    #     str_resultat = resultat['resultat']
+    #     key_pem = resultat['key']
+    #     cert_pem = resultat['cert']
+    #
+    #     if exit_code != 0:
+    #         self.__logger.debug("Aucun certificat web avec ACME pour %s\n%s" % (hostname, str_resultat))
+    #         return
+    #
+    #     enveloppe_acme = CleCertificat.from_pems(key_pem, cert_pem)
+    #     if enveloppe_acme.cle_correspondent() is False:
+    #         self.__logger.warning("Cle/certificat ACME ne correspondent pas (etat inconsistent)")
+    #         return
+    #
+    #     # S'assurer que le certificat installe est le meme que celui recu
+    #     configuration = self.__context.configuration
+    #     path_cle_web = configuration.web_key_pem_path
+    #     path_cert_web = configuration.web_cert_pem_path
+    #
+    #     remplacer = False
+    #     try:
+    #         cert_courant = EnveloppeCertificat.from_file(path_cert_web)
+    #     except FileNotFoundError:
+    #         self.__logger.info("Fichier certificat web absent, on utilise la version ACME")
+    #         remplacer = True
+    #     else:
+    #         if cert_courant.not_valid_before < enveloppe_acme.enveloppe.not_valid_before:
+    #             self.__logger.info("Fichier certificat ACME plus recent que le certificat courant, on l'applique")
+    #             remplacer = True
+    #         elif cert_courant.is_root_ca:
+    #             self.__logger.info("Fichier certificat local est self-signed, on applique le cert ACME")
+    #             remplacer = True
+    #
+    #     if remplacer is True:
+    #         self.__logger.info("Remplacer le certificat web nginx")
+    #         with open(path_cle_web, 'w') as fichier:
+    #             fichier.write(key_pem)
+    #         with open(path_cert_web, 'w') as fichier:
+    #             fichier.write(cert_pem)
+    #
+    #         self.__logger.info("Redemarrer nginx avec le nouveau certificat web")
+    #         await self.__docker_handler.redemarrer_nginx("EntetienNginx.verifier_certificat_web Nouveau certificat web")
 
     async def __verifier_tor(self):
         commande = CommandeOnionizeGetHostname()
