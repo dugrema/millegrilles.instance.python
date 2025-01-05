@@ -204,7 +204,7 @@ class AcmeHandler:
                 additional_domains = None
             config_acme['additionalDomains'] = additional_domains
             self.__additional_domains = additional_domains
-        except KeyError:
+        except (TypeError, KeyError):
             self.__additional_domains = None
 
         # Override file
