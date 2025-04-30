@@ -75,6 +75,12 @@
         "target_port": 1444,
         "protocol": "tcp",
         "publish_mode": "host"
+      },
+      {
+        "published_port": 1445,
+        "target_port": 1445,
+        "protocol": "tcp",
+        "publish_mode": "host"
       }
     ]
   },
