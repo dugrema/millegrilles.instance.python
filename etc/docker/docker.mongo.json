@@ -1,6 +1,6 @@
 {
   "name": "mongo",
-  "image": "mongo:6",
+  "image": "mongo:8",
   "hostname": "mongo",
   "certificat": {"roles": ["mongo"], "dns": {"localhost": true, "hostnames": ["mongo"], "domain": true}, "combiner_keycert": true},
   "container_init": {
