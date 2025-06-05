@@ -6,6 +6,7 @@ tz_info = pytz.timezone('America/Toronto')
 now = datetime.now()
 local_timezone = datetime.now(timezone.utc).astimezone().tzinfo
 print("Now : %s (%s)" % (now, local_timezone))
+print(f"Now formatted: {now.strftime("%a, %d %b %Y %H:%M:%S")} {local_timezone}")
 
 offset = tz_info.utcoffset(now)
 print('Offset %s, seconds %s' % (offset, int(offset.total_seconds())))
@@ -18,6 +19,10 @@ print("TZ info : %s, Zone : %s" % (tz_info, tz_info.zone))
 date_tz = datetime.now(tz=tz_info)
 print("Date iso : %s" % date_tz.isoformat())
 
+mtl_tz = pytz.timezone('America/Montreal')
+date_tz = datetime.now(tz=mtl_tz)
+print(f"Montreal TZ: {mtl_tz}, general TZ for montreal: ")
+print(f"Now formatted: {date_tz.strftime("%a, %d %b %Y %H:%M:%S %Z")}")
 
 class Tools:
 
