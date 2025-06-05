@@ -1,7 +1,7 @@
 {
   "name": "mq",
   "hostname": "mq",
-  "image": "docker.maple.maceroc.com:5000/mg_rabbitmq:3.13.7-management.master.8",
+  "image": "docker.maple.maceroc.com:5000/mg_rabbitmq:4.1.1-management-alpine.master.9",
   "certificat": {"roles": ["mq"], "dns": {"localhost": true, "hostnames": ["mq"], "domain": true}},
   "passwords": ["mqadmin"],
   "env": {
