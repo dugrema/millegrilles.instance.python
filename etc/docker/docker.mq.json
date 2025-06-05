@@ -1,13 +1,13 @@
 {
   "name": "mq",
   "hostname": "mq",
-  "image": "docker.maple.maceroc.com:5000/mg_rabbitmq:4.1.1-management-alpine.master.9",
+  "image": "docker.maple.maceroc.com:5000/mg_rabbitmq:4.1.1-management-alpine.master.11",
   "certificat": {"roles": ["mq"], "dns": {"localhost": true, "hostnames": ["mq"], "domain": true}},
   "passwords": ["mqadmin"],
   "env": {
     "MG_KEY": "/run/secrets/key.pem",
     "WEB_KEY": "/run/secrets/webkey.pem",
-    "CONFIG_FILE": "/opt/rabbitmq/dist/config/rabbitmq_ipv6management.config",
+    "CONFIG_FILE": "/opt/rabbitmq/dist/config/rabbitmq.config",
     "NODENAME": "rabbit@mq"
   },
   "mounts": [{"source": "rabbitmq-data", "target":  "/var/lib/rabbitmq", "type": "volume"}],
