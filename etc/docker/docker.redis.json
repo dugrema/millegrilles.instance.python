@@ -1,7 +1,7 @@
 {
   "name": "redis",
   "hostname": "redis",
-  "image": "docker.maple.maceroc.com:5000/millegrilles_redis:8.0.2-alpine.master.7",
+  "image": "registry.millegrilles.com/millegrilles/redis:8.0.2-alpine.master.8",
   "certificat": {"roles": ["redis"], "dns": {"localhost": true, "hostnames": ["redis"], "domain": true}},
   "passwords": ["redis"],
   "mounts": [{"source": "mg-redis", "target":  "/data", "type": "volume"}],
