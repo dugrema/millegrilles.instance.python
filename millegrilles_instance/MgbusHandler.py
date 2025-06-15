@@ -35,7 +35,7 @@ class MgbusHandler(MgbusHandlerInterface):
                 group.create_task(self.__stop_thread())
         except *Exception:  # Stop on any thread exception
             if self.__manager.context.stopping is False:
-                self.__logger.exception("GenerateurCertificatsHandler Unhandled error, closing")
+                self.__logger.exception("MgbusHandler Unhandled error, closing")
                 self.__manager.context.stop()
                 raise ForceTerminateExecution()
         self.__task_group = None
