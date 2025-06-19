@@ -647,7 +647,8 @@ def list_images(package_configuration: ServiceStatus):
     images = set()
     for dep in package_configuration.dependencies:
         try:
-            images.add(dep.image)
+            if dep.image:  # Web apps may have no docker image
+                images.add(dep.image)
         except KeyError:
             pass
     return images
