@@ -166,10 +166,24 @@ async def update_service_status(context: InstanceContext, docker_handler: Docker
 
     # Get list of core services - they must be installed in order and running before installing other services/apps
     config_modules = context.application_status.required_modules
+
+    # Load disabled modules list
+    disabled_file = pathlib.Path(context.configuration.path_configuration, 'disabled_modules.json')
+    try:
+        with open(disabled_file, 'rt') as fp:
+            file_content = json.load(fp)
+        disabled_modules = file_content['disabled']
+    except (FileNotFoundError, json.JSONDecodeError, KeyError):
+        disabled_modules = list()
+
     core_services = await get_configuration_services(context, config_modules)
+    # Filter out disabled services
+    core_services = [c for c in core_services if c.name not in disabled_modules]
 
     mapped_services: dict[str, ServiceStatus] = dict()
     for service in core_services:
+        if service.name in disabled_modules:
+            continue  # Skip module
         mapped_services[service.name] = service
 
     commande_liste_services = DockerCommandes.CommandeListerServices()

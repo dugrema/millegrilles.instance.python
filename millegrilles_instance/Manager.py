@@ -260,7 +260,10 @@ class InstanceManager:
             await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_LOCAL)
 
         for disabled_module in disabled_modules:
-            self.__context.application_status.required_modules.modules.remove(disabled_module)
+            try:
+                self.__context.application_status.required_modules.modules.remove(disabled_module)
+            except ValueError:
+                pass  # List not loaded yet
 
         if current_runlevel != InstanceContext.CONST_RUNLEVEL_INIT:
             # Trigger application maintenance
