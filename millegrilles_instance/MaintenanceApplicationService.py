@@ -389,13 +389,17 @@ async def update_stale_configuration(context: InstanceContext, docker_handler: D
         except KeyError:
             config_list = None
         is_current = verifier_config_current(correspondance_liste_datee, config_list, secret_list)
-        if is_current is False:
+        if not is_current:
             LOGGER.info("Service %s stale, update config/secrets" % service.name)
             service_status = mapped_services[service.name]
             for dep in service_status.dependencies:
                 image = dep.image
                 if image:
-                    image_tag = await get_docker_image_tag(context, docker_handler, image)
+                    try:
+                        image_tag = await get_docker_image_tag(context, docker_handler, image)
+                    except UnknownImage:
+                        LOGGER.error("Stale service %s: unknown image %s", service.name, image)
+                        image_tag = None  # Just reset service
                 else:
                     image_tag = None
                 install_command = ServiceInstallCommand(service, image_tag, False, True)
