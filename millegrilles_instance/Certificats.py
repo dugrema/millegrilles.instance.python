@@ -21,11 +21,12 @@ from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.Interfaces import GenerateurCertificatsInterface, DockerHandlerInterface
 from millegrilles_instance.MaintenanceApplicationService import charger_configuration_docker, \
     charger_configuration_application, update_stale_configuration
+from millegrilles_messages.IpUtils import get_hostnames
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.bus.PikaMessageProducer import MilleGrillesPikaMessageProducer
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.certificats.Generes import CleCsrGenere
-from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa
+from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa, signer_rsa_web
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat, CertificatExpire
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.GenerateursSecrets import GenerateurEd25519, GenerateurRsa
@@ -50,13 +51,27 @@ def preparer_certificats_web(path_secrets: str):
     # Verifier si le certificat self-signed existe
     path_cert_webss = path.join(path_secrets, 'pki.webss.cert')
     path_key_webss = path.join(path_secrets, 'pki.webss.key')
-    if path.exists(path_cert_webss) and path.exists(path_key_webss):
+    if path.exists(path_cert_webss) and path.exists(path_key_webss):  # DEBUG
         clecertificat_genere = CleCertificat.from_files(path_key_webss, path_cert_webss)
         pem_certificat = clecertificat_genere.enveloppe.chaine_pem()
         certificat = ''.join(pem_certificat)
     else:
-        # Generer certificat self-signed
-        clecertificat_genere = generer_self_signed_rsa('localhost')
+        hostname, hostnames = get_hostnames(fqdn=True)
+
+        # Generer certificat CA self-signed et le leaf self-signed
+        clecertificat_cass_genere = generer_self_signed_rsa('localhost')
+
+        path_cert_webcass = path.join(path_secrets, 'pki.webcass.cert')
+        path_key_webcass = path.join(path_secrets, 'pki.webcass.key')
+
+        # Generate leaf certificate - a CA certificate is not allowed as web server cert by browsers
+        clecertificat_genere = signer_rsa_web('localhost', clecertificat_cass_genere, hostnames)
+
+        certificat = ''.join(clecertificat_cass_genere.get_pem_certificat())
+        with open(path_cert_webcass, 'w') as fichier:
+            fichier.write(certificat)
+        with open(path_key_webcass, 'w') as fichier:
+            fichier.write(clecertificat_cass_genere.get_pem_cle())
 
         certificat = ''.join(clecertificat_genere.get_pem_certificat())
         with open(path_cert_webss, 'w') as fichier:
