@@ -1,6 +1,6 @@
 {
   "name": "core",
-  "image": "registry.millegrilles.com/millegrilles/core_rust:2025.4.114",
+  "image": "registry.millegrilles.com/millegrilles/core_rust:2025.4.115",
   "certificat": {
     "roles": ["core"],
     "exchanges": ["4.secure", "3.protege", "2.prive", "1.public"],
