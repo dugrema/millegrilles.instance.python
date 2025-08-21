@@ -1,6 +1,6 @@
 {
   "name": "webauth",
-  "image": "registry.millegrilles.com/millegrilles/webauth_python:2025.4.17",
+  "image": "registry.millegrilles.com/millegrilles/webauth_python:2025.4.18",
   "certificat": {
     "roles": ["webauth"],
     "exchanges": ["1.public"],
