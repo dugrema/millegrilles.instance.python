@@ -10,19 +10,19 @@ configurer_docker() {
   # Installer logging pour docker avec rsyslog
   # Copier fichiers s'ils n'existent pas deja
   sudo cp -n etc/daemon.json /etc/docker
-  sudo cp -n etc/logrotate.millegrilles.conf /etc/logrotate.d/millegrilles
-  sudo cp -n etc/01-millegrilles.conf /etc/rsyslog.d/
+#  sudo cp -n etc/logrotate.millegrilles.conf /etc/logrotate.d/millegrilles
+#  sudo cp -n etc/01-millegrilles.conf /etc/rsyslog.d/
 
-  if ! cat /etc/rsyslog.conf | grep '^input(type="imtcp" port="514")'; then
-    echo "[INFO] Ajouter l'option TCP sur port 514 dans /etc/rsyslog.conf"
-    sudo cp /etc/rsyslog.conf /etc/rsyslog.conf.old
-    echo '# Ajoute pour MilleGrilles ' | tee -a /etc/rsyslog.conf
-    echo 'module(load="imtcp")' | tee -a /etc/rsyslog.conf
-    echo 'input(type="imtcp" port="514")' | tee -a /etc/rsyslog.conf
-  fi
+#  if ! cat /etc/rsyslog.conf | grep '^input(type="imtcp" port="514")'; then
+#    echo "[INFO] Ajouter l'option TCP sur port 514 dans /etc/rsyslog.conf"
+#    sudo cp /etc/rsyslog.conf /etc/rsyslog.conf.old
+#    echo '# Ajoute pour MilleGrilles ' | tee -a /etc/rsyslog.conf
+#    echo 'module(load="imtcp")' | tee -a /etc/rsyslog.conf
+#    echo 'input(type="imtcp" port="514")' | tee -a /etc/rsyslog.conf
+#  fi
 
-  echo "[INFO] Redemarrer rsyslog"
-  sudo systemctl restart rsyslog
+#  echo "[INFO] Redemarrer rsyslog"
+#  sudo systemctl restart rsyslog
 
   echo "[INFO] Activation du redemarrage automatique de docker"
   sudo systemctl enable docker
@@ -74,11 +74,11 @@ if [ ! -d "${PATH_MILLEGRILLES}/configuration" ]; then
     configurer_docker
   fi
 
-  # Installer config pour logging (rsyslog, logrotate)
-  # Les fichiers ne sont pas modifies s'ils existent deja
-  cp -n "${REP_ETC}/01-millegrilles.conf" "/etc/rsyslog.d"
-  cp -n "${REP_ETC}/logrotate.millegrilles.conf" "/etc/logrotate.d"
-  systemctl restart rsyslog
+#  # Installer config pour logging (rsyslog, logrotate)
+#  # Les fichiers ne sont pas modifies s'ils existent deja
+#  cp -n "${REP_ETC}/01-millegrilles.conf" "/etc/rsyslog.d"
+#  cp -n "${REP_ETC}/logrotate.millegrilles.conf" "/etc/logrotate.d"
+#  systemctl restart rsyslog
 
 fi
 

@@ -19,17 +19,17 @@ configurer_docker() {
   # Installer logging pour docker avec rsyslog
   # Copier fichiers s'ils n'existent pas deja
   sudo cp --update=none etc/daemon.json /etc/docker
-  sudo cp --update=none etc/logrotate.millegrilles.conf /etc/logrotate.d/millegrilles
-  sudo cp --update=none etc/01-millegrilles.conf /etc/rsyslog.d/
+  # sudo cp --update=none etc/logrotate.millegrilles.conf /etc/logrotate.d/millegrilles
+  # sudo cp --update=none etc/01-millegrilles.conf /etc/rsyslog.d/
 
-  if ! cat /etc/rsyslog.conf | grep '^input(type="imtcp" port="514")'; then
-    echo "[INFO] Ajouter l'option TCP sur port 514 dans /etc/rsyslog.conf"
-    sudo cp /etc/rsyslog.conf /etc/rsyslog.conf.old
-    echo 'module(load="imtcp")' | sudo tee -a /etc/rsyslog.conf
-    echo 'input(type="imtcp" port="514")' | sudo tee -a /etc/rsyslog.conf
-  fi
-  echo "[INFO] Redemarrer rsyslog"
-  sudo systemctl restart rsyslog
+  # if ! cat /etc/rsyslog.conf | grep '^input(type="imtcp" port="514")'; then
+  #   echo "[INFO] Ajouter l'option TCP sur port 514 dans /etc/rsyslog.conf"
+  #   sudo cp /etc/rsyslog.conf /etc/rsyslog.conf.old
+  #   echo 'module(load="imtcp")' | sudo tee -a /etc/rsyslog.conf
+  #   echo 'input(type="imtcp" port="514")' | sudo tee -a /etc/rsyslog.conf
+  # fi
+  # echo "[INFO] Redemarrer rsyslog"
+  # sudo systemctl restart rsyslog
 
   echo "[INFO] Activation du redemarrage automatique de docker"
   sudo systemctl enable docker

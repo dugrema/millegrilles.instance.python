@@ -1,9 +1,5 @@
 {
-  "log-driver": "syslog",
-  "log-opts": {
-    "syslog-address": "tcp://localhost:514",
-    "tag": "{{.Name}}.{{.ID}}"
-  },
+  "log-driver": "journald",
   "experimental": true,
   "ipv6": true,
   "fixed-cidr-v6": "2001:db8:1::/64",

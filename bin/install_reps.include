@@ -91,7 +91,7 @@ copier_fichiers() {
   sudo cp bin/start_instance.sh $PATH_MILLEGRILLES/bin
   sudo chown mginstance:millegrilles $PATH_MILLEGRILLES/bin/start_instance.sh
   sudo cp etc/mginstance.service /etc/systemd/system
-  sudo cp etc/01-millegrilles.conf /etc/rsyslog
+#  sudo cp etc/01-millegrilles.conf /etc/rsyslog
   sudo cp etc/idmg_validation.json $PATH_MILLEGRILLES/configuration/
   echo "[INFO] Fin copier fichiers systeme"
 }
