@@ -1,7 +1,7 @@
 {
   "name": "mq",
   "hostname": "mq",
-  "image": "registry.millegrilles.com/millegrilles/rabbitmq:4.1.1-management-alpine.master.12",
+  "image": "registry.millegrilles.com:5000/millegrilles/rabbitmq:4.2.5-management-alpine.master.13",
   "certificat": {"roles": ["mq"], "dns": {"localhost": true, "hostnames": ["mq"], "domain": true}},
   "passwords": ["mqadmin"],
   "env": {
