@@ -1,7 +1,7 @@
 {
   "name": "redis",
   "hostname": "redis",
-  "image": "registry.millegrilles.com/millegrilles/redis:8.0.2-alpine.master.8",
+  "image": "registry.millegrilles.com:5000/millegrilles/redis:8.6.2-alpine.master.9",
   "certificat": {"roles": ["redis"], "dns": {"localhost": true, "hostnames": ["redis"], "domain": true}},
   "passwords": ["redis"],
   "mounts": [{"source": "mg-redis", "target":  "/data", "type": "volume"}],
