@@ -1,9 +1,5 @@
 {
-  "log-driver": "syslog",
-  "log-opts": {
-    "syslog-address": "tcp://localhost:514",
-    "tag": "{{.Name}}.{{.ID}}"
-  },
+  "log-driver": "journald",
   "data-root": "/mnt/XXXX/docker",
   "experimental": true,
   "ipv6": true,
