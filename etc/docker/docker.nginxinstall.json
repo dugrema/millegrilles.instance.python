@@ -1,6 +1,6 @@
 {
   "name": "nginxinstall",
-  "image": "registry.millegrilles.com/millegrilles/nginx:1.29.8.null.17",
+  "image": "registry.millegrilles.com/millegrilles/nginx:1.31.0.null.2",
   "env": {
     "ONIONSERVICE_NAME": "nginx",
     "ONIONSERVICE_PORT": "443"

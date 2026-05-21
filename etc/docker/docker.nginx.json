@@ -1,7 +1,7 @@
 {
   "name": "nginx",
   "hostname": "nginx",
-  "image": "registry.millegrilles.com/millegrilles/nginx:1.29.8.null.17",
+  "image": "registry.millegrilles.com/millegrilles/nginx:1.31.0.null.2",
   "certificat": {"roles": ["nginx"], "dns": {"localhost": true, "hostnames": ["nginx"], "domain": true}},
   "env": {
     "ONIONSERVICE_NAME": "nginx",
