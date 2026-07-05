@@ -27,7 +27,8 @@ echo "Hostnames included in SAN: localhost, 127.0.0.1, $HOSTNAME, $FQDN"
 ROOT_CA_KEY="$CERT_DIR/pki.webcass.key"
 ROOT_CA_PEM="$CERT_DIR/pki.webcass.cert"
 SERVER_KEY="$CERT_DIR/pki.webss.key"
-SERVER_CRT="$CERT_DIR/pki.webss.cert"
+SERVER_CRT="$CERT_DIR/pki.webss.cert.1"
+CHAIN_CRT="$CERT_DIR/pki.webss.cert"
 
 # 1. Create Root CA
 if [ ! -f "$ROOT_CA_PEM" ]; then
@@ -72,6 +73,8 @@ openssl req -new -key "$SERVER_KEY" -out "$CERT_DIR/server.csr" -config "$CONF_F
 # Sign Server Certificate with Root CA
 openssl x509 -req -in "$CERT_DIR/server.csr" -CA "$ROOT_CA_PEM" -CAkey "$ROOT_CA_KEY" \
     -CAcreateserial -out "$SERVER_CRT" -days 825 -sha256 -extensions v3_req -extfile "$CONF_FILE" &> /dev/null || error_exit "Failed to sign server certificate"
+
+cat $SERVER_CRT $ROOT_CA_PEM > $CHAIN_CRT
 
 # Cleanup
 rm "$CERT_DIR/server.csr" "$CONF_FILE"
