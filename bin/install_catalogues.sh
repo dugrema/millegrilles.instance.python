@@ -1,5 +1,8 @@
 #!/bin/env bash
-. etc/config.env
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/.."
+source "${REPO_ROOT}/etc/config.env"
 
 set -e
 

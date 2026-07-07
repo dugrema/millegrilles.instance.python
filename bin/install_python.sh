@@ -1,4 +1,5 @@
 #!/bin/env bash
+set -euo pipefail
 
 PATH_VENV=$1
 # URL_MGMESSAGES=$2
