@@ -31,7 +31,8 @@ PARAM_INSTANCE_ID = 'INSTANCE_ID'
 
 CERTISSUER_PATH = 'CERTISSUER_PATH'
 
-# Commandes supportees par l'instance (MQ)
+REPO_ROOT_PATH = 'REPO_ROOT_PATH'
+
 REQUETE_CONFIGURATION_ACME = 'configurationAcme'
 REQUETE_GET_PASSWORDS = 'getPasswords'
 COMMANDE_TRANSMETTRE_CATALOGUES = 'transmettreCatalogues'

@@ -85,6 +85,12 @@ copier_fichiers() {
   echo "[INFO] Copier fichiers systeme"
   cp "${REP_BIN}/start_instance.sh" "${MILLEGRILLES_HOME}/bin/" || true
   cp "${REP_ETC}/idmg_validation.json" "${MILLEGRILLES_HOME}/configuration/" || true
+  
+  # Create an empty config.json to prevent errors in ConfigurationInstance.load()
+  if [ ! -f "${MILLEGRILLES_HOME}/configuration/config.json" ]; then
+    echo "{}" > "${MILLEGRILLES_HOME}/configuration/config.json"
+  fi
+
   echo "[OK] Fichiers copies"
 }
 
@@ -134,6 +140,10 @@ install_instance_v2() {
     echo "[INFO] Creer venv python3 sous ${PATH_VENV}"
     cd "${REPO_ROOT}"
     "${REP_BIN}/install_python.sh" "${PATH_VENV}"
+    
+    # Install the current package in editable mode so it's importable
+    echo "[INFO] Installer millegrilles_instance en mode editable"
+    "${PATH_VENV}/bin/pip" install -e .
 
     echo "[INFO] Copier fichiers de configuration, code python"
     "${REP_BIN}/install_catalogues.sh"

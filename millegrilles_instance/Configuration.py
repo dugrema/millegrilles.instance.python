@@ -97,6 +97,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         super().parse_config()
 
         self.__path_millegrilles = os.environ.get(ContantesInstance.MILLEGRILLES_PATH_ENV) or self.__path_millegrilles
+        self.__path_etc = str(pathlib.Path(os.environ.get(ContantesInstance.REPO_ROOT_PATH) or self.__path_millegrilles, 'etc'))
         self.__path_configuration = os.environ.get(ContantesInstance.INSTANCE_CONFIG_PATH) or str(pathlib.Path(self.__path_millegrilles, 'configuration'))
         self.__path_secrets = os.environ.get(ContantesInstance.INSTANCE_SECRETS_PATH) or str(pathlib.Path(self.__path_millegrilles, 'secrets'))
         self.__path_secrets_partages = os.environ.get(ContantesInstance.INSTANCE_SECRETS_PARTAGES_PATH) or str(pathlib.Path(self.__path_millegrilles, 'secrets_partages'))
@@ -148,6 +149,10 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
             self.mq_port = mq_port or self.mq_port
         except (TypeError, ValueError):
             pass
+
+    @property
+    def path_etc(self) -> pathlib.Path:
+        return pathlib.Path(self.__path_etc)
 
     @property
     def path_millegrilles(self) -> pathlib.Path:
