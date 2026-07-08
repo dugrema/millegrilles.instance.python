@@ -35,18 +35,36 @@ class InstanceManager:
     Facade for system handlers. Used by access modules (mq, web).
     """
 
+import docker
+from millegrilles_instance.millegrilles_docker.ComposeHandler import ComposeHandler
+
+class InstanceManager:
+    """
+    Facade for system handlers. Used by access modules (mq, web).
+    """
     def __init__(self, context: InstanceContext, generateur_certificats: GenerateurCertificatsHandler,
                  docker_handler: Optional[InstanceDockerHandler], gestionnaire_applications: ApplicationsHandler,
                  nginx_handler: NginxHandler, acme_handler: Optional[AcmeHandler]):
-
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context = context
         self.__generateur_certificats = generateur_certificats
         self.__docker_handler = docker_handler
         self.__gestionnaire_applications = gestionnaire_applications
         self.__mgbus_handler: Optional[MgbusHandlerInterface] = None
-        self.__nginx_handler: NginxHandler = nginx_handler
-        self.__acme_handler: Optional[AcmeHandler] = acme_handler
+        self.__nginx_handler = nginx_handler
+        self.__acme_handler = acme_handler
+        
+        self.__docker_client = docker.from_env()
+        self.__compose_handler = ComposeHandler(self.__context, self.__docker_client)
+        
+        # self.__reload_configuration = threading.Event()
+        
+        # self.__runlevel = CONST_RUNLEVEL_INIT
+        self.__runlevel_changed = asyncio.Event()
+        
+        self.__loop = asyncio.get_event_loop()
+        self.__reload_configuration = asyncio.Event()
+
 
         # self.__reload_configuration = threading.Event()
 
@@ -286,6 +304,20 @@ class InstanceManager:
                 raise e
 
         # Release configuration/app update threads
+        # 3. Deploy installation module
+        install_config_dir = self.__context.configuration.path_millegrilles / "etc" / "docker"
+        install_files = []
+        for mod_file in ['docker.nginxinstall.json', 'docker.certissuer.json']:
+            f_path = install_config_dir / mod_file
+            if f_path.exists():
+                install_files.append(f_path)
+        
+        if install_files:
+            self.__logger.info("Deploying installation module: %s", install_files)
+            await self.__compose_handler.deploy_module_from_files("installation", install_files)
+        else:
+            self.__logger.warning("No installation configuration files found in %s", install_config_dir)
+
         self.__docker_handler.callback_changement_configuration()
         self.__context.initial_application_configuration_update.set()
         await self.__gestionnaire_applications.callback_changement_applications()

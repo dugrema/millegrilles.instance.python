@@ -66,6 +66,10 @@ class ConfigurationService:
         self.__archives: Optional[list[WebApplicationConfiguration]] = None
 
     @property
+    def configuration(self):
+        return self.__configuration
+
+    @property
     def archives(self) -> Optional[list[WebApplicationConfiguration]]:
         return self.__archives
 

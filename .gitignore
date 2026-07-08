@@ -1,4 +1,5 @@
 build
+tests/
 dist/web/catalogues
 **/__pycache__
 *egg-info
