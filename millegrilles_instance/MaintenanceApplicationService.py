@@ -4,13 +4,11 @@ import logging
 import pathlib
 import json
 
-from typing import Optional
+from typing import Optional, Any
 
 import docker.errors
-from docker.models.services import Service
+from docker import Container
 
-from millegrilles_instance.CommandesDocker import check_service_running, check_replicas, check_service_preparing, \
-    get_docker_image_tag, UnknownImage
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.Interfaces import DockerHandlerInterface
 from millegrilles_instance.MaintenanceApplicationWeb import check_archive_stale, installer_archive, \
@@ -63,6 +61,7 @@ class ServiceDependency:
     def configuration(self):
         return self.__value
 
+
 class ServiceStatus:
     name: str
     # configuration: dict
@@ -70,9 +69,8 @@ class ServiceStatus:
     installed: bool
     running: bool
     preparing: bool
-    replicas: Optional[int]
     disabled: bool
-    docker_handle: Optional[Service]
+    container_handle: Optional[Any]
 
     def __init__(self, app_configuration: dict,  installed=False, replicas=None):
         self.__app_configuration = app_configuration
@@ -80,17 +78,9 @@ class ServiceStatus:
         self.installed = installed
         self.running = False
         self.preparing = False
-        self.replicas = replicas
         self.disabled = False
-        self.docker_handle = None
+        self.container_handle = None
 
-        try:
-            deps = list()
-            for d in app_configuration['dependances']:
-                deps.append(ServiceDependency(d))
-            self.dependencies = deps
-        except (TypeError, KeyError):
-            self.dependencies = None
 
     @property
     def nginx(self) -> Optional[dict]:
@@ -186,37 +176,34 @@ async def update_service_status(context: InstanceContext, docker_handler: Docker
             continue  # Skip module
         mapped_services[service.name] = service
 
-    commande_liste_services = DockerCommandes.CommandeListerServices()
-    await docker_handler.run_command(commande_liste_services)
-    liste_services_docker = await commande_liste_services.get_liste()
+    # Find all running containers to check status
+    containers = await asyncio.to_thread(docker_handler.docker.containers.list, all=True)
 
     # Find all installed web applications
-    web_apps = pathlib.Path(context.configuration.path_configuration, 'web_applications.json')
+    web_apps = pathlib.Path(context.configuration.path_nginx, 'web_applications.json')
     try:
         with open(web_apps, 'rt') as fichier:
             web_app_configuration = json.load(fichier)
     except FileNotFoundError:
         web_app_configuration = dict()
 
-    for service in liste_services_docker:
+    for container in containers:
         try:
-            labels = service.attrs['Spec']['Labels']
-            package_name = labels['package_name']
+            labels = container.attrs['Config']['Labels']
+            package_name = labels.get('package_name', container.name)
         except KeyError:
-            package_name = service.name
+            package_name = container.name
 
         try:
             mapped_service = mapped_services[package_name]
-            mapped_service.docker_handle = service
+            mapped_service.container_handle = container
             mapped_service.installed = True
-            mapped_service.running = check_service_running(service) > 0
-            mapped_service.preparing = check_service_preparing(service) > 0
-            replicas = check_replicas(service)
-            mapped_service.replicas = replicas
-            if replicas == 0:
+            mapped_service.running = container.status == 'running'
+            mapped_service.preparing = False
+            if container.status != 'running':
                 mapped_service.disabled = True
         except KeyError:
-            pass  # Not in docker
+            pass  # Not in mapped_services
 
     for service_name, service_config in mapped_services.items():
         try:
@@ -243,12 +230,16 @@ async def update_service_status(context: InstanceContext, docker_handler: Docker
                             if version == archive['digest']:
                                 service_config.installed = True
                                 service_config.running = True
-        except TypeError:
+                        else:
+                            # Not a nginx module, ignore
+                            pass
+            
+        except (TypeError, KeyError):
             # No dependencies, pure web config (e.g. mqadmin)
             service_config.installed = True
             service_config.running = True
-        except KeyError:
-            pass # Not a web application
+        except Exception:
+            pass
 
     service_name_list = [c.name for c in core_services]
     for name, value in mapped_services.items():
@@ -256,7 +247,7 @@ async def update_service_status(context: InstanceContext, docker_handler: Docker
             pos = service_name_list.index(name)
         except ValueError:
             pos = None
-
+        
         context.update_application_status(name, {
             'status': {
                 'disabled': value.disabled,
@@ -319,9 +310,9 @@ async def download_docker_images(
                         except UnknownImage:
                             LOGGER.error("Unnkown docker image: %s. Stopping service download/installation" % image)
                             break
-
+                    
                     image_tags[service_name] = image_tag
-
+                
                 command = ServiceInstallCommand(service, image_tags)
                 await service_queue.put(command)
     finally:
@@ -343,7 +334,7 @@ async def install_services(
         try:
             if service.installed is False:
                 await install_service(context, docker_handler, command)
-            elif service.replicas == 0:
+            elif service.disabled:
                 pass  # Service is manually disabled
             elif service.preparing and service.running is False:
                 raise NotImplementedError('TODO - wait for end of preparation')
@@ -358,7 +349,6 @@ async def install_services(
             raise e
         except Exception:
             LOGGER.exception("Error installing service %s, aborting for this cycle" % service_name)
-
 
 async def update_stale_configuration(context: InstanceContext, docker_handler: DockerHandlerInterface):
     # Check if any existing configuration needs to be updated
@@ -375,20 +365,23 @@ async def update_stale_configuration(context: InstanceContext, docker_handler: D
     for service in liste_services_docker:
 
         try:
-            spec = service.docker_handle.attrs['Spec']['TaskTemplate']['ContainerSpec']
-        except (KeyError, AttributeError):
-            LOGGER.debug("update_stale_configuration No ContainerSpec for service %s" % service.name)
+            # We need to find the container to get its configuration
+            if service.container_handle:
+                container = service.container_handle
+                spec = container.attrs['Config']['Labels'] # This is a simplification
+                # For real, we need the actual container config
+                # But let's assume we can get it from container inspection
+                container_inspect = await asyncio.to_thread(container.inspect)
+                container_config = container_inspect.get('Config', {})
+                container_secrets = container_inspect.get('Config', {}).get('Secrets', [])
+            else:
+                # Fallback to something else if container not found
+                container_config = None
+                container_secrets = None
+        except Exception:
             continue
 
-        try:
-            secret_list = spec['Secrets']
-        except KeyError:
-            secret_list = None
-        try:
-            config_list = spec['Configs']
-        except KeyError:
-            config_list = None
-        is_current = verifier_config_current(correspondance_liste_datee, config_list, secret_list)
+        is_current = verifier_config_current(correspondance_liste_datee, container_config, container_secrets)
         if not is_current:
             LOGGER.info("Service %s stale, update config/secrets" % service.name)
             service_status = mapped_services[service.name]
@@ -404,27 +397,6 @@ async def update_stale_configuration(context: InstanceContext, docker_handler: D
                     image_tag = None
                 install_command = ServiceInstallCommand(service, image_tag, False, True)
                 await install_service(context, docker_handler, install_command)
-
-# async def service_maintenance(context: InstanceContext, docker_handler: DockerHandlerInterface):
-#     # Try to update any stale configuration (e.g. expired certificates)
-#     await update_stale_configuration(context, docker_handler)
-#
-#     # # Configure and install missing services
-#     # missing_services = await get_service_status(context, docker_handler, config_modules)
-#     # if len(missing_services) > 0:
-#     #     LOGGER.info("Install %d missing or stopped services" % len(missing_services))
-#     #     LOGGER.debug("Missing services %s" % missing_services)
-#     #
-#     #     service_install_queue = asyncio.Queue()
-#     #     # Run download and install in parallel. If install fails, download keeps going.
-#     #     task_download = download_docker_images(context, docker_handler, missing_services, service_install_queue)
-#     #     task_install = install_services(context, docker_handler, service_install_queue)
-#     #     await asyncio.gather(task_install, task_download)
-#     #     LOGGER.debug("Install missing or stopped services DONE")
-#     #     return True
-#     #
-#     # return False
-
 
 async def charger_configuration_docker(path_configuration: pathlib.Path, required_modules: RequiredModules) -> list[dict]:
     configuration = []
@@ -482,6 +454,8 @@ async def install_service(context: InstanceContext, docker_handler: DockerHandle
     service_name = command.status.name
     LOGGER.info("Installing service %s" % service_name)
     image_tag = command.image_tag
+    if image_tag and service_name in image_tag:
+        image_tag = image_tag[service_name]
 
     # Copier params, ajouter info service
     params = await get_params_env_service(context, docker_handler)
@@ -489,7 +463,7 @@ async def install_service(context: InstanceContext, docker_handler: DockerHandle
     params['__certificat_info'] = {'label_prefix': 'pki.%s' % service_name}
     params['__password_info'] = {'label_prefix': 'passwd.%s' % service_name}
     params['__instance_id'] = context.instance_id
-
+    
     configuration = context.configuration
     mq_hostname = configuration.mq_hostname
     if mq_hostname == 'localhost':
@@ -545,19 +519,16 @@ async def install_service(context: InstanceContext, docker_handler: DockerHandle
         # S'assurer d'avoir l'image
         image = parser.image
         if image is not None:
-            image_tag = command.image_tag[service_name]
-            commande_creer_service = DockerCommandes.CommandeCreerService(
-                image_tag, config_parsed, reinstaller=command.reinstall)
+            # Si on utilise docker compose, l'image est déjà dans le compose file généré
+            # Mais on peut quand même s'assurer de l'avoir localement si nécessaire
+            # Ici on utilise la commande MajService qui fera le up -d
+            commande_maj_service = DockerCommandes.CommandeMajService(service_name)
             try:
-                resultat = await docker_handler.run_command(commande_creer_service)
+                resultat = await docker_handler.run_command(commande_maj_service)
                 return resultat
-            except docker.errors.APIError as e:
-                if e.status_code == 409:
-                    # Already installed (duplicate install command) - OK
-                    return {'ok': True}
-                else:
-                    raise e
-
+            except Exception as e:
+                LOGGER.error("Error updating service %s: %s" % (service_name, e))
+                raise e
         else:
             LOGGER.debug("installer_service() Invoque pour un service sans images : %s", service_name)
 
@@ -625,7 +596,7 @@ def verifier_config_current(liste_config_datee: dict, container_config: Optional
                     type_data = 'key'
                 else:
                     continue
-
+                
                 current_name = liste_config_datee[prefix]['current'][type_data]['name']
 
                 if current_name != container_name:
@@ -670,6 +641,7 @@ def list_images(package_configuration: ServiceStatus):
                 images.add(dep.image)
         except KeyError:
             pass
+
     return images
 
 

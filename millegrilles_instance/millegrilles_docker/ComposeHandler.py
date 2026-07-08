@@ -1,52 +1,123 @@
 import asyncio
 import logging
-import yaml
 import pathlib
+import yaml
 import json
-from typing import Optional, List, Dict, Any
-import docker
-
+from typing import Optional, List, Any
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.millegrilles_docker.ParseConfiguration import ConfigurationService
-from millegrilles_instance.MaintenanceApplicationService import ServiceStatus
 
 LOGGER = logging.getLogger(__name__)
 
 class ComposeHandler:
     """
-    Handles the orchestration of modules using docker-compose concept.
-    Since docker-compose CLI might not be available, this handler will
-    use the Docker SDK to achieve the same result: grouping containers
-    into modules with shared networks and lifecycle management.
+    Handles the orchestration of modules using docker-compose.
     """
-
     def __init__(self, context: InstanceContext, docker_client: Any):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context = context
         self.__docker = docker_client
 
-    async def deploy_module(self, module_name: str, services_configs: List[ConfigurationService]):
+    async def _run_compose(self, working_dir: pathlib.Path, args: list[str]) -> str:
+        cmd = ["docker", "compose"] + args
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            cwd=str(working_dir),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE
+        )
+        stdout, stderr = await process.communicate()
+        
+        if process.returncode != 0:
+            err_msg = stderr.decode().strip()
+            raise Exception(f"Docker Compose error in {working_dir}: {err_msg}")
+            
+        return stdout.decode().strip()
+
+    def __get_compose_dict(self, config: dict) -> dict:
         """
-        Deploys a module (a set of services) using docker-compose logic.
+        Converts the dictionary from ConfigurationService.generer_docker_config() 
+        to a dictionary suitable for a docker-compose.yml file.
+        """
+        compose_service = {
+            'image': config['image'],
+            'container_name': config.get('name'),
+        }
+        
+        if 'hostname' in config:
+            compose_service['hostname'] = config['hostname']
+        
+        if 'args' in config:
+            compose_service['command'] = config['args']
+            
+        if 'env' in config:
+            compose_service['environment'] = config['env']
+            
+        if 'labels' in config:
+            compose_service['labels'] = config['labels']
+        
+        if 'container_labels' in config:
+            if 'labels' not in compose_service:
+                compose_service['labels'] = {}
+            compose_service['labels'].update(config['container_labels'])
+
+        if 'mounts' in config:
+            volumes = []
+            for m in config['mounts']:
+                mode = ":ro" if m.read_only else ""
+                if m.type == 'bind':
+                    volumes.append(f"{m.source}:{m.target}{mode}")
+                elif m.type == 'volume':
+                    volumes.append(f"{m.source}:{m.target}{mode}")
+            if volumes:
+                compose_service['volumes'] = volumes
+
+        if 'restart_policy' in config:
+            policy = config['restart_policy']
+            if policy.name != 'no':
+                compose_service['restart'] = policy.name
+
+        return compose_service
+
+    async def deploy_module(self, module_name: str, services_configs: List[ConfigurationService]) -> List[Any]:
+        """
+        Deploys a module using docker compose from the given module name.
         """
         self.__logger.info(f"Deploying module: {module_name}")
         
-        # 1. Ensure module-specific network exists
+        compose_dir = self.__context.configuration.path_millegrilles / "etc" / "docker" / "compose" / module_name
+        compose_dir.mkdir(parents=True, exist_ok=True)
+        compose_file = compose_dir / "docker-compose.yml"
+
+        compose_data = {
+            'services': {}
+        }
+
+        for cs in services_configs:
+            config_dict = cs.generer_docker_config()
+            compose_data['services'][cs.configuration['name']] = self.__get_compose_dict(config_dict)
+
         network_name = f"millegrilles_{module_name}_net"
-        try:
-            await asyncio.to_thread(self.__docker.networks.create, network_name, driver="bridge", labels={"com.millegrilles.module": module_name})
-        except docker.errors.APIError as e:
-            if e.status_code != 409: # Already exists
-                raise e
+        compose_data['networks'] = {
+            network_name: {
+                'driver': 'bridge',
+                'labels': {'com.millegrilles.module': module_name}
+            }
+        }
         
-        # 2. Deploy each service in the module
-        deployed_containers = []
-        for config_service in services_configs:
-            container = await self.__deploy_service(module_name, network_name, config_service)
-            if container:
-                deployed_containers.append(container)
-        
-        return deployed_containers
+        for service_name in compose_data['services']:
+            if 'networks' not in compose_data['services'][service_name]:
+                compose_data['services'][service_name]['networks'] = [network_name]
+            elif isinstance(compose_data['services'][service_name]['networks'], str):
+                compose_data['services'][service_name]['networks'] = [network_name, compose_data['services'][service_name]['networks']]
+            else:
+                compose_data['services'][service_name]['networks'].append(network_name)
+
+        with open(compose_file, 'w') as f:
+            yaml.dump(compose_data, f, default_flow_style=False)
+
+        await self._run_compose(compose_dir, ["up", "-d"])
+        return []
 
     async def deploy_module_from_files(self, module_name: str, config_files: List[pathlib.Path]) -> List[Any]:
         """
@@ -63,127 +134,38 @@ class ComposeHandler:
         
         return await self.deploy_module(module_name, services_configs)
 
-    async def __deploy_service(self, module_name: str, network_name: str, config_service: ConfigurationService) -> Optional[Any]:
-        self.__logger.debug(f"Deploying service {config_service.configuration['name']} in module {module_name}")
-        
-        container_name = f"{module_name}_{config_service.configuration['name']}"
-        
-        # Check if already running
-        try:
-            existing = await asyncio.to_thread(self.__docker.containers.get, container_name)
-            if existing.status == 'running':
-                self.__logger.info(f"Service {container_name} is already running.")
-                return existing
-            else:
-                await asyncio.to_thread(existing.remove, force=True)
-        except docker.errors.NotFound:
-            pass
-        
-        # Prepare configuration
-        config_parsed = config_service.generer_docker_config()
-        
-        # Prepare env
-        env = config_parsed.get('env', [])
-        
-        # Prepare mounts
-        mounts = []
-        for m in config_parsed.get('mounts', []):
-            mounts.append(m) # In a real implementation, we'd convert docker.types.Mount to dict if needed
-        
-        # Prepare secrets
-        # For simplicity, we assume secrets are already created in Docker as requested
-        secret_refs = []
-        if config_parsed.get('secrets'):
-            for s in config_parsed['secrets']:
-                secret_refs.append(s)
-        
-        # Prepare networks
-        network_name = f"millegrilles_{module_name}_net"
-        
-        # Prepare labels
-        labels = config_parsed.get('labels', {})
-        labels['com.millegrilles.module'] = module_name
-        labels['com.millegrilles.service'] = config_service.configuration['name']
-        
-        restart_policy_name = config_parsed.get('restart_policy', {}).get('name', 'no')
-        restart_policy = {"Name": restart_policy_name} if restart_policy_name != 'no' else None
-
-        try:
-            container = await asyncio.to_thread(
-                self.__docker.containers.run,
-                config_parsed['image'],
-                command=config_parsed.get('args'),
-                name=container_name,
-                environment=env,
-                mounts=mounts,
-                network=network_name,
-                labels=labels,
-                detach=True,
-                restart_policy=restart_policy
-            )
-            self.__logger.info(f"Container {container_name} started.")
-            return container
-        except Exception as e:
-            self.__logger.exception(f"Failed to start container {container_name}: {e}")
-            return None
-
     async def stop_module(self, module_name: str):
         """
-        Stops and removes all containers in a module.
+        Stops the module.
         """
         self.__logger.info(f"Stopping module: {module_name}")
-        network_name = f"millegrilles_{module_name}_net"
-        
-        # Find containers with this module label
-        containers = await asyncio.to_thread(
-            self.__docker.containers.list, 
-            filters={"label": f"com.millegrilles.module={module_name}"},
-            all=True
-        )
-        
-        for container in containers:
-            try:
-                await asyncio.to_thread(container.stop)
-                await asyncio.to_thread(container.remove)
-            except Exception as e:
-                self.__logger.error(f"Error stopping/removing container {container.name}: {e}")
-        
-        # Remove network
-        try:
-            network = await asyncio.to_thread(self.__docker.networks.get, network_name)
-            await asyncio.to_thread(network.remove)
-        except docker.errors.NotFound:
-            pass
-        except Exception as e:
-            self.__logger.error(f"Error removing network {network_name}: {e}")
+        compose_dir = self.__context.configuration.path_millegrilles / "etc" / "docker" / "compose" / module_name
+        if compose_dir.exists():
+            await self._run_compose(compose_dir, ["stop"])
 
     async def restart_module(self, module_name: str):
         """
-        Restarts all containers in a module.
+        Restarts the module.
         """
-        containers = await asyncio.to_thread(
-            self.__docker.containers.list, 
-            filters={"label": f"com.millegrilles.module={module_name}"}
-        )
-        for container in containers:
-            await asyncio.to_thread(container.restart)
-        self.__logger.info(f"Module {module_name} restarted.")
+        self.__logger.info(f"Restarting module: {module_name}")
+        compose_dir = self.__context.configuration.path_millegrilles / "etc" / "docker" / "compose" / module_name
+        if compose_dir.exists():
+            await self._run_compose(compose_dir, ["restart"])
 
     async def pause_module(self, module_name: str):
-        containers = await asyncio.to_thread(
-            self.__docker.containers.list, 
-            filters={"label": f"com.millegrilles.module={module_name}"}
-        )
-        for container in containers:
-            await asyncio.to_thread(container.pause)
+        self.__logger.info(f"Pausing module: {module_name}")
+        compose_dir = self.__context.configuration.path_millegrilles / "etc" / "docker" / "compose" / module_name
+        if compose_dir.exists():
+            await self._run_compose(compose_dir, ["pause"])
 
     async def resume_module(self, module_name: str):
-        containers = await asyncio.to_thread(
-            self.__docker.containers.list, 
-            filters={"label": f"com.millegrilles.module={module_name}"}
-        )
-        for container in containers:
-            await asyncio.to_thread(container.unpause)
+        self.__logger.info(f"Resuming module: {module_name}")
+        compose_dir = self.__context.configuration.path_millegrilles / "etc" / "docker" / "compose" / module_name
+        if compose_dir.exists():
+            await self._run_compose(compose_dir, ["unpause"])
 
     async def remove_module(self, module_name: str):
-        await self.stop_module(module_name)
+        self.__logger.info(f"Removing module: {module_name}")
+        compose_dir = self.__context.configuration.path_millegrilles / "etc" / "docker" / "compose" / module_name
+        if compose_dir.exists():
+            await self._run_compose(compose_dir, ["down"])

@@ -41,29 +41,11 @@ class DockerState:
         self.__logger.debug("Version docker : %s" % json.dumps(version_docker, indent=2))
         return True
 
-    def swarm_present(self):
-        try:
-            info_docker = self.__docker.info()
-        except AttributeError:
-            return False  # __docker est None
-
-        try:
-            swarm_config = info_docker['Swarm']
-            self.__logger.info("Information swarm docker %s" % json.dumps(swarm_config, indent=2))
-            return swarm_config['Nodes'] > 0
-        except KeyError:
-            self.__logger.info("Swarm docker n'est pas configure")
-            return False
-
     def docker_actif(self):
         if self.__docker_actif is None:
             try:
                 present = self.docker_present()
-                swarm = self.swarm_present()
-                if present is True and swarm is True:
-                    self.__docker_actif = True
-                else:
-                    self.__docker_actif = False
+                self.__docker_actif = present
             except Exception:
                 self.__logger.exception("Erreur verification etat docker")
                 self.__docker_actif = False
