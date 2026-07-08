@@ -15,7 +15,7 @@ from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.Interfaces import DockerHandlerInterface, GenerateurCertificatsInterface
 from millegrilles_instance.MaintenanceApplicationService import ServiceStatus, ServiceDependency
 from millegrilles_instance.MaintenanceApplicationWeb import installer_archive, check_archive_stale
-from millegrilles_instance.NginxUtils import ajouter_fichier_configuration
+from millegrilles_instance.millegrilles_docker.ComposeHandler import ComposeHandler
 
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.IpUtils import get_hostnames
@@ -40,8 +40,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
         self.__context = context
         self.__docker_state = docker_state
         self.__docker_handler = DockerHandler(docker_state)
-        # self.__verify_configuration_event = threading.Event()
-        # self.__applications_changed = asyncio.Event()
+        self.__compose_handler = ComposeHandler(self.__context, docker_state.docker)
 
         self.__generateur_certificats: Optional[GenerateurCertificatsInterface] = None
         self.__events_stream: Optional[Any] = None
@@ -669,48 +668,24 @@ class InstanceDockerHandler(DockerHandlerInterface):
 
         # Deployer services
         if dependances is not None:
+            services_configs = []
+            app_config_service = ConfigurationService(self.__context, application.configuration)
+            app_config_service.parse()
+            services_configs.append(app_config_service)
+
             for dep in dependances:
-                nom_module = dep.name
-
-                # Installer web apps en premier
-                if dep.archives is not None:
-                    try:
-                        web_links = application.web_config
-                    except KeyError:
-                        web_links = dict()
-                    # Installer webapp
-                    for archive in dep.archives:
-                        app_name = dep.name
-                        config = WebApplicationConfiguration(archive)
-                        if await asyncio.to_thread(check_archive_stale, self.__context, config):
-                            await asyncio.to_thread(installer_archive, self.__context, app_name, config,
-                                                    web_links)
-
                 if dep.image is not None:
-                    if dep.container_init is not None:
-                        # Run an initialization container first
-                        command = CommandeExecuterContainerInit(self.__context.configuration, dep.image, dep.container_init)
-                        result = await self.__docker_handler.run_command(command)
-                        pass
-
-                    params = await self.get_params_env_service()
-                    params['__nom_application'] = nom_application
-                    resultat_installation = await self.installer_service(nom_application, nom_module, dep, params, reinstaller)
-
-                    # try:
-                    #     scripts_module = configuration['scripts_installation'][nom_module]
-                    # except KeyError:
-                    #     pass
-                    # else:
-                    #     path_rep = configuration.get('scripts_path') or '/var/opt/millegrilles_scripts'
-                    #     path_scripts = path.join(path_rep, nom_application)
-                    #     scripts_module_path = [path.join(path_scripts, s) for s in scripts_module]
-                    #     await self.executer_scripts_container(nom_module, scripts_module_path)
+                    dep_config_service = ConfigurationService(self.__context, dep.configuration)
+                    dep_config_service.parse()
+                    services_configs.append(dep_config_service)
+            
+            await self.__compose_handler.deploy_module(nom_application, services_configs)
 
         if rafraichir_nginx is True:
             await self.redemarrer_nginx("Application %s installee" % nom_application)
 
         return {'ok': True}
+
 
     async def executer_scripts_container(self, nom_container: str, path_scripts: list, codes_ok=frozenset([0])):
         """

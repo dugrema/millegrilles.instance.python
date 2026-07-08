@@ -17,7 +17,6 @@ from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance.Interfaces import MgbusHandlerInterface
 from millegrilles_instance.MaintenanceApplicationService import ServiceStatus
 from millegrilles_instance.NginxHandler import NginxHandler
-from millegrilles_instance.millegrilles_acme.AcmeClient import AcmeHandler
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Certificats import GenerateurCertificatsHandler, preparer_certificats_web
@@ -44,7 +43,7 @@ class InstanceManager:
     """
     def __init__(self, context: InstanceContext, generateur_certificats: GenerateurCertificatsHandler,
                  docker_handler: Optional[InstanceDockerHandler], gestionnaire_applications: ApplicationsHandler,
-                 nginx_handler: NginxHandler, acme_handler: Optional[AcmeHandler]):
+                 nginx_handler: NginxHandler):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context = context
         self.__generateur_certificats = generateur_certificats
@@ -52,16 +51,9 @@ class InstanceManager:
         self.__gestionnaire_applications = gestionnaire_applications
         self.__mgbus_handler: Optional[MgbusHandlerInterface] = None
         self.__nginx_handler = nginx_handler
-        self.__acme_handler = acme_handler
-        
         self.__docker_client = docker.from_env()
         self.__compose_handler = ComposeHandler(self.__context, self.__docker_client)
-        
-        # self.__reload_configuration = threading.Event()
-        
-        # self.__runlevel = CONST_RUNLEVEL_INIT
         self.__runlevel_changed = asyncio.Event()
-        
         self.__loop = asyncio.get_event_loop()
         self.__reload_configuration = asyncio.Event()
 
@@ -515,38 +507,7 @@ class InstanceManager:
         nom_application = message.parsed['nom_application']
         return await self.__gestionnaire_applications.arreter_application(nom_application)
 
-    async def get_acme_configuration(self) -> Optional[dict]:
-        try:
-            response = self.__acme_handler.get_configuration()
-            response['ok'] = True
-            return response
-        except AttributeError:
-            # No handler
-            return {'ok': False, 'err': 'Acme disabled'}
 
-    async def update_acme_configuration(self, message: MessageWrapper) -> dict:
-        try:
-            config = message.parsed
-            await self.__acme_handler.update_configuration(config)
-            return {'ok': True}
-        except AttributeError:
-            return {'ok': False, 'err': 'Acme disabled'}
-
-    async def issue_acme_certificate(self, message: MessageWrapper):
-        try:
-            config = message.parsed
-            await self.__acme_handler.update_configuration(config)
-        except AttributeError:
-            return {'ok': False, 'err': 'Acme disabled'}
-        try:
-            await self.__acme_handler.issue_certificate()
-            # Trigger installation on new certificate
-            await self.__docker_handler.verifier_certificat_web()
-            await self.__generateur_certificats.entretien_modules()
-            return {'ok': True}
-        except Exception as e:
-            self.__logger.exception("Error issuing ACME certificate")
-            return {'ok': False, 'err': str(e)}
 
 
 async def wait_for_application(context: InstanceContext, app_name: str):

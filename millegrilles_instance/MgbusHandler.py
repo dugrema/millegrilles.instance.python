@@ -117,10 +117,6 @@ class MgbusHandler(MgbusHandlerInterface):
                 return await self.__manager.start_application(message)
             elif action == ConstantesInstance.COMMANDE_APPLICATION_ARRETER:
                 return await self.__manager.stop_application(message)
-            elif action == ConstantesInstance.COMMANDE_UPDATE_ACME_CONFIGURATION:
-                return await self.__manager.update_acme_configuration(message)
-            elif action == ConstantesInstance.COMMANDE_ACME_ISSUE_CERTIFICATE:
-                return await self.__manager.issue_acme_certificate(message)
 
         self.__logger.info("on_application_message Ignoring unknown action %s" % action)
 
@@ -145,8 +141,6 @@ class MgbusHandler(MgbusHandlerInterface):
                 return await self.__manager.send_application_packages()
             elif action == ConstantesInstance.REQUETE_GET_PASSWORDS:
                 return await self.__manager.get_instance_passwords(message)
-            elif action == ConstantesInstance.REQUETE_CONFIGURATION_ACME:
-                return await self.__manager.get_acme_configuration()
 
         self.__logger.info("on_request_message Ignoring unknown action %s" % action)
 
@@ -176,21 +170,16 @@ def create_applications_channel(instance_id: str, niveau_securite: str, context:
     else:
         niveau_securite_ajuste = niveau_securite
 
-    q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC,
-                                 f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_UPDATE_ACME_CONFIGURATION}'))
-    q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC,
-                                 f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_ACME_ISSUE_CERTIFICATE}'))
-
     q.add_routing_key(RoutingKey(niveau_securite_ajuste,
-                                 f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_INSTALLER}'))
+                                  f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_INSTALLER}'))
     q.add_routing_key(RoutingKey(niveau_securite_ajuste,
-                                 f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_UPGRADE}'))
+                                  f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_UPGRADE}'))
     q.add_routing_key(RoutingKey(niveau_securite_ajuste,
-                                 f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER}'))
+                                  f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER}'))
     q.add_routing_key(RoutingKey(niveau_securite_ajuste,
-                                 f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_DEMARRER}'))
+                                  f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_DEMARRER}'))
     q.add_routing_key(RoutingKey(niveau_securite_ajuste,
-                                 f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_ARRETER}'))
+                                  f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_ARRETER}'))
 
     q_channel.add_queue(q)
     return q_channel
@@ -208,11 +197,8 @@ def create_requests_channel(instance_id: str, niveau_securite: str, context: Ins
     q_channel = MilleGrillesPikaChannel(context, prefetch_count=3)
     q = MilleGrillesPikaQueueConsumer(context, on_message, f'instance/{instance_id}/requests', arguments={'x-message-ttl': 30_000})
 
-    q.add_routing_key(RoutingKey(Constantes.SECURITE_PUBLIC,
-                                 f'requete.instance.{instance_id}.{ConstantesInstance.REQUETE_CONFIGURATION_ACME}'))
-
-    q.add_routing_key(RoutingKey(niveau_securite_ajuste,
-                                 f'requete.instance.{instance_id}.{ConstantesInstance.REQUETE_GET_PASSWORDS}'))
+    q.add_routing_key(niveau_securite_ajuste,
+                      f'requete.instance.{instance_id}.{ConstantesInstance.REQUETE_GET_PASSWORDS}')
 
     if niveau_securite == Constantes.SECURITE_PROTEGE:
         q.add_routing_key(RoutingKey(Constantes.SECURITE_PROTEGE,

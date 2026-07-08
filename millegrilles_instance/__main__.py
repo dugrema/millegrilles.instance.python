@@ -8,7 +8,6 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from typing import Awaitable
 
 from millegrilles_instance.SystemStatus import SystemStatus
-from millegrilles_instance.millegrilles_acme.AcmeClient import AcmeHandler
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopListener
 from millegrilles_messages.bus.BusExceptions import ConfigurationFileError
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
@@ -83,8 +82,6 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     system_status = SystemStatus(context)
 
     acme_handler = None
-    if os.environ.get("DISABLE_ACME") is None:
-        acme_handler = AcmeHandler(context)
 
     docker_state = DockerState(context)
     if docker_state.docker_present() is False:
@@ -99,7 +96,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     applications_handler = ApplicationsHandler(context, docker_handler)
 
     # Facade
-    manager = InstanceManager(context, generateur_certificats, docker_handler, applications_handler, nginx_handler, acme_handler)
+    manager = InstanceManager(context, generateur_certificats, docker_handler, applications_handler, nginx_handler)
     context.add_reload_listener(manager.callback_changement_configuration)
 
     # Access modules
@@ -111,8 +108,6 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     await manager.setup(bus_handler)
     await web_server.setup()
     await nginx_handler.setup()
-    if acme_handler:
-        await acme_handler.setup()
 
     # Create tasks
     coros = [
@@ -126,8 +121,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
         nginx_handler.run(),
     ]
 
-    if acme_handler:
-        coros.append(acme_handler.run())
+
 
     if docker_handler:
         coros.append(docker_handler.run())

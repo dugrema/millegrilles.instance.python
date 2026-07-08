@@ -28,6 +28,8 @@ done
 
 export MILLEGRILLES_HOME
 export INSTANCE_NAME
+export MILLEGRILLES_PATH="${MILLEGRILLES_HOME}"
+export REPO_ROOT="${REPO_ROOT}"
 
 # Ensure installation directory exists
 mkdir -p "${MILLEGRILLES_HOME}"
@@ -36,6 +38,8 @@ mkdir -p "${MILLEGRILLES_HOME}"
 cat <<EOF > "${MILLEGRILLES_HOME}/config.env"
 MILLEGRILLES_HOME="${MILLEGRILLES_HOME}"
 INSTANCE_NAME="${INSTANCE_NAME}"
+MILLEGRILLES_PATH="${MILLEGRILLES_HOME}"
+REPO_ROOT="${REPO_ROOT}"
 EOF
 
 # Source the newly created config
@@ -71,6 +75,7 @@ creer_repertoires() {
   echo "[INFO] Configurer les repertoires de MilleGrilles"
   mkdir -p "${MILLEGRILLES_HOME}/issuer" "${PATH_LOGS}"
   mkdir -p "${MILLEGRILLES_HOME}/configuration"
+  mkdir -p "${MILLEGRILLES_HOME}/etc"
   mkdir -p "${MILLEGRILLES_HOME}/consignation"
   mkdir -p "${MILLEGRILLES_HOME}/nginx/html"
   mkdir -p "${MILLEGRILLES_HOME}/secrets"
@@ -85,6 +90,7 @@ copier_fichiers() {
   echo "[INFO] Copier fichiers systeme"
   cp "${REP_BIN}/start_instance.sh" "${MILLEGRILLES_HOME}/bin/" || true
   cp "${REP_ETC}/idmg_validation.json" "${MILLEGRILLES_HOME}/configuration/" || true
+  cp -r "${REP_ETC}/nginx" "${MILLEGRILLES_HOME}/etc/nginx" || true
   
   # Create an empty config.json to prevent errors in ConfigurationInstance.load()
   if [ ! -f "${MILLEGRILLES_HOME}/configuration/config.json" ]; then
@@ -106,7 +112,7 @@ configurer_docker_swarm() {
   
   docker network create -d overlay --attachable --scope swarm millegrille_net > /dev/null 2>&1 || true
   docker config rm docker.versions > /dev/null 2>&1 || true
-
+  
   # Config files for Docker Swarm
   # We look for docker.xxx.json files in the docker config directory
   local DOCKER_CONFIG_DIR="${REP_ETC}/docker"
@@ -144,7 +150,7 @@ install_instance_v2() {
     # Install the current package in editable mode so it's importable
     echo "[INFO] Installer millegrilles_instance en mode editable"
     "${PATH_VENV}/bin/pip" install -e .
-
+    
     echo "[INFO] Copier fichiers de configuration, code python"
     "${REP_BIN}/install_catalogues.sh"
     "${REP_BIN}/install_web.sh"

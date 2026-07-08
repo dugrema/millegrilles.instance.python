@@ -545,6 +545,7 @@ async def install_service(context: InstanceContext, docker_handler: DockerHandle
         # S'assurer d'avoir l'image
         image = parser.image
         if image is not None:
+            image_tag = command.image_tag[service_name]
             commande_creer_service = DockerCommandes.CommandeCreerService(
                 image_tag, config_parsed, reinstaller=command.reinstall)
             try:
