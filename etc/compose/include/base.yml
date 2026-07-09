@@ -1,5 +1,6 @@
 networks:
-  ${INSTANCE_NAME}_net:
+  app_net:
+    name: ${INSTANCE_NAME}_net
     external: true
 
 volumes:

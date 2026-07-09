@@ -9,7 +9,7 @@ services:
     volumes:
       - mongo-data:/data/db
     networks:
-      - ${INSTANCE_NAME}_net
+      - app_net
     deploy:
       placement:
         constraints:

@@ -10,7 +10,7 @@ services:
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     networks:
-      - ${INSTANCE_NAME}_net
+      - app_net
       - bridge
     deploy:
       placement:

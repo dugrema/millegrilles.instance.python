@@ -30,4 +30,4 @@ services:
     ports:
       - "2444:2444"
     networks:
-      - ${INSTANCE_NAME}_net
+      - app_net

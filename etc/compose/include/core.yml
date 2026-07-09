@@ -42,4 +42,4 @@ services:
       - source: passwd.redis
         target: passwd.redis.txt
     networks:
-      - ${INSTANCE_NAME}_net
+      - app_net

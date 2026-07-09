@@ -31,4 +31,4 @@ services:
       - source: pki.ceduleur
         target: key.pem
     networks:
-      - ${INSTANCE_NAME}_net
+      - app_net

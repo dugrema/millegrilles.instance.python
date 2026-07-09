@@ -5,7 +5,7 @@ services:
     volumes:
       - mg-redis:/data
     networks:
-      - ${INSTANCE_NAME}_net
+      - app_net
     deploy:
       placement:
         constraints:

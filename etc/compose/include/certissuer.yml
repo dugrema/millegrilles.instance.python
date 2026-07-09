@@ -7,7 +7,7 @@ services:
     volumes:
       - ${MILLEGRILLES_PATH}:/var/opt/millegrilles
     networks:
-      - ${INSTANCE_NAME}_net
+      - app_net
     deploy:
       placement:
         constraints:
