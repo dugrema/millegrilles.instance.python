@@ -171,8 +171,8 @@ class InstanceManager:
         """
         configuration: ConfigurationInstance = self.__context.configuration
         self.__logger.info("Prepare folders and files under %s" % configuration.path_millegrilles)
-        await asyncio.to_thread(makedirs, configuration.path_secrets, 0o700, exist_ok=True)
-        await asyncio.to_thread(makedirs, configuration.path_secrets_partages, 0o700, exist_ok=True)
+        # await asyncio.to_thread(makedirs, configuration.path_secrets, 0o700, exist_ok=True)
+        # await asyncio.to_thread(makedirs, configuration.path_secrets_partages, 0o700, exist_ok=True)
         await self.__prepare_folder_configuration()
         await self.__prepare_self_signed_web_certificates()
 
@@ -184,7 +184,7 @@ class InstanceManager:
 
     async def __prepare_folder_configuration(self):
         configuration: ConfigurationInstance = self.__context.configuration
-        await asyncio.to_thread(makedirs, configuration.path_configuration, 0o700, exist_ok=True)
+        # await asyncio.to_thread(makedirs, configuration.path_configuration, 0o700, exist_ok=True)
 
         # Verifier si on a les fichiers de base (instance_id.txt)
         path_instance_txt = path.join(configuration.path_configuration, 'instance_id.txt')

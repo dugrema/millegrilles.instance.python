@@ -131,8 +131,10 @@ class NginxHandler:
         return configuration_modifiee
 
     def generer_configuration_nginx(self) -> bool:
-        path_src_nginx = self.__context.configuration.path_etc / 'nginx'
-        return generer_configuration_nginx(self.__context, path_src_nginx)
+        self.__logger.warning("NGINX CONFIG - TODO")
+        return False
+        #path_src_nginx = self.__context.configuration.path_etc / 'nginx'
+        #return generer_configuration_nginx(self.__context, path_src_nginx)
 
     def sauvegarder_fichier_data(self, path_fichier: str, contenu: Union[str, bytes, dict], path_html=False):
         path_nginx = self.__context.configuration.path_nginx

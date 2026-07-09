@@ -81,8 +81,6 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     context.bus_connector = bus_connector
     system_status = SystemStatus(context)
 
-    acme_handler = None
-
     docker_state = DockerState(context)
     if docker_state.docker_present() is False:
         # Docker not supported
@@ -120,8 +118,6 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
         bus_handler.run(),
         nginx_handler.run(),
     ]
-
-
 
     if docker_handler:
         coros.append(docker_handler.run())
