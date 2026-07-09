@@ -17,11 +17,22 @@ export MILLEGRILLES_HOME="${HOME}/${INSTANCE_NAME}"
 export MG_INSTALL=1
 
 # Parse arguments
+usage() {
+  echo "Usage: $0 [options]"
+  echo ""
+  echo "Options:"
+  echo "  --prefix <path>    Set the installation directory (default: ${HOME}/${INSTANCE_NAME})"
+  echo "  --name <name>      Set the instance name (default: default)"
+  echo "  --help            Display this help message"
+  exit 0
+}
+
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     --prefix) MILLEGRILLES_HOME="$2"; shift ;;
     --name) INSTANCE_NAME="$2"; shift ;;
-    *) echo "Unknown parameter: $1"; exit 1 ;;
+    --help) usage ;;
+    *) echo "Unknown parameter: $1"; usage; exit 1 ;;
   esac
   shift
 done
