@@ -49,10 +49,14 @@ mkdir -p "${MILLEGRILLES_ROOT}"
 
 # Generate instance-specific config.env
 INSTANCE_ID=$(python3 -c 'import uuid; print(uuid.uuid1())')
+CONTAINER_UID=$(id -u)
+CONTAINER_GID=$(id -g)
 
 cat <<EOF > "${MILLEGRILLES_ROOT}/config.env"
 INSTANCE_ID="${INSTANCE_ID}"
-MILLEGRILLES_ROOT="${MILLEGRILLES_ROOT}"
+CONTAINER_UID="${CONTAINER_UID}"
+CONTAINER_GID="${CONTAINER_GID}"
+MILLEGRILLES_HOME="${MILLEGRILLES_ROOT}"
 INSTANCE_NAME="${INSTANCE_NAME}"
 INSTANCE_DOMAIN="${INSTANCE_DOMAIN}"
 REPO_ROOT="${REPO_ROOT}"
@@ -61,6 +65,7 @@ HTTPS_PORT=443
 HTTPS_MG_PORT=444
 MQ_PORT=5673
 EOF
+
 
 # Source the newly created config
 source "${MILLEGRILLES_ROOT}/config.env"

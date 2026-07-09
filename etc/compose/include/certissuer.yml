@@ -1,6 +1,7 @@
 services:
   certissuer:
     image: registry.millegrilles.com/millegrilles/midcompte_python:2025.4.112
+    user: "${CONTAINER_UID}:${CONTAINER_GID}"
     command: ["-m", "millegrilles_certissuer"]
     environment:
       - WEB_PORT=2080
