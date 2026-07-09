@@ -1,0 +1,83 @@
+services:
+  nginx:
+    image: registry.millegrilles.com/millegrilles/nginx:1.31.0.null.2
+    environment:
+      - ONIONSERVICE_NAME=nginx
+      - ONIONSERVICE_PORT=443
+    volumes:
+      - ${NGINX_PATH}/data:/var/opt/millegrilles/nginx/data:ro
+      - ${NGINX_PATH}/modules:/etc/nginx/conf.d/modules:ro
+      - ${NGINX_PATH}/html:/usr/share/nginx/html:ro
+    networks:
+      - millegrille_net
+    ports:
+      - "443:443"
+      - "444:444"
+      - "80:80"
+      - "1443:1443"
+      - "1444:1444"
+      - "1445:1445"
+    deploy:
+      placement:
+        constraints:
+          - node.labels.millegrilles.nginx == true
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 30M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 1000
+    configs:
+      - source: pki.web
+        target: /run/secrets/webcert.pem
+      - source: pki.nginx
+        target: /run/secrets/nginx.cert.pem
+      - source: pki.millegrille
+        target: /usr/share/nginx/files/certs/millegrille.cert.pem
+    secrets:
+      - source: pki.web
+        target: webkey.pem
+      - source: pki.nginx
+        target: nginx.key.pem
+
+  certissuer:
+    image: registry.millegrilles.com/millegrilles/midcompte_python:2025.4.112
+    command: ["-m", "millegrilles_certissuer"]
+    environment:
+      - WEB_PORT=2080
+    volumes:
+      - ${MILLEGRILLES_PATH}:/var/opt/millegrilles
+    networks:
+      - millegrille_net
+    deploy:
+      placement:
+        constraints:
+          - node.labels.millegrilles.certissuer == true
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 150M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 1000
+
+networks:
+  millegrille_net:
+    external: true
+
+configs:
+  pki.web:
+    file: ${MILLEGRILLES_ROOT}/secrets/webcert.pem # TODO
+  pki.nginx:
+    file: ${MILLEGRILLES_ROOT}/secrets/nginx.cert.pem # TODO
+  pki.millegrille:
+    file: ${MILLEGRILLES_ROOT}/secrets/millegrille.cert.pem # TODO
+
+secrets:
+  pki.web:
+    file: ${MILLEGRILLES_ROOT}/secrets/webkey.pem
+  pki.nginx:
+    file: ${MILLEGRILLES_ROOT}/secrets/nginx.key.pem
