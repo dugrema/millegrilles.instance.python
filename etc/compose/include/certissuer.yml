@@ -4,6 +4,7 @@ services:
     user: "${CONTAINER_UID}:${CONTAINER_GID}"
     command: ["-m", "millegrilles_certissuer"]
     environment:
+      - INSTANCE_ID=${INSTANCE_ID}
       - WEB_PORT=2080
     volumes:
       - ${MILLEGRILLES_ROOT}/etc:/var/opt/millegrilles/etc:ro

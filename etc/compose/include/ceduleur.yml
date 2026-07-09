@@ -3,6 +3,7 @@ services:
     image: registry.millegrilles.com/millegrilles/midcompte_python:2025.4.112
     command: ["-m", "millegrilles_ceduleur"]
     environment:
+      - INSTANCE_ID=${INSTANCE_ID}
       - CA_PATH=/run/secrets/pki.millegrille.cert
       - CERT_PATH=/run/secrets/cert.pem
       - KEY_PATH=/run/secrets/key.pem
