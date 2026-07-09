@@ -7,7 +7,7 @@ import json
 from typing import Optional, Any
 
 import docker.errors
-from docker import Container
+from docker.models.containers import Container
 
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.Interfaces import DockerHandlerInterface

@@ -39,6 +39,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
         self.__logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
         self.__context = context
         self.__docker_state = docker_state
+        self.docker = docker_state.docker
         self.__docker_handler = DockerHandler(docker_state)
         self.__compose_handler = ComposeHandler(self.__context, docker_state.docker)
 
@@ -334,17 +335,10 @@ class InstanceDockerHandler(DockerHandlerInterface):
         await self.verifier_certificat_web()
 
     async def sauvegarder_config(self, label: str, valeur: str, comparer=False):
-        commande = DockerCommandes.CommandeGetConfiguration(label)
-        try:
-            await self.__docker_handler.run_command(commande)
-            valeur_docker = await commande.get_data()
-            self.__logger.debug("Docker %s : %s" % (label, valeur_docker))
-            if comparer is True and valeur_docker != valeur:
-                raise Exception("Erreur configuration, %s mismatch" % label)
-        except NotFound:
-            self.__logger.debug("Docker instance NotFound")
-            commande_ajouter = DockerCommandes.CommandeAjouterConfiguration(label, valeur)
-            await self.__docker_handler.run_command(commande_ajouter)
+        # Swarm-style config/secret management is no longer used. 
+        # Configuration is now managed via files and docker-compose.
+        self.__logger.debug("sauvegarder_config: %s skipped (Swarm-style config no longer used)" % label)
+        pass
 
     async def verifier_certificat_web(self):
         """
@@ -370,48 +364,8 @@ class InstanceDockerHandler(DockerHandlerInterface):
         :param clecertificat:
         :return:
         """
-        enveloppe = clecertificat.enveloppe
-        if enveloppe.is_root_ca is True:
-            # Certificat self-signed, s'assurer que la date est vieille
-            date_debut = '20000101000000'
-        else:
-            date_debut = enveloppe.not_valid_before.strftime('%Y%m%d%H%M%S')
-        label_certificat = 'pki.%s.cert.%s' % (nom_module, date_debut)
-        label_cle = 'pki.%s.key.%s' % (nom_module, date_debut)
-        pem_certificat = '\n'.join(enveloppe.chaine_pem())
-        pem_cle = clecertificat.private_key_bytes().decode('utf-8')
-        if combiner is True:
-            pem_cle = '\n'.join([pem_cle, pem_certificat])
-
-        labels = {
-            'certificat': 'true',
-            'label_prefix': 'pki.%s' % nom_module,
-            'date': date_debut,
-        }
-
-        commande_ajouter_cert = DockerCommandes.CommandeAjouterConfiguration(label_certificat, pem_certificat, labels=labels)
-        ajoute = False
-        try:
-            await self.__docker_handler.run_command(commande_ajouter_cert)
-            ajoute = True
-        except APIError as apie:
-            if apie.status_code == 409:
-                pass  # Config existe deja
-            else:
-                raise apie
-
-        commande_ajouter_cle = DockerCommandes.CommandeAjouterSecret(label_cle, pem_cle, labels=labels)
-        try:
-            await self.__docker_handler.run_command(commande_ajouter_cle)
-            ajoute = True
-        except APIError as apie:
-            if apie.status_code == 409:
-                pass  # Secret existe deja
-            else:
-                raise apie
-
-        if ajoute:
-            self.__logger.debug("Nouveau certificat, reconfigurer module %s" % nom_module)
+        self.__logger.debug("assurer_clecertificat: %s skipped (Swarm-style secrets no longer used)" % nom_module)
+        pass
 
     async def get_configurations_datees(self):
         commande = DockerCommandes.CommandeGetConfigurationsDatees()
