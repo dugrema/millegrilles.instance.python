@@ -49,7 +49,7 @@ mkdir -p "${MILLEGRILLES_ROOT}"
 
 # Generate instance-specific config.env
 cat <<EOF > "${MILLEGRILLES_ROOT}/config.env"
-MILLEGRILLES_ROOT="${MILLEGRILLES_ROOT}"
+MILLEGRILLES_HOME="${MILLEGRILLES_ROOT}"
 INSTANCE_NAME="${INSTANCE_NAME}"
 INSTANCE_DOMAIN="${INSTANCE_DOMAIN}"
 REPO_ROOT="${REPO_ROOT}"
@@ -84,9 +84,50 @@ preflight_check() {
   echo "[OK] Pre-flight checks passed."
 }
 
-# ------------------------------------------------------------------------------
-# Installation Components (Extracted from original scripts)
-# ------------------------------------------------------------------------------
+install_python_venv() {
+  local PATH_VENV=$1
+  echo "[INFO] Configurer venv python3, venv et dependances sous ${PATH_VENV}"
+  python3 -m venv --system-site-packages "$PATH_VENV"
+
+  echo "Activer venv ${PATH_VENV}"
+  source "${PATH_VENV}/bin/activate"
+
+  if ! pip3 list | grep "wheel" > /dev/null; then
+    echo "[INFO] Installer pip wheel"
+    pip3 install wheel
+  fi
+
+  echo "[INFO] Verifier requirements python pour millegrilles, installer au besoin"
+  pip3 install -r "${REPO_ROOT}/requirements.txt"
+
+  echo "[INFO] Fix oscrypto pour OpenSSL 3"
+  OSCRYPTO_ZIP="${REPO_ROOT}/lib/oscrypto_130_fix_d5f3437ed24257895ae1edd9e503cfb352e635a8.zip"
+  if [ -f "$OSCRYPTO_ZIP" ]; then
+    pip3 install "$OSCRYPTO_ZIP"
+  else
+    echo "[WARN] Patched oscrypto not found at $OSCRYPTO_ZIP"
+  fi
+
+  echo "[INFO] Fin configuration venv python3"
+}
+
+install_web_files() {
+  # Source the instance-specific config
+  if [ -f "${MILLEGRILLES_ROOT}/config.env" ]; then
+      source "${MILLEGRILLES_ROOT}/config.env"
+  fi
+
+  local REP_SRC="${REPO_ROOT}/dist/web"
+  local REP_NGINX="${MILLEGRILLES_ROOT}/nginx"
+
+  echo "[INFO] Copier fichier web"
+  mkdir -p "$REP_NGINX/html"
+
+  cp -vr "$REPO_ROOT/etc/nginx/html" "$REP_NGINX/"
+  cp -v "$REPO_SRC/favicon.ico" "$REP_NGINX/html"
+
+  echo "[OK] Fichier web copie"
+}
 
 creer_repertoires() {
   echo "[INFO] Configurer les repertoires de MilleGrilles"
@@ -108,11 +149,6 @@ copier_fichiers() {
   mkdir -p "${MILLEGRILLES_ROOT}/nginx/modules"
   cp -v "${REP_ETC}/nginx/nginx_installation/"* "${MILLEGRILLES_ROOT}/nginx/modules/"
 
-#  # Create an empty config.json to prevent errors in ConfigurationInstance.load()
-#  if [ ! -f "${MILLEGRILLES_ROOT}/configuration/config.json" ]; then
-#    echo "{}" > "${MILLEGRILLES_ROOT}/configuration/config.json"
-#  fi
-
   echo "[OK] Fichiers copies"
 }
 
@@ -125,31 +161,10 @@ configurer_docker_swarm() {
   echo "[INFO] Configurer docker pour instance: ${INSTANCE_NAME}"
   # Attempt to initialize swarm if not already in a swarm
   # docker swarm init --advertise-addr 127.0.0.1 > /dev/null 2>&1 || true
-
+  
   docker network create -d overlay --attachable --scope swarm "${INSTANCE_NAME}_net" > /dev/null 2>&1 || true
   # docker config rm docker.versions > /dev/null 2>&1 || true
-
-#  # Config files for Docker Swarm
-#  # We look for docker.xxx.json files in the docker config directory
-#  local DOCKER_CONFIG_DIR="${REP_ETC}/docker"
-#  if [ -d "${DOCKER_CONFIG_DIR}" ]; then
-#    for FILE in "${DOCKER_CONFIG_DIR}"/docker.*.json; do
-#      [ -e "$FILE" ] || continue
-#      local NOM_FICHIER=$(basename "$FILE")
-#      local MODULE=$(echo "$NOM_FICHIER" | sed 's/^docker\.//;s/\.json$//')
-#
-#      echo "[INFO] Configurer module docker: $MODULE"
-#
-#      docker config rm "docker.cfg.${MODULE}.${INSTANCE_NAME}" > /dev/null 2>&1 || true
-#
-#      local TEMP_CONFIG=$(mktemp)
-#      # Inject instance name into volume source paths
-#      sed 's/"source": "\([^"]*\)"/"source": "\1-${INSTANCE_NAME}"/g' "$FILE" > "$TEMP_CONFIG"
-#
-#      docker config create "docker.cfg.${MODULE}.${INSTANCE_NAME}" "$TEMP_CONFIG"
-#      rm "$TEMP_CONFIG"
-#    done
-#  fi
+  
   echo "[OK] Configuration docker swarm completee"
 }
 
@@ -158,18 +173,17 @@ install_instance_v2() {
 
   if [ ! -d "${MILLEGRILLES_ROOT}/configuration" ]; then
     configurer_reps
-
+    
     echo "[INFO] Creer venv python3 sous ${PATH_VENV}"
-    cd "${REPO_ROOT}"
-    "${REP_BIN}/install_python.sh" "${PATH_VENV}"
-
+    install_python_venv "${PATH_VENV}"
+    
     # Install the current package in editable mode so it's importable
     echo "[INFO] Installer millegrilles_instance en mode editable"
     "${PATH_VENV}/bin/pip" install -e .
 
     echo "[INFO] Copier fichiers de configuration, code python"
     "${REP_BIN}/install_catalogues.sh"
-    "${REP_BIN}/install_web.sh"
+    install_web_files
 
     if docker info > /dev/null 2>&1; then
       echo "[INFO] Configuration docker détectée"
