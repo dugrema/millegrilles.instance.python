@@ -1,0 +1,38 @@
+services:
+  webauth:
+    image: registry.millegrilles.com/millegrilles/webauth_python:2025.4.18
+    environment:
+      - MQ_HOSTNAME=${MQ_HOSTNAME}
+      - MQ_PORT=${MQ_PORT}
+      - REDIS_HOSTNAME=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD_PATH=/run/secrets/passwd.redis.txt
+      - CERT_PATH=/run/secrets/cert.pem
+      - KEY_PATH=/run/secrets/key.pem
+      - CA_PATH=/run/secrets/millegrille.cert.pem
+      - WEB_PORT=1443
+    deploy:
+      placement:
+        constraints:
+          - node.labels.millegrilles.webauth == true
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 100M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 100
+    configs:
+      - source: pki.webauth
+        target: /run/secrets/cert.pem
+      - source: pki.millegrille
+        target: /run/secrets/millegrille.cert.pem
+    secrets:
+      - source: pki.webauth
+        target: key.pem
+      - source: pki.millegrille
+        target: millegrille.cert.pem
+    networks:
+      - millegrille_net
+      - bridge

@@ -1,0 +1,36 @@
+services:
+  mongo:
+    image: mongo:8.2.6
+    hostname: mongo
+    command: ["mongod", "--tlsMode", "requireTLS", "--tlsCertificateKeyFile", "/run/secrets/mongo.key_cert.pem", "--tlsCAFile", "/run/secrets/millegrille.cert.pem", "--replSet", "rs0", "--clusterAuthMode", "x509", "--tlsClusterFile", "/run/secrets/mongo.key_cert.pem"]
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD_FILE=/run/secrets/mongo.root.password
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - millegrille_net
+    deploy:
+      placement:
+        constraints:
+          - node.labels.millegrilles.database == true
+      resources:
+        limits:
+          cpus: '3.0'
+          memory: 2000M
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 1000
+    configs:
+      - source: pki.mongo
+        target: /run/secrets/mongo.cert.pem
+      - source: pki.millegrille
+        target: /run/secrets/millegrille.cert.pem
+    secrets:
+      - source: pki.mongo
+        target: mongo.key_cert.pem
+      - source: pki.millegrille
+        target: millegrille.cert.pem
+      - source: passwd.mongo
+        target: mongo.root.password

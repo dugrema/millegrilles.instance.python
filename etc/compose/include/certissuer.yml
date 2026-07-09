@@ -1,0 +1,22 @@
+services:
+  certissuer:
+    image: registry.millegrilles.com/millegrilles/midcompte_python:2025.4.112
+    command: ["-m", "millegrilles_certissuer"]
+    environment:
+      - WEB_PORT=2080
+    volumes:
+      - ${MILLEGRILLES_PATH}:/var/opt/millegrilles
+    networks:
+      - millegrille_net
+    deploy:
+      placement:
+        constraints:
+          - node.labels.millegrilles.certissuer == true
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 150M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 1000

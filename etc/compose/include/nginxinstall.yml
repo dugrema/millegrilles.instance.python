@@ -1,0 +1,32 @@
+services:
+  nginxinstall:
+    image: registry.millegrilles.com/millegrilles/nginx:1.31.0.null.2
+    environment:
+      - ONIONSERVICE_NAME=nginx
+      - ONIONSERVICE_PORT=443
+    volumes:
+      - ${NGINX_PATH}/modules:/etc/nginx/conf.d/modules:ro
+      - ${NGINX_PATH}/html:/usr/share/nginx/html:ro
+    networks:
+      - millegrille_net
+    ports:
+      - "443:443"
+      - "80:80"
+    deploy:
+      placement:
+        constraints:
+          - node.labels.millegrilles.nginx == true
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 30M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 1000
+    configs:
+      - source: pki.web
+        target: /run/secrets/webcert.pem
+    secrets:
+      - source: pki.web
+        target: webkey.pem

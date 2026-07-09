@@ -1,0 +1,45 @@
+services:
+  core:
+    image: registry.millegrilles.com/millegrilles/core_rust:2026.0.119
+    environment:
+      - MG_MQ_HOST=mq
+      - MG_MQ_PORT=5673
+      - MG_MONGO_HOST=mongo
+      - MG_MQ_SSL=on
+      - MG_MQ_AUTH_CERT=on
+      - CERTFILE=/run/secrets/cert.pem
+      - KEYFILE=/run/secrets/key.pem
+      - CAFILE=/run/secrets/millegrille.cert.pem
+      - MG_FICHIERS_URL=https://fichiers:443
+      - MG_REDIS_URL=rediss://client_rust@redis:6379#insecure
+      - MG_REDIS_PASSWORD_FILE=/run/secrets/passwd.redis.txt
+      - RUST_LOG=warn
+      - MG_CERTISSUER_URL=http://certissuer:2080
+    volumes:
+      - ${CONFIGURATION_PATH}:/var/opt/millegrilles/configuration:ro
+      - millegrilles-domain-archives:/var/opt/millegrilles/archives
+    deploy:
+      placement:
+        constraints:
+          - node.labels.millegrilles.core == true
+          - node.labels.millegrilles.database == true
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 200M
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 1000
+    configs:
+      - source: pki.core
+        target: /run/secrets/cert.pem
+      - source: pki.millegrille
+        target: /run/secrets/millegrille.cert.pem
+    secrets:
+      - source: pki.core
+        target: key.pem
+      - source: passwd.redis
+        target: passwd.redis.txt
+    networks:
+      - millegrille_net

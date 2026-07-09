@@ -1,0 +1,8 @@
+networks:
+  millegrille_net:
+    external: true
+
+volumes:
+  mg-redis:
+  rabbitmq-data:
+  mongo-data:

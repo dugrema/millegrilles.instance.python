@@ -1,0 +1,34 @@
+services:
+  ceduleur:
+    image: registry.millegrilles.com/millegrilles/midcompte_python:2025.4.112
+    command: ["-m", "millegrilles_ceduleur"]
+    environment:
+      - CA_PATH=/run/secrets/pki.millegrille.cert
+      - CERT_PATH=/run/secrets/cert.pem
+      - KEY_PATH=/run/secrets/key.pem
+      - MQ_HOSTNAME=mq
+      - MQ_PORT=${MQ_PORT}
+      - REDIS_HOSTNAME=redis
+      - REDIS_PORT=6379
+    deploy:
+      placement:
+        constraints:
+          - node.labels.millegrilles.ceduleur == true
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 250M
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 1000
+    configs:
+      - source: pki.millegrille
+        target: /run/secrets/pki.millegrille.cert
+      - source: pki.ceduleur
+        target: /run/secrets/cert.pem
+    secrets:
+      - source: pki.ceduleur
+        target: key.pem
+    networks:
+      - millegrille_net

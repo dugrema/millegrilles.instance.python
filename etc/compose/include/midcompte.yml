@@ -1,0 +1,33 @@
+services:
+  midcompte:
+    image: registry.millegrilles.com/millegrilles/midcompte_python:2025.4.112
+    environment:
+      - WEB_PORT=2444
+    deploy:
+      placement:
+        constraints:
+          - node.labels.millegrilles.midcompte == true
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 150M
+      restart_policy:
+        condition: any
+        delay: 5s
+        max_attempts: 1000
+    configs:
+      - source: pki.millegrille
+        target: /run/secrets/pki.millegrille.cert
+      - source: pki.midcompte
+        target: /run/secrets/cert.pem
+    secrets:
+      - source: pki.midcompte
+        target: key.pem
+      - source: passwd.mongo
+        target: passwd.mongo.txt
+      - source: passwd.mqadmin
+        target: passwd.mqadmin.txt
+    ports:
+      - "2444:2444"
+    networks:
+      - millegrille_net
