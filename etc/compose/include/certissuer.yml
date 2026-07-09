@@ -7,8 +7,8 @@ services:
       - INSTANCE_ID=${INSTANCE_ID}
       - WEB_PORT=2080
     volumes:
-      - ${MILLEGRILLES_ROOT}/etc:/var/opt/millegrilles/etc:ro
-      - ${MILLEGRILLES_ROOT}/etc/secrets/issuer:/var/opt/millegrilles/etc/secrets/issuer
+      - ${MILLEGRILLES_ROOT}/etc:/var/opt/millegrilles/configuration:ro
+      - ${MILLEGRILLES_ROOT}/etc/secrets/issuer:/var/opt/millegrilles/certissuer
     networks:
       - app_net
     deploy:
