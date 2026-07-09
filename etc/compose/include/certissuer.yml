@@ -5,13 +5,11 @@ services:
     environment:
       - WEB_PORT=2080
     volumes:
-      - ${MILLEGRILLES_PATH}:/var/opt/millegrilles
+      - ${MILLEGRILLES_ROOT}/etc:/var/opt/millegrilles/etc:ro
+      - ${MILLEGRILLES_ROOT}/etc/secrets/issuer:/var/opt/millegrilles/etc/secrets/issuer
     networks:
       - app_net
     deploy:
-      placement:
-        constraints:
-          - node.labels.millegrilles.certissuer == true
       resources:
         limits:
           cpus: '0.5'

@@ -30,14 +30,28 @@ services:
         delay: 5s
         max_attempts: 1000
     configs:
-      - source: pki.web
+      - source: pki_web
         target: /run/secrets/webcert.pem
-      - source: pki.nginx
+      - source: pki_nginx
         target: /run/secrets/nginx.cert.pem
-      - source: pki.millegrille
+      - source: pki_millegrille
         target: /usr/share/nginx/files/certs/millegrille.cert.pem
     secrets:
-      - source: pki.web
+      - source: pki_web
         target: webkey.pem
-      - source: pki.nginx
+      - source: pki_nginx
         target: nginx.key.pem
+
+configs:
+  pki_web:
+    file: ${MILLEGRILLES_ROOT}/etc/secrets/pki.web.cert
+  pki_nginx:
+    file: ${MILLEGRILLES_ROOT}/etc/secrets/pki.nginx.cert
+  pki_millegrille:
+    file: ${MILLEGRILLES_ROOT}/etc/pki.millegrille.cert
+
+secrets:
+  pki_web:
+    file: ${MILLEGRILLES_ROOT}/etc/secrets/pki.web.key
+  pki_nginx:
+    file: ${MILLEGRILLES_ROOT}/etc/secrets/pki.nginx.key

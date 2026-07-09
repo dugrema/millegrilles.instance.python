@@ -48,10 +48,7 @@ export REPO_ROOT="${REPO_ROOT}"
 mkdir -p "${MILLEGRILLES_ROOT}"
 
 # Generate instance-specific config.env
-INSTANCE_ID=$(python3 -c 'import uuid; print(uuid.uuid1())')
-
 cat <<EOF > "${MILLEGRILLES_ROOT}/config.env"
-INSTANCE_ID="${INSTANCE_ID}"
 MILLEGRILLES_HOME="${MILLEGRILLES_ROOT}"
 INSTANCE_NAME="${INSTANCE_NAME}"
 INSTANCE_DOMAIN="${INSTANCE_DOMAIN}"
@@ -61,6 +58,7 @@ HTTPS_PORT=443
 HTTPS_MG_PORT=444
 MQ_PORT=5673
 EOF
+
 # Source the newly created config
 source "${MILLEGRILLES_ROOT}/config.env"
 
@@ -147,6 +145,7 @@ copier_fichiers() {
   echo "[INFO] Copier fichiers systeme"
   cp -v "${REP_BIN}/start_instance.sh" "${MILLEGRILLES_ROOT}/bin/"
   cp -v "${REP_ETC}/idmg_validation.json" "${MILLEGRILLES_ROOT}/etc/"
+  cp -vr "${REP_ETC}/compose" "${MILLEGRILLES_ROOT}/etc/"
   mkdir -p "${MILLEGRILLES_ROOT}/nginx/modules"
   cp -v "${REP_ETC}/nginx/nginx_installation/"* "${MILLEGRILLES_ROOT}/nginx/modules/"
 
@@ -158,7 +157,7 @@ configurer_reps() {
   copier_fichiers
 }
 
-configurer_docker_swarm() {
+configurer_docker_network() {
   echo "[INFO] Configurer docker pour instance: ${INSTANCE_NAME}"
   # Attempt to initialize swarm if not already in a swarm
   # docker swarm init --advertise-addr 127.0.0.1 > /dev/null 2>&1 || true
@@ -185,11 +184,7 @@ install_instance_v2() {
     echo "[INFO] Copier fichiers de configuration, code python"
     "${REP_BIN}/install_catalogues.sh"
     install_web_files
-
-    if docker info > /dev/null 2>&1; then
-      echo "[INFO] Configuration docker détectée"
-      configurer_docker_swarm
-    fi
+    configurer_docker_network
   else
     echo "[WARN] Dossier configuration déjà existant. Installation ignorée."
   fi

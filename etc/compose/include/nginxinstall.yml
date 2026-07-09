@@ -1,21 +1,15 @@
 services:
   nginxinstall:
     image: registry.millegrilles.com/millegrilles/nginx:1.31.0.null.2
-    environment:
-      - ONIONSERVICE_NAME=nginx
-      - ONIONSERVICE_PORT=443
     volumes:
-      - ${NGINX_PATH}/modules:/etc/nginx/conf.d/modules:ro
-      - ${NGINX_PATH}/html:/usr/share/nginx/html:ro
+      - ${MILLEGRILLES_ROOT}/nginx/modules:/etc/nginx/conf.d/modules:ro
+      - ${MILLEGRILLES_ROOT}/nginx/html:/usr/share/nginx/html:ro
     networks:
       - app_net
     ports:
       - "443:443"
       - "80:80"
     deploy:
-      placement:
-        constraints:
-          - node.labels.millegrilles.nginx == true
       resources:
         limits:
           cpus: '2.0'
@@ -25,8 +19,16 @@ services:
         delay: 5s
         max_attempts: 1000
     configs:
-      - source: pki.web
+      - source: pki_web
         target: /run/secrets/webcert.pem
     secrets:
-      - source: pki.web
+      - source: pki_web
         target: webkey.pem
+
+configs:
+  pki_web:
+    file: ${MILLEGRILLES_ROOT}/etc/secrets/pki.web.cert
+
+secrets:
+  pki_web:
+    file: ${MILLEGRILLES_ROOT}/etc/secrets/pki.web.key
