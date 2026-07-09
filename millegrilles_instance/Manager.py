@@ -186,12 +186,7 @@ class InstanceManager:
         configuration: ConfigurationInstance = self.__context.configuration
         # await asyncio.to_thread(makedirs, configuration.path_configuration, 0o700, exist_ok=True)
 
-        # Verifier si on a les fichiers de base (instance_id.txt)
-        path_instance_txt = path.join(configuration.path_configuration, 'instance_id.txt')
-        if path.exists(path_instance_txt) is False:
-            uuid_instance = str(uuid4())
-            with open(path_instance_txt, 'w') as fichier:
-                fichier.write(uuid_instance)
+        # instance_id is now managed in config.env via install_v2.sh
 
     async def __prepare_self_signed_web_certificates(self):
         configuration: ConfigurationInstance = self.__context.configuration

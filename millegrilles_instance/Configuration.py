@@ -213,8 +213,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         return self.__certissuer_url
 
     def get_instance_id(self) -> str:
-        with open(self.__instance_id_path, 'rt') as fp:
-            return fp.read().strip()
+        return os.environ.get(ContantesInstance.PARAM_INSTANCE_ID, "")
 
     def get_idmg(self) -> str:
         with open(self.__instance_idmg_path, 'rt') as fp:
