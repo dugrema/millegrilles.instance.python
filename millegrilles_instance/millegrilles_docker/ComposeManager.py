@@ -24,15 +24,15 @@ class ComposeManager:
             'services': {
                 'nginxinstall': {
                     'image': 'nginx:latest',
-                    'networks': ['millegrille_net'],
+                    'networks': ['${INSTANCE_NAME}_net'],
                 },
                 'certissuer': {
                     'image': 'certissuer:latest',
-                    'networks': ['millegrille_net'],
+                    'networks': ['${INSTANCE_NAME}_net'],
                 }
             },
             'networks': {
-                'millegrille_net': {
+                '${INSTANCE_NAME}_net': {
                     'driver': 'bridge'
                 }
             }
@@ -45,7 +45,7 @@ class ComposeManager:
             'version': '3.8',
             'services': {},
             'networks': {
-                'millegrille_net': {
+                '${INSTANCE_NAME}_net': {
                     'driver': 'bridge'
                 }
             }
@@ -55,7 +55,7 @@ class ComposeManager:
             service_name = config['name']
             service_def = {
                 'image': config['image'],
-                'networks': ['millegrille_net'],
+                'networks': ['${INSTANCE_NAME}_net'],
                 'depends_on': config.get('depends_on', []),
                 'deploy': {
                     'replicas': config.get('replicas', 1)

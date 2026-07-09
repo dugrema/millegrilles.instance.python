@@ -39,4 +39,4 @@ services:
       - source: passwd.redis
         target: passwd.redis.txt
     networks:
-      - millegrille_net
+      - ${INSTANCE_NAME}_net

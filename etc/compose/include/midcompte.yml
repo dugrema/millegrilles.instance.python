@@ -30,4 +30,4 @@ services:
     ports:
       - "2444:2444"
     networks:
-      - millegrille_net
+      - ${INSTANCE_NAME}_net

@@ -42,7 +42,7 @@ docker service create \
   --secret "source=${KEY_WEB},target=web.key.pem" \
   --secret "source=${PASSWD_MONGO},target=mongo.password.txt" \
   --secret "source=${PASSWD_MONGOEXPRESS},target=web.password.txt" \
-  --network name=millegrille_net,alias=mongoexpress \
+  --network name=${INSTANCE_NAME}_net,alias=mongoexpress \
   "${IMAGE}"
 
 echo "Appliquer nouvelle configuration nginx"

@@ -34,5 +34,5 @@ services:
       - source: pki.millegrille
         target: millegrille.cert.pem
     networks:
-      - millegrille_net
+      - ${INSTANCE_NAME}_net
       - bridge

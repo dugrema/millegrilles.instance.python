@@ -85,7 +85,7 @@
     ]
   },
   "networks": [{
-    "target": "millegrille_net",
+    "target": "${INSTANCE_NAME}_net",
     "aliases": ["nginx"]
   }],
   "labels": {

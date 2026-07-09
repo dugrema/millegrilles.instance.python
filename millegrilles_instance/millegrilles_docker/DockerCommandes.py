@@ -1,3 +1,5 @@
+import os
+import os
 import asyncio
 import base64
 import docker
@@ -299,7 +301,7 @@ class CommandeRunContainer(CommandeDocker):
         params = {
             'environment': self.__environment,
             'mounts': self.__mounts,
-            'network': 'millegrille_net',
+            'network': os.environ.get("INSTANCE_NAME", "millegrille") + "_net",
             'auto_remove': True,
         }
         self.__logger.debug("Run %s %s" % (self.__image, self.__command))

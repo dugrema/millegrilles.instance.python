@@ -34,7 +34,7 @@
       "filename": "key.pem"
     }
   ],
-  "networks": [{"target": "millegrille_net"}],
+  "networks": [{"target": "${INSTANCE_NAME}_net"}],
   "labels": {
     "millegrille": "${IDMG}",
     "install_priority": "3",

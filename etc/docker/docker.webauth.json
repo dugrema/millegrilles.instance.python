@@ -48,7 +48,7 @@
     "noremove": "true"
   },
   "networks": [
-    {"target": "millegrille_net", "aliases": ["webauth"]},
+    {"target": "${INSTANCE_NAME}_net", "aliases": ["webauth"]},
     {"target": "bridge"}
   ],
   "resources": {

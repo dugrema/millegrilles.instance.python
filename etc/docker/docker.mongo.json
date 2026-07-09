@@ -46,7 +46,7 @@
       "filename": "mongo.root.password"
     }
   ],
-  "networks": [{"target": "millegrille_net", "aliases": ["mongo"]}],
+  "networks": [{"target": "${INSTANCE_NAME}_net", "aliases": ["mongo"]}],
   "labels": {
     "millegrille": "${IDMG}",
     "install_priority": "1",

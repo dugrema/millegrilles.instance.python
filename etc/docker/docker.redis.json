@@ -36,7 +36,7 @@
       }
     ]
   },
-  "networks": [{"target": "millegrille_net", "aliases": ["redis"]}],
+  "networks": [{"target": "${INSTANCE_NAME}_net", "aliases": ["redis"]}],
   "labels": {
     "millegrille": "${IDMG}",
     "install_priority": "1",

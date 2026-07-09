@@ -406,7 +406,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
                 else:
                     raise e
 
-            commande_initialiser_network = DockerCommandes.CommandeCreerNetworkOverlay('millegrille_net')
+            commande_initialiser_network = DockerCommandes.CommandeCreerNetworkOverlay('${INSTANCE_NAME}_net')
             await self.__docker_handler.run_command(commande_initialiser_network)
         except asyncio.CancelledError as e:
             if self.__context.stopping is False:

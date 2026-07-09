@@ -11,7 +11,7 @@
   ],
   "mounts": [{"source": "{MILLEGRILLES_PATH}", "target":  "/var/opt/millegrilles", "type": "bind"}],
   "networks": [{
-    "target": "millegrille_net",
+    "target": "${INSTANCE_NAME}_net",
     "aliases": ["certissuer"]
   }],
   "labels": {

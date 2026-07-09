@@ -31,4 +31,4 @@ services:
       - source: pki.ceduleur
         target: key.pem
     networks:
-      - millegrille_net
+      - ${INSTANCE_NAME}_net

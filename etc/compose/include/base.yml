@@ -1,5 +1,5 @@
 networks:
-  millegrille_net:
+  ${INSTANCE_NAME}_net:
     external: true
 
 volumes:

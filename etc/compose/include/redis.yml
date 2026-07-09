@@ -5,7 +5,7 @@ services:
     volumes:
       - mg-redis:/data
     networks:
-      - millegrille_net
+      - ${INSTANCE_NAME}_net
     deploy:
       placement:
         constraints:

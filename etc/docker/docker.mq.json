@@ -52,7 +52,7 @@
     ]
   },
   "networks": [
-    {"target": "millegrille_net", "aliases": ["mq"]},
+    {"target": "${INSTANCE_NAME}_net", "aliases": ["mq"]},
     {"target": "bridge"}
   ],
   "labels": {

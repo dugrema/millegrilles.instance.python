@@ -10,7 +10,7 @@ services:
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     networks:
-      - millegrille_net
+      - ${INSTANCE_NAME}_net
       - bridge
     deploy:
       placement:
