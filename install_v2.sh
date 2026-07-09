@@ -48,8 +48,11 @@ export REPO_ROOT="${REPO_ROOT}"
 mkdir -p "${MILLEGRILLES_ROOT}"
 
 # Generate instance-specific config.env
+INSTANCE_ID=$(python3 -c 'import uuid; print(uuid.uuid1())')
+
 cat <<EOF > "${MILLEGRILLES_ROOT}/config.env"
-MILLEGRILLES_HOME="${MILLEGRILLES_ROOT}"
+INSTANCE_ID="${INSTANCE_ID}"
+MILLEGRILLES_ROOT="${MILLEGRILLES_ROOT}"
 INSTANCE_NAME="${INSTANCE_NAME}"
 INSTANCE_DOMAIN="${INSTANCE_DOMAIN}"
 REPO_ROOT="${REPO_ROOT}"
@@ -117,8 +120,7 @@ install_web_files() {
       source "${MILLEGRILLES_ROOT}/config.env"
   fi
 
-  local REP_SRC="${REPO_ROOT}/dist/web"
-  local REP_NGINX="${MILLEGRILLES_ROOT}/nginx"
+  local REP_NGINX="${MILLEGRILLES_ROOT}/var/nginx"
 
   echo "[INFO] Copier fichier web"
   mkdir -p "$REP_NGINX/html"
@@ -132,11 +134,11 @@ creer_repertoires() {
   echo "[INFO] Configurer les repertoires de MilleGrilles"
   mkdir -p "${MILLEGRILLES_ROOT}/bin"
   mkdir -p "${MILLEGRILLES_ROOT}/etc/secrets/issuer"
-  mkdir -p "${MILLEGRILLES_ROOT}/bus/mq"
-  mkdir -p "${MILLEGRILLES_ROOT}/db/mongo"
-  mkdir -p "${MILLEGRILLES_ROOT}/files"
-  mkdir -p "${MILLEGRILLES_ROOT}/web/nginx/modules"
-  mkdir -p "${MILLEGRILLES_ROOT}/web/nginx/html"
+  mkdir -p "${MILLEGRILLES_ROOT}/etc/nginx"
+  mkdir -p "${MILLEGRILLES_ROOT}/var/mq"
+  mkdir -p "${MILLEGRILLES_ROOT}/var/mongo"
+  mkdir -p "${MILLEGRILLES_ROOT}/var/nginx/html"
+  mkdir -p "${MILLEGRILLES_ROOT}/var/files"
 
   echo "[OK] Repertoires crees"
 }
@@ -146,8 +148,7 @@ copier_fichiers() {
   cp -v "${REP_BIN}/start_instance.sh" "${MILLEGRILLES_ROOT}/bin/"
   cp -v "${REP_ETC}/idmg_validation.json" "${MILLEGRILLES_ROOT}/etc/"
   cp -vr "${REP_ETC}/compose" "${MILLEGRILLES_ROOT}/etc/"
-  mkdir -p "${MILLEGRILLES_ROOT}/nginx/modules"
-  cp -v "${REP_ETC}/nginx/nginx_installation/"* "${MILLEGRILLES_ROOT}/nginx/modules/"
+  cp -v "${REP_ETC}/nginx/nginx_installation/"* "${MILLEGRILLES_ROOT}/etc/nginx"
 
   echo "[OK] Fichiers copies"
 }

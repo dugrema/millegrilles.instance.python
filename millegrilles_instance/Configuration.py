@@ -45,9 +45,9 @@ def _parse_command_line():
     __adjust_logging(args)
     return args
 
-CONST_PATH_ROOT = os.environ["MILLEGRILLES_HOME"]  # '/var/opt/millegrilles'
+CONST_PATH_ROOT = os.environ["MILLEGRILLES_ROOT"]  # '/var/opt/millegrilles'
 if CONST_PATH_ROOT is None:
-    raise ValueError("Missing MILLEGRILLES_HOME environment parameter")
+    raise ValueError("Missing MILLEGRILLES_ROOT environment parameter")
 
 
 class ConfigurationInstance(MilleGrillesBusConfiguration):
