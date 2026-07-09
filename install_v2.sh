@@ -90,7 +90,8 @@ copier_fichiers() {
   echo "[INFO] Copier fichiers systeme"
   cp "${REP_BIN}/start_instance.sh" "${MILLEGRILLES_HOME}/bin/" || true
   cp "${REP_ETC}/idmg_validation.json" "${MILLEGRILLES_HOME}/configuration/" || true
-  cp -r "${REP_ETC}/nginx" "${MILLEGRILLES_HOME}/etc/nginx" || true
+  mkdir -p "${MILLEGRILLES_HOME}/nginx/modules"
+  cp -r "${REP_ETC}/nginx/nginx_installation" "${MILLEGRILLES_HOME}/nginx/modules" || true
   
   # Create an empty config.json to prevent errors in ConfigurationInstance.load()
   if [ ! -f "${MILLEGRILLES_HOME}/configuration/config.json" ]; then
