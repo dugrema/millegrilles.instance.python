@@ -2,7 +2,7 @@
 set -euo pipefail
 
 PATH_VENV=$1
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+# REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 
 echo "[INFO] Configurer venv python3, venv et dependances sous ${PATH_VENV}"
 python3 -m venv --system-site-packages $PATH_VENV
