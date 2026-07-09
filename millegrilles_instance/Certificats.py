@@ -13,14 +13,12 @@ from asyncio import TaskGroup
 import docker.errors
 from aiohttp import ClientSession
 from aiohttp.client_exceptions import ClientConnectorError, ClientResponseError
-from docker.errors import APIError
 from os import path, stat
 from typing import Optional
 
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.Interfaces import GenerateurCertificatsInterface, DockerHandlerInterface
-from millegrilles_instance.MaintenanceApplicationService import charger_configuration_docker, \
-    charger_configuration_application, update_stale_configuration
+from millegrilles_instance.MaintenanceApplicationService import charger_configuration_docker, charger_configuration_application
 from millegrilles_messages.IpUtils import get_hostnames
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.bus.PikaMessageProducer import MilleGrillesPikaMessageProducer
@@ -30,11 +28,9 @@ from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat, CertificatExpire
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.GenerateursSecrets import GenerateurEd25519, GenerateurRsa
-from millegrilles_instance.millegrilles_docker import DockerCommandes
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 
 from millegrilles_instance import Constantes as ContantesInstance
-# from millegrilles_instance.InstanceDocker import EtatDockerInstanceSync
 
 
 logger = logging.getLogger(__name__)
@@ -132,56 +128,56 @@ async def generer_certificats_modules_satellites(producer: MessageProducerFormat
             await docker_handler.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
 
 
-async def nettoyer_configuration_expiree(docker_handler: DockerHandlerInterface):
-    commande_config = DockerCommandes.CommandeGetConfigurationsDatees()
-    await docker_handler.run_command(commande_config)
-    config_datees = await commande_config.get_resultat()
-
-    config_a_supprimer = set()
-    secret_a_supprimer = set()
-    correspondance = config_datees['correspondance']
-    for element_config in correspondance.values():
-        try:
-            current_config = element_config['current']
-            set_names_courants = set([v['name'] for v in current_config.values()])
-        except KeyError:
-            set_names_courants = set()
-
-        for elem in element_config.values():
-            for elem_config in elem.values():
-                name_elem = elem_config['name']
-                if name_elem not in set_names_courants:
-                    name_split = name_elem.split('.')
-                    if name_split[2] == 'cert':
-                        config_a_supprimer.add(name_elem)
-                    else:
-                        secret_a_supprimer.add(name_elem)
-
-    for config_name in config_a_supprimer:
-        command = DockerCommandes.CommandeSupprimerConfiguration(config_name)
-        try:
-            await docker_handler.run_command(command)
-        except APIError as apie:
-            if apie.status_code == 400:  # in use
-                pass
-            elif apie.status_code == 404:  # deja supprime
-                pass
-            else:
-                raise apie
-
-    for secret_name in secret_a_supprimer:
-        command = DockerCommandes.CommandeSupprimerSecret(secret_name)
-        try:
-            await docker_handler.run_command(command)
-        except APIError as apie:
-            if apie.status_code == 400:  # in use
-                pass
-            elif apie.status_code == 404:  # deja supprime
-                pass
-            else:
-                raise apie
-
-    pass
+# async def nettoyer_configuration_expiree(docker_handler: DockerHandlerInterface):
+#     commande_config = DockerCommandes.CommandeGetConfigurationsDatees()
+#     await docker_handler.run_command(commande_config)
+#     config_datees = await commande_config.get_resultat()
+#
+#     config_a_supprimer = set()
+#     secret_a_supprimer = set()
+#     correspondance = config_datees['correspondance']
+#     for element_config in correspondance.values():
+#         try:
+#             current_config = element_config['current']
+#             set_names_courants = set([v['name'] for v in current_config.values()])
+#         except KeyError:
+#             set_names_courants = set()
+#
+#         for elem in element_config.values():
+#             for elem_config in elem.values():
+#                 name_elem = elem_config['name']
+#                 if name_elem not in set_names_courants:
+#                     name_split = name_elem.split('.')
+#                     if name_split[2] == 'cert':
+#                         config_a_supprimer.add(name_elem)
+#                     else:
+#                         secret_a_supprimer.add(name_elem)
+#
+#     for config_name in config_a_supprimer:
+#         command = DockerCommandes.CommandeSupprimerConfiguration(config_name)
+#         try:
+#             await docker_handler.run_command(command)
+#         except APIError as apie:
+#             if apie.status_code == 400:  # in use
+#                 pass
+#             elif apie.status_code == 404:  # deja supprime
+#                 pass
+#             else:
+#                 raise apie
+#
+#     for secret_name in secret_a_supprimer:
+#         command = DockerCommandes.CommandeSupprimerSecret(secret_name)
+#         try:
+#             await docker_handler.run_command(command)
+#         except APIError as apie:
+#             if apie.status_code == 400:  # in use
+#                 pass
+#             elif apie.status_code == 404:  # deja supprime
+#                 pass
+#             else:
+#                 raise apie
+#
+#     pass
 
 
 async def renouveler_certificat_instance_protege(context: InstanceContext) -> CleCertificat:
@@ -859,16 +855,6 @@ class GenerateurCertificatsHandler(GenerateurCertificatsInterface):
             await self.entretien_passwords_modules()
         except Exception:
             self.__logger.exception("entretien_docker Erreur generer_commandes_modules")
-
-        if self.__docker_handler is not None:
-            # Entretien config/secrets
-            try:
-                await nettoyer_configuration_expiree(self.__docker_handler)
-            except Exception:
-                self.__logger.exception('entretien_docker Erreur nettoyer_configuration_expiree')
-
-        # Reconfigure all modules with the most recent docker config/secret information
-        await update_stale_configuration(self.__context, self.__docker_handler)
 
     async def entretien_certificat_instance(self):
         try:

@@ -350,53 +350,53 @@ async def install_services(
         except Exception:
             LOGGER.exception("Error installing service %s, aborting for this cycle" % service_name)
 
-async def update_stale_configuration(context: InstanceContext, docker_handler: DockerHandlerInterface):
-    # Check if any existing configuration needs to be updated
-    liste_services_docker = await update_service_status(context, docker_handler, missing_only=False)
-    mapped_services = dict()
-    for service in liste_services_docker:
-        mapped_services[service.name] = service
-
-    commande_config_courante = DockerCommandes.CommandeGetConfigurationsDatees()
-    await docker_handler.run_command(commande_config_courante)
-    resulat_liste_config_datee = await commande_config_courante.get_resultat()
-    correspondance_liste_datee = resulat_liste_config_datee['correspondance']
-
-    for service in liste_services_docker:
-
-        try:
-            # We need to find the container to get its configuration
-            if service.container_handle:
-                container = service.container_handle
-                spec = container.attrs['Config']['Labels'] # This is a simplification
-                # For real, we need the actual container config
-                # But let's assume we can get it from container inspection
-                container_inspect = await asyncio.to_thread(container.inspect)
-                container_config = container_inspect.get('Config', {})
-                container_secrets = container_inspect.get('Config', {}).get('Secrets', [])
-            else:
-                # Fallback to something else if container not found
-                container_config = None
-                container_secrets = None
-        except Exception:
-            continue
-
-        is_current = verifier_config_current(correspondance_liste_datee, container_config, container_secrets)
-        if not is_current:
-            LOGGER.info("Service %s stale, update config/secrets" % service.name)
-            service_status = mapped_services[service.name]
-            for dep in service_status.dependencies:
-                image = dep.image
-                if image:
-                    try:
-                        image_tag = await get_docker_image_tag(context, docker_handler, image)
-                    except UnknownImage:
-                        LOGGER.error("Stale service %s: unknown image %s", service.name, image)
-                        image_tag = None  # Just reset service
-                else:
-                    image_tag = None
-                install_command = ServiceInstallCommand(service, image_tag, False, True)
-                await install_service(context, docker_handler, install_command)
+# async def update_stale_configuration(context: InstanceContext, docker_handler: DockerHandlerInterface):
+#     # Check if any existing configuration needs to be updated
+#     liste_services_docker = await update_service_status(context, docker_handler, missing_only=False)
+#     mapped_services = dict()
+#     for service in liste_services_docker:
+#         mapped_services[service.name] = service
+#
+#     commande_config_courante = DockerCommandes.CommandeGetConfigurationsDatees()
+#     await docker_handler.run_command(commande_config_courante)
+#     resulat_liste_config_datee = await commande_config_courante.get_resultat()
+#     correspondance_liste_datee = resulat_liste_config_datee['correspondance']
+#
+#     for service in liste_services_docker:
+#
+#         try:
+#             # We need to find the container to get its configuration
+#             if service.container_handle:
+#                 container = service.container_handle
+#                 spec = container.attrs['Config']['Labels'] # This is a simplification
+#                 # For real, we need the actual container config
+#                 # But let's assume we can get it from container inspection
+#                 container_inspect = await asyncio.to_thread(container.inspect)
+#                 container_config = container_inspect.get('Config', {})
+#                 container_secrets = container_inspect.get('Config', {}).get('Secrets', [])
+#             else:
+#                 # Fallback to something else if container not found
+#                 container_config = None
+#                 container_secrets = None
+#         except Exception:
+#             continue
+#
+#         is_current = verifier_config_current(correspondance_liste_datee, container_config, container_secrets)
+#         if not is_current:
+#             LOGGER.info("Service %s stale, update config/secrets" % service.name)
+#             service_status = mapped_services[service.name]
+#             for dep in service_status.dependencies:
+#                 image = dep.image
+#                 if image:
+#                     try:
+#                         image_tag = await get_docker_image_tag(context, docker_handler, image)
+#                     except UnknownImage:
+#                         LOGGER.error("Stale service %s: unknown image %s", service.name, image)
+#                         image_tag = None  # Just reset service
+#                 else:
+#                     image_tag = None
+#                 install_command = ServiceInstallCommand(service, image_tag, False, True)
+#                 await install_service(context, docker_handler, install_command)
 
 async def charger_configuration_docker(path_configuration: pathlib.Path, required_modules: RequiredModules) -> list[dict]:
     configuration = []
