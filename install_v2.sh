@@ -124,7 +124,6 @@ install_web_files() {
   mkdir -p "$REP_NGINX/html"
 
   cp -vr "$REPO_ROOT/etc/nginx/html" "$REP_NGINX/"
-  cp -v "$REPO_SRC/favicon.ico" "$REP_NGINX/html"
 
   echo "[OK] Fichier web copie"
 }
