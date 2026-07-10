@@ -23,22 +23,21 @@ while [[ "$#" -gt 0 ]]; do
   shift
 done
 
-if [ -z "$PASSWORD" ]; then
-  usage
-fi
+#if [ -z "$PASSWORD" ]; then
+#  usage
+#fi
 
 # Get INSTANCE_ID or default
 INSTANCE_ID="${INSTANCE_ID:-$(uuidgen 2>/dev/null || echo "default-id")}"
 
 # Define paths
 SIGNING_CA_DIR="${MILLEGRILLES_ROOT}/etc/secrets/certissuer"
-ROOT_CA_CERT="${SIGNING_CA_DIR}/ca_cert.pem"
-ROOT_CA_KEY="${SIGNING_CA_DIR}/ca_key.pem"
+ROOT_CA="${SIGNING_CA_DIR}/ca.pem"
 SIGNING_CA_CERT="${SIGNING_CA_DIR}/cert.pem"
 SIGNING_CA_KEY="${SIGNING_CA_DIR}/key.pem"
 
 # Check if Root CA exists
-if [ ! -f "$ROOT_CA_CERT" ] || [ ! -f "$ROOT_CA_KEY" ]; then
+if [ ! -f "$ROOT_CA" ]; then
   echo "[ERROR] Root CA not found at $MILLEGRILLES_ROOT/etc/secrets/certissuer/"
   echo "[INFO] Please run bin/ca_new.sh first."
   exit 1
@@ -48,7 +47,7 @@ fi
 #export PYTHONPATH="${PYTHONPATH}:/home/vaicoder1/work/millegrilles.messages.python:$(pwd)"
 # Activate python venv
 . "${MILLEGRILLES_ROOT}/venv/bin/activate"
-IDMG=$(python3 bin/get_idmg.py "$ROOT_CA_CERT")
+IDMG=$(python3 bin/get_idmg.py "$ROOT_CA")
 
 if [ -z "$IDMG" ]; then
   echo "[ERROR] Failed to retrieve IDMG from Root CA."
@@ -79,15 +78,22 @@ openssl genpkey -algorithm ed25519 -out "$SIGNING_CA_KEY"
 # 2. Generate the CSR
 openssl req -new -key "$SIGNING_CA_KEY" \
   -out "${SIGNING_CA_DIR}/ca.csr" \
-  -subj "/CN=${INSTANCE_ID}/O=${IDMG}"
+  -subj "/CN=${INSTANCE_ID}/OU=${INSTANCE_NAME}/O=${IDMG}"
 
 # 3. Sign the CSR with the Root CA
 # 18 months = 547 days
+# PASSWORD_PARAMS="-passin pass"
+if [ -z $PASSWORD ]; then
+  PASSWORD_PARAMS=""  # Omit param, openssl will prompt user
+else
+  PASSWORD_PARAMS="-passin pass:$PASSWORD"
+fi
+
 openssl x509 -req \
-  -CA "$ROOT_CA_CERT" \
-  -CAkey "$ROOT_CA_KEY" \
+  -CA "$ROOT_CA" \
+  -CAkey "$ROOT_CA" \
   -CAcreateserial \
-  -passin "pass:$PASSWORD" \
+  $PASSWORD_PARAMS \
   -in "${SIGNING_CA_DIR}/ca.csr" \
   -out "$SIGNING_CA_CERT" \
   -days 547 \
