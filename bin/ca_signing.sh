@@ -8,6 +8,12 @@ if [ -z "${MILLEGRILLES_ROOT:-}" ]; then
   exit 1
 fi
 
+# Ensure INSTANCE_NAME is set
+if [ -z "${INSTANCE_NAME:-}" ]; then
+  echo "[ERROR] INSTANCE_NAME is not set."
+  exit 1
+fi
+
 usage() {
   echo "Usage: $0 --password <password>"
   exit 1
@@ -22,10 +28,6 @@ while [[ "$#" -gt 0 ]]; do
   esac
   shift
 done
-
-#if [ -z "$PASSWORD" ]; then
-#  usage
-#fi
 
 # Get INSTANCE_ID or default
 INSTANCE_ID="${INSTANCE_ID:-$(uuidgen 2>/dev/null || echo "default-id")}"
@@ -83,7 +85,7 @@ openssl req -new -key "$SIGNING_CA_KEY" \
 # 3. Sign the CSR with the Root CA
 # 18 months = 547 days
 # PASSWORD_PARAMS="-passin pass"
-if [ -z $PASSWORD ]; then
+if [ -z "$PASSWORD" ]; then
   PASSWORD_PARAMS=""  # Omit param, openssl will prompt user
 else
   PASSWORD_PARAMS="-passin pass:$PASSWORD"
