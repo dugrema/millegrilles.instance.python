@@ -13,10 +13,9 @@ class ComposeHandler:
     """
     Handles the orchestration of modules using docker-compose.
     """
-    def __init__(self, context: InstanceContext, docker_client: Any):
+    def __init__(self, context: InstanceContext):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context = context
-        self.__docker = docker_client
 
     async def _run_compose(self, working_dir: pathlib.Path, args: list[str]) -> str:
         cmd = ["docker", "compose"] + args

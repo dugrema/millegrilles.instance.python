@@ -43,16 +43,16 @@ class InstanceManager:
     """
     def __init__(self, context: InstanceContext, generateur_certificats: GenerateurCertificatsHandler,
                  docker_handler: Optional[InstanceDockerHandler], gestionnaire_applications: ApplicationsHandler,
-                 nginx_handler: NginxHandler):
+                 nginx_handler: NginxHandler, compose_handler: ComposeHandler):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context = context
         self.__generateur_certificats = generateur_certificats
         self.__docker_handler = docker_handler
-        self.__gestionnaire_applications = gestionnaire_applications
+        # self.__gestionnaire_applications = gestionnaire_applications
         self.__mgbus_handler: Optional[MgbusHandlerInterface] = None
         self.__nginx_handler = nginx_handler
         self.__docker_client = docker.from_env()
-        self.__compose_handler = ComposeHandler(self.__context, self.__docker_client)
+        self.__compose_handler = compose_handler
         self.__runlevel_changed = asyncio.Event()
         self.__loop = asyncio.get_event_loop()
         self.__reload_configuration = asyncio.Event()
@@ -279,38 +279,38 @@ class InstanceManager:
     async def __start_runlevel_installation(self):
         self.__logger.info("Starting runlevel INSTALLATION")
 
-        # Read current application status
-        try:
-            await self.__gestionnaire_applications.update_application_status()
-        except APIError as e:
-            if e.status_code == 503:
-                # Not a swarm manager, nothing is installed yet
-                await self.__docker_handler.initialiser_docker()
-                await self.__gestionnaire_applications.update_application_status()
-            else:
-                raise e
+        # # Read current application status
+        # try:
+        #     await self.__gestionnaire_applications.update_application_status()
+        # except APIError as e:
+        #     if e.status_code == 503:
+        #         # Not a swarm manager, nothing is installed yet
+        #         await self.__docker_handler.initialiser_docker()
+        #         await self.__gestionnaire_applications.update_application_status()
+        #     else:
+        #         raise e
+        #
+        # # Release configuration/app update threads
+        # # 3. Deploy installation module
+        # install_config_dir = self.__context.configuration.path_millegrilles / "etc" / "docker"
+        # install_files = []
+        # for mod_file in ['docker.nginxinstall.json', 'docker.certissuer.json']:
+        #     f_path = install_config_dir / mod_file
+        #     if f_path.exists():
+        #         install_files.append(f_path)
 
-        # Release configuration/app update threads
-        # 3. Deploy installation module
-        install_config_dir = self.__context.configuration.path_millegrilles / "etc" / "docker"
-        install_files = []
-        for mod_file in ['docker.nginxinstall.json', 'docker.certissuer.json']:
-            f_path = install_config_dir / mod_file
-            if f_path.exists():
-                install_files.append(f_path)
-        
-        if install_files:
-            self.__logger.info("Deploying installation module: %s", install_files)
-            await self.__compose_handler.deploy_module_from_files("installation", install_files)
-        else:
-            self.__logger.warning("No installation configuration files found in %s", install_config_dir)
+        self.__logger.info("Deploying installation module: %s", install_files)
+        await self.__compose_handler.deploy_module_from_files("installation", install_files)
 
-        self.__docker_handler.callback_changement_configuration()
-        self.__context.initial_application_configuration_update.set()
-        await self.__gestionnaire_applications.callback_changement_applications()
+        # self.__docker_handler.callback_changement_configuration()
+        # self.__context.initial_application_configuration_update.set()
+        # await self.__gestionnaire_applications.callback_changement_applications()
+        #
+        # await wait_for_application(self.__context, 'nginxinstall')
+        # await wait_for_application(self.__context, 'coupdoeil2')
 
-        await wait_for_application(self.__context, 'nginxinstall')
-        await wait_for_application(self.__context, 'coupdoeil2')
+        raise NotImplementedError("TODO - configure systemctl service and start node")
+
         self.__logger.info("Ready to install\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
 
     async def __stop_runlevel_installation(self):

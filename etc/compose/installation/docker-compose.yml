@@ -5,7 +5,7 @@ include:
 
 configs:
   pki.web:
-    file: ${MILLEGRILLES_ROOT}/secrets/webcert.pem # TODO
+    file: ${MILLEGRILLES_ROOT}/secrets/webcert.pem
 
 secrets:
   pki.web:

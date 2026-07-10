@@ -258,7 +258,7 @@ class WebServer:
     async def run(self):
         try:
             await self.__webrunner.start()
-            self.__logger.info("Web server started on port %s" % self.context.configuration.port)
+            self.__logger.info("Web server started on port %s" % self.context.configuration.get_port())
             await self.context.wait()
         except asyncio.CancelledError as e:
             if self.context.stopping is False:

@@ -41,7 +41,7 @@ class InstanceDockerHandler(DockerHandlerInterface):
         self.__docker_state = docker_state
         self.docker = docker_state.docker
         self.__docker_handler = DockerHandler(docker_state)
-        self.__compose_handler = ComposeHandler(self.__context, docker_state.docker)
+        self.__compose_handler = ComposeHandler(self.__context)
 
         self.__generateur_certificats: Optional[GenerateurCertificatsInterface] = None
         self.__events_stream: Optional[Any] = None

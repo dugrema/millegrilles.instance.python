@@ -8,6 +8,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from typing import Awaitable
 
 from millegrilles_instance.SystemStatus import SystemStatus
+from millegrilles_instance.millegrilles_docker.ComposeHandler import ComposeHandler
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopListener
 from millegrilles_messages.bus.BusExceptions import ConfigurationFileError
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
@@ -92,9 +93,10 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     generateur_certificats = GenerateurCertificatsHandler(context, docker_handler)
     nginx_handler = NginxHandler(context, docker_handler)
     applications_handler = ApplicationsHandler(context, docker_handler)
+    compose_handler = ComposeHandler(context)
 
     # Facade
-    manager = InstanceManager(context, generateur_certificats, docker_handler, applications_handler, nginx_handler)
+    manager = InstanceManager(context, generateur_certificats, docker_handler, applications_handler, nginx_handler, compose_handler)
     context.add_reload_listener(manager.callback_changement_configuration)
 
     # Access modules

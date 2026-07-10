@@ -10,9 +10,8 @@ from millegrilles_messages.messages import Constantes
 LOGGER = logging.getLogger(__name__)
 
 class InstanceServiceManager:
-    def __init__(self, config: ConfigurationInstance, template_path: str):
+    def __init__(self, config: ConfigurationInstance):
         self.__config = config
-        self.__template_path = pathlib.Path(template_path)
         self.__instance_name = config.instance_name
         self.__user_systemd_dir = pathlib.Path.home() / ".config" / "systemd" / "user"
         self.__service_file = self.__user_systemd_dir / f"{self.__instance_name}_instance.service"
@@ -82,7 +81,7 @@ class InstanceServiceManager:
     def _ensure_user_dir(self):
         self.__user_systemd_dir.mkdir(parents=True, exist_ok=True)
 
-    def generate_service_file(self, node_type: str):
+    def generate_node_service_file(self, node_type: str):
         """
         Generates the service file from the template.
         """
@@ -112,7 +111,7 @@ class InstanceServiceManager:
         """
         Generates the service file and starts the service via systemd --user.
         """
-        self.generate_service_file(node_type)
+        self.generate_node_service_file(node_type)
         
         try:
             # systemctl --user daemon-reload
@@ -148,7 +147,7 @@ class InstanceServiceManager:
         """
         Regenerates the service file and restarts the service.
         """
-        self.generate_service_file(node_type)
+        self.generate_node_service_file(node_type)
         
         try:
             # systemctl --user daemon-reload

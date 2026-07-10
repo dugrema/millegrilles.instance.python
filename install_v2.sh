@@ -63,7 +63,9 @@ REPO_ROOT="${REPO_ROOT}"
 HTTP_PORT=80
 HTTPS_PORT=443
 HTTPS_MG_PORT=444
-MQ_PORT=5673
+MANAGER_URL="https://localhost:2443"
+CERTISSUER_URL="http://localhost:2080"
+REDIS_URL=""
 EOF
 
 
@@ -171,7 +173,7 @@ configurer_docker_network() {
   docker network create -d overlay --attachable --scope swarm "${INSTANCE_NAME}_net" > /dev/null 2>&1 || true
   # docker config rm docker.versions > /dev/null 2>&1 || true
   
-  echo "[OK] Configuration docker swarm completee"
+  echo "[OK] Configuration docker network completee"
 }
 
 install_instance_v2() {
@@ -188,7 +190,6 @@ install_instance_v2() {
     "${PATH_VENV}/bin/pip" install -e .
 
     echo "[INFO] Copier fichiers de configuration, code python"
-    "${REP_BIN}/install_catalogues.sh"
     install_web_files
     configurer_docker_network
   else
@@ -202,13 +203,6 @@ install_instance_v2() {
 
 main() {
   preflight_check
-
-  # Init submodules
-  if ! [ -d "${REPO_ROOT}/etc/catalogues/signed" ]; then
-    echo "Init submodule etc/catalogues"
-    git submodule init etc/catalogues
-    git submodule update --recursive
-  fi
 
   install_instance_v2
 

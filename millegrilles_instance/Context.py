@@ -236,17 +236,16 @@ class InstanceContext(MilleGrillesBusContext):
         configuration: ConfigurationInstance = self.configuration
         configuration.reload()
 
-        instance_id = configuration.get_instance_id()
+        instance_id = configuration.instance_id
         self.__instance_id = instance_id
 
         try:
-            try:
-                securite = configuration.get_securite()
-                idmg = configuration.get_idmg()
-
+            securite = configuration.securite
+            idmg = configuration.idmg
+            if securite and idmg:
                 self.__securite = securite
                 self.__idmg = idmg
-            except FileNotFoundError:
+            else:
                 # System not configured yet
                 self.__securite = None
                 self.__idmg = None
