@@ -63,7 +63,8 @@ case $TYPE in
   *) echo "[ERROR] Invalid type: $TYPE"; usage; exit 1 ;;
 esac
 
-cat <<EOF > "${MILLEGRILLES_ROOT}/config.env"
+save_configenv() {
+  cat <<EOF > "${MILLEGRILLES_ROOT}/config.env"
 INSTANCE_ID="${INSTANCE_ID}"
 CONTAINER_UID="${CONTAINER_UID}"
 CONTAINER_GID="${CONTAINER_GID}"
@@ -80,13 +81,15 @@ REDIS_URL=""
 SECURITE="${SECURITE}"
 EOF
 
-# Source the newly created config
-source "${MILLEGRILLES_ROOT}/config.env"
+  # Source the newly created config
+  source "${MILLEGRILLES_ROOT}/config.env"
 
-# Define essential paths relative to MILLEGRILLES_ROOT
-export PATH_MILLEGRILLES="${MILLEGRILLES_ROOT}"
-export PATH_LOGS="${MILLEGRILLES_ROOT}/logs"
-export PATH_VENV="${MILLEGRILLES_ROOT}/venv"
+  # Define essential paths relative to MILLEGRILLES_ROOT
+  export PATH_MILLEGRILLES="${MILLEGRILLES_ROOT}"
+  export PATH_LOGS="${MILLEGRILLES_ROOT}/logs"
+  export PATH_VENV="${MILLEGRILLES_ROOT}/venv"
+}
+
 
 # ------------------------------------------------------------------------------
 # Helper Functions
@@ -94,6 +97,11 @@ export PATH_VENV="${MILLEGRILLES_ROOT}/venv"
 
 preflight_check() {
   echo "[INFO] Running pre-flight checks..."
+  # Check if config.env exists in the target installation directory
+  if [ -f "${MILLEGRILLES_ROOT}/config.env" ]; then
+    echo "[ERROR] MilleGrilles is already installed at ${MILLEGRILLES_ROOT} (config.env exists)."
+    exit 1
+  fi
   if ! command -v git >/dev/null 2>&1; then
     echo "[ERROR] git is not installed."
     exit 1
@@ -248,6 +256,8 @@ install_protege_instance() {
 main() {
   preflight_check
 
+  save_configenv
+
   case $TYPE in
     protege)
       install_protege_instance
@@ -263,6 +273,7 @@ main() {
   esac
 
   echo
+  echo "[INFO] Installation path:  $MILLEGRILLES_ROOT."
   echo "[OK] Installation $TYPE completee avec succès."
 }
 
