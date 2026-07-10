@@ -54,7 +54,27 @@ rm "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca.csr"
 # 3. Copy the certificate to the requested location
 cp "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca_cert.pem" "${MILLEGRILLES_ROOT}/etc/millegrille.pem"
 
+# 4. Get the IDMG hash value
+. "${MILLEGRILLES_ROOT}/venv/bin/activate"
+IDMG=$(python3 bin/get_idmg.py "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca_cert.pem")
+
+# Combine encrypted key and cert into single file
+echo "# MilleGrilles self-signed CA key" > "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca.pem"
+echo "# Instance: $INSTANCE_NAME" >> "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca.pem"
+echo "# IDMG: $IDMG" >> "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca.pem"
+cat "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca_key.pem" \
+    "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca_cert.pem" >> "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca.pem"
+
+# Remove old separate files
+rm "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca_cert.pem" \
+   "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca_key.pem"
+
 echo "[INFO] Root CA generated successfully."
+echo
 echo "------------------------------------------------------------------------------"
-echo "Root CA Password: $PASSWORD"
+echo "Root CA Password for $INSTANCE_NAME: $PASSWORD"
 echo "------------------------------------------------------------------------------"
+echo
+echo "[WARN] You *MUST* save this password (e.g. in a password manager), this is the only time it will be shown."
+echo "[INFO] You can test it by running: openssl pkey -noout -text -in ${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca.pem"
+

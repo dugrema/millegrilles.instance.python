@@ -31,9 +31,9 @@ fi
 INSTANCE_ID="${INSTANCE_ID:-$(uuidgen 2>/dev/null || echo "default-id")}"
 
 # Define paths
-ROOT_CA_CERT="${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca_cert.pem"
-ROOT_CA_KEY="${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca_key.pem"
-SIGNING_CA_DIR="${MILLEGRILLES_ROOT}/etc/secrets/issuer"
+SIGNING_CA_DIR="${MILLEGRILLES_ROOT}/etc/secrets/certissuer"
+ROOT_CA_CERT="${SIGNING_CA_DIR}/ca_cert.pem"
+ROOT_CA_KEY="${SIGNING_CA_DIR}/ca_key.pem"
 SIGNING_CA_CERT="${SIGNING_CA_DIR}/cert.pem"
 SIGNING_CA_KEY="${SIGNING_CA_DIR}/key.pem"
 
@@ -45,7 +45,9 @@ if [ ! -f "$ROOT_CA_CERT" ] || [ ! -f "$ROOT_CA_KEY" ]; then
 fi
 
 # Get IDMG from the Root CA certificate
-export PYTHONPATH="${PYTHONPATH}:/home/vaicoder1/work/millegrilles.messages.python:$(pwd)"
+#export PYTHONPATH="${PYTHONPATH}:/home/vaicoder1/work/millegrilles.messages.python:$(pwd)"
+# Activate python venv
+. "${MILLEGRILLES_ROOT}/venv/bin/activate"
 IDMG=$(python3 bin/get_idmg.py "$ROOT_CA_CERT")
 
 if [ -z "$IDMG" ]; then
