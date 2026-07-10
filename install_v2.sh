@@ -241,6 +241,17 @@ install_protege_instance() {
     --ca-pem "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca.pem" \
     --ca-password "$password"
 
+  # Activate python venv
+  . "${MILLEGRILLES_ROOT}/venv/bin/activate"
+  IDMG=$(python3 bin/get_idmg.py "${MILLEGRILLES_ROOT}/etc/millegrille.pem")
+
+  if [ -z "$IDMG" ]; then
+    echo "[ERROR] Failed to retrieve IDMG from Root CA."
+    exit 1
+  fi
+
+  echo "IDMG=$IDMG" >> "${MILLEGRILLES_ROOT}/config.env"
+
   echo "[OK] Protege installation complete."
   echo
   echo "------------------------------------------------------------------------------"
