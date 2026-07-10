@@ -1,0 +1,99 @@
+#!/bin/env bash
+set -ex
+set -euo pipefail
+
+# Ensure MILLEGRILLES_ROOT is set
+if [ -z "${MILLEGRILLES_ROOT:-}" ]; then
+  echo "[ERROR] MILLEGRILLES_ROOT is not set. Please source your environment or set it explicitly."
+  exit 1
+fi
+
+usage() {
+  echo "Usage: $0 --password <password>"
+  exit 1
+}
+
+# Parse arguments
+PASSWORD=""
+while [[ "$#" -gt 0 ]]; do
+  case $1 in
+    --password) PASSWORD="$2"; shift ;;
+    *) usage ;;
+  esac
+  shift
+done
+
+if [ -z "$PASSWORD" ]; then
+  usage
+fi
+
+# Get INSTANCE_ID or default
+INSTANCE_ID="${INSTANCE_ID:-$(uuidgen 2>/dev/null || echo "default-id")}"
+
+# Define paths
+ROOT_CA_CERT="${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca_cert.pem"
+ROOT_CA_KEY="${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca_key.pem"
+SIGNING_CA_DIR="${MILLEGRILLES_ROOT}/etc/secrets/issuer"
+SIGNING_CA_CERT="${SIGNING_CA_DIR}/cert.pem"
+SIGNING_CA_KEY="${SIGNING_CA_DIR}/key.pem"
+
+# Check if Root CA exists
+if [ ! -f "$ROOT_CA_CERT" ] || [ ! -f "$ROOT_CA_KEY" ]; then
+  echo "[ERROR] Root CA not found at $MILLEGRILLES_ROOT/etc/secrets/certissuer/"
+  echo "[INFO] Please run bin/ca_new.sh first."
+  exit 1
+fi
+
+# Get IDMG from the Root CA certificate
+export PYTHONPATH="${PYTHONPATH}:/home/vaicoder1/work/millegrilles.messages.python:$(pwd)"
+IDMG=$(python3 bin/get_idmg.py "$ROOT_CA_CERT")
+
+if [ -z "$IDMG" ]; then
+  echo "[ERROR] Failed to retrieve IDMG from Root CA."
+  exit 1
+fi
+
+echo "[INFO] Retrieved IDMG: $IDMG"
+
+# Create required directories
+mkdir -p "$SIGNING_CA_DIR"
+
+# Temporary files
+TMP_CONF=$(mktemp)
+trap 'rm -f "$TMP_CONF"' EXIT
+
+# Create OpenSSL configuration for extensions
+cat <<EOF > "$TMP_CONF"
+[v3_signing_ca]
+keyUsage = Certificate Sign, CRL Sign
+basicConstraints = critical, CA:TRUE, pathlen:0
+subjectKeyIdentifier = hash
+authorityKeyIdentifier = keyid:always
+EOF
+
+# 1. Generate the unencrypted signing CA private key
+openssl genpkey -algorithm ed25519 -out "$SIGNING_CA_KEY"
+
+# 2. Generate the CSR
+openssl req -new -key "$SIGNING_CA_KEY" \
+  -out "${SIGNING_CA_DIR}/ca.csr" \
+  -subj "/CN=${INSTANCE_ID}/O=${IDMG}"
+
+# 3. Sign the CSR with the Root CA
+# 18 months = 547 days
+openssl x509 -req \
+  -CA "$ROOT_CA_CERT" \
+  -CAkey "$ROOT_CA_KEY" \
+  -CAcreateserial \
+  -passin "pass:$PASSWORD" \
+  -in "${SIGNING_CA_DIR}/ca.csr" \
+  -out "$SIGNING_CA_CERT" \
+  -days 547 \
+  -extfile "$TMP_CONF" \
+  -extensions v3_signing_ca
+
+# Cleanup CSR and serial file
+rm "${SIGNING_CA_DIR}/ca.csr"
+rm "${SIGNING_CA_DIR}/ca.srl" 2>/dev/null || true
+
+echo "[INFO] Signing CA generated successfully."
