@@ -1,6 +1,5 @@
 #!/bin/env bash
 set -euo pipefail
-
 # ==============================================================================
 # MilleGrilles Installation Script v2
 # This version is designed for user-space execution.
@@ -15,6 +14,7 @@ export REP_BIN="${REPO_ROOT}/bin"
 INSTANCE_NAME="$(hostname -s)"
 INSTANCE_DOMAIN="$(hostname -f)"
 MILLEGRILLES_ROOT="${HOME}/.local/${INSTANCE_NAME}"
+TYPE="protege"
 
 # Parse arguments
 usage() {
@@ -22,8 +22,9 @@ usage() {
   echo ""
   echo "Options:"
   echo "  --prefix <path>    Set the installation directory (default: ${HOME}/${INSTANCE_NAME})"
-  echo "  --name <name>      Set the instance name (default is local domain, e.g. desktop)"
-  echo "  --domain <domain>  Set the instance domain name (default: local, e.g. desktop.domain.com)"
+  echo "  --name <name>      Set the instance name (default: ${INSTANCE_NAME})"
+  echo "  --domain <domain>  Set the instance domain name (default: ${INSTANCE_DOMAIN})"
+  echo "  --type <type>      Installation type: public, prive, protege, secure (default: protege)"
   echo "  --help             Display this help message"
   exit 0
 }
@@ -33,6 +34,7 @@ while [[ "$#" -gt 0 ]]; do
     --prefix) MILLEGRILLES_ROOT="$2"; shift ;;
     --name) INSTANCE_NAME="$2"; shift ;;
     --domain) INSTANCE_DOMAIN="$2"; shift ;;
+    --type) TYPE="$2"; shift ;;
     --help) usage ;;
     *) echo "Unknown parameter: $1"; usage; exit 1 ;;
   esac
@@ -43,6 +45,7 @@ export MILLEGRILLES_ROOT
 export INSTANCE_NAME
 export INSTANCE_DOMAIN
 export REPO_ROOT="${REPO_ROOT}"
+export TYPE
 
 # Ensure installation directory exists
 mkdir -p "${MILLEGRILLES_ROOT}"
@@ -51,6 +54,14 @@ mkdir -p "${MILLEGRILLES_ROOT}"
 INSTANCE_ID=$(python3 -c 'import uuid; print(uuid.uuid1())')
 CONTAINER_UID=$(id -u)
 CONTAINER_GID=$(id -g)
+
+case $TYPE in
+  public) SECURITE="1.public" ;;
+  prive) SECURITE="2.prive" ;;
+  protege) SECURITE="3.protege" ;;
+  secure) SECURITE="4.secure" ;;
+  *) echo "[ERROR] Invalid type: $TYPE"; usage; exit 1 ;;
+esac
 
 cat <<EOF > "${MILLEGRILLES_ROOT}/config.env"
 INSTANCE_ID="${INSTANCE_ID}"
@@ -66,8 +77,8 @@ HTTPS_MG_PORT=444
 MANAGER_URL="https://localhost:2443"
 CERTISSUER_URL="http://localhost:2080"
 REDIS_URL=""
+SECURITE="${SECURITE}"
 EOF
-
 
 # Source the newly created config
 source "${MILLEGRILLES_ROOT}/config.env"
@@ -122,7 +133,6 @@ install_python_venv() {
 }
 
 install_web_files() {
-  # Source the instance-specific config
   if [ -f "${MILLEGRILLES_ROOT}/config.env" ]; then
       source "${MILLEGRILLES_ROOT}/config.env"
   fi
@@ -140,7 +150,7 @@ install_web_files() {
 creer_repertoires() {
   echo "[INFO] Configurer les repertoires de MilleGrilles"
   mkdir -p "${MILLEGRILLES_ROOT}/bin"
-  mkdir -p "${MILLEGRILLES_ROOT}/etc/secrets/issuer"
+  mkdir -p "${MILLEGRILLES_ROOT}/etc/secrets/certissuer"
   mkdir -p "${MILLEGRILLES_ROOT}/etc/nginx"
   mkdir -p "${MILLEGRILLES_ROOT}/var/mq"
   mkdir -p "${MILLEGRILLES_ROOT}/var/mongo"
@@ -167,12 +177,7 @@ configurer_reps() {
 
 configurer_docker_network() {
   echo "[INFO] Configurer docker pour instance: ${INSTANCE_NAME}"
-  # Attempt to initialize swarm if not already in a swarm
-  # docker swarm init --advertise-addr 127.0.0.1 > /dev/null 2>&1 || true
-  
   docker network create -d overlay --attachable --scope swarm "${INSTANCE_NAME}_net" > /dev/null 2>&1 || true
-  # docker config rm docker.versions > /dev/null 2>&1 || true
-  
   echo "[OK] Configuration docker network completee"
 }
 
@@ -185,7 +190,6 @@ install_instance_v2() {
     echo "[INFO] Creer venv python3 sous ${PATH_VENV}"
     install_python_venv "${PATH_VENV}"
     
-    # Install the current package in editable mode so it's importable
     echo "[INFO] Installer millegrilles_instance en mode editable"
     "${PATH_VENV}/bin/pip" install -e .
 
@@ -197,6 +201,46 @@ install_instance_v2() {
   fi
 }
 
+install_protege_instance() {
+  echo "[INFO] Starting Protege installation..."
+  
+  install_instance_v2
+  source "${MILLEGRILLES_ROOT}/config.env"
+
+  echo "[INFO] Generating Root CA..."
+  local log_file
+  log_file=$(mktemp)
+  ./bin/ca_new.sh > "$log_file" 2>&1
+  
+  local password
+  password=$(grep "Root CA Password for ${INSTANCE_NAME}:" "$log_file" | sed -E 's/.*: ([^ ]*).*/\1/')
+  
+  if [ -z "$password" ]; then
+    echo "[ERROR] Failed to extract Root CA password from logs."
+    cat "$log_file"
+    rm -f "$log_file"
+    exit 1
+  fi
+  echo "[INFO] Root CA Password extracted."
+
+  echo "[INFO] Generating Signing CA..."
+  ./bin/ca_signing.sh --password "$password"
+
+  echo "[INFO] Generating Node Certificate..."
+  "${PATH_VENV}/bin/python3" bin/ca_protege.py \
+    --millegrilles-root "${MILLEGRILLES_ROOT}" \
+    --instance-id "${INSTANCE_ID}" \
+    --ca-pem "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca.pem" \
+    --ca-password "$password"
+
+  echo "[OK] Protege installation complete."
+  echo
+  echo "------------------------------------------------------------------------------"
+  echo "Root CA Password: $password"
+  echo "------------------------------------------------------------------------------"
+  echo "IMPORTANT: Save this password! It is required for future operations."
+}
+
 # ------------------------------------------------------------------------------
 # Main Execution
 # ------------------------------------------------------------------------------
@@ -204,10 +248,22 @@ install_instance_v2() {
 main() {
   preflight_check
 
-  install_instance_v2
+  case $TYPE in
+    protege)
+      install_protege_instance
+      ;;
+    public|prive|secure)
+      install_instance_v2
+      ;;
+    *)
+      echo "[ERROR] Invalid type: $TYPE"
+      usage
+      exit 1
+      ;;
+  esac
 
   echo
-  echo "[OK] Installation v2 completee avec succès."
+  echo "[OK] Installation $TYPE completee avec succès."
 }
 
 main
