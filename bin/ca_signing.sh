@@ -33,14 +33,14 @@ done
 INSTANCE_ID="${INSTANCE_ID:-$(uuidgen 2>/dev/null || echo "default-id")}"
 
 # Define paths
-SIGNING_CA_DIR="${MILLEGRILLES_ROOT}/etc/secrets/certissuer"
+SIGNING_CA_DIR="${MILLEGRILLES_ROOT}/secrets/certissuer"
 ROOT_CA="${SIGNING_CA_DIR}/ca.pem"
 SIGNING_CA_CERT="${SIGNING_CA_DIR}/cert.pem"
 SIGNING_CA_KEY="${SIGNING_CA_DIR}/key.pem"
 
 # Check if Root CA exists
 if [ ! -f "$ROOT_CA" ]; then
-  echo "[ERROR] Root CA not found at $MILLEGRILLES_ROOT/etc/secrets/certissuer/"
+  echo "[ERROR] Root CA not found at $MILLEGRILLES_ROOT/secrets/certissuer/"
   echo "[INFO] Please run bin/ca_new.sh first."
   exit 1
 fi

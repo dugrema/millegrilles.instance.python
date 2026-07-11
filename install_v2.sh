@@ -153,7 +153,7 @@ install_web_files() {
   cp -vr "$REPO_ROOT/etc/nginx/html" "$REP_NGINX/"
 
   # Generate self-signed certificates
-  bin/generate_selfsigned.sh "${MILLEGRILLES_ROOT}/etc/secrets"
+  bin/generate_selfsigned.sh "${MILLEGRILLES_ROOT}/secrets"
 
   echo "[OK] Fichier web copie"
 }
@@ -161,8 +161,8 @@ install_web_files() {
 creer_repertoires() {
   echo "[INFO] Configurer les repertoires de MilleGrilles"
   mkdir -p "${MILLEGRILLES_ROOT}/bin"
-  mkdir -p "${MILLEGRILLES_ROOT}/etc/secrets/certissuer"
   mkdir -p "${MILLEGRILLES_ROOT}/etc/nginx"
+  mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer"
   mkdir -p "${MILLEGRILLES_ROOT}/var/mq"
   mkdir -p "${MILLEGRILLES_ROOT}/var/mongo"
   mkdir -p "${MILLEGRILLES_ROOT}/var/nginx/html"
@@ -240,7 +240,7 @@ install_protege_instance() {
   echo "[INFO] Generating Node Certificate..."
   "${PATH_VENV}/bin/python3" bin/ca_protege.py \
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
-    --ca-pem "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/signing_ca.pem"
+    --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem"
 
   # Activate python venv
   . "${MILLEGRILLES_ROOT}/venv/bin/activate"
@@ -257,8 +257,8 @@ install_protege_instance() {
   echo
   echo "------------------------------------------------------------------------------"
   echo "Root CA Password: $password"
-  echo "Root CA PEM File: ${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca.pem"
-  cat "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca.pem"
+  echo "Root CA PEM File: ${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
+  cat "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
   echo "------------------------------------------------------------------------------"
   echo
   echo "IMPORTANT: Save this password and file content! The password is not saved anywhere, it is only shown once."
