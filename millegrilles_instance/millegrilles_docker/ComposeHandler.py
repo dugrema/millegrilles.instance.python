@@ -36,7 +36,7 @@ class ComposeHandler:
     def __get_compose_dict(self, config: dict) -> dict:
         """
         Converts the dictionary from ConfigurationService.generer_docker_config() 
-        to a dictionary suitable for a docker-compose.yml file.
+        to a dictionary suitable for a node-prive.yml file.
         """
         compose_service = {
             'image': config['image'],
@@ -86,7 +86,7 @@ class ComposeHandler:
         
         compose_dir = self.__context.configuration.path_millegrilles / "etc" / "docker" / "compose" / module_name
         compose_dir.mkdir(parents=True, exist_ok=True)
-        compose_file = compose_dir / "docker-compose.yml"
+        compose_file = compose_dir / "node-prive.yml"
 
         compose_data = {
             'services': {}

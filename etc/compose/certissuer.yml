@@ -1,3 +1,6 @@
+include:
+  - ./include/base.yml
+
 services:
   certissuer:
     image: registry.millegrilles.com/millegrilles/midcompte_python:2025.4.112
