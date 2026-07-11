@@ -102,8 +102,12 @@ openssl x509 -req \
   -extfile "$TMP_CONF" \
   -extensions v3_signing_ca
 
-# Cleanup CSR and serial file
+# 4. Combine key and cert into signing_ca.pem
+cat "$SIGNING_CA_KEY" "$SIGNING_CA_CERT" > "${SIGNING_CA_DIR}/signing_ca.pem"
+
+# Cleanup CSR, serial file and separate key/cert
 rm "${SIGNING_CA_DIR}/ca.csr"
 rm "${SIGNING_CA_DIR}/ca.srl" 2>/dev/null || true
+rm "$SIGNING_CA_CERT" "$SIGNING_CA_KEY"
 
 echo "[INFO] Signing CA generated successfully."
