@@ -46,9 +46,9 @@ generate_service() {
         exit 1
     fi
 
-    sed -e "s/{{INSTANCE_NAME}}/${INSTANCE_NAME}/g" \
-        -e "s/{{MILLEGRILLES_ROOT}}/${MILLEGRILLES_ROOT}/g" \
-        -e "s/{{NODE_TYPE}}/${NODE_TYPE}/g" \
+    sed -e "s|{{INSTANCE_NAME}}|${INSTANCE_NAME}|g" \
+        -e "s|{{MILLEGRILLES_ROOT}}|${MILLEGRILLES_ROOT}|g" \
+        -e "s|{{NODE_TYPE}}|${NODE_TYPE}|g" \
         "$template_file" > "$output_file"
 }
 
