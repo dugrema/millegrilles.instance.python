@@ -152,6 +152,9 @@ install_web_files() {
 
   cp -vr "$REPO_ROOT/etc/nginx/html" "$REP_NGINX/"
 
+  # Generate self-signed certificates
+  bin/generate_selfsigned.sh "${MILLEGRILLES_ROOT}/etc/secrets"
+
   echo "[OK] Fichier web copie"
 }
 
