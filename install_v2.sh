@@ -237,8 +237,7 @@ install_protege_instance() {
   echo "[INFO] Generating Node Certificate..."
   "${PATH_VENV}/bin/python3" bin/ca_protege.py \
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
-     --instance-id "${INSTANCE_ID}" \
-     --ca-pem "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/signing_ca.pem"
+    --ca-pem "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/signing_ca.pem"
 
   # Activate python venv
   . "${MILLEGRILLES_ROOT}/venv/bin/activate"
@@ -251,12 +250,17 @@ install_protege_instance() {
 
   echo "IDMG=$IDMG" >> "${MILLEGRILLES_ROOT}/config.env"
 
-  echo "[OK] Protege installation complete."
+  echo "[OK] Protege installation complete, IDMG=${IDMG}."
   echo
   echo "------------------------------------------------------------------------------"
   echo "Root CA Password: $password"
+  echo "Root CA PEM File: ${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca.pem"
+  cat "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca.pem"
   echo "------------------------------------------------------------------------------"
-  echo "IMPORTANT: Save this password! It is required for future operations."
+  echo
+  echo "IMPORTANT: Save this password and file content! The password is not saved anywhere, it is only shown once."
+  echo "Both the password and CA file are required for future operations (restoring backups, system updates, deploying secure nodes, etc)."
+  echo "To increase security, store the Root CA PEM file and the password separately."
 }
 
 # ------------------------------------------------------------------------------

@@ -13,7 +13,7 @@ from cryptography.x509.base import CertificateBuilder
 def main():
     parser = argparse.ArgumentParser(description="Generate a node certificate using MilleGrilles library.")
     parser.add_argument("--millegrilles-root", required=True, help="MILLEGRILLES_ROOT directory")
-    parser.add_argument("--instance-id", required=True, help="INSTANCE_ID")
+    # parser.add_argument("--instance-id", required=True, help="INSTANCE_ID")
     parser.add_argument("--ca-pem", required=True, help="Path to the combined CA PEM (key + cert)")
     parser.add_argument("--ca-password", required=False, help="Password for the CA private key")
     parser.add_argument("--days", type=int, default=31, help="Validity days for the node certificate")
@@ -21,7 +21,7 @@ def main():
     args = parser.parse_args()
 
     millegrilles_root = args.millegrilles_root
-    instance_id = args.instance_id
+    # instance_id = args.instance_id
     days = args.days
     ca_pem_path = args.ca_pem
     ca_password = args.ca_password
@@ -35,8 +35,8 @@ def main():
         ca_pem_content = f.read()
     
     import re
-    key_match = re.search(r'-----BEGIN\s+.*?PRIVATE\s+KEY-----.*?-----END\s+.*?PRIVATE\s+KEY-----', ca_pem_content, re.DOTALL)
-    cert_match = re.search(r'-----BEGIN\s+.*?CERTIFICATE-----.*?-----END\s+.*?CERTIFICATE-----', ca_pem_content, re.DOTALL)
+    key_match = re.search(r'-----BEGIN\s+PRIVATE\s+KEY-----.*?-----END\s+PRIVATE\s+KEY-----', ca_pem_content, re.DOTALL)
+    cert_match = re.search(r'-----BEGIN\s+CERTIFICATE-----.*?-----END\s+CERTIFICATE-----', ca_pem_content, re.DOTALL)
     
     if not key_match or not cert_match:
         print("Error: Could not find both Key and Certificate in the CA PEM")
@@ -46,10 +46,11 @@ def main():
     ca_cert_pem = cert_match.group(0)
 
     cle_ca = CleCertificat.from_pems(ca_key_pem, ca_cert_pem, password=ca_password)
+    instance_id = cle_ca.enveloppe.subject_common_name
 
     # 2. Generate a CSR
     idmg = cle_ca.enveloppe.idmg
-    print(f"[INFO] Retrieved IDMG from CA: {idmg}")
+    print(f"[INFO] Retrieved INSTANCE_ID {instance_id} and IDMG {idmg} from Signing CA")
 
     csr_genere = CleCsrGenere.build(cn=instance_id, idmg=idmg, type_genere=TypeGenere.ED25519)
 
@@ -57,28 +58,22 @@ def main():
     builder = CertificateBuilder()
     exchanges = [Constantes.SECURITE_PROTEGE, Constantes.SECURITE_PRIVE, Constantes.SECURITE_PUBLIC]
     builder = ajouter_exchanges(builder, exchanges)
+    builder = ajouter_roles(builder, [Constantes.DOMAINE_INSTANCE, 'manager'])
 
     print(f"[INFO] Signing certificate for {instance_id} for {days} days...")
-    cle_node_genere = csr_genere.signer(cle_ca, role='instance', builder=builder, duree=timedelta(days=days))
+    cle_node_genere = csr_genere.signer(cle_ca, role='manager', builder=builder, duree=timedelta(days=days))
 
     # 4. Save the result
-    node_pem_path = os.path.join(millegrilles_root, "etc/secrets/node.pem")
+    node_pem_path = os.path.join(millegrilles_root, "etc/secrets/manager.pem")
     os.makedirs(os.path.dirname(node_pem_path), exist_ok=True)
 
     node_key_pem = cle_node_genere.get_pem_cle()
-    node_cert_pems = "\n".join(cle_node_genere.get_pem_certificat())
+    node_cert_pems = cle_node_genere.get_pem_certificat()
 
     with open(node_pem_path, 'w') as f:
-        f.write("a\n")
-        f.write(node_key_pem + "\n")
-        f.write("b\n")
-        f.write(node_cert_pems + "\n")
-
-        #for cert_pem in node_cert_pems:
-        #    f.write("b\n")
-        #    f.write(cert_pem + "\n")
-        #f.write("c\n")
-        #f.write(ca_cert_pem + "\n")
+        f.write(node_key_pem)
+        f.write("".join(node_cert_pems))
+        f.write("\n")
 
     print(f"[OK] Node certificate and key written to {node_pem_path}")
 
