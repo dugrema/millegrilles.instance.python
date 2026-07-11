@@ -15,7 +15,7 @@ def main():
     parser.add_argument("--millegrilles-root", required=True, help="MILLEGRILLES_ROOT directory")
     parser.add_argument("--instance-id", required=True, help="INSTANCE_ID")
     parser.add_argument("--ca-pem", required=True, help="Path to the combined CA PEM (key + cert)")
-    parser.add_argument("--ca-password", required=True, help="Password for the CA private key")
+    parser.add_argument("--ca-password", required=False, help="Password for the CA private key")
     parser.add_argument("--days", type=int, default=31, help="Validity days for the node certificate")
 
     args = parser.parse_args()
@@ -35,8 +35,8 @@ def main():
         ca_pem_content = f.read()
     
     import re
-    key_match = re.search(r'-----BEGIN .* PRIVATE KEY-----.*?-----END .* PRIVATE KEY-----', ca_pem_content, re.DOTALL)
-    cert_match = re.search(r'-----BEGIN CERTIFICATE-----.*?-----END CERTIFICATE-----', ca_pem_content, re.DOTALL)
+    key_match = re.search(r'-----BEGIN\s+.*?PRIVATE\s+KEY-----.*?-----END\s+.*?PRIVATE\s+KEY-----', ca_pem_content, re.DOTALL)
+    cert_match = re.search(r'-----BEGIN\s+.*?CERTIFICATE-----.*?-----END\s+.*?CERTIFICATE-----', ca_pem_content, re.DOTALL)
     
     if not key_match or not cert_match:
         print("Error: Could not find both Key and Certificate in the CA PEM")
@@ -57,21 +57,28 @@ def main():
     builder = CertificateBuilder()
     exchanges = [Constantes.SECURITE_PROTEGE, Constantes.SECURITE_PRIVE, Constantes.SECURITE_PUBLIC]
     builder = ajouter_exchanges(builder, exchanges)
-    
+
     print(f"[INFO] Signing certificate for {instance_id} for {days} days...")
     cle_node_genere = csr_genere.signer(cle_ca, role='instance', builder=builder, duree=timedelta(days=days))
 
     # 4. Save the result
     node_pem_path = os.path.join(millegrilles_root, "etc/secrets/node.pem")
     os.makedirs(os.path.dirname(node_pem_path), exist_ok=True)
-    
+
     node_key_pem = cle_node_genere.get_pem_cle()
-    node_cert_pems = cle_node_genere.get_pem_certificat()
-    
+    node_cert_pems = "\n".join(cle_node_genere.get_pem_certificat())
+
     with open(node_pem_path, 'w') as f:
+        f.write("a\n")
         f.write(node_key_pem + "\n")
-        for cert_pem in node_cert_pems:
-            f.write(cert_pem + "\n")
+        f.write("b\n")
+        f.write(node_cert_pems + "\n")
+
+        #for cert_pem in node_cert_pems:
+        #    f.write("b\n")
+        #    f.write(cert_pem + "\n")
+        #f.write("c\n")
+        #f.write(ca_cert_pem + "\n")
 
     print(f"[OK] Node certificate and key written to {node_pem_path}")
 

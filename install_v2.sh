@@ -237,9 +237,8 @@ install_protege_instance() {
   echo "[INFO] Generating Node Certificate..."
   "${PATH_VENV}/bin/python3" bin/ca_protege.py \
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
-    --instance-id "${INSTANCE_ID}" \
-    --ca-pem "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/ca.pem" \
-    --ca-password "$password"
+     --instance-id "${INSTANCE_ID}" \
+     --ca-pem "${MILLEGRILLES_ROOT}/etc/secrets/certissuer/signing_ca.pem"
 
   # Activate python venv
   . "${MILLEGRILLES_ROOT}/venv/bin/activate"
