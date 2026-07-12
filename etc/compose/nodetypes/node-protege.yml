@@ -10,6 +10,11 @@ include:
   - ../include/webauth.yml
   - ../include/protected_webapi.yml
 
+volumes:
+  mg-redis:
+  rabbitmq-data:
+  mongo-data:
+
 configs:
   pki.protected_webapi:
     file: ${MILLEGRILLES_ROOT}/secrets/cert.pem # TODO

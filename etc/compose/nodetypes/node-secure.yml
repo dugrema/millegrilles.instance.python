@@ -1,7 +1,6 @@
 include:
   - ../include/base.yml
   - ../include/nginx.yml
-  - ../include/certissuer.yml
   - ../include/redis.yml
 
 configs:
