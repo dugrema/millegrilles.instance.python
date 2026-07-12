@@ -64,7 +64,7 @@ def main():
     cle_node_genere = csr_genere.signer(cle_ca, role='manager', builder=builder, duree=timedelta(days=days))
 
     # 4. Save the result
-    node_pem_path = os.path.join(millegrilles_root, "etc/secrets/manager.pem")
+    node_pem_path = os.path.join(millegrilles_root, "secrets/manager.pem")
     os.makedirs(os.path.dirname(node_pem_path), exist_ok=True)
 
     node_key_pem = cle_node_genere.get_pem_cle()

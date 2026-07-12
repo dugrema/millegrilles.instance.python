@@ -32,9 +32,7 @@ def main():
         sys.exit(1)
 
     try:
-        with open(cert_path, 'r') as f:
-            pem = f.read()
-        enveloppe = EnveloppeCertificat.from_pem(pem)
+        enveloppe = EnveloppeCertificat.from_file(cert_path)
         print(enveloppe.idmg)
     except Exception as e:
         print(f"Error processing certificate: {e}")
