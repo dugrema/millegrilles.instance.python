@@ -1,17 +1,19 @@
 include:
-  - ./include/base.yml
+  - path: ../include/app_net.yml
+    project_directory: .
 
 services:
   certissuer:
-    image: registry.millegrilles.com/millegrilles/midcompte_python:2025.4.112
+    image: registry.millegrilles.com/millegrilles/midcompte_python:2026.3.4
+    ports:
+      - "2080:2080"
     user: "${CONTAINER_UID}:${CONTAINER_GID}"
     command: ["-m", "millegrilles_certissuer"]
     environment:
-      - INSTANCE_ID=${INSTANCE_ID}
+      - INSTANCE_ID="${INSTANCE_ID}"
       - WEB_PORT=2080
-    volumes:
-      - ${MILLEGRILLES_ROOT}/etc:/var/opt/millegrilles/configuration:ro
-      - ${MILLEGRILLES_ROOT}/etc/secrets/certissuer:/var/opt/millegrilles/certissuer
+      - CA_CERT_PATH=/run/secrets/millegrille.pem
+      - SIGNING_CERT_PATH=/run/secrets/signing_ca.pem
     networks:
       - app_net
     deploy:
@@ -25,18 +27,14 @@ services:
         max_attempts: 1000
     configs:
       - source: millegrille_cert
-        target: /run/secrets/pki.millegrille.cert
-      - source: signing_cert
-        target: /run/secrets/cert.pem
+        target: /run/secrets/millegrille.pem
     secrets:
       - source: signing_key
-        target: key.pem
+        target: signing_ca.pem
 
 configs:
   millegrille_cert:
     file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
-  signing_cert:
-    file: ${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem
 
 secrets:
   signing_key:

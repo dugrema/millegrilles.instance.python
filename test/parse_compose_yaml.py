@@ -1,0 +1,30 @@
+import pathlib
+import yaml
+
+
+def load_yaml_recursive(yaml_file: pathlib.Path) -> dict:
+    with open(yaml_file) as f:
+        compose_configuration = yaml.safe_load(f)
+
+    try:
+        include_files = compose_configuration['include']
+        files_dict = dict()
+        compose_configuration['x-include-content'] = files_dict
+        for include_file in include_files:
+            include_file_path = yaml_file.parent.joinpath(include_file).resolve()
+            file_content = load_yaml_recursive(include_file_path)
+            files_dict[include_file_path] = file_content
+    except KeyError:
+        pass
+
+    return compose_configuration
+
+def parse_compose_node(node_file: pathlib.Path):
+    configuration_file = load_yaml_recursive(node_file)
+    pass
+
+def main():
+    parse_compose_node(pathlib.Path("../etc/compose/nodetypes/node-protege.yml"))
+
+if __name__ == "__main__":
+    main()
