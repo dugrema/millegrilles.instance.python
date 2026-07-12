@@ -6,8 +6,9 @@ After=network.target
 Type=simple
 WorkingDirectory={{MILLEGRILLES_ROOT}}
 EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
-ExecStart=/usr/bin/docker compose -f etc/compose/certissuer.yml up
-ExecStop=/usr/bin/docker compose -f etc/compose/certissuer.yml down
+ExecStart=/usr/bin/docker compose -f etc/compose/coremodules/certissuer.yml up
+ExecReload=/usr/bin/docker compose -f etc/compose/coremodules/certissuer.yml up -d --no-deps
+ExecStop=/usr/bin/docker compose -f etc/compose/coremodules/certissuer.yml down
 Restart=always
 
 [Install]
