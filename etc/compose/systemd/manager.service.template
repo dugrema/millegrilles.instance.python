@@ -1,7 +1,7 @@
 [Unit]
 Description=MilleGrilles Instance ({{NODE_TYPE}})
-After=network.target docker.service
-Requires=docker.service {{INSTANCE_NAME}}_certissuer.service
+After=network.target
+Wants={{INSTANCE_NAME}}_certissuer.service
 
 [Service]
 Type=simple
