@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import os
 import sys
 
 from asyncio import TaskGroup
@@ -9,17 +8,12 @@ from typing import Awaitable
 
 from millegrilles_instance.SystemStatus import SystemStatus
 from millegrilles_instance.apps.AppManager import AppManager
-from millegrilles_instance.millegrilles_docker.ComposeHandler import ComposeHandler
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopListener
 from millegrilles_messages.bus.BusExceptions import ConfigurationFileError
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
-from millegrilles_instance.millegrilles_docker.DockerHandler import DockerState
 from millegrilles_instance.NginxHandler import NginxHandler
-from millegrilles_instance.Certificats import GenerateurCertificatsHandler
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
-from millegrilles_instance.InstanceDocker import InstanceDockerHandler
-from millegrilles_instance.MaintenanceApplications import ApplicationsHandler
 from millegrilles_instance.Manager import InstanceManager
 from millegrilles_instance.WebServer import WebServer
 from millegrilles_instance.MgbusHandler import MgbusHandler
@@ -82,23 +76,11 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     bus_connector = MilleGrillesPikaConnector(context)
     context.bus_connector = bus_connector
     system_status = SystemStatus(context)
-
-    docker_state = DockerState(context)
-    if docker_state.docker_present() is False:
-        # Docker not supported
-        raise Exception('Docker environment not detected')
-
-    docker_handler = InstanceDockerHandler(context, docker_state)
-    context.add_reload_listener(docker_handler.callback_changement_configuration)
-
-    generateur_certificats = GenerateurCertificatsHandler(context, docker_handler)
-    nginx_handler = NginxHandler(context, docker_handler)
-    # applications_handler = ApplicationsHandler(context, docker_handler)
-    app_manager = AppManager(context, docker_handler)
-    compose_handler = ComposeHandler(context)
+    nginx_handler = NginxHandler(context)
+    app_manager = AppManager(context, nginx_handler)
 
     # Facade
-    manager = InstanceManager(context, generateur_certificats, docker_handler, app_manager, nginx_handler, compose_handler)
+    manager = InstanceManager(context, app_manager, nginx_handler)
     context.add_reload_listener(manager.callback_changement_configuration)
 
     # Access modules
@@ -106,26 +88,20 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     bus_handler = MgbusHandler(manager)
 
     # Setup / injecting dependencies
-    await docker_handler.setup(generateur_certificats)
     await manager.setup(bus_handler)
     await web_server.setup()
-    await nginx_handler.setup()
+    # await nginx_handler.setup()
 
     # Create tasks
     coros = [
         context.run(),
-        # generateur_certificats.run(),
         system_status.run(),
-        # applications_handler.run(),
         app_manager.run(),
         manager.run(),
         web_server.run(),
         bus_handler.run(),
         nginx_handler.run(),
     ]
-
-    if docker_handler:
-        coros.append(docker_handler.run())
 
     return coros
 

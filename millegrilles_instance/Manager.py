@@ -10,13 +10,11 @@ from typing import Optional
 
 from cryptography.x509 import ExtensionNotFound
 
-from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance.Interfaces import MgbusHandlerInterface
 from millegrilles_instance.NginxHandler import NginxHandler
 from millegrilles_instance.apps.AppManager import AppManager
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages import Constantes
-from millegrilles_instance.Certificats import GenerateurCertificatsHandler
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_messages.messages.EnveloppeCertificat import CertificatExpire
@@ -24,25 +22,17 @@ from millegrilles_messages.messages.MessagesModule import MessageWrapper
 
 LOGGER = logging.getLogger(__name__)
 
-from millegrilles_instance.millegrilles_docker.ComposeHandler import ComposeHandler
-
 
 class InstanceManager:
     """
     Facade for system handlers. Used by access modules (mq, web).
     """
-    def __init__(self, context: InstanceContext, generateur_certificats: GenerateurCertificatsHandler,
-                 docker_handler: Optional[InstanceDockerHandler], app_manager: AppManager,
-                 nginx_handler: NginxHandler, compose_handler: ComposeHandler):
+    def __init__(self, context: InstanceContext, app_manager: AppManager, nginx_handler: NginxHandler):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context = context
-        self.__generateur_certificats = generateur_certificats
-        self.__docker_handler = docker_handler
         self.__app_manager = app_manager
-        self.__mgbus_handler: Optional[MgbusHandlerInterface] = None
         self.__nginx_handler = nginx_handler
-        self.__docker_client = docker.from_env()
-        self.__compose_handler = compose_handler
+        self.__mgbus_handler: Optional[MgbusHandlerInterface] = None
         self.__runlevel_changed = asyncio.Event()
         self.__loop = asyncio.get_event_loop()
         self.__reload_configuration = asyncio.Event()
@@ -74,7 +64,6 @@ class InstanceManager:
                 group.create_task(self.__stop_thread())
                 group.create_task(self.__reload_configuration_thread())
                 group.create_task(self.__runlevel_thread())
-                group.create_task(self.__entretien_inital_attente_thread())
         except *Exception:  # Stop on any thread exception
             self.__logger.exception("InstanceManager Unhandled error, closing")
 
@@ -122,12 +111,6 @@ class InstanceManager:
     def callback_changement_configuration(self):
         # self.__reload_configuration.set()
         self.__loop.call_soon_threadsafe(self.__reload_configuration.set)
-
-    async def __entretien_inital_attente_thread(self):
-        await self.__generateur_certificats.event_entretien_initial.wait()
-        # Initial maintenance done
-        self.__context.initial_application_configuration_update.set()
-        self.__logger.debug("__entretien_inital_attente_thread DONE")
 
     async def __reload_configuration_thread(self):
         while self.context.stopping is False:
@@ -195,9 +178,6 @@ class InstanceManager:
             else:
                 expired = None  # No valid certificate
 
-        docker_present = self.__docker_handler is not None
-        current_runlevel = self.context.runlevel
-
         disabled_file = pathlib.Path(self.context.configuration.path_configuration, 'disabled_modules.json')
         try:
             with open(disabled_file, 'rt') as fp:
@@ -208,21 +188,13 @@ class InstanceManager:
             disabled_modules = list()
 
         if expired:
-            if docker_present:
-                self.__logger.info("Recovery mode with docker")
-                if securite in [Constantes.SECURITE_PROTEGE, Constantes.SECURITE_SECURE]:
-                    raise Exception("Unsupported state - expired manager certificate for Protected/Secure node")
-                    # self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_SECURE_EXPIRE
-                # else:
-                #     self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_CERTIFICAT_EXPIRE
-                await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_EXPIRED)
-            else:
-                self.__logger.info("Recovery mode without docker")
-                raise NotImplementedError('Recovery mode without docker not supported')
-        elif docker_present is False:
-            # No docker, just plain application mode
-            self.__logger.info("Applications without docker mode")
-            raise NotImplementedError('Applications without docker not supported')
+            self.__logger.info("Recovery mode with docker")
+            if securite in [Constantes.SECURITE_PROTEGE, Constantes.SECURITE_SECURE]:
+                raise Exception("Unsupported state - expired manager certificate for Protected/Secure node")
+                # self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_SECURE_EXPIRE
+            # else:
+            #     self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_CERTIFICAT_EXPIRE
+            await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_EXPIRED)
         else:
             # Normal operation mode with docker
             if securite == Constantes.SECURITE_PUBLIC:
@@ -267,34 +239,17 @@ class InstanceManager:
         self.__logger.info("Ready for recovery\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
 
     async def __start_runlevel_local(self):
-        securite = self.__context.securite
-
         self.__logger.info("Starting runlevel LOCAL")
 
         # Read current application status
         # await self.__gestionnaire_applications.update_application_status()
 
-        # 1. Nginx Cleanup from installation
-        # await self.__docker_handler.nginx_installation_cleanup()
-        # await asyncio.to_thread(self.__nginx_handler.generer_configuration_nginx)
+        # 1. Wait for app certificates/passwords to be updated
+        await self.__app_manager.wait_initial_refresh_done()
+
+        # 2. Refresh nginx configuration
         await self.__nginx_handler.refresh_configuration(
             "Switching to runlevel %d" % InstanceContext.CONST_RUNLEVEL_LOCAL)
-
-        if securite in [Constantes.SECURITE_PROTEGE, Constantes.SECURITE_SECURE]:
-            # Renew certificates locally with certissuer
-            try:
-                await self.__generateur_certificats.entretien_certificat_instance()
-                await self.__generateur_certificats.entretien_modules()
-                await self.context.wait(2)
-            except:
-                self.__logger.exception("Error maintaining certificates - quitting")
-                self.context.stop()
-
-        # if securite == Constantes.SECURITE_SECURE:
-        #     # Ensure that the remote mq host is available
-        #     while self.context.configuration.mq_hostname == 'localhost':
-        #         # We don't have a confgured server yet, wait
-        #         await self.__reload_configuration.wait()
 
         self.__logger.info("Runlevel LOCAL done")
         await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_NORMAL)
@@ -316,7 +271,10 @@ class InstanceManager:
             # await wait_for_application(self.__context, 'midcompte')
 
             # Restart nginx to ensure configuration is ready for creating bus account
-            await self.__docker_handler.redemarrer_nginx('Midcompte ready - ensure configuration is updated')
+            # await self.__docker_handler.redemarrer_nginx('Midcompte ready - ensure configuration is updated')
+            self.__logger.info("Reload nginx configuration")
+            await self.__app_manager.reload_nginx()
+
             await self.__context.wait(3)
 
         # Connect to mgbus (MQ)
@@ -336,7 +294,7 @@ class InstanceManager:
             self.__logger.info("Runlevel normal - exchange information")
             for i in range(0, 3):
                 try:
-                    await self.__docker_handler.emettre_presence(timeout=20)  # Wait 20 secs max for connection to mqbus
+                    # await self.__docker_handler.emettre_presence(timeout=20)  # Wait 20 secs max for connection to mqbus
                     await self.request_fiche_json()
                     if securite == Constantes.SECURITE_PROTEGE:
                         await self.send_application_packages()

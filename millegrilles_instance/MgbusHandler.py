@@ -197,12 +197,10 @@ def create_requests_channel(instance_id: str, niveau_securite: str, context: Ins
     q_channel = MilleGrillesPikaChannel(context, prefetch_count=3)
     q = MilleGrillesPikaQueueConsumer(context, on_message, f'instance/{instance_id}/requests', arguments={'x-message-ttl': 30_000})
 
-    q.add_routing_key(niveau_securite_ajuste,
-                      f'requete.instance.{instance_id}.{ConstantesInstance.REQUETE_GET_PASSWORDS}')
+    q.add_routing_key(RoutingKey(niveau_securite_ajuste, f'requete.instance.{instance_id}.{ConstantesInstance.REQUETE_GET_PASSWORDS}'))
 
     if niveau_securite == Constantes.SECURITE_PROTEGE:
-        q.add_routing_key(RoutingKey(Constantes.SECURITE_PROTEGE,
-                                     f'commande.instance.{ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES}'))
+        q.add_routing_key(RoutingKey(Constantes.SECURITE_PROTEGE, f'commande.instance.{ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES}'))
 
     q_channel.add_queue(q)
     return q_channel

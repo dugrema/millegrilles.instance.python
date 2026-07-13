@@ -8,7 +8,7 @@ from typing import Optional, Callable
 
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Configuration import ConfigurationInstance
-from millegrilles_instance.Interfaces import DockerHandlerInterface
+# from millegrilles_instance.Interfaces import DockerHandlerInterface
 # from millegrilles_instance.Structs import ApplicationInstallationStatus
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_messages.IpUtils import get_ip, get_hostnames
@@ -33,7 +33,7 @@ class InstanceContext(MilleGrillesBusContext):
         super().__init__(configuration, False)
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__bus_connector: Optional[MilleGrillesPikaConnector] = None
-        self.__docker_handler: Optional[DockerHandlerInterface] = None
+        # self.__docker_handler: Optional[DockerHandlerInterface] = None
 
         self.__instance_id: Optional[str] = None
         self.__securite: Optional[str] = None
@@ -108,7 +108,7 @@ class InstanceContext(MilleGrillesBusContext):
                 'ip': self.ip_address,
                 'security': self.securite,
             }
-            status_content.update(self.__current_system_state)
+            # status_content.update(self.__current_system_state)
             event_content = {'status': status_content}
             try:
                 await producer.event(event_content, Constantes.DOMAINE_INSTANCE,
@@ -151,19 +151,19 @@ class InstanceContext(MilleGrillesBusContext):
     def bus_connector(self, value: MilleGrillesPikaConnector):
         self.__bus_connector = value
 
-    @property
-    def docker_actif(self) -> bool:
-        return self.__docker_handler is not None
+    # @property
+    # def docker_actif(self) -> bool:
+    #     return self.__docker_handler is not None
 
-    @property
-    def docker_handler(self) -> DockerHandlerInterface:
-        if self.__docker_handler is None:
-            raise Exception('not initialized')
-        return self.__docker_handler
-
-    @docker_handler.setter
-    def docker_handler(self, value: DockerHandlerInterface):
-        self.__docker_handler = value
+    # @property
+    # def docker_handler(self) -> DockerHandlerInterface:
+    #     if self.__docker_handler is None:
+    #         raise Exception('not initialized')
+    #     return self.__docker_handler
+    #
+    # @docker_handler.setter
+    # def docker_handler(self, value: DockerHandlerInterface):
+    #     self.__docker_handler = value
 
     async def get_producer(self) -> MilleGrillesPikaMessageProducer:
         return await self.__bus_connector.get_producer()

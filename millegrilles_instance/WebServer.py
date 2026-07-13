@@ -258,7 +258,7 @@ class WebServer:
     async def run(self):
         try:
             await self.__webrunner.start()
-            self.__logger.info("Web server started on port %s" % self.context.configuration.get_port())
+            self.__logger.info("Web server started on port %s" % self.context.configuration.port)
             await self.context.wait()
         except asyncio.CancelledError as e:
             if self.context.stopping is False:
@@ -324,8 +324,8 @@ class WebRunner:
             ssl_context.load_cert_chain(configuration.web_cert_pem_path, configuration.web_key_pem_path)
         except FileNotFoundError:
             # Fallback to the self-signed web certificates
-            web_cert_pem_path = self.__contexte.configuration.path_millegrilles.joinpath('secrets/webss.cert')  # 'secrets/pki.web.cert'
-            web_key_pem_path = self.__contexte.configuration.path_millegrilles.joinpath('secrets/webss.key')  # 'secrets/pki.web.key'
+            web_cert_pem_path = self.__contexte.configuration.path_millegrilles.joinpath('secrets/webss.cert.pem')  # 'secrets/pki.web.cert'
+            web_key_pem_path = self.__contexte.configuration.path_millegrilles.joinpath('secrets/webss.key.pem')  # 'secrets/pki.web.key'
             ssl_context.load_cert_chain(web_cert_pem_path, web_key_pem_path)
         return ssl_context
 

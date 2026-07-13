@@ -14,10 +14,9 @@ from typing import Optional, Any, TypedDict
 
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
-from millegrilles_instance.InstanceDocker import InstanceDockerHandler
+from millegrilles_instance.NginxHandler import NginxHandler
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages import Constantes as MillegrillesConstantes
-from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.FormatteurMessages import FormatteurMessageMilleGrilles
 
@@ -209,13 +208,18 @@ def generer_password(type_generateur='password', size: int = None):
 
 class AppManager:
 
-    def __init__(self, context: InstanceContext, docker_handler: InstanceDockerHandler):
+    def __init__(self, context: InstanceContext, nginx_handler: NginxHandler):
         self.__logger = logging.getLogger(__name__)
         self.__context: InstanceContext = context
-        self.__docker_handler = docker_handler
+        self.__nginx_handler = nginx_handler
 
         self.__applications_changed = asyncio.Event()
         self.__stopping = asyncio.Event()
+
+        self.__initial_refresh_done = asyncio.Event()
+
+    async def wait_initial_refresh_done(self):
+        await self.__initial_refresh_done.wait()
 
     async def __stop_thread(self):
         await self.__context.wait()
@@ -234,6 +238,7 @@ class AppManager:
     async def __maintenance_thread(self):
         while not self.__stopping.is_set():
             await self.maintenance()
+            self.__initial_refresh_done.set()
             try:
                 await asyncio.wait_for(self.__stopping.wait(), 900)
                 return  # Stopping
@@ -313,3 +318,6 @@ class AppManager:
         if changes_pending:
             # Some changes were applied
             self.__applications_changed.set()
+
+    async def reload_nginx(self):
+        self.__logger.warning("NginxHandler refresh_nginx called - NOT IMPLEMENTED")
