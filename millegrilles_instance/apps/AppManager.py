@@ -1,8 +1,12 @@
 import asyncio
+import base64
 import logging
 import pathlib
+import secrets
+
 from asyncio import TaskGroup
 
+import math
 import requests
 import yaml
 
@@ -93,6 +97,7 @@ class CertificateConfiguration(TypedDict):
     split: Optional[bool]
     key_path: Optional[pathlib.Path]
     cert_path: Optional[pathlib.Path]
+    passwords: Optional[list[str]]
 
 
 def extract_certificate_configuration(config_file: dict) -> list[CertificateConfiguration]:
@@ -130,7 +135,7 @@ def check_certificates(configuration: ConfigurationInstance, certs: list[Certifi
 
     for cert in certs:
         if cert.get('split'):
-            cert_path = secret_path / f"{cert['name']}.cert"
+            cert_path = secret_path / f"{cert['name']}.cert.pem"
         else:
             cert_path = secret_path / f"{cert['name']}.pem"
 
@@ -145,6 +150,27 @@ def check_certificates(configuration: ConfigurationInstance, certs: list[Certifi
             to_renew.append(cert)
 
     return to_renew
+
+
+def check_passwords(configuration: ConfigurationInstance, certs: list[CertificateConfiguration]) -> list[str]:
+    secret_path = configuration.path_millegrilles / "secrets"
+
+    to_generate = list()
+
+    for cert in certs:
+        try:
+            passwords = cert['passwords']
+            if not passwords:
+                continue  # No passwords
+        except KeyError:
+            continue  # No passwords
+
+        for p in passwords:
+            password_path = secret_path / f"{p}.txt"
+            if not password_path.exists():
+                to_generate.append(p)
+
+    return to_generate
 
 
 def signer_module(config: ConfigurationInstance, cert_config: CertificateConfiguration, formatteur_message: FormatteurMessageMilleGrilles):
@@ -166,6 +192,19 @@ def signer_module(config: ConfigurationInstance, cert_config: CertificateConfigu
     certificat = response_message['certificat']
 
     return cle_csr, certificat
+
+
+def generer_password(type_generateur='password', size: int = None):
+    if type_generateur == 'password':
+        if size is None:
+            size = 32
+        generer_bytes = math.ceil(size / 4 * 3)
+        pwd_genere = base64.b64encode(secrets.token_bytes(generer_bytes)).decode('utf-8').replace('=', '')
+        valeur = pwd_genere[:size]
+    else:
+        raise ValueError('Type de generateur inconnu : %s' % type_generateur)
+
+    return valeur
 
 
 class AppManager:
@@ -257,6 +296,14 @@ class AppManager:
                     pem_file.write(key_pem)
                     pem_file.write("\n")
                     pem_file.write(cert_pem)
+
+        # Generate missing passwords
+        passwords_to_generate = check_passwords(self.__context.configuration, certs)
+        for p in passwords_to_generate:
+            password = generer_password()
+            filename = secrets_path / f"{p}.txt"
+            with open(filename, "w") as file:
+                file.write(password)
 
         # The
         self.__applications_changed.set()

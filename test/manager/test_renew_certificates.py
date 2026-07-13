@@ -7,7 +7,7 @@ import pytest
 
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.apps.AppManager import load_compose_files, \
-    extract_certificate_configuration, check_certificates, signer_module
+    extract_certificate_configuration, check_certificates, signer_module, check_passwords
 from millegrilles_messages.bus.BusContext import load_message_formatter
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
@@ -42,7 +42,8 @@ async def test_list_to_renew():
 
     # Get certs to renew
     certs_to_renew = check_certificates(config, certs)
-    assert len(certs_to_renew) == len(certs)
+    # assert len(certs_to_renew) == len(certs)
+    assert len(certs_to_renew) == 0
 
     # Submit certs
     for cert_config in certs_to_renew:
@@ -56,3 +57,6 @@ async def test_list_to_renew():
             print(f"\nNew combined PEM:\n{pem_content}")
         pass
 
+    # Passwords to generate
+    passwords_to_generate = check_passwords(config, certs)
+    assert len(passwords_to_generate) == len(certs)

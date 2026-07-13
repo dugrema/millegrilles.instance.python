@@ -11,7 +11,7 @@ services:
         domain: true
       split: false
       passwords:
-        - mqadmin
+        - mongo
     hostname: mongo
     command: ["mongod", "--tlsMode", "requireTLS", "--tlsCertificateKeyFile", "/run/secrets/mongo.key_cert.pem", "--tlsCAFile", "/run/secrets/millegrille.cert.pem", "--replSet", "rs0", "--clusterAuthMode", "x509", "--tlsClusterFile", "/run/secrets/mongo.key_cert.pem"]
     environment:
