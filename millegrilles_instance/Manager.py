@@ -19,7 +19,7 @@ from millegrilles_instance.MaintenanceApplicationService import ServiceStatus
 from millegrilles_instance.NginxHandler import NginxHandler
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages import Constantes
-from millegrilles_instance.Certificats import GenerateurCertificatsHandler, preparer_certificats_web
+from millegrilles_instance.Certificats import GenerateurCertificatsHandler
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.MaintenanceApplications import ApplicationsHandler
@@ -174,7 +174,7 @@ class InstanceManager:
         # await asyncio.to_thread(makedirs, configuration.path_secrets, 0o700, exist_ok=True)
         # await asyncio.to_thread(makedirs, configuration.path_secrets_partages, 0o700, exist_ok=True)
         await self.__prepare_folder_configuration()
-        await self.__prepare_self_signed_web_certificates()
+        # await self.__prepare_self_signed_web_certificates()
 
         # Initial load of the configuration
         try:
@@ -188,15 +188,15 @@ class InstanceManager:
 
         # instance_id is now managed in config.env via install_v2.sh
 
-    async def __prepare_self_signed_web_certificates(self):
-        configuration: ConfigurationInstance = self.__context.configuration
-        await asyncio.to_thread(preparer_certificats_web, str(configuration.path_secrets))
+    # async def __prepare_self_signed_web_certificates(self):
+    #     configuration: ConfigurationInstance = self.__context.configuration
+    #     await asyncio.to_thread(preparer_certificats_web, str(configuration.path_secrets))
 
     async def __load_application_list(self):
         try:
             securite = self.__context.securite
         except ValueNotAvailable:
-            securite = None  # System not initialized
+            raise ValueError(f"Instance at {self.__context.configuration.path_millegrilles} is not configured properly, SECURITE is not set")
 
         try:
             clecert = self.__context.signing_key
@@ -221,15 +221,7 @@ class InstanceManager:
         except (FileNotFoundError, json.JSONDecodeError, KeyError):
             disabled_modules = list()
 
-        if securite is None:
-            if docker_present:
-                self.__logger.info("Installation mode with docker")
-                self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_INSTALLATION
-                await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_INSTALLING)
-            else:
-                self.__logger.info("Installation mode without docker")
-                raise NotImplementedError('Installation mode without docker not supported')
-        elif expired:
+        if expired:
             if docker_present:
                 self.__logger.info("Recovery mode with docker")
                 if securite in [Constantes.SECURITE_PROTEGE, Constantes.SECURITE_SECURE]:
@@ -276,47 +268,47 @@ class InstanceManager:
 
         pass
 
-    async def __start_runlevel_installation(self):
-        self.__logger.info("Starting runlevel INSTALLATION")
+    # async def __start_runlevel_installation(self):
+    #     self.__logger.info("Starting runlevel INSTALLATION")
+    #
+    #     # # Read current application status
+    #     # try:
+    #     #     await self.__gestionnaire_applications.update_application_status()
+    #     # except APIError as e:
+    #     #     if e.status_code == 503:
+    #     #         # Not a swarm manager, nothing is installed yet
+    #     #         await self.__docker_handler.initialiser_docker()
+    #     #         await self.__gestionnaire_applications.update_application_status()
+    #     #     else:
+    #     #         raise e
+    #     #
+    #     # # Release configuration/app update threads
+    #     # # 3. Deploy installation module
+    #     # install_config_dir = self.__context.configuration.path_millegrilles / "etc" / "docker"
+    #     # install_files = []
+    #     # for mod_file in ['docker.nginxinstall.json', 'docker.certissuer.json']:
+    #     #     f_path = install_config_dir / mod_file
+    #     #     if f_path.exists():
+    #     #         install_files.append(f_path)
+    #
+    #     # self.__logger.info("Deploying installation module: %s", install_files)
+    #     # await self.__compose_handler.deploy_module_from_files("installation", install_files)
+    #
+    #     # self.__docker_handler.callback_changement_configuration()
+    #     # self.__context.initial_application_configuration_update.set()
+    #     # await self.__gestionnaire_applications.callback_changement_applications()
+    #     #
+    #     # await wait_for_application(self.__context, 'nginxinstall')
+    #     # await wait_for_application(self.__context, 'coupdoeil2')
+    #
+    #     raise NotImplementedError("TODO - configure systemctl service and start node")
+    #
+    #     self.__logger.info("Ready to install\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
 
-        # # Read current application status
-        # try:
-        #     await self.__gestionnaire_applications.update_application_status()
-        # except APIError as e:
-        #     if e.status_code == 503:
-        #         # Not a swarm manager, nothing is installed yet
-        #         await self.__docker_handler.initialiser_docker()
-        #         await self.__gestionnaire_applications.update_application_status()
-        #     else:
-        #         raise e
-        #
-        # # Release configuration/app update threads
-        # # 3. Deploy installation module
-        # install_config_dir = self.__context.configuration.path_millegrilles / "etc" / "docker"
-        # install_files = []
-        # for mod_file in ['docker.nginxinstall.json', 'docker.certissuer.json']:
-        #     f_path = install_config_dir / mod_file
-        #     if f_path.exists():
-        #         install_files.append(f_path)
-
-        self.__logger.info("Deploying installation module: %s", install_files)
-        await self.__compose_handler.deploy_module_from_files("installation", install_files)
-
-        # self.__docker_handler.callback_changement_configuration()
-        # self.__context.initial_application_configuration_update.set()
-        # await self.__gestionnaire_applications.callback_changement_applications()
-        #
-        # await wait_for_application(self.__context, 'nginxinstall')
-        # await wait_for_application(self.__context, 'coupdoeil2')
-
-        raise NotImplementedError("TODO - configure systemctl service and start node")
-
-        self.__logger.info("Ready to install\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
-
-    async def __stop_runlevel_installation(self):
-        # Installation just completed, reload all configuration
-        await self.__context.delay_reload(0)  # Reload without waiting
-        self.__logger.info("Stopped runlevel INSTALLATION")
+    # async def __stop_runlevel_installation(self):
+    #     # Installation just completed, reload all configuration
+    #     await self.__context.delay_reload(0)  # Reload without waiting
+    #     self.__logger.info("Stopped runlevel INSTALLATION")
 
     async def __start_runlevel_expired(self):
         self.__logger.info("Starting runlevel EXPIRED")

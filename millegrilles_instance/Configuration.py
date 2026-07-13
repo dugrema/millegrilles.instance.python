@@ -92,7 +92,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         self.__path_docker_compose = self.__path_millegrilles.joinpath('compose')
         self.__instance_password_mq_path: Optional[str] = None  # = '/var/opt/millegrilles/secrets/passwd.mqadmin.txt'
 
-        self.path_app_installation = self.__path_millegrilles.joinpath('dist/installation')
+        # self.path_app_installation = self.__path_millegrilles.joinpath('dist/installation')
         # self.ca_pem_path = 'secrets/pki.millegrille.cert'
         self.web_cert_pem_path = self.__path_millegrilles.joinpath('secrets/pki.web.cert')  # 'secrets/pki.web.cert'
         self.web_key_pem_path = self.__path_millegrilles.joinpath('secrets/pki.web.key')  # 'secrets/pki.web.key'

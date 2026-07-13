@@ -320,7 +320,13 @@ class WebRunner:
     def charger_ssl(self):
         ssl_context = SSLContext()
         configuration = self.__contexte.configuration
-        ssl_context.load_cert_chain(configuration.web_cert_pem_path, configuration.web_key_pem_path)
+        try:
+            ssl_context.load_cert_chain(configuration.web_cert_pem_path, configuration.web_key_pem_path)
+        except FileNotFoundError:
+            # Fallback to the self-signed web certificates
+            web_cert_pem_path = self.__contexte.configuration.path_millegrilles.joinpath('secrets/webss.cert')  # 'secrets/pki.web.cert'
+            web_key_pem_path = self.__contexte.configuration.path_millegrilles.joinpath('secrets/webss.key')  # 'secrets/pki.web.key'
+            ssl_context.load_cert_chain(web_cert_pem_path, web_key_pem_path)
         return ssl_context
 
 

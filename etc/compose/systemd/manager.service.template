@@ -1,16 +1,23 @@
 [Unit]
-Description=MilleGrilles Instance ({{NODE_TYPE}})
-After=network.target
-Wants={{INSTANCE_NAME}}_certissuer.service
+Description=Gestionnaire pour instance MilleGrilles {{INSTANCE_NAME}}.
+Requires=docker.service
+Wants={{INSTANCE_NAME}}-certissuer.service
 
 [Service]
 Type=simple
-WorkingDirectory={{MILLEGRILLES_ROOT}}
+Nice=2
+PIDFile=/var/run/{{INSTANCE_NAME}}_manager.pid
+Environment="WEB_PORT=5443"
+Environment="CA_PATH={{MILLEGRILLES_ROOT}}/etc/millegrille.pem"
+Environment="CERT_PATH={{MILLEGRILLES_ROOT}}/secrets/manager.pem"
+Environment="KEY_PATH={{MILLEGRILLES_ROOT}}/secrets/manager.pem"
 EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
-ExecStart=/usr/bin/docker compose -f etc/compose/nodetypes/node-{{NODE_TYPE}}.yml up
-ExecReload=/usr/bin/docker compose -f etc/compose/nodetypes/node-{{NODE_TYPE}}.yml up -d
-ExecStop=/usr/bin/docker compose -f etc/compose/nodetypes/node-{{NODE_TYPE}}.yml down
+ExecStart=/var/opt/millegrilles/bin/start_instance.sh
 Restart=always
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier={{INSTANCE_NAME}}_manager
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target

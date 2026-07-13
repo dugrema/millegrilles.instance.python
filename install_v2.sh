@@ -77,7 +77,7 @@ HTTPS_PORT=443
 HTTPS_MG_PORT=444
 MANAGER_URL="https://localhost:2443"
 CERTISSUER_URL="http://localhost:2080"
-REDIS_URL=""
+REDIS_URL="rediss://localhost:6379"
 SECURITE="${SECURITE}"
 EOF
 

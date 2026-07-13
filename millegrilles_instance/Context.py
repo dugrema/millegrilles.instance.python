@@ -176,9 +176,10 @@ class InstanceContext(MilleGrillesBusContext):
 
     @property
     def securite(self):
-        if self.__securite is None:
-            raise ValueNotAvailable()
-        return self.__securite
+        securite = self.configuration.securite
+        if not securite:
+            raise ValueNotAvailable('Securite not defined')
+        return securite
 
     @property
     def idmg(self):
