@@ -235,7 +235,7 @@ class AppManager:
         while not self.__stopping.is_set():
             await self.maintenance()
             try:
-                await asyncio.wait_for(self.__stopping.wait(), 30)
+                await asyncio.wait_for(self.__stopping.wait(), 900)
                 return  # Stopping
             except asyncio.TimeoutError:
                 pass  # Run maintenance
@@ -262,6 +262,8 @@ class AppManager:
 
         # Get certs to renew
         certs_to_renew = check_certificates(self.__context.configuration, certs)
+
+        changes_pending = False
 
         # Submit certs
         formatteur = self.__context.formatteur
@@ -297,6 +299,8 @@ class AppManager:
                     pem_file.write("\n")
                     pem_file.write(cert_pem)
 
+            changes_pending = True
+
         # Generate missing passwords
         passwords_to_generate = check_passwords(self.__context.configuration, certs)
         for p in passwords_to_generate:
@@ -304,6 +308,8 @@ class AppManager:
             filename = secrets_path / f"{p}.txt"
             with open(filename, "w") as file:
                 file.write(password)
+            changes_pending = True
 
-        # The
-        self.__applications_changed.set()
+        if changes_pending:
+            # Some changes were applied
+            self.__applications_changed.set()
