@@ -19,12 +19,10 @@ from typing import Optional
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_instance.Interfaces import GenerateurCertificatsInterface, DockerHandlerInterface
 from millegrilles_instance.MaintenanceApplicationService import charger_configuration_docker, charger_configuration_application
-from millegrilles_messages.IpUtils import get_hostnames
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.bus.PikaMessageProducer import MilleGrillesPikaMessageProducer
 from millegrilles_messages.messages import Constantes
 from millegrilles_messages.certificats.Generes import CleCsrGenere
-from millegrilles_messages.certificats.CertificatsWeb import generer_self_signed_rsa, signer_rsa_web
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat, CertificatExpire
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.GenerateursSecrets import GenerateurEd25519, GenerateurRsa
@@ -34,53 +32,6 @@ from millegrilles_instance import Constantes as ContantesInstance
 
 
 logger = logging.getLogger(__name__)
-
-
-def preparer_certificats_web(path_secrets: str):
-
-    # Verifier si le certificat web existe (utiliser de preference)
-    path_cert_web = path.join(path_secrets, 'pki.web.cert')
-    path_key_web = path.join(path_secrets, 'pki.web.key')
-    if path.exists(path_cert_web) and path.exists(path_key_web):
-        return path_cert_web, path_key_web
-
-    # Verifier si le certificat self-signed existe
-    path_cert_webss = path.join(path_secrets, 'pki.webss.cert')
-    path_key_webss = path.join(path_secrets, 'pki.webss.key')
-    if path.exists(path_cert_webss) and path.exists(path_key_webss):  # DEBUG
-        clecertificat_genere = CleCertificat.from_files(path_key_webss, path_cert_webss)
-        pem_certificat = clecertificat_genere.enveloppe.chaine_pem()
-        certificat = ''.join(pem_certificat)
-    else:
-        hostname, hostnames = get_hostnames(fqdn=True)
-
-        # Generer certificat CA self-signed et le leaf self-signed
-        clecertificat_cass_genere = generer_self_signed_rsa('localhost')
-
-        path_cert_webcass = path.join(path_secrets, 'pki.webcass.cert')
-        path_key_webcass = path.join(path_secrets, 'pki.webcass.key')
-
-        # Generate leaf certificate - a CA certificate is not allowed as web server cert by browsers
-        clecertificat_genere = signer_rsa_web('localhost', clecertificat_cass_genere, hostnames)
-
-        certificat = ''.join(clecertificat_cass_genere.get_pem_certificat())
-        with open(path_cert_webcass, 'w') as fichier:
-            fichier.write(certificat)
-        with open(path_key_webcass, 'w') as fichier:
-            fichier.write(clecertificat_cass_genere.get_pem_cle())
-
-        certificat = ''.join(clecertificat_genere.get_pem_certificat())
-        with open(path_cert_webss, 'w') as fichier:
-            fichier.write(certificat)
-        with open(path_key_webss, 'w') as fichier:
-            fichier.write(clecertificat_genere.get_pem_cle())
-
-    with open(path_cert_web, 'w') as fichier:
-        fichier.write(certificat)
-    with open(path_key_web, 'wb') as fichier:
-        fichier.write(clecertificat_genere.clecertificat.private_key_bytes())
-
-    return path_cert_web, path_key_web
 
 
 async def generer_certificats_modules_satellites(producer: MessageProducerFormatteur, etat_instance,
@@ -126,58 +77,6 @@ async def generer_certificats_modules_satellites(producer: MessageProducerFormat
 
         if docker_handler is not None:
             await docker_handler.assurer_clecertificat(nom_module, clecertificat, combiner_keycert)
-
-
-# async def nettoyer_configuration_expiree(docker_handler: DockerHandlerInterface):
-#     commande_config = DockerCommandes.CommandeGetConfigurationsDatees()
-#     await docker_handler.run_command(commande_config)
-#     config_datees = await commande_config.get_resultat()
-#
-#     config_a_supprimer = set()
-#     secret_a_supprimer = set()
-#     correspondance = config_datees['correspondance']
-#     for element_config in correspondance.values():
-#         try:
-#             current_config = element_config['current']
-#             set_names_courants = set([v['name'] for v in current_config.values()])
-#         except KeyError:
-#             set_names_courants = set()
-#
-#         for elem in element_config.values():
-#             for elem_config in elem.values():
-#                 name_elem = elem_config['name']
-#                 if name_elem not in set_names_courants:
-#                     name_split = name_elem.split('.')
-#                     if name_split[2] == 'cert':
-#                         config_a_supprimer.add(name_elem)
-#                     else:
-#                         secret_a_supprimer.add(name_elem)
-#
-#     for config_name in config_a_supprimer:
-#         command = DockerCommandes.CommandeSupprimerConfiguration(config_name)
-#         try:
-#             await docker_handler.run_command(command)
-#         except APIError as apie:
-#             if apie.status_code == 400:  # in use
-#                 pass
-#             elif apie.status_code == 404:  # deja supprime
-#                 pass
-#             else:
-#                 raise apie
-#
-#     for secret_name in secret_a_supprimer:
-#         command = DockerCommandes.CommandeSupprimerSecret(secret_name)
-#         try:
-#             await docker_handler.run_command(command)
-#         except APIError as apie:
-#             if apie.status_code == 400:  # in use
-#                 pass
-#             elif apie.status_code == 404:  # deja supprime
-#                 pass
-#             else:
-#                 raise apie
-#
-#     pass
 
 
 async def renouveler_certificat_instance_protege(context: InstanceContext) -> CleCertificat:

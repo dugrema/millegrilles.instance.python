@@ -1,6 +1,23 @@
 services:
   core:
     image: registry.millegrilles.com/millegrilles/core_rust:2026.0.119
+    x-millegrilles-certificat:
+      roles:
+        -  core
+      exchanges:
+        - 4.secure
+        - 3.protege
+        - 2.prive
+        - 1.public
+      domaines:
+        - CoreBackup
+        - CoreCatalogues
+        - CoreMaitreDesComptes
+        - CorePki
+        - CoreTopologie
+      dns:
+        hostnames:
+          - core
     environment:
       - MG_MQ_HOST=mq
       - MG_MQ_PORT=5673
@@ -16,13 +33,9 @@ services:
       - RUST_LOG=warn
       - MG_CERTISSUER_URL=http://certissuer:2080
     volumes:
-      - ${CONFIGURATION_PATH}:/var/opt/millegrilles/configuration:ro
+      - ${MILLEGRILLES_ROOT}/etc:/var/opt/millegrilles/configuration:ro
       - millegrilles-domain-archives:/var/opt/millegrilles/archives
     deploy:
-      placement:
-        constraints:
-          - node.labels.millegrilles.core == true
-          - node.labels.millegrilles.database == true
       resources:
         limits:
           cpus: '2.0'

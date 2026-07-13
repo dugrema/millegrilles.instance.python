@@ -1,13 +1,18 @@
 services:
   nginx:
     image: registry.millegrilles.com/millegrilles/nginx:1.31.0.null.2
-    environment:
-      - ONIONSERVICE_NAME=nginx
-      - ONIONSERVICE_PORT=443
+    x-millegrilles-certificat:
+      roles:
+        -  nginx
+      dns:
+        localhost: true
+        hostnames:
+          - nginx
+        domain: true
+      split: true
     volumes:
-      - ${NGINX_PATH}/data:/var/opt/millegrilles/nginx/data:ro
-      - ${NGINX_PATH}/modules:/etc/nginx/conf.d/modules:ro
-      - ${NGINX_PATH}/html:/usr/share/nginx/html:ro
+      - ${MILLEGRILLES_ROOT}/etc/nginx:/etc/nginx/conf.d/modules:ro
+      - ${MILLEGRILLES_ROOT}/var/nginx/html:/usr/share/nginx/html:ro
     networks:
       - app_net
     ports:
@@ -18,9 +23,6 @@ services:
       - "1444:1444"
       - "1445:1445"
     deploy:
-      placement:
-        constraints:
-          - node.labels.millegrilles.nginx == true
       resources:
         limits:
           cpus: '2.0'
@@ -44,14 +46,14 @@ services:
 
 configs:
   pki_web:
-    file: ${MILLEGRILLES_ROOT}/etc/secrets/pki.web.cert
+    file: ${MILLEGRILLES_ROOT}/etc/secrets/web.cert
   pki_nginx:
-    file: ${MILLEGRILLES_ROOT}/etc/secrets/pki.nginx.cert
+    file: ${MILLEGRILLES_ROOT}/etc/secrets/nginx.cert
   pki_millegrille:
-    file: ${MILLEGRILLES_ROOT}/etc/pki.millegrille.cert
+    file: ${MILLEGRILLES_ROOT}/etc/millegrilles.pem
 
 secrets:
   pki_web:
-    file: ${MILLEGRILLES_ROOT}/etc/secrets/pki.web.key
+    file: ${MILLEGRILLES_ROOT}/etc/secrets/web.key
   pki_nginx:
-    file: ${MILLEGRILLES_ROOT}/etc/secrets/pki.nginx.key
+    file: ${MILLEGRILLES_ROOT}/etc/secrets/nginx.key

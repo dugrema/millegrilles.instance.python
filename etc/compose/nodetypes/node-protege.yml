@@ -1,14 +1,14 @@
 include:
-  - ../include/base.yml
-  - ../include/nginx.yml
-  - ../include/redis.yml
-  - ../include/mq.yml
-  - ../include/mongo.yml
-  - ../include/midcompte.yml
-  - ../include/ceduleur.yml
-  - ../include/core.yml
-  - ../include/webauth.yml
-  - ../include/protected_webapi.yml
+  - ../include/app_net.yml
+  - ../coremodules/nginx.yml
+  - ../coremodules/redis.yml
+  - ../coremodules/mq.yml
+  - ../coremodules/mongo.yml
+  - ../coremodules/midcompte.yml
+  - ../coremodules/ceduleur.yml
+  - ../coremodules/core.yml
+  - ../coremodules/webauth.yml
+  - ../coremodules/protected_webapi.yml
 
 volumes:
   mg-redis:

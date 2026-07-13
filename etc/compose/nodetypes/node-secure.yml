@@ -1,5 +1,5 @@
 include:
-  - ../include/base.yml
+  - ../include/app_net.yml
   - ../include/nginx.yml
   - ../include/redis.yml
 

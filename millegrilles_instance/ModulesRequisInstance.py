@@ -7,19 +7,19 @@ class RequiredModules:
         return str(self.modules)
 
 
-CONFIG_MODULES_INSTALLATION = RequiredModules([
-    'docker.nginxinstall.json',
-    'docker.certissuer.json',
-])
+# CONFIG_MODULES_INSTALLATION = RequiredModules([
+#     'docker.nginxinstall.json',
+#     'docker.certissuer.json',
+# ])
 
-CONFIG_MODULES_SECURE_EXPIRE = RequiredModules([
-    'docker.nginx.json',
-    'docker.certissuer.json',
-])
+# CONFIG_MODULES_SECURE_EXPIRE = RequiredModules([
+#     'docker.nginx.json',
+#     'docker.certissuer.json',
+# ])
 
-CONFIG_CERTIFICAT_EXPIRE = RequiredModules([
-    'docker.nginx.json',
-])
+# CONFIG_CERTIFICAT_EXPIRE = RequiredModules([
+#     'docker.nginx.json',
+# ])
 
 CONFIG_MODULES_SECURES = RequiredModules([
     'docker.nginx.json',
