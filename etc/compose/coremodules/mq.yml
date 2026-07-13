@@ -1,6 +1,17 @@
 services:
   mq:
     image: registry.millegrilles.com:5000/millegrilles/rabbitmq:4.2.5-management-alpine.master.13
+    x-millegrilles-certificat:
+      roles:
+        - mq
+      dns:
+        localhost: true
+        hostnames:
+          - mq
+        domain: true
+      split: true
+      passwords:
+        - mqadmin
     hostname: mq
     environment:
       - MG_KEY=/run/secrets/key.pem

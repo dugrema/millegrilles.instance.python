@@ -1,6 +1,16 @@
 services:
   webauth:
     image: registry.millegrilles.com/millegrilles/webauth_python:2025.4.18
+    x-millegrilles-certificat:
+      roles:
+        - webauth
+      exchanges:
+        - 1.public
+      dns:
+        localhost: true
+        hostnames:
+          - webauth
+        domain: true
     environment:
       - MQ_HOSTNAME=${MQ_HOSTNAME}
       - MQ_PORT=${MQ_PORT}

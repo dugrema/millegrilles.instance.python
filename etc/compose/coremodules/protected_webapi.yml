@@ -1,6 +1,21 @@
 services:
   protected_webapi:
     image: registry.millegrilles.com/millegrilles/web_python:2025.4.58
+    x-millegrilles-certificat:
+      roles:
+        - protected_webapi
+        - private_webapi
+      exchanges:
+        - 3.protege
+        - 2.prive
+        - 1.public
+      dns:
+        localhost: true
+        hostnames:
+          - protected-webapi
+        domain: true
+      passwords:
+        - protectedwebapisession
     command: ["-m", "millegrilles_web"]
     environment:
       - MQ_HOSTNAME=mq

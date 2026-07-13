@@ -1,6 +1,17 @@
 services:
   mongo:
     image: mongo:8.2.6
+    x-millegrilles-certificat:
+      roles:
+        - mongo
+      dns:
+        localhost: true
+        hostnames:
+          - mongo
+        domain: true
+      split: false
+      passwords:
+        - mqadmin
     hostname: mongo
     command: ["mongod", "--tlsMode", "requireTLS", "--tlsCertificateKeyFile", "/run/secrets/mongo.key_cert.pem", "--tlsCAFile", "/run/secrets/millegrille.cert.pem", "--replSet", "rs0", "--clusterAuthMode", "x509", "--tlsClusterFile", "/run/secrets/mongo.key_cert.pem"]
     environment:

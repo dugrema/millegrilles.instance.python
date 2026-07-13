@@ -223,7 +223,6 @@ class AppManager:
 
         # Get certs to renew
         certs_to_renew = check_certificates(self.__context.configuration, certs)
-        assert len(certs_to_renew) == len(certs)
 
         # Submit certs
         formatteur = self.__context.formatteur

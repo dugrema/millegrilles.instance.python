@@ -1,12 +1,17 @@
 services:
   midcompte:
     image: registry.millegrilles.com/millegrilles/midcompte_python:2025.4.112
+    x-millegrilles-certificat:
+      roles:
+        - midcompte
+      dns:
+        localhost: true
+        hostnames:
+          - midcompte
+        domain: true
     environment:
       - WEB_PORT=2444
     deploy:
-      placement:
-        constraints:
-          - node.labels.millegrilles.midcompte == true
       resources:
         limits:
           cpus: '0.5'

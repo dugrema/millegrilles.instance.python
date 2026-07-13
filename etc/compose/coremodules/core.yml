@@ -3,7 +3,7 @@ services:
     image: registry.millegrilles.com/millegrilles/core_rust:2026.0.119
     x-millegrilles-certificat:
       roles:
-        -  core
+        - core
       exchanges:
         - 4.secure
         - 3.protege

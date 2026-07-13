@@ -24,11 +24,11 @@ echo "Generating certificates in $CERT_DIR"
 echo "Hostnames included in SAN: localhost, 127.0.0.1, $HOSTNAME, $FQDN"
 
 # Define file paths
-ROOT_CA_KEY="$CERT_DIR/webcass.key"
-ROOT_CA_PEM="$CERT_DIR/webcass.cert"
-SERVER_KEY="$CERT_DIR/webss.key"
+ROOT_CA_KEY="$CERT_DIR/webcass.key.pem"
+ROOT_CA_PEM="$CERT_DIR/webcass.cert.pem"
+SERVER_KEY="$CERT_DIR/webss.key.pem"
 SERVER_CRT="$CERT_DIR/webss.cert.1"
-CHAIN_CRT="$CERT_DIR/webss.cert"
+CHAIN_CRT="$CERT_DIR/webss.cert.pem"
 
 # 1. Create Root CA
 if [ ! -f "$ROOT_CA_PEM" ]; then
@@ -77,7 +77,7 @@ openssl x509 -req -in "$CERT_DIR/server.csr" -CA "$ROOT_CA_PEM" -CAkey "$ROOT_CA
 cat $SERVER_CRT $ROOT_CA_PEM > $CHAIN_CRT
 
 # Cleanup
-rm "$CERT_DIR/server.csr" "$CONF_FILE" "$SERVER_CRT" "$CERT_DIR/webcass.srl"
+rm "$CERT_DIR/server.csr" "$CONF_FILE" "$SERVER_CRT" "$CERT_DIR/webcass.cert.srl"
 
 echo "Success!"
 echo "Certificates generated:"
