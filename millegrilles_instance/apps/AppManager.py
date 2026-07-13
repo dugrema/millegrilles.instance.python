@@ -1,18 +1,19 @@
 import asyncio
 import logging
 import pathlib
+import requests
 import yaml
 
-from typing import Optional, Any
-
-from attr import dataclass
-from requests import certs
+from typing import Optional, Any, TypedDict
 
 from millegrilles_instance.Configuration import ConfigurationInstance
-from millegrilles_messages.messages import Constantes as MillegrillesConstantes
-
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
+from millegrilles_messages.certificats.Generes import CleCsrGenere
+from millegrilles_messages.messages import Constantes as MillegrillesConstantes
+from millegrilles_messages.messages.CleCertificat import CleCertificat
+from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
+from millegrilles_messages.messages.FormatteurMessages import FormatteurMessageMilleGrilles
 
 
 def extract_certificate_list(configuration_file: dict):
@@ -81,8 +82,7 @@ def load_compose_files(configuration: ConfigurationInstance) -> list[dict[str, A
     return composefiles
 
 
-@dataclass
-class CertificateConfiguration:
+class CertificateConfiguration(TypedDict):
     name: str
     roles: list[str]
     exchanges: Optional[list[str]]
@@ -120,6 +120,52 @@ def extract_certificate_configuration(config_file: dict) -> list[CertificateConf
 
     return certs
 
+
+def check_certificates(configuration: ConfigurationInstance, certs: list[CertificateConfiguration]) -> list[CertificateConfiguration]:
+    secret_path = configuration.path_millegrilles / "secrets"
+
+    to_renew = list()
+
+    for cert in certs:
+        if cert.get('split'):
+            cert_path = secret_path / f"{cert['name']}.cert"
+        else:
+            cert_path = secret_path / f"{cert['name']}.pem"
+
+        try:
+            cert_enveloppe = EnveloppeCertificat.from_file(cert_path)
+        except FileNotFoundError:
+            to_renew.append(cert)  # Generate new certificate
+            continue
+
+        info_expiration = cert_enveloppe.calculer_expiration()
+        if info_expiration.get('expire') or info_expiration.get('renouveler'):
+            to_renew.append(cert)
+
+    return to_renew
+
+
+def signer_module(manager_cert: CleCertificat, cert_config: CertificateConfiguration, formatteur_message: FormatteurMessageMilleGrilles):
+    instance_id = manager_cert.enveloppe.subject_common_name
+    idmg = manager_cert.enveloppe.subject_organization_name
+    cle_csr = CleCsrGenere.build(instance_id, idmg)
+    csr_str = cle_csr.get_pem_csr()
+
+    cert_request: dict = cert_config.copy()
+    cert_request['csr'] = csr_str
+
+    # Demander un nouveau certificat. Timeout long (60 secondes).
+    message_signe, _uuid = formatteur_message.signer_message(MillegrillesConstantes.KIND_DOCUMENT, cert_request)
+
+    url_issuer = 'http://localhost:2080/signerModule'
+    response = requests.post(url_issuer, json=message_signe)
+    response.raise_for_status()
+    response_message = response.json()
+    certificat = response_message['certificat']
+
+    return cle_csr, certificat
+
+
 class AppManager:
 
     def __init__(self, context: InstanceContext, docker_handler: InstanceDockerHandler):
@@ -138,21 +184,51 @@ class AppManager:
         Each certificate under secrets/ that matches the configuration is checked and appropriate certificates are created/renewed.
         """
 
-        certificates_to_check = []
+        # Process config files
+        configuration_file = load_compose_files(self.__context.configuration)
+        certs = list()
+        for file_content in configuration_file:
+            new_certs = extract_certificate_configuration(file_content)
+            certs.extend(new_certs)
 
-        # Load the node compose file
-        nodetype_file = composefile_path_by_nodetype(self.__context.configuration)
+        # Get certs to renew
+        certs_to_renew = check_certificates(self.__context.configuration, certs)
+        assert len(certs_to_renew) == len(certs)
 
-        # Load the deployed apps compose file
+        # Submit certs
+        formatteur = self.__context.formatteur
+        manager_key = self.__context.signing_key
+        secrets_path = self.__context.configuration.path_millegrilles / "secrets"
+        for cert_config in certs_to_renew:
+            clecert, new_certificate = signer_module(manager_key, cert_config, formatteur)
+            key_pem = clecert.get_pem_cle().strip()
+            cert_pem = "".join(new_certificate).strip()
+            if cert_config.get('split'):
+                key_path = secrets_path / f"{cert_config['name']}.key.pem"
+                cert_path = secrets_path / f"{cert_config['name']}.cert.pem"
 
-        # Load each certificate and check if it is missing/expired/about to expire.
-        certificates_to_renew: list[CertificateConfiguration] = []
+                # Delete old files when present
+                try:
+                    key_path.unlink()
+                except FileNotFoundError:
+                    pass
+                try:
+                    cert_path.unlink()
+                except FileNotFoundError:
+                    pass
 
-        if len(certificates_to_renew) == 0:
-            return  # Nothing to do
-
-        for certificate in certificates_to_renew:
-            raise NotImplementedError("TODO")
+                # Write new files
+                with open(key_path, "w") as key_file:
+                    key_file.write(key_pem)
+                with open(cert_path, "w") as cert_file:
+                    cert_file.write(cert_pem)
+            else:
+                # Combined key/cert pem file
+                pem_path = secrets_path / f"{cert_config['name']}.pem"
+                with open(pem_path, "w") as pem_file:
+                    pem_file.write(key_pem)
+                    pem_file.write("\n")
+                    pem_file.write(cert_pem)
 
         # The
         self.__applications_changed.set()
