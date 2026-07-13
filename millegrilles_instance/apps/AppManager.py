@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import pathlib
+from asyncio import TaskGroup
+
 import requests
 import yaml
 
@@ -145,9 +147,9 @@ def check_certificates(configuration: ConfigurationInstance, certs: list[Certifi
     return to_renew
 
 
-def signer_module(manager_cert: CleCertificat, cert_config: CertificateConfiguration, formatteur_message: FormatteurMessageMilleGrilles):
-    instance_id = manager_cert.enveloppe.subject_common_name
-    idmg = manager_cert.enveloppe.subject_organization_name
+def signer_module(config: ConfigurationInstance, cert_config: CertificateConfiguration, formatteur_message: FormatteurMessageMilleGrilles):
+    instance_id = config.instance_id
+    idmg = config.idmg
     cle_csr = CleCsrGenere.build(instance_id, idmg)
     csr_str = cle_csr.get_pem_csr()
 
@@ -157,7 +159,7 @@ def signer_module(manager_cert: CleCertificat, cert_config: CertificateConfigura
     # Demander un nouveau certificat. Timeout long (60 secondes).
     message_signe, _uuid = formatteur_message.signer_message(MillegrillesConstantes.KIND_DOCUMENT, cert_request)
 
-    url_issuer = 'http://localhost:2080/signerModule'
+    url_issuer = f"{config.certissuer_url}/signerModule"
     response = requests.post(url_issuer, json=message_signe)
     response.raise_for_status()
     response_message = response.json()
@@ -174,6 +176,30 @@ class AppManager:
         self.__docker_handler = docker_handler
 
         self.__applications_changed = asyncio.Event()
+        self.__stopping = asyncio.Event()
+
+    async def __stop_thread(self):
+        await self.__context.wait()
+        self.__stopping.set()
+
+    async def run(self):
+        self.__logger.debug("SystemStatus thread started")
+        try:
+            async with TaskGroup() as group:
+                group.create_task(self.__stop_thread())
+                group.create_task(self.__maintenance_thread())
+        except *Exception as e:  # Fail on first exception
+            raise e
+        self.__logger.debug("SystemStatus thread done")
+
+    async def __maintenance_thread(self):
+        while not self.__stopping.is_set():
+            await self.maintenance()
+            try:
+                await asyncio.wait_for(self.__stopping.wait(), 30)
+                return  # Stopping
+            except asyncio.TimeoutError:
+                pass  # Run maintenance
 
     async def maintenance(self):
         await self.renew_certificates()
@@ -183,6 +209,10 @@ class AppManager:
         Loads all base docker compose files and recursively goes through includes to cumulate the x-certificate-configuration elements.
         Each certificate under secrets/ that matches the configuration is checked and appropriate certificates are created/renewed.
         """
+
+        # Sanity check
+        if self.__context.signing_key.enveloppe.calculer_expiration()['expire']:
+            raise Exception("Manager certificate is expired - it must be renewed manually")
 
         # Process config files
         configuration_file = load_compose_files(self.__context.configuration)
@@ -197,10 +227,9 @@ class AppManager:
 
         # Submit certs
         formatteur = self.__context.formatteur
-        manager_key = self.__context.signing_key
         secrets_path = self.__context.configuration.path_millegrilles / "secrets"
         for cert_config in certs_to_renew:
-            clecert, new_certificate = signer_module(manager_key, cert_config, formatteur)
+            clecert, new_certificate = signer_module(self.__context.configuration, cert_config, formatteur)
             key_pem = clecert.get_pem_cle().strip()
             cert_pem = "".join(new_certificate).strip()
             if cert_config.get('split'):

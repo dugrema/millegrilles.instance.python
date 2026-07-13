@@ -8,6 +8,7 @@ from concurrent.futures.thread import ThreadPoolExecutor
 from typing import Awaitable
 
 from millegrilles_instance.SystemStatus import SystemStatus
+from millegrilles_instance.apps.AppManager import AppManager
 from millegrilles_instance.millegrilles_docker.ComposeHandler import ComposeHandler
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopListener
 from millegrilles_messages.bus.BusExceptions import ConfigurationFileError
@@ -92,11 +93,12 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
 
     generateur_certificats = GenerateurCertificatsHandler(context, docker_handler)
     nginx_handler = NginxHandler(context, docker_handler)
-    applications_handler = ApplicationsHandler(context, docker_handler)
+    # applications_handler = ApplicationsHandler(context, docker_handler)
+    app_manager = AppManager(context, docker_handler)
     compose_handler = ComposeHandler(context)
 
     # Facade
-    manager = InstanceManager(context, generateur_certificats, docker_handler, applications_handler, nginx_handler, compose_handler)
+    manager = InstanceManager(context, generateur_certificats, docker_handler, app_manager, nginx_handler, compose_handler)
     context.add_reload_listener(manager.callback_changement_configuration)
 
     # Access modules
@@ -112,9 +114,10 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     # Create tasks
     coros = [
         context.run(),
-        generateur_certificats.run(),
+        # generateur_certificats.run(),
         system_status.run(),
-        applications_handler.run(),
+        # applications_handler.run(),
+        app_manager.run(),
         manager.run(),
         web_server.run(),
         bus_handler.run(),

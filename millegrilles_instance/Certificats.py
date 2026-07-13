@@ -744,9 +744,9 @@ class GenerateurCertificatsHandler(GenerateurCertificatsInterface):
 
     async def entretien_modules(self):
 
-        if self.__context.application_status.required_modules is None:
-            self.__logger.info("entretien_modules Premature modules maintenance, modules not loaded")
-            return
+        # if self.__context.application_status.required_modules is None:
+        #     self.__logger.info("entretien_modules Premature modules maintenance, modules not loaded")
+        #     return
 
         # Verifier certificats de modules
         try:

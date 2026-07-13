@@ -78,7 +78,7 @@ class EtatInstance:
         self.__producer_cb = None
         self.__attente_renouvellement_certificat = False
 
-        self.__application_status = ApplicationInstallationStatus()
+        # self.__application_status = ApplicationInstallationStatus()
 
         self.__delay_reload_configuration: Optional[datetime.datetime] = None
         self.__delay_reload_force_restart = False

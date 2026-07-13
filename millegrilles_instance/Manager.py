@@ -1,54 +1,44 @@
 import asyncio
+import docker
 import json
 import logging
 import lzma
 import pathlib
 
 from asyncio import TaskGroup
-from os import path, makedirs
 from typing import Optional
-from uuid import uuid4
 
 from cryptography.x509 import ExtensionNotFound
-from docker.errors import APIError
 
-from millegrilles_instance import ModulesRequisInstance
 from millegrilles_instance.InstanceDocker import InstanceDockerHandler
 from millegrilles_instance.Interfaces import MgbusHandlerInterface
-from millegrilles_instance.MaintenanceApplicationService import ServiceStatus
 from millegrilles_instance.NginxHandler import NginxHandler
+from millegrilles_instance.apps.AppManager import AppManager
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Certificats import GenerateurCertificatsHandler
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
-from millegrilles_instance.MaintenanceApplications import ApplicationsHandler
 from millegrilles_messages.messages.EnveloppeCertificat import CertificatExpire
 from millegrilles_messages.messages.MessagesModule import MessageWrapper
 
 LOGGER = logging.getLogger(__name__)
 
-
-class InstanceManager:
-    """
-    Facade for system handlers. Used by access modules (mq, web).
-    """
-
-import docker
 from millegrilles_instance.millegrilles_docker.ComposeHandler import ComposeHandler
+
 
 class InstanceManager:
     """
     Facade for system handlers. Used by access modules (mq, web).
     """
     def __init__(self, context: InstanceContext, generateur_certificats: GenerateurCertificatsHandler,
-                 docker_handler: Optional[InstanceDockerHandler], gestionnaire_applications: ApplicationsHandler,
+                 docker_handler: Optional[InstanceDockerHandler], app_manager: AppManager,
                  nginx_handler: NginxHandler, compose_handler: ComposeHandler):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context = context
         self.__generateur_certificats = generateur_certificats
         self.__docker_handler = docker_handler
-        # self.__gestionnaire_applications = gestionnaire_applications
+        self.__app_manager = app_manager
         self.__mgbus_handler: Optional[MgbusHandlerInterface] = None
         self.__nginx_handler = nginx_handler
         self.__docker_client = docker.from_env()
@@ -109,15 +99,11 @@ class InstanceManager:
                 self.__logger.info("Changing runlevel from %d to %d" % (previous_runlevel, runlevel))
 
                 try:
-                    if previous_runlevel == InstanceContext.CONST_RUNLEVEL_INSTALLING:
-                        await self.__stop_runlevel_installation()
-                    elif previous_runlevel == InstanceContext.CONST_RUNLEVEL_NORMAL:
+                    if previous_runlevel == InstanceContext.CONST_RUNLEVEL_NORMAL:
                         await self.__stop_normal_operation()
 
                     if runlevel == InstanceContext.CONST_RUNLEVEL_EXPIRED:
                         await self.__start_runlevel_expired()
-                    elif runlevel == InstanceContext.CONST_RUNLEVEL_INSTALLING:
-                        await self.__start_runlevel_installation()
                     elif runlevel == InstanceContext.CONST_RUNLEVEL_LOCAL:
                         await self.__start_runlevel_local()
                     elif runlevel == InstanceContext.CONST_RUNLEVEL_NORMAL:
@@ -225,9 +211,10 @@ class InstanceManager:
             if docker_present:
                 self.__logger.info("Recovery mode with docker")
                 if securite in [Constantes.SECURITE_PROTEGE, Constantes.SECURITE_SECURE]:
-                    self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_SECURE_EXPIRE
-                else:
-                    self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_CERTIFICAT_EXPIRE
+                    raise Exception("Unsupported state - expired manager certificate for Protected/Secure node")
+                    # self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_SECURE_EXPIRE
+                # else:
+                #     self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_CERTIFICAT_EXPIRE
                 await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_EXPIRED)
             else:
                 self.__logger.info("Recovery mode without docker")
@@ -240,99 +227,52 @@ class InstanceManager:
             # Normal operation mode with docker
             if securite == Constantes.SECURITE_PUBLIC:
                 self.__logger.info("Docker mode 1.public")
-                self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_PUBLICS
+                # self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_PUBLICS
             elif securite == Constantes.SECURITE_PRIVE:
                 self.__logger.info("Docker mode 2.prive")
-                self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_PRIVES
+                # self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_PRIVES
             elif securite == Constantes.SECURITE_PROTEGE:
                 self.__logger.info("Docker mode 3.protege")
-                self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_PROTEGES
+                # self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_PROTEGES
             elif securite == Constantes.SECURITE_SECURE:
                 self.__logger.info("Docker mode 4.secure")
-                self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_SECURES
+                # self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_SECURES
             else:
                 raise ValueError('Unsupported security mode: %s' % securite)
 
             # Change runlevel to local. This will run through the process to make system operational.
             await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_LOCAL)
 
-        for disabled_module in disabled_modules:
-            try:
-                self.__context.application_status.required_modules.modules.remove(disabled_module)
-            except ValueError:
-                pass  # List not loaded yet
+        # for disabled_module in disabled_modules:
+        #     try:
+        #         self.__context.application_status.required_modules.modules.remove(disabled_module)
+        #     except ValueError:
+        #         pass  # List not loaded yet
 
-        if current_runlevel != InstanceContext.CONST_RUNLEVEL_INIT:
-            # Trigger application maintenance
-            await self.__gestionnaire_applications.callback_changement_applications()
+        # if current_runlevel != InstanceContext.CONST_RUNLEVEL_INIT:
+        #     # Trigger application maintenance
+        #     await self.__gestionnaire_applications.callback_changement_applications()
 
         pass
-
-    # async def __start_runlevel_installation(self):
-    #     self.__logger.info("Starting runlevel INSTALLATION")
-    #
-    #     # # Read current application status
-    #     # try:
-    #     #     await self.__gestionnaire_applications.update_application_status()
-    #     # except APIError as e:
-    #     #     if e.status_code == 503:
-    #     #         # Not a swarm manager, nothing is installed yet
-    #     #         await self.__docker_handler.initialiser_docker()
-    #     #         await self.__gestionnaire_applications.update_application_status()
-    #     #     else:
-    #     #         raise e
-    #     #
-    #     # # Release configuration/app update threads
-    #     # # 3. Deploy installation module
-    #     # install_config_dir = self.__context.configuration.path_millegrilles / "etc" / "docker"
-    #     # install_files = []
-    #     # for mod_file in ['docker.nginxinstall.json', 'docker.certissuer.json']:
-    #     #     f_path = install_config_dir / mod_file
-    #     #     if f_path.exists():
-    #     #         install_files.append(f_path)
-    #
-    #     # self.__logger.info("Deploying installation module: %s", install_files)
-    #     # await self.__compose_handler.deploy_module_from_files("installation", install_files)
-    #
-    #     # self.__docker_handler.callback_changement_configuration()
-    #     # self.__context.initial_application_configuration_update.set()
-    #     # await self.__gestionnaire_applications.callback_changement_applications()
-    #     #
-    #     # await wait_for_application(self.__context, 'nginxinstall')
-    #     # await wait_for_application(self.__context, 'coupdoeil2')
-    #
-    #     raise NotImplementedError("TODO - configure systemctl service and start node")
-    #
-    #     self.__logger.info("Ready to install\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
-
-    # async def __stop_runlevel_installation(self):
-    #     # Installation just completed, reload all configuration
-    #     await self.__context.delay_reload(0)  # Reload without waiting
-    #     self.__logger.info("Stopped runlevel INSTALLATION")
 
     async def __start_runlevel_expired(self):
         self.__logger.info("Starting runlevel EXPIRED")
 
         # Read current application status
-        await self.__gestionnaire_applications.update_application_status()
+        # await self.__gestionnaire_applications.update_application_status()
 
         # self.__context.initial_application_configuration_update.set()  # Release app update thread
-        await self.__gestionnaire_applications.callback_changement_applications()
+        # await self.__gestionnaire_applications.callback_changement_applications()
         # await wait_for_application(self.__context, 'nginx')
         self.__logger.info("Ready for recovery\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
 
     async def __start_runlevel_local(self):
-        try:
-            securite = self.__context.securite
-        except ValueNotAvailable:
-            self.__logger.error("Security level not available, downgrading to installation mode")
-            await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_INSTALLING)
-            return
+        securite = self.__context.securite
 
         self.__logger.info("Starting runlevel LOCAL")
 
         # Read current application status
-        await self.__gestionnaire_applications.update_application_status()
+        # await self.__gestionnaire_applications.update_application_status()
 
         # 1. Nginx Cleanup from installation
         # await self.__docker_handler.nginx_installation_cleanup()
@@ -360,25 +300,20 @@ class InstanceManager:
         await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_NORMAL)
 
     async def __start_runlevel_normal(self):
-        try:
-            securite = self.__context.securite
-        except ValueNotAvailable:
-            self.__logger.error("Security level not available, downgrading to installation mode")
-            await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_INSTALLING)
-            return
+        securite = self.__context.securite
 
         self.__logger.info("Starting runlevel NORMAL")
 
         if securite == Constantes.SECURITE_PROTEGE:
             # Ensure middleware is running (nginx, mq, mongo, redis, midcompte)
-            await self.__gestionnaire_applications.callback_changement_applications()
+            # await self.__gestionnaire_applications.callback_changement_applications()
 
             # Note - only wait on the 3.protege instance because it is the one with the bus. This avoids connection errors.
             # All other server instances should connect as soons as possible.
             # Check that MQ and midcompte are running. Mongo is optional but is done before midcompte when required.
-            await wait_for_application(self.__context, 'nginx')
-            await wait_for_application(self.__context, 'mq')
-            await wait_for_application(self.__context, 'midcompte')
+            # await wait_for_application(self.__context, 'nginx')
+            # await wait_for_application(self.__context, 'mq')
+            # await wait_for_application(self.__context, 'midcompte')
 
             # Restart nginx to ensure configuration is ready for creating bus account
             await self.__docker_handler.redemarrer_nginx('Midcompte ready - ensure configuration is updated')
@@ -474,38 +409,44 @@ class InstanceManager:
         await asyncio.to_thread(self.__nginx_handler.sauvegarder_fichier_data, 'fiche.json', contenu, True)
 
     async def install_application(self, message: MessageWrapper):
-        configuration = message.parsed['configuration']
-        app_status = ServiceStatus(configuration)
-        return await self.__gestionnaire_applications.installer_application(app_status, command=message)
+        raise NotImplementedError("TODO")
+        # configuration = message.parsed['configuration']
+        # app_status = ServiceStatus(configuration)
+        # return await self.__gestionnaire_applications.installer_application(app_status, command=message)
 
     async def upgrade_application(self, message: MessageWrapper):
-        configuration = message.parsed['configuration']
-        return await self.__gestionnaire_applications.upgrade_application(configuration, command=message)
+        raise NotImplementedError("TODO")
+        # configuration = message.parsed['configuration']
+        # return await self.__gestionnaire_applications.upgrade_application(configuration, command=message)
 
     async def remove_application(self, message: MessageWrapper):
-        nom_application = message.parsed['nom_application']
-        return await self.__gestionnaire_applications.supprimer_application(nom_application)
+        raise NotImplementedError("TODO")
+        # nom_application = message.parsed['nom_application']
+        # return await self.__gestionnaire_applications.supprimer_application(nom_application)
 
     async def start_application(self, message: MessageWrapper):
-        nom_application = message.parsed['nom_application']
-        return await self.__gestionnaire_applications.demarrer_application(nom_application)
+        raise NotImplementedError("TODO")
+        # nom_application = message.parsed['nom_application']
+        # return await self.__gestionnaire_applications.demarrer_application(nom_application)
 
     async def stop_application(self, message: MessageWrapper):
-        nom_application = message.parsed['nom_application']
-        return await self.__gestionnaire_applications.arreter_application(nom_application)
+        raise NotImplementedError("TODO")
+        # nom_application = message.parsed['nom_application']
+        # return await self.__gestionnaire_applications.arreter_application(nom_application)
 
 
 
 
 async def wait_for_application(context: InstanceContext, app_name: str):
-    while context.stopping is False:
-        app = context.application_status.apps.get(app_name)
-        try:
-            if app['status']['running'] is True:
-                break
-            elif app['status']['disabled'] is True:
-                break  # Not applicable
-        except (TypeError, KeyError):
-            pass
-        LOGGER.info("Waiting for application %s" % app_name)
-        await context.wait(5)
+    raise NotImplementedError("TODO")
+    # while context.stopping is False:
+    #     app = context.application_status.apps.get(app_name)
+    #     try:
+    #         if app['status']['running'] is True:
+    #             break
+    #         elif app['status']['disabled'] is True:
+    #             break  # Not applicable
+    #     except (TypeError, KeyError):
+    #         pass
+    #     LOGGER.info("Waiting for application %s" % app_name)
+    #     await context.wait(5)

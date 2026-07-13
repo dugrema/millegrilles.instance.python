@@ -9,7 +9,7 @@ from typing import Optional, Callable
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Interfaces import DockerHandlerInterface
-from millegrilles_instance.Structs import ApplicationInstallationStatus
+# from millegrilles_instance.Structs import ApplicationInstallationStatus
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_messages.IpUtils import get_ip, get_hostnames
 from millegrilles_messages.bus.BusContext import MilleGrillesBusContext, ForceTerminateExecution
@@ -24,7 +24,7 @@ LOGGER = logging.getLogger(__name__)
 class InstanceContext(MilleGrillesBusContext):
 
     CONST_RUNLEVEL_INIT = 0  # Nothing finished loading yet
-    CONST_RUNLEVEL_INSTALLING = 1  # No configuration (idmg, securite), waiting for admin
+    # CONST_RUNLEVEL_INSTALLING = 1  # No configuration (idmg, securite), waiting for admin
     CONST_RUNLEVEL_EXPIRED = 2  # Instance certificate is expired, auto-renewal not possible
     CONST_RUNLEVEL_LOCAL = 3  # Preparing what can be done locally (e.g. certificates on 3.protege) before going to NORMAL
     CONST_RUNLEVEL_NORMAL = 4  # Everything is ok, do checkup and then run until stopped
@@ -45,7 +45,7 @@ class InstanceContext(MilleGrillesBusContext):
 
         self.__reload_q: asyncio.Queue[Optional[float]] = asyncio.Queue(maxsize=2)
         self.__reload_listeners: list[Callable[[], None]] = list()
-        self.__application_status = ApplicationInstallationStatus()
+        # self.__application_status = ApplicationInstallationStatus()
         self.__reload_done = asyncio.Event()
 
         self.__current_system_state: Optional[dict] = None  # Property set externally by the SystemStatus thread
@@ -130,8 +130,8 @@ class InstanceContext(MilleGrillesBusContext):
     def add_reload_listener(self, listener: Callable[[], None]):
         self.__reload_listeners.append(listener)
 
-    def update_application_status(self, app_name: str, status: dict):
-        self.__application_status.update(app_name, status)
+    # def update_application_status(self, app_name: str, status: dict):
+    #     self.__application_status.update(app_name, status)
 
     @property
     def runlevel(self):
@@ -206,8 +206,8 @@ class InstanceContext(MilleGrillesBusContext):
         return self.__csr_genere
 
     @property
-    def application_status(self) -> ApplicationInstallationStatus:
-        return self.__application_status
+    # def application_status(self) -> ApplicationInstallationStatus:
+    #     return self.__application_status
 
     @property
     def current_system_state(self) -> dict:

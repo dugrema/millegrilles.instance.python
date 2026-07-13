@@ -31,7 +31,7 @@ def load_manager_certs():
 
 @pytest.mark.asyncio
 async def test_list_to_renew():
-    config, manager_key, ca, signateur, formateur = load_manager_certs()
+    config, manager_key, ca, signateur, formatteur = load_manager_certs()
 
     # Process config files
     configuration_file = load_compose_files(config)
@@ -46,7 +46,7 @@ async def test_list_to_renew():
 
     # Submit certs
     for cert_config in certs_to_renew:
-        clecert, new_certificate = signer_module(manager_key, cert_config, formateur)
+        clecert, new_certificate = signer_module(config, cert_config, formatteur)
         key_pem = clecert.get_pem_cle().strip()
         cert_pem = "".join(new_certificate).strip()
         if cert_config.get('split'):
