@@ -133,8 +133,8 @@ class NginxHandler:
     def generer_configuration_nginx(self) -> bool:
         self.__logger.warning("NGINX CONFIG - TODO")
         return False
-        #path_src_nginx = self.__context.configuration.path_etc / 'nginx'
-        #return generer_configuration_nginx(self.__context, path_src_nginx)
+        path_src_nginx = self.__context.configuration.path_etc / 'nginx'
+        return generer_configuration_nginx(self.__context, path_src_nginx)
 
     def sauvegarder_fichier_data(self, path_fichier: str, contenu: Union[str, bytes, dict], path_html=False):
         path_nginx = self.__context.configuration.path_nginx
@@ -236,60 +236,60 @@ add_header "Onion-Location" "https://%s";
         await self.__docker_handler.redemarrer_nginx(reason)
 
 
-def generer_configuration_nginx(context: InstanceContext, path_src_nginx: pathlib.Path) -> bool:
-    """
-    :path_src_nginx: Configuration file source folder for nginx
-    :path_nginx: nginx destination folder
-    :niveau_securite: Security level of the instance, None for installation mode.
-    """
-
-    try:
-        securite = context.securite
-    except ValueNotAvailable:
-        securite = None  # Installation mode
-
-    configuration: ConfigurationInstance = context.configuration
-    path_nginx_modules = pathlib.Path(configuration.path_nginx, 'modules')
-
-    makedirs(path_nginx_modules, 0o750, exist_ok=True)
-
-    configuration_modifiee = False
-
-    # Faire liste des fichiers de configuration
-    if securite == Constantes.SECURITE_PROTEGE:
-        repertoire_src_nginx = path.join(path_src_nginx, 'nginx_protege')
-    elif securite == Constantes.SECURITE_SECURE:
-        repertoire_src_nginx = path.join(path_src_nginx, 'nginx_secure')
-    elif securite == Constantes.SECURITE_PRIVE:
-        repertoire_src_nginx = path.join(path_src_nginx, 'nginx_prive')
-    elif securite == Constantes.SECURITE_PUBLIC:
-        repertoire_src_nginx = path.join(path_src_nginx, 'nginx_public')
-    else:
-        LOGGER.info("Configurer nginx en mode installation")
-        repertoire_src_nginx = path.join(path_src_nginx, 'nginx_installation')
-
-    initial_override = False
-    guard_initial_override = None
-    if securite is not None:
-        guard_initial_override = pathlib.Path(path_nginx_modules, '.init_done')
-        if guard_initial_override.exists() is False:
-            initial_override = True
-
-    for fichier in os.listdir(repertoire_src_nginx):
-        # Verifier si le fichier existe dans la destination
-        path_destination = path.join(path_nginx_modules, fichier)
-        if initial_override or path.exists(path_destination) is False:
-            LOGGER.debug("Generer fichier configuration nginx %s" % fichier)
-            path_source = path.join(repertoire_src_nginx, fichier)
-            with open(path_source, 'r') as fichier_input:
-                contenu = fichier_input.read()
-            ajouter_fichier_configuration(context, path_nginx_modules, fichier, contenu)
-            configuration_modifiee = True
-
-    if guard_initial_override:
-        with open(guard_initial_override, 'wt') as fichier:
-            json.dump({'done': True}, fichier)
-
-    return configuration_modifiee
+# def generer_configuration_nginx(context: InstanceContext, path_src_nginx: pathlib.Path) -> bool:
+#     """
+#     :path_src_nginx: Configuration file source folder for nginx
+#     :path_nginx: nginx destination folder
+#     :niveau_securite: Security level of the instance, None for installation mode.
+#     """
+#
+#     try:
+#         securite = context.securite
+#     except ValueNotAvailable:
+#         securite = None  # Installation mode
+#
+#     configuration: ConfigurationInstance = context.configuration
+#     path_nginx_modules = pathlib.Path(configuration.path_nginx, 'modules')
+#
+#     makedirs(path_nginx_modules, 0o750, exist_ok=True)
+#
+#     configuration_modifiee = False
+#
+#     # Faire liste des fichiers de configuration
+#     if securite == Constantes.SECURITE_PROTEGE:
+#         repertoire_src_nginx = path.join(path_src_nginx, 'nginx_protege')
+#     elif securite == Constantes.SECURITE_SECURE:
+#         repertoire_src_nginx = path.join(path_src_nginx, 'nginx_secure')
+#     elif securite == Constantes.SECURITE_PRIVE:
+#         repertoire_src_nginx = path.join(path_src_nginx, 'nginx_prive')
+#     elif securite == Constantes.SECURITE_PUBLIC:
+#         repertoire_src_nginx = path.join(path_src_nginx, 'nginx_public')
+#     else:
+#         LOGGER.info("Configurer nginx en mode installation")
+#         repertoire_src_nginx = path.join(path_src_nginx, 'nginx_installation')
+#
+#     initial_override = False
+#     guard_initial_override = None
+#     if securite is not None:
+#         guard_initial_override = pathlib.Path(path_nginx_modules, '.init_done')
+#         if guard_initial_override.exists() is False:
+#             initial_override = True
+#
+#     for fichier in os.listdir(repertoire_src_nginx):
+#         # Verifier si le fichier existe dans la destination
+#         path_destination = path.join(path_nginx_modules, fichier)
+#         if initial_override or path.exists(path_destination) is False:
+#             LOGGER.debug("Generer fichier configuration nginx %s" % fichier)
+#             path_source = path.join(repertoire_src_nginx, fichier)
+#             with open(path_source, 'r') as fichier_input:
+#                 contenu = fichier_input.read()
+#             ajouter_fichier_configuration(context, path_nginx_modules, fichier, contenu)
+#             configuration_modifiee = True
+#
+#     if guard_initial_override:
+#         with open(guard_initial_override, 'wt') as fichier:
+#             json.dump({'done': True}, fichier)
+#
+#     return configuration_modifiee
 
 

@@ -94,8 +94,8 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
 
         # self.path_app_installation = self.__path_millegrilles.joinpath('dist/installation')
         # self.ca_pem_path = 'secrets/pki.millegrille.cert'
-        self.web_cert_pem_path = self.__path_millegrilles.joinpath('secrets/pki.web.cert')  # 'secrets/pki.web.cert'
-        self.web_key_pem_path = self.__path_millegrilles.joinpath('secrets/pki.web.key')  # 'secrets/pki.web.key'
+        self.web_cert_pem_path = self.__path_millegrilles / 'secrets/web.cert'
+        self.web_key_pem_path = self.__path_millegrilles / 'secrets/web.key'
         # self.port = 2443
 
         # Apply instance defaults - usual defaults are meant for usage in docker containers
@@ -120,9 +120,8 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         raise NotImplementedError('TODO')
 
     def default_override(self):
-        self.cert_path = str(self.__path_secrets.joinpath('pki.instance.cert'))
-        self.key_path = str(self.__path_secrets.joinpath('pki.instance.key'))
-        self.ca_path = str(self.__path_etc.joinpath('pki.millegrille.cert'))
+        self.key_path = self.__path_millegrilles / 'secrets/manager.pem'
+        self.ca_path = self.__path_millegrilles / 'etc/millegrille.pem'
         self.mq_hostname = 'localhost'
         self.redis_hostname = 'localhost'
         self.redis_password_path = str(self.__path_secrets.joinpath('passwd.redis.txt'))
@@ -134,12 +133,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         """
         super().parse_config()
 
-        # self.__path_millegrilles = os.environ.get(ContantesInstance.MILLEGRILLES_PATH_ENV) or self.__path_millegrilles
-        # self.__path_etc = str(pathlib.Path(os.environ.get(ContantesInstance.REPO_ROOT_PATH) or self.__path_millegrilles, 'etc'))
-        # self.__path_configuration = os.environ.get(ContantesInstance.INSTANCE_CONFIG_PATH) or str(pathlib.Path(self.__path_millegrilles, 'configuration'))
-        # self.__path_secrets = os.environ.get(ContantesInstance.INSTANCE_SECRETS_PATH) or str(pathlib.Path(self.__path_millegrilles, 'secrets'))
-        # self.__path_secrets_partages = os.environ.get(ContantesInstance.INSTANCE_SECRETS_PARTAGES_PATH) or str(pathlib.Path(self.__path_millegrilles, 'secrets_partages'))
-        self.__path_nginx = os.environ.get(ContantesInstance.INSTANCE_NGINX_PATH) or str(pathlib.Path(self.__path_millegrilles, 'nginx'))
+        self.__path_nginx = os.environ.get(ContantesInstance.INSTANCE_NGINX_PATH) or self.__path_millegrilles / 'etc/nginx'
         self.__host_docker_internal = os.environ.get(ContantesInstance.PARAM_INSTANCE_HOST_DOCKER_INTERNAL) or self.__host_docker_internal
         # self.__certissuer_url = os.environ.get(ContantesInstance.PARAM_INSTANCE_CERTISSUER_URL) or self.__certissuer_url
         self.__instance_password_mq_path = os.environ.get(ContantesInstance.PARAM_INSTANCE_PASSWD_MQ_PATH) or str(pathlib.Path(self.__path_secrets, 'passwd.mqadmin.txt'))

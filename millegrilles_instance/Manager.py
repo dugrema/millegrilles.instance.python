@@ -335,8 +335,8 @@ class InstanceManager:
         await self.__gestionnaire_applications.update_application_status()
 
         # 1. Nginx Cleanup from installation
-        await self.__docker_handler.nginx_installation_cleanup()
-        await asyncio.to_thread(self.__nginx_handler.generer_configuration_nginx)
+        # await self.__docker_handler.nginx_installation_cleanup()
+        # await asyncio.to_thread(self.__nginx_handler.generer_configuration_nginx)
         await self.__nginx_handler.refresh_configuration(
             "Switching to runlevel %d" % InstanceContext.CONST_RUNLEVEL_LOCAL)
 
@@ -350,11 +350,11 @@ class InstanceManager:
                 self.__logger.exception("Error maintaining certificates - quitting")
                 self.context.stop()
 
-        if securite == Constantes.SECURITE_SECURE:
-            # Ensure that the remote mq host is available
-            while self.context.configuration.mq_hostname == 'localhost':
-                # We don't have a confgured server yet, wait
-                await self.__reload_configuration.wait()
+        # if securite == Constantes.SECURITE_SECURE:
+        #     # Ensure that the remote mq host is available
+        #     while self.context.configuration.mq_hostname == 'localhost':
+        #         # We don't have a confgured server yet, wait
+        #         await self.__reload_configuration.wait()
 
         self.__logger.info("Runlevel LOCAL done")
         await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_NORMAL)
