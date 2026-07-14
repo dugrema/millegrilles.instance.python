@@ -4,26 +4,26 @@
 
 # --- START REMOVE FOR DEV ---
 # Code resources with hash in name
-location /coupdoeil2/static/ {{
+location /coupdoeil2/static/ {
   root /usr/share/nginx/html/applications;
   try_files $uri =404;
   expires 1y;
   access_log off;
   add_header Cache-Control "public, immutable";
   include /etc/nginx/conf.d/component_gzip.include;
-}}
+}
 
 # Image resources
-location ~/coupdoeil2/.*\.(?:png|svg)$ {{
+location ~/coupdoeil2/.*\.(?:png|svg)$ {
   root /usr/share/nginx/html/applications;
   try_files $uri =404;
   expires 15m;
   access_log off;
   add_header Cache-Control "public";
-}}
+}
 # --- END REMOVE FOR DEV ---
 
-location /coupdoeil2 {{
+location /coupdoeil2 {
   root /usr/share/nginx/html/applications;
   add_header 'Cache-Control' 'public,max-age=300';
   include /etc/nginx/conf.d/component_gzip.include;
@@ -31,11 +31,11 @@ location /coupdoeil2 {{
 
 # DEV : Retirer root, include et add_header Cache-Control et utiliser les lignes suivantes. Remplacer [**DEV SERVER**] par le hostname dev.
 # proxy_pass https://docker:3006;
-}}
+}
 
 # React development only
-#location /coupdoeil2/ws {{
+#location /coupdoeil2/ws {
 #  set $upstream_millegrilles_coupdoeil2_ws https://[**DEV SERVER**]:XXXX;
 #  proxy_pass $upstream_millegrilles_coupdoeil2_ws;
 #  include /etc/nginx/conf.d/component_base.include;
-#}}
+#}

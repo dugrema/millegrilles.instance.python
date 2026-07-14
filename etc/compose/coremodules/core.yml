@@ -24,9 +24,9 @@ services:
       - MG_MONGO_HOST=mongo
       - MG_MQ_SSL=on
       - MG_MQ_AUTH_CERT=on
-      - CERTFILE=/run/secrets/cert.pem
+      - CERTFILE=/run/secrets/key.pem
       - KEYFILE=/run/secrets/key.pem
-      - CAFILE=/run/secrets/millegrille.cert.pem
+      - CAFILE=/run/secrets/millegrille.pem
       - MG_FICHIERS_URL=https://fichiers:443
       - MG_REDIS_URL=rediss://client_rust@redis:6379#insecure
       - MG_REDIS_PASSWORD_FILE=/run/secrets/passwd.redis.txt
@@ -45,14 +45,12 @@ services:
         delay: 5s
         max_attempts: 1000
     configs:
-      - source: pki.core
-        target: /run/secrets/cert.pem
-      - source: pki.millegrille
-        target: /run/secrets/millegrille.cert.pem
+      - source: ca
+        target: /run/secrets/millegrille.pem
     secrets:
-      - source: pki.core
+      - source: keycert
         target: key.pem
-      - source: passwd.redis
-        target: passwd.redis.txt
+      - source: passwd_redis
+        target: redis.txt
     networks:
       - app_net

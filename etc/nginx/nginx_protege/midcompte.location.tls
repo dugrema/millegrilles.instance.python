@@ -1,6 +1,0 @@
-location /administration {{
-    include /etc/nginx/conf.d/modules/midcompte.proxypass;
-    include /etc/nginx/conf.d/component_base.include;
-    # proxy_set_header X-Client-Cert      $ssl_client_cert;
-    proxy_set_header X-Client-Cert      $ssl_client_escaped_cert;
-}}

@@ -1,3 +1,7 @@
+include:
+  - path: ../include/app_net.yml
+    project_directory: .
+
 services:
   nginx:
     image: registry.millegrilles.com/millegrilles/nginx:1.31.0.null.2
@@ -32,28 +36,28 @@ services:
         delay: 5s
         max_attempts: 1000
     configs:
-      - source: pki_web
+      - source: webcert
         target: /run/secrets/webcert.pem
-      - source: pki_nginx
+      - source: mgcert
         target: /run/secrets/nginx.cert.pem
-      - source: pki_millegrille
+      - source: mgca
         target: /usr/share/nginx/files/certs/millegrille.cert.pem
     secrets:
-      - source: pki_web
+      - source: webkey
         target: webkey.pem
-      - source: pki_nginx
+      - source: mgkey
         target: nginx.key.pem
 
 configs:
-  pki_web:
-    file: ${MILLEGRILLES_ROOT}/etc/secrets/web.cert
-  pki_nginx:
-    file: ${MILLEGRILLES_ROOT}/etc/secrets/nginx.cert
-  pki_millegrille:
-    file: ${MILLEGRILLES_ROOT}/etc/millegrilles.pem
+  webcert:
+    file: ${MILLEGRILLES_ROOT}/secrets/web.cert.pem
+  mgcert:
+    file: ${MILLEGRILLES_ROOT}/secrets/nginx.cert.pem
+  mgca:
+    file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
 
 secrets:
-  pki_web:
-    file: ${MILLEGRILLES_ROOT}/etc/secrets/web.key
-  pki_nginx:
-    file: ${MILLEGRILLES_ROOT}/etc/secrets/nginx.key
+  webkey:
+    file: ${MILLEGRILLES_ROOT}/secrets/web.key.pem
+  mgkey:
+    file: ${MILLEGRILLES_ROOT}/secrets/nginx.key.pem

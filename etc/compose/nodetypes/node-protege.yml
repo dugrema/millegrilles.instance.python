@@ -1,12 +1,10 @@
 include:
   - ../include/app_net.yml
-  - ../coremodules/nginx.yml
   - ../coremodules/redis.yml
   - ../coremodules/mq.yml
   - ../coremodules/mongo.yml
   - ../coremodules/midcompte.yml
   - ../coremodules/ceduleur.yml
-  - ../coremodules/core.yml
   - ../coremodules/webauth.yml
   - ../coremodules/protected_webapi.yml
 

@@ -6,6 +6,7 @@ from asyncio import TaskGroup
 from concurrent.futures.thread import ThreadPoolExecutor
 from typing import Awaitable
 
+from millegrilles_instance.ManagerSetup import setup_manager
 from millegrilles_instance.SystemStatus import SystemStatus
 from millegrilles_instance.apps.AppManager import AppManager
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopListener
@@ -26,14 +27,7 @@ async def force_terminate_task_group():
     raise ForceTerminateExecution()
 
 
-async def main():
-    config = ConfigurationInstance.load()
-    try:
-        context = InstanceContext(config)
-    except ConfigurationFileError as e:
-        LOGGER.error("Error loading configuration files %s, quitting" % str(e))
-        sys.exit(1)  # Quit
-
+async def run_manager(context: InstanceContext) -> None:
     LOGGER.setLevel(logging.INFO)
     LOGGER.info("Starting")
 
@@ -104,6 +98,26 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     ]
 
     return coros
+
+
+async def main():
+    config = ConfigurationInstance.load()
+
+    try:
+        context = InstanceContext(config)
+    except ConfigurationFileError as e:
+        LOGGER.error("Error loading configuration files %s, quitting" % str(e))
+        sys.exit(1)  # Quit
+
+    if config.init_only:
+        try:
+            await setup_manager(context)
+        except Exception as e:
+            LOGGER.exception("Error initializing manager")
+            sys.exit(2)
+        LOGGER.info("Manager initialization completed")
+    else:
+        await run_manager(context)
 
 
 if __name__ == '__main__':

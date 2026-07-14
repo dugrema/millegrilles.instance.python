@@ -59,7 +59,6 @@ class WebServer:
 
             web.post('/installation/api/installer', self.handle_installer),
             web.post('/installation/api/configurerIdmg', self.handle_configurer_idmg),
-            # web.post('/installation/api/changerDomaine', self.handle_changer_domaine),
             web.post('/installation/api/configurerMQ', self.handle_configurer_mq),
             web.post('/installation/api/installerCertificat', self.handle_installer_certificat),
 
@@ -165,26 +164,6 @@ class WebServer:
         contenu = await request.json()
         self.__logger.debug("installer_instance contenu\n%s" % json.dumps(contenu, indent=2))
         return await configurer_idmg(self.context, contenu)
-
-    # async def handle_changer_domaine(self, request: web.Request):
-    #     enveloppe_message = await request.json()
-    #     self.__logger.debug("handle_changer_domaine contenu\n%s" % json.dumps(enveloppe_message, indent=2))
-    #
-    #     # Valider message - delegation globale
-    #     enveloppe = await self.__etat_instance.validateur_message.verifier(enveloppe_message)
-    #     if enveloppe.get_delegation_globale != Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
-    #         self.__logger.error("Requete handle_configurer_mq() avec certificat sans delegation globale")
-    #         return web.HTTPForbidden()
-    #
-    #     contenu = json.loads(enveloppe_message['contenu'])
-    #
-    #     # Conserver hostname
-    #     hostname = contenu['hostname']
-    #     self.__etat_instance.maj_configuration_json({'hostname': hostname})
-    #     # await self.__etat_instance.reload_configuration()
-    #     await self.__etat_instance.delay_reload_configuration(duration=datetime.timedelta(seconds=1))
-    #
-    #     return web.json_response({'ok': True}, headers=headers_cors())
 
     async def handle_configurer_mq(self, request: web.Request):
         enveloppe_message = await request.json()

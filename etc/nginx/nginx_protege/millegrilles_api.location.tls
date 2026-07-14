@@ -3,7 +3,7 @@ set $upstream_millegrilles https://protected-webapi:1443;
 # set $upstream_millegrilles https://bureau1.maple.maceroc.com:4001;
 
 # Support socket.io, proteger via auth plugin
-location /millegrilles/socket.io {{
+location /millegrilles/socket.io {
   proxy_pass $upstream_millegrilles;
   include /etc/nginx/conf.d/component_proxyheaders.include;
   include /etc/nginx/conf.d/auth_tlsusager.include;
@@ -13,4 +13,4 @@ location /millegrilles/socket.io {{
   proxy_ssl_trusted_certificate /usr/share/nginx/files/certs/millegrille.cert.pem;
   proxy_ssl_verify       on;
   proxy_ssl_verify_depth 1;
-}}
+}

@@ -1,0 +1,15 @@
+[Unit]
+Description=MilleGrilles nginx
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory={{MILLEGRILLES_ROOT}}
+EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
+ExecStart=/usr/bin/docker compose -f etc/compose/coremodules/nginx.yml up
+ExecReload=/usr/bin/docker compose -f etc/compose/coremodules/nginx.yml exec nginx nginx -s reload
+ExecStop=/usr/bin/docker compose -f etc/compose/coremodules/nginx.yml down
+Restart=always
+
+[Install]
+WantedBy=default.target

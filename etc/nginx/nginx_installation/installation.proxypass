@@ -1,1 +1,0 @@
-proxy_pass https://{docker_hostname}:5443;

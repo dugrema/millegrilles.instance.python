@@ -1,6 +1,6 @@
 # Verification de l'authentification TLS client
-location /auth/verifier_client_tls {{
-  if ( $ssl_client_verify != SUCCESS ) {{return 403;}}
+location /auth/verifier_client_tls {
+  if ( $ssl_client_verify != SUCCESS ) {return 403;}
   include /etc/nginx/conf.d/modules/webauth.proxypass;
   proxy_pass_request_body off; # no need to send the PUT/POST body
   client_max_body_size 0;
@@ -18,10 +18,10 @@ location /auth/verifier_client_tls {{
   proxy_set_header X-Client-Issuer-DN $ssl_client_i_dn;
   proxy_set_header DN                 $ssl_client_s_dn;
   proxy_set_header X-SSL-CERT         $ssl_client_escaped_cert;
-}}
+}
 
-location /auth/verifier_usager_tls {{
-  if ( $ssl_client_verify != SUCCESS ) {{return 403;}}
+location /auth/verifier_usager_tls {
+  if ( $ssl_client_verify != SUCCESS ) {return 403;}
   include /etc/nginx/conf.d/modules/webauth.proxypass;
   proxy_pass_request_body off; # no need to send the PUT/POST body
   client_max_body_size 0;
@@ -41,9 +41,9 @@ location /auth/verifier_usager_tls {{
   proxy_set_header X-Client-Issuer-DN $ssl_client_i_dn;
   proxy_set_header DN                 $ssl_client_s_dn;
   proxy_set_header X-SSL-CERT         $ssl_client_escaped_cert;
-}}
+}
 
-location /auth {{
+location /auth {
   include /etc/nginx/conf.d/modules/webauth.proxypass;
 
   proxy_set_header  X-Real-IP $remote_addr;
@@ -55,4 +55,4 @@ location /auth {{
   proxy_set_header  X-Original-METHOD $request_method;
 
   client_max_body_size 32k;
-}}
+}

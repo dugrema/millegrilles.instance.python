@@ -8,15 +8,13 @@ from typing import Optional, Callable
 
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Configuration import ConfigurationInstance
-# from millegrilles_instance.Interfaces import DockerHandlerInterface
-# from millegrilles_instance.Structs import ApplicationInstallationStatus
 from millegrilles_instance import Constantes as ConstantesInstance
 from millegrilles_messages.IpUtils import get_ip, get_hostnames
 from millegrilles_messages.bus.BusContext import MilleGrillesBusContext, ForceTerminateExecution
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
 from millegrilles_messages.bus.PikaMessageProducer import MilleGrillesPikaMessageProducer
 from millegrilles_messages.certificats.Generes import CleCsrGenere
-from millegrilles_messages.messages.EnveloppeCertificat import CertificatExpire
+from millegrilles_messages.messages.EnveloppeCertificat import CertificatExpire,EnveloppeCertificat
 
 LOGGER = logging.getLogger(__name__)
 
@@ -36,6 +34,7 @@ class InstanceContext(MilleGrillesBusContext):
         # self.__docker_handler: Optional[DockerHandlerInterface] = None
 
         self.__instance_id: Optional[str] = None
+        self.__instance_name: Optional[str] = None
         self.__securite: Optional[str] = None
         self.__idmg: Optional[str] = None
         self.__ip_address: Optional[str] = None
@@ -176,10 +175,11 @@ class InstanceContext(MilleGrillesBusContext):
 
     @property
     def securite(self):
-        securite = self.configuration.securite
-        if not securite:
-            raise ValueNotAvailable('Securite not defined')
-        return securite
+        return self.signing_key.enveloppe.get_exchanges[0]
+        # securite = self.configuration.securite
+        # if not securite:
+        #     raise ValueNotAvailable('Securite not defined')
+        # return securite
 
     @property
     def idmg(self):
@@ -237,27 +237,34 @@ class InstanceContext(MilleGrillesBusContext):
         configuration: ConfigurationInstance = self.configuration
         configuration.reload()
 
-        instance_id = configuration.instance_id
-        self.__instance_id = instance_id
-
         try:
-            securite = configuration.securite
-            idmg = configuration.idmg
+            # try:
+            super().reload()  # Throws FileNotFoundError/CertificatExpire when applicable
+            # except FileNotFoundError:
+            #     self.__logger.warning("Certificate not available yet, MQ Bus unavailable")
+            # except CertificatExpire:
+            #     # The system certificate is expired
+            #     self.__logger.warning("Certificate is expired, MQ Bus unavailable")
+
+            # Extract manager parameters from its certificate
+            signing_cert = self.signing_key.enveloppe
+            securite = signing_cert.get_exchanges[0]
+            instance_id = signing_cert.subject_common_name
+            idmg = signing_cert.idmg
+
+            signing_ca_cert: EnveloppeCertificat = signing_cert.chaine_enveloppes()[1]
+            instance_name = signing_ca_cert.subject_organizational_unit_name
+
+            self.__instance_id = instance_id
             if securite and idmg:
                 self.__securite = securite
                 self.__idmg = idmg
+                self.__instance_name = instance_name
             else:
                 # System not configured yet
                 self.__securite = None
                 self.__idmg = None
-
-            try:
-                super().reload()
-            except FileNotFoundError:
-                self.__logger.warning("Certificate not available yet, MQ Bus unavailable")
-            except CertificatExpire:
-                # The system certificate is expired
-                self.__logger.warning("Certificate is expired, MQ Bus unavailable")
+                self.__instance_name = None
 
             self.__ip_address = get_ip()
             self.__logger.debug("Local IP: %s" % self.__ip_address)

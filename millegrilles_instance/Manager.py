@@ -178,15 +178,6 @@ class InstanceManager:
             else:
                 expired = None  # No valid certificate
 
-        disabled_file = pathlib.Path(self.context.configuration.path_configuration, 'disabled_modules.json')
-        try:
-            with open(disabled_file, 'rt') as fp:
-                file_content = json.load(fp)
-            disabled_modules = file_content['disabled']
-            self.__logger.info("Disabling required modules: %s", disabled_modules)
-        except (FileNotFoundError, json.JSONDecodeError, KeyError):
-            disabled_modules = list()
-
         if expired:
             self.__logger.info("Recovery mode with docker")
             if securite in [Constantes.SECURITE_PROTEGE, Constantes.SECURITE_SECURE]:

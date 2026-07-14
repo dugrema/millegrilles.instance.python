@@ -1,6 +1,6 @@
 include:
   - ../include/app_net.yml
-  - ../include/nginx.yml
+  - ../include/nginx-protege.yml
   - ../include/redis.yml
   - ../include/webauth.yml
 
