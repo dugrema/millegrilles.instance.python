@@ -10,8 +10,6 @@ services:
           - mq
         domain: true
       split: true
-      passwords:
-        - mqadmin
     hostname: mq
     environment:
       - MG_KEY=/run/secrets/key.pem
@@ -19,10 +17,9 @@ services:
       - CONFIG_FILE=/opt/rabbitmq/dist/config/rabbitmq.config
       - NODENAME=rabbit@mq
     volumes:
-      - rabbitmq-data:/var/lib/rabbitmq
+      - ./var/mq:/var/lib/rabbitmq
     networks:
       - app_net
-      - bridge
     deploy:
       placement:
         constraints:
@@ -32,18 +29,32 @@ services:
           cpus: '3.0'
           memory: 2100M
       restart_policy:
-        condition: any
+        condition: on-failure
         delay: 5s
         max_attempts: 1000
     configs:
-      - source: pki.millegrille
+      - source: mgca
         target: /opt/rabbitmq/dist/certs/calist.cert.pem
-      - source: pki.mq
+      - source: mq
         target: /opt/rabbitmq/dist/certs/cert.pem
-      - source: pki.mq
+      - source: web
         target: /opt/rabbitmq/dist/certs/webcert.pem
     secrets:
-      - source: pki.mq
+      - source: mq
         target: key.pem
-      - source: pki.mq
+      - source: web
         target: webkey.pem
+
+configs:
+  web:
+    file: ${MILLEGRILLES_ROOT}/secrets/web.cert.pem
+  mq:
+    file: ${MILLEGRILLES_ROOT}/secrets/mq.cert.pem
+  mgca:
+    file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
+
+secrets:
+  web:
+    file: ${MILLEGRILLES_ROOT}/secrets/web.key.pem
+  mq:
+    file: ${MILLEGRILLES_ROOT}/secrets/mq.key.pem

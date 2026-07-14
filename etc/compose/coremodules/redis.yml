@@ -14,28 +14,37 @@ services:
         - redis
     hostname: redis
     volumes:
-      - mg-redis:/data
+      - ./var/redis:/data
     networks:
       - app_net
     deploy:
-      placement:
-        constraints:
-          - node.labels.millegrilles.redis == true
       resources:
         limits:
           cpus: '1.5'
           memory: 500M
       restart_policy:
-        condition: any
+        condition: on-failure
         delay: 5s
         max_attempts: 1000
     configs:
-      - source: pki.redis
+      - source: redis
         target: /run/secrets/cert.pem
-      - source: pki.millegrille
+      - source: mgca
         target: /run/secrets/millegrille.cert.pem
     secrets:
-      - source: pki.redis
+      - source: redis
         target: key.pem
-      - source: passwd.redis
-        target: passwd.redis.txt
+      - source: passwd_redis
+        target: redis.txt
+
+configs:
+  redis:
+    file: ${MILLEGRILLES_ROOT}/secrets/redis.cert.pem
+  mgca:
+    file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
+
+secrets:
+  redis:
+    file: ${MILLEGRILLES_ROOT}/secrets/redis.key.pem
+  passwd_redis:
+    file: ${MILLEGRILLES_ROOT}/secrets/redis.txt

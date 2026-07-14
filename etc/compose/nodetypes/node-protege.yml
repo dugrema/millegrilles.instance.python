@@ -3,26 +3,7 @@ include:
   - ../coremodules/redis.yml
   - ../coremodules/mq.yml
   - ../coremodules/mongo.yml
-  - ../coremodules/midcompte.yml
-  - ../coremodules/ceduleur.yml
-  - ../coremodules/webauth.yml
-  - ../coremodules/protected_webapi.yml
-
-volumes:
-  mg-redis:
-  rabbitmq-data:
-  mongo-data:
-
-configs:
-  pki.protected_webapi:
-    file: ${MILLEGRILLES_ROOT}/secrets/cert.pem # TODO
-  pki.millegrille:
-    file: ${MILLEGRILLES_ROOT}/secrets/millegrille.cert.pem # TODO
-
-secrets:
-  pki.protected_webapi:
-    file: ${MILLEGRILLES_ROOT}/secrets/key.pem # TODO
-  pki.protected_webapi_web:
-    file: ${MILLEGRILLES_ROOT}/secrets/webkey.pem # TODO
-  passwd.redis:
-    file: ${MILLEGRILLES_ROOT}/secrets/passwd.redis.txt # TODO
+  #- ../coremodules/midcompte.yml
+  #- ../coremodules/ceduleur.yml
+  #- ../coremodules/webauth.yml
+  #- ../coremodules/protected_webapi.yml
