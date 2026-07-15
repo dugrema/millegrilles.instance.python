@@ -1,4 +1,21 @@
 services:
+  mongo_init:
+    image: mongo:8.2.6
+    user: "${CONTAINER_UID}:${CONTAINER_GID}"
+    command: ["mongod", "--replSet", "rs0"]
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD_FILE=/run/secrets/mongo.root.password
+    volumes:
+      - mongo:/data/db
+    configs:
+      - source: mgca
+        target: /run/secrets/millegrille.cert.pem
+    secrets:
+      - source: mongo
+        target: mongo.key_cert.pem
+      - source: passwd_mongo
+        target: mongo.root.password
   mongo:
     image: mongo:8.2.6
     x-millegrilles-certificat:
@@ -13,12 +30,21 @@ services:
       passwords:
         - mongo
     hostname: mongo
-    command: ["mongod", "--tlsMode", "requireTLS", "--tlsCertificateKeyFile", "/run/secrets/mongo.key_cert.pem", "--tlsCAFile", "/run/secrets/millegrille.cert.pem", "--replSet", "rs0", "--clusterAuthMode", "x509", "--tlsClusterFile", "/run/secrets/mongo.key_cert.pem"]
+    user: "${CONTAINER_UID}:${CONTAINER_GID}"
+    command: [
+      "mongod",
+      "--tlsMode", "requireTLS",
+      "--tlsCertificateKeyFile", "/run/secrets/mongo.key_cert.pem",
+      "--tlsCAFile", "/run/secrets/millegrille.cert.pem",
+      "--replSet", "rs0",
+      "--clusterAuthMode", "x509",
+      "--tlsClusterFile", "/run/secrets/mongo.key_cert.pem"
+    ]
     environment:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD_FILE=/run/secrets/mongo.root.password
     volumes:
-      - ./var/mongo:/data/db
+      - mongo:/data/db
     networks:
       - app_net
     deploy:
@@ -38,6 +64,8 @@ services:
         target: mongo.key_cert.pem
       - source: passwd_mongo
         target: mongo.root.password
+    depends_on:
+      - mongo_init
 
 configs:
   mgca:
@@ -48,3 +76,11 @@ secrets:
     file: ${MILLEGRILLES_ROOT}/secrets/mongo.pem
   passwd_mongo:
     file: ${MILLEGRILLES_ROOT}/secrets/mongo.txt
+
+volumes:
+  mongo:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${MILLEGRILLES_ROOT}/var/mongo

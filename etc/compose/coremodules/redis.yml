@@ -1,6 +1,6 @@
 services:
   redis:
-    image: registry.millegrilles.com:5000/millegrilles/redis:8.6.2-alpine.master.9
+    image: registry.millegrilles.com/millegrilles/redis:8.6.2-alpine.master.9
     x-millegrilles-certificat:
       roles:
         - redis
@@ -14,7 +14,8 @@ services:
         - redis
     hostname: redis
     volumes:
-      - ./var/redis:/data
+      # Utilisation volume a cause de la protection des fichiers ACL (dans l'image redis, peut pas changer UID)
+      - redis-data:/data
     networks:
       - app_net
     deploy:
@@ -48,3 +49,7 @@ secrets:
     file: ${MILLEGRILLES_ROOT}/secrets/redis.key.pem
   passwd_redis:
     file: ${MILLEGRILLES_ROOT}/secrets/redis.txt
+
+volumes:
+  redis-data:
+    name: ${INSTANCE_NAME}-redis-data

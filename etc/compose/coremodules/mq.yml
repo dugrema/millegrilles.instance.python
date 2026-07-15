@@ -1,6 +1,6 @@
 services:
   mq:
-    image: registry.millegrilles.com:5000/millegrilles/rabbitmq:4.2.5-management-alpine.master.13
+    image: registry.millegrilles.com/millegrilles/rabbitmq:4.2.5-management-alpine.master.13
     x-millegrilles-certificat:
       roles:
         - mq
@@ -10,6 +10,7 @@ services:
           - mq
         domain: true
       split: true
+    user: "${CONTAINER_UID}:${CONTAINER_GID}"
     hostname: mq
     environment:
       - MG_KEY=/run/secrets/key.pem
@@ -17,13 +18,10 @@ services:
       - CONFIG_FILE=/opt/rabbitmq/dist/config/rabbitmq.config
       - NODENAME=rabbit@mq
     volumes:
-      - ./var/mq:/var/lib/rabbitmq
+      - ${MILLEGRILLES_ROOT}/var/mq:/var/lib/rabbitmq
     networks:
       - app_net
     deploy:
-      placement:
-        constraints:
-          - node.labels.millegrilles.mq == true
       resources:
         limits:
           cpus: '3.0'
