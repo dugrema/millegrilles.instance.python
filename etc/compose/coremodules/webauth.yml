@@ -1,6 +1,6 @@
 services:
   webauth:
-    image: registry.millegrilles.com/millegrilles/webauth_python:2025.4.18
+    image: registry.millegrilles.com/millegrilles/webauth_python:2026.3.3
     x-millegrilles-certificat:
       roles:
         - webauth
@@ -12,19 +12,14 @@ services:
           - webauth
         domain: true
     environment:
-      - MQ_HOSTNAME=${MQ_HOSTNAME}
+      - MQ_HOSTNAME=${MQ_HOST}
       - MQ_PORT=${MQ_PORT}
-      - REDIS_HOSTNAME=redis
       - REDIS_PORT=6379
-      - REDIS_PASSWORD_PATH=/run/secrets/passwd.redis.txt
-      - CERT_PATH=/run/secrets/cert.pem
+      - REDIS_PASSWORD_PATH=/run/secrets/redis.txt
+      - CERT_PATH=/run/secrets/key.pem
       - KEY_PATH=/run/secrets/key.pem
       - CA_PATH=/run/secrets/millegrille.cert.pem
-      - WEB_PORT=1443
     deploy:
-      placement:
-        constraints:
-          - node.labels.millegrilles.webauth == true
       resources:
         limits:
           cpus: '0.5'
@@ -34,15 +29,22 @@ services:
         delay: 5s
         max_attempts: 100
     configs:
-      - source: pki.webauth
-        target: /run/secrets/cert.pem
-      - source: pki.millegrille
+      - source: mgca
         target: /run/secrets/millegrille.cert.pem
     secrets:
-      - source: pki.webauth
+      - source: webauth
         target: key.pem
-      - source: pki.millegrille
-        target: millegrille.cert.pem
+      - source: passwd_redis
+        target: redis.txt
     networks:
       - app_net
-      - bridge
+
+configs:
+  mgca:
+    file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
+
+secrets:
+  webauth:
+    file: ${MILLEGRILLES_ROOT}/secrets/webauth.pem
+  passwd_redis:
+    file: ${MILLEGRILLES_ROOT}/secrets/redis.txt

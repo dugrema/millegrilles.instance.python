@@ -18,6 +18,8 @@ services:
       - redis-data:/data
     networks:
       - app_net
+    # ports:
+    #   - "6379:6379"
     deploy:
       resources:
         limits:
@@ -36,7 +38,7 @@ services:
       - source: redis
         target: key.pem
       - source: passwd_redis
-        target: redis.txt
+        target: passwd.redis.txt
 
 configs:
   redis:
