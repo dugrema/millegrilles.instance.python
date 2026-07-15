@@ -26,7 +26,7 @@ services:
           memory: 250M
       restart_policy:
         condition: on-failure
-        delay: 5s
+        delay: 15s
         max_attempts: 1000
     configs:
       - source: mgca
@@ -39,7 +39,6 @@ services:
     depends_on:
       - redis
       - mq
-      - mongo
       - midcompte
 
 configs:
