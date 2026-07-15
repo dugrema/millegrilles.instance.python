@@ -1,15 +1,16 @@
 [Unit]
-Description=MilleGrilles Instance ({{NODE_TYPE}})
+Description=MilleGrilles middleware ({{NODE_TYPE}})
 After=network.target
 Wants={{INSTANCE_NAME}}_certissuer.service
+Wants={{INSTANCE_NAME}}_nginx.service
 
 [Service]
 Type=simple
 WorkingDirectory={{MILLEGRILLES_ROOT}}
 EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
-ExecStart=/usr/bin/docker compose -f etc/compose/nodetypes/node-{{NODE_TYPE}}.yml up
-ExecReload=/usr/bin/docker compose -f etc/compose/nodetypes/node-{{NODE_TYPE}}.yml up -d
-ExecStop=/usr/bin/docker compose -f etc/compose/nodetypes/node-{{NODE_TYPE}}.yml down
+ExecStart=/usr/bin/docker compose -f etc/compose/middleware/node-{{NODE_TYPE}}.yml up
+ExecReload=/usr/bin/docker compose -f etc/compose/middleware/node-{{NODE_TYPE}}.yml up -d
+ExecStop=/usr/bin/docker compose -f etc/compose/middleware/node-{{NODE_TYPE}}.yml down
 Restart=always
 
 [Install]

@@ -83,7 +83,7 @@ def load_compose_files(securite: str, configuration: ConfigurationInstance) -> l
     else:
         raise ValueError("Unsupported security type")
 
-    compose_file_nodetype = configuration.path_millegrilles / "etc/compose/nodetypes" / filename
+    compose_file_nodetype = configuration.path_millegrilles / "etc/compose/middleware" / filename
     config_nodetype = load_yaml_recursive(compose_file_nodetype)
     composefiles.append(config_nodetype)
 

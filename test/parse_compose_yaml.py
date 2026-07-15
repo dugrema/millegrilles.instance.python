@@ -43,7 +43,7 @@ def parse_compose_node(node_file: pathlib.Path):
     pass
 
 def main():
-    parse_compose_node(pathlib.Path("../etc/compose/nodetypes/node-protege.yml"))
+    parse_compose_node(pathlib.Path("../etc/compose/middleware/node-protege.yml"))
 
 if __name__ == "__main__":
     main()

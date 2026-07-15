@@ -2,6 +2,8 @@ include:
   - path: ../include/app_net.yml
     project_directory: .
 
+name: ${INSTANCE_NAME}
+
 services:
   certissuer:
     image: registry.millegrilles.com/millegrilles/midcompte_python:2026.3.5
