@@ -2,4 +2,8 @@ location /administration {
     include /etc/nginx/conf.d/modules/midcompte.proxypass;
     include /etc/nginx/conf.d/component_base.include;
     proxy_set_header X-Client-Cert      $ssl_client_escaped_cert;
+
+    proxy_ssl_certificate         /run/secrets/nginx.cert.pem;
+    proxy_ssl_certificate_key     /run/secrets/nginx.key.pem;
+    proxy_ssl_trusted_certificate /usr/share/nginx/files/certs/millegrille.cert.pem;
 }

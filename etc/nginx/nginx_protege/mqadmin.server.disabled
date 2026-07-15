@@ -8,7 +8,8 @@ server {
     include /etc/nginx/conf.d/modules/*.conf;
 
     location / {
-      proxy_pass https://mq:8443;
+      set $upstream_mqadmin https://mq:8443;
+      proxy_pass $upstream_mqadmin;
       proxy_ssl_certificate         /run/secrets/nginx.cert.pem;
       proxy_ssl_certificate_key     /run/secrets/nginx.key.pem;
       proxy_ssl_trusted_certificate /usr/share/nginx/files/certs/millegrille.cert.pem;

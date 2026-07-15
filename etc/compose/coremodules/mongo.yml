@@ -47,6 +47,8 @@ services:
       - mongo:/data/db
     networks:
       - app_net
+    # ports:
+    #   - "27017:27017"
     deploy:
       resources:
         limits:

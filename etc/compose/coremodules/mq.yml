@@ -23,6 +23,7 @@ services:
       - app_net
     ports:
       - "5673:5673"
+      # - "8443:8443"
     deploy:
       resources:
         limits:
