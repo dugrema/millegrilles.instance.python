@@ -4,7 +4,7 @@ include:
 
 services:
   certissuer:
-    image: registry.millegrilles.com/millegrilles/midcompte_python:2026.3.4
+    image: registry.millegrilles.com/millegrilles/midcompte_python:2026.3.5
     ports:
       - "2080:2080"
     user: "${CONTAINER_UID}:${CONTAINER_GID}"

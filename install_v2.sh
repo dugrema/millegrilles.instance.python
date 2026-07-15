@@ -64,6 +64,9 @@ case $TYPE in
 esac
 
 save_configenv() {
+  MQ_PORT=5673
+  MQ_HOSTNAME=localhost
+
   cat <<EOF > "${MILLEGRILLES_ROOT}/config.env"
 INSTANCE_ID="${INSTANCE_ID}"
 CONTAINER_UID="${CONTAINER_UID}"
@@ -71,14 +74,12 @@ CONTAINER_GID="${CONTAINER_GID}"
 MILLEGRILLES_ROOT="${MILLEGRILLES_ROOT}"
 INSTANCE_NAME="${INSTANCE_NAME}"
 INSTANCE_DOMAIN="${INSTANCE_DOMAIN}"
-REPO_ROOT="${REPO_ROOT}"
-HTTP_PORT=80
-HTTPS_PORT=443
-HTTPS_MG_PORT=444
 MANAGER_URL="https://localhost:2443"
 CERTISSUER_URL="http://localhost:2080"
 REDIS_URL="rediss://localhost:6379"
 SECURITE="${SECURITE}"
+MQ_PORT=$MQ_PORT
+MQ_HOSTNAME=$MQ_HOSTNAME
 EOF
 
   # Source the newly created config
@@ -173,10 +174,9 @@ creer_repertoires() {
 
 copier_fichiers() {
   echo "[INFO] Copier fichiers systeme"
-  cp -v "${REP_BIN}/start_instance.sh" "${MILLEGRILLES_ROOT}/bin/"
   cp -v "${REP_ETC}/idmg_validation.json" "${MILLEGRILLES_ROOT}/etc/"
   cp -vr "${REP_ETC}/compose" "${MILLEGRILLES_ROOT}/etc/"
-  cp -v "${REP_ETC}/nginx/nginx_installation/"* "${MILLEGRILLES_ROOT}/etc/nginx"
+  cp -iv "${REP_ETC}/nginx/config/"* "${MILLEGRILLES_ROOT}/etc/nginx"
 
   echo "[OK] Fichiers copies"
 }
@@ -218,21 +218,15 @@ install_protege_instance() {
   install_instance_v2
   source "${MILLEGRILLES_ROOT}/config.env"
 
+  echo "[INFO] Copying protege level nginx files"
+  cp -iv "${REP_ETC}/nginx/nginx_protege/"* "${MILLEGRILLES_ROOT}/etc/nginx"
+
   echo "[INFO] Generating Root CA..."
-  local log_file
-  log_file=$(mktemp)
-  ./bin/ca_new.sh > "$log_file" 2>&1
-  
+
+  # Generate a random password for the root CA
   local password
-  password=$(grep "Root CA Password for ${INSTANCE_NAME}:" "$log_file" | sed -E 's/.*: ([^ ]*).*/\1/')
-  
-  if [ -z "$password" ]; then
-    echo "[ERROR] Failed to extract Root CA password from logs."
-    cat "$log_file"
-    rm -f "$log_file"
-    exit 1
-  fi
-  echo "[INFO] Root CA Password extracted."
+  password=$(openssl rand -base64 32)
+  ./bin/ca_new.sh $password
 
   echo "[INFO] Generating Signing CA..."
   ./bin/ca_signing.sh --password "$password"
@@ -242,9 +236,8 @@ install_protege_instance() {
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
     --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem"
 
-  # Activate python venv
-  . "${MILLEGRILLES_ROOT}/venv/bin/activate"
-  IDMG=$(python3 bin/get_idmg.py "${MILLEGRILLES_ROOT}/etc/millegrille.pem")
+  # Get IDMG for configuration
+  IDMG=$("${PATH_VENV}/bin/python3" bin/utils/get_idmg.py "${MILLEGRILLES_ROOT}/etc/millegrille.pem")
 
   if [ -z "$IDMG" ]; then
     echo "[ERROR] Failed to retrieve IDMG from Root CA."
@@ -253,17 +246,45 @@ install_protege_instance() {
 
   echo "IDMG=$IDMG" >> "${MILLEGRILLES_ROOT}/config.env"
 
+  echo "[INFO] Preparing node systemd configuration files for protege"
+  ./bin/setup_systemd_protege.sh "${MILLEGRILLES_ROOT}/config.env"
+
+  echo "[INFO] Start certissuer"
+  systemctl --user daemon-reload
+  systemctl --user restart "${INSTANCE_NAME}-certissuer"
+  sleep 5  # Wait for certissuer to start
+
+  echo "[INFO] Generate all local certificates and passwords in secrets directory"
+  # Load configuration
+  set -a
+  . "${MILLEGRILLES_ROOT}/config.env"
+  set +a
+  export CA_PATH="${MILLEGRILLES_ROOT}/etc/millegrille.pem"
+  export CERT_PATH="${MILLEGRILLES_ROOT}/secrets/manager.pem"
+  export KEY_PATH="${MILLEGRILLES_ROOT}/secrets/manager.pem"
+  # ,Run manager to generate certificates/passwords
+  "${PATH_VENV}/bin/python3" -m millegrilles_instance --config "${MILLEGRILLES_ROOT}" --init
+
+  echo "[INFO] Start middleware"
+  systemctl --user restart "${INSTANCE_NAME}-nginx"
+  systemctl --user restart "${INSTANCE_NAME}-middleware"
+
+  echo "[INFO] Start node manager ** TODO"
+
   echo "[OK] Protege installation complete, IDMG=${IDMG}."
   echo
   echo "------------------------------------------------------------------------------"
-  echo "Root CA Password: $password"
-  echo "Root CA PEM File: ${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
+  echo "# Certificate Authority (CA) PEM File"
+  echo "# ${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
   cat "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
   echo "------------------------------------------------------------------------------"
+  echo "CA Password: $password"
+  echo "------------------------------------------------------------------------------"
   echo
-  echo "IMPORTANT: Save this password and file content! The password is not saved anywhere, it is only shown once."
+  echo "IMPORTANT: Save the password (above) and ca.pem file content! The password is not saved anywhere."
+  echo "!! The PASSWORD is ONLY shown here !!"
   echo "Both the password and CA file are required for future operations (restoring backups, system updates, deploying secure nodes, etc)."
-  echo "To increase security, store the Root CA PEM file and the password separately."
+  echo "To increase security, store the ca.pem file and the password separately."
 }
 
 # ------------------------------------------------------------------------------

@@ -14,7 +14,15 @@ INSTANCE_NAME="${INSTANCE_NAME:-millegrille}"
 mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer"
 
 # Generate a random password for the root CA
-PASSWORD=$(openssl rand -base64 32)
+# PASSWORD=$(openssl rand -base64 32)
+if [ -z "$1" ]; then
+  # Generate a random password for the root CA
+  PASSWORD=$(openssl rand -base64 32)
+else
+  PASSWORD="$1"
+fi
+
+echo "Using CA password '$PASSWORD'"
 
 # Temporary files
 TMP_CONF=$(mktemp)
@@ -56,7 +64,7 @@ cp "${MILLEGRILLES_ROOT}/secrets/certissuer/ca_cert.pem" "${MILLEGRILLES_ROOT}/e
 
 # 4. Get the IDMG hash value
 . "${MILLEGRILLES_ROOT}/venv/bin/activate"
-IDMG=$(python3 bin/get_idmg.py "${MILLEGRILLES_ROOT}/secrets/certissuer/ca_cert.pem")
+IDMG=$(python3 bin/utils/get_idmg.py "${MILLEGRILLES_ROOT}/secrets/certissuer/ca_cert.pem")
 
 # Combine encrypted key and cert into single file
 echo "# MilleGrilles self-signed CA key" > "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"

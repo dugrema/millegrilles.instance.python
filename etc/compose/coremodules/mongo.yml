@@ -7,7 +7,7 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD_FILE=/run/secrets/mongo.root.password
     volumes:
-      - mongo:/data/db
+      - ${MILLEGRILLES_ROOT}/var/mongo:/data/db
     configs:
       - source: mgca
         target: /run/secrets/millegrille.cert.pem
@@ -44,7 +44,7 @@ services:
       - MONGO_INITDB_ROOT_USERNAME=admin
       - MONGO_INITDB_ROOT_PASSWORD_FILE=/run/secrets/mongo.root.password
     volumes:
-      - mongo:/data/db
+      - ${MILLEGRILLES_ROOT}/var/mongo:/data/db
     networks:
       - app_net
     # ports:
@@ -78,11 +78,3 @@ secrets:
     file: ${MILLEGRILLES_ROOT}/secrets/mongo.pem
   passwd_mongo:
     file: ${MILLEGRILLES_ROOT}/secrets/mongo.txt
-
-volumes:
-  mongo:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${MILLEGRILLES_ROOT}/var/mongo

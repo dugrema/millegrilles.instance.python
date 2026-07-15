@@ -49,7 +49,7 @@ fi
 #export PYTHONPATH="${PYTHONPATH}:/home/vaicoder1/work/millegrilles.messages.python:$(pwd)"
 # Activate python venv
 . "${MILLEGRILLES_ROOT}/venv/bin/activate"
-IDMG=$(python3 bin/get_idmg.py "$ROOT_CA")
+IDMG=$(python3 bin/utils/get_idmg.py "$ROOT_CA")
 
 if [ -z "$IDMG" ]; then
   echo "[ERROR] Failed to retrieve IDMG from Root CA."

@@ -8,19 +8,6 @@ except ImportError as e:
     print(f"Error importing: {e}")
     sys.exit(1)
 
-
-# Add the module directory to sys.path
-#module_path = "/home/vaicoder1/work/millegrilles.messages.python"
-#if module_path not in sys.path:
-#    sys.path.insert(0, module_path)
-
-#try:
-#    from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
-#    from multihash import HASH_CODES
-#except ImportError as e:
-#    print(f"Error importing: {e}")
-#    sys.exit(1)
-
 def main():
     if len(sys.argv) < 2:
         print("Usage: python get_idmg.py <cert_file_path>")

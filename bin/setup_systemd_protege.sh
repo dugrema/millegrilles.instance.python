@@ -40,7 +40,12 @@ mkdir -p "$DEST_DIR"
 generate_service() {
     local template_file=$1
     local output_file=$2
-    
+
+    if [ -f "$output_file" ]; then
+      echo "Warning: Template file $template_file exists, skipping."
+      return
+    fi
+
     if [ ! -f "$template_file" ]; then
         echo "Error: Template file $template_file not found."
         exit 1
@@ -52,15 +57,18 @@ generate_service() {
         "$template_file" > "$output_file"
 }
 
-# Generate certissuer service: ${INSTANCE_NAME}_certissuer.service
-generate_service "$TEMPLATE_DIR/certissuer.service.template" "$DEST_DIR/${INSTANCE_NAME}_certissuer.service"
+# Generate middleware services
+generate_service "$TEMPLATE_DIR/certissuer.service.template" "$DEST_DIR/${INSTANCE_NAME}-certissuer.service"
+generate_service "$TEMPLATE_DIR/nginx.service.template" "$DEST_DIR/${INSTANCE_NAME}-nginx.service"
+generate_service "$TEMPLATE_DIR/middleware.service.template" "$DEST_DIR/${INSTANCE_NAME}-middleware.service"
 
-# Generate instance service: ${INSTANCE_NAME}.service
-generate_service "$TEMPLATE_DIR/manager.service.template" "$DEST_DIR/${INSTANCE_NAME}_manager.service"
+# Generate node manager: ${INSTANCE_NAME}.service
+generate_service "$TEMPLATE_DIR/manager.service.template" "$DEST_DIR/${INSTANCE_NAME}-manager.service"
 
 echo ""
 echo "Successfully created systemd user services in $DEST_DIR:"
-echo "  - ${INSTANCE_NAME}_certissuer.service"
+echo "  - ${INSTANCE_NAME}-certissuer.service"
+echo "  - ${INSTANCE_NAME}-nginx.service"
 echo "  - ${INSTANCE_NAME}.service"
 echo ""
 echo "To load the new services, run: systemctl --user daemon-reload"

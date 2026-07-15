@@ -1,0 +1,4 @@
+# Use this file to have certificates issued for services that are not part of the "nodetypes" configuration yaml.
+
+include:
+  - ../coremodules/nginx.yml

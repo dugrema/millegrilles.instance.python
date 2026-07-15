@@ -50,7 +50,13 @@ def load_yaml_recursive(yaml_file: pathlib.Path) -> dict:
         files_dict = dict()
         compose_configuration['x-include-content'] = files_dict
         for include_file in include_files:
-            include_file_path = yaml_file.parent.joinpath(include_file).resolve()
+            try:
+                include_file = include_file['path']
+            except (TypeError, KeyError):
+                pass
+            yaml_file_parent = yaml_file.parent
+            parent_join = yaml_file_parent.joinpath(include_file)
+            include_file_path = parent_join.resolve()
             file_content = load_yaml_recursive(include_file_path)
             files_dict[include_file_path] = file_content
     except KeyError:
@@ -80,6 +86,11 @@ def load_compose_files(securite: str, configuration: ConfigurationInstance) -> l
     compose_file_nodetype = configuration.path_millegrilles / "etc/compose/nodetypes" / filename
     config_nodetype = load_yaml_recursive(compose_file_nodetype)
     composefiles.append(config_nodetype)
+
+    # Files added
+    certs_service_file = configuration.path_millegrilles / "etc/compose/include/certs_serviceconfig.yml"
+    config_services = load_yaml_recursive(certs_service_file)
+    composefiles.append(config_services)
 
     applications_file = configuration.path_millegrilles / "etc/compose/applications.yml"
     if applications_file.exists():

@@ -76,6 +76,10 @@ openssl x509 -req -in "$CERT_DIR/server.csr" -CA "$ROOT_CA_PEM" -CAkey "$ROOT_CA
 
 cat $SERVER_CRT $ROOT_CA_PEM > $CHAIN_CRT
 
+# Copy to web PEMs to get picked-up by nginx (if not already present)
+cp -iv "$CHAIN_CRT" "$CERT_DIR/web.cert.pem"
+cp -iv "$SERVER_KEY" "$CERT_DIR/web.key.pem"
+
 # Cleanup
 rm "$CERT_DIR/server.csr" "$CONF_FILE" "$SERVER_CRT" "$CERT_DIR/webcass.cert.srl"
 
