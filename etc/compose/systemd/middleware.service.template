@@ -1,8 +1,8 @@
 [Unit]
 Description=MilleGrilles middleware ({{NODE_TYPE}})
 After=network.target
-Wants={{INSTANCE_NAME}}_certissuer.service
-Wants={{INSTANCE_NAME}}_nginx.service
+Wants={{INSTANCE_NAME}}-certissuer.service
+Wants={{INSTANCE_NAME}}-nginx.service
 
 [Service]
 Type=simple

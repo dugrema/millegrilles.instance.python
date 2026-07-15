@@ -2,3 +2,4 @@
 
 include:
   - ../coremodules/nginx.yml
+  - ../coremodules/core.yml
