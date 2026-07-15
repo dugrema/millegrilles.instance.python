@@ -61,6 +61,7 @@ generate_service() {
 generate_service "$TEMPLATE_DIR/certissuer.service.template" "$DEST_DIR/${INSTANCE_NAME}-certissuer.service"
 generate_service "$TEMPLATE_DIR/nginx.service.template" "$DEST_DIR/${INSTANCE_NAME}-nginx.service"
 generate_service "$TEMPLATE_DIR/middleware.service.template" "$DEST_DIR/${INSTANCE_NAME}-middleware.service"
+generate_service "$TEMPLATE_DIR/core.service.template" "$DEST_DIR/${INSTANCE_NAME}-core.service"
 
 # Generate node manager: ${INSTANCE_NAME}.service
 generate_service "$TEMPLATE_DIR/manager.service.template" "$DEST_DIR/${INSTANCE_NAME}-manager.service"
@@ -69,6 +70,8 @@ echo ""
 echo "Successfully created systemd user services in $DEST_DIR:"
 echo "  - ${INSTANCE_NAME}-certissuer.service"
 echo "  - ${INSTANCE_NAME}-nginx.service"
-echo "  - ${INSTANCE_NAME}.service"
+echo "  - ${INSTANCE_NAME}-middleware.service"
+echo "  - ${INSTANCE_NAME}-core.service"
+echo "  - ${INSTANCE_NAME}-manager.service"
 echo ""
 echo "To load the new services, run: systemctl --user daemon-reload"

@@ -1,5 +1,6 @@
 # Use this file to have certificates issued for services that are not part of the "middleware" configuration yaml.
 
 include:
+  - ../coremodules/certissuer.yml
   - ../coremodules/nginx.yml
   - ../coremodules/core.yml

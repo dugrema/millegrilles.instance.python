@@ -1,7 +1,8 @@
 [Unit]
 Description=MilleGrilles core services
 After=network.target
-Wants={{INSTANCE_NAME}}_certissuer.service
+Wants={{INSTANCE_NAME}}-certissuer.service
+Wants={{INSTANCE_NAME}}-middleware.service
 
 [Service]
 Type=simple

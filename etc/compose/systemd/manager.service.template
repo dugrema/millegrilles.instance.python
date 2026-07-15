@@ -1,6 +1,6 @@
 [Unit]
-Description=Gestionnaire pour instance MilleGrilles {{INSTANCE_NAME}}.
-Requires=docker.service
+Description=Manager pour instance MilleGrilles {{INSTANCE_NAME}}.
+# Requires=docker.service
 Wants={{INSTANCE_NAME}}-certissuer.service
 
 [Service]
@@ -12,12 +12,9 @@ Environment="CA_PATH={{MILLEGRILLES_ROOT}}/etc/millegrille.pem"
 Environment="CERT_PATH={{MILLEGRILLES_ROOT}}/secrets/manager.pem"
 Environment="KEY_PATH={{MILLEGRILLES_ROOT}}/secrets/manager.pem"
 EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
-ExecStart=/var/opt/millegrilles/bin/start_instance.sh
+ExecStart={{MILLEGRILLES_ROOT}}/venv/bin/python3 -m millegrilles_instance --config {{MILLEGRILLES_ROOT}}
 Restart=always
 RestartSec=10s
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier={{INSTANCE_NAME}}_manager
-
-[Install]
-WantedBy=multi-user.target

@@ -168,6 +168,7 @@ creer_repertoires() {
   mkdir -p "${MILLEGRILLES_ROOT}/var/mongo"
   mkdir -p "${MILLEGRILLES_ROOT}/var/nginx/html"
   mkdir -p "${MILLEGRILLES_ROOT}/var/files"
+  mkdir -p "${MILLEGRILLES_ROOT}/var/backup/domains"
 
   echo "[OK] Repertoires crees"
 }
@@ -246,30 +247,41 @@ install_protege_instance() {
 
   echo "IDMG=$IDMG" >> "${MILLEGRILLES_ROOT}/config.env"
 
-  echo "[INFO] Preparing node systemd configuration files for protege"
-  ./bin/setup_systemd_protege.sh "${MILLEGRILLES_ROOT}/config.env"
-
-  echo "[INFO] Start certissuer"
-  systemctl --user daemon-reload
-  systemctl --user restart "${INSTANCE_NAME}-certissuer"
-  sleep 5  # Wait for certissuer to start
-
-  echo "[INFO] Generate all local certificates and passwords in secrets directory"
   # Load configuration
   set -a
   . "${MILLEGRILLES_ROOT}/config.env"
   set +a
+
+  echo "[INFO] Preparing node systemd configuration files for protege"
+  ./bin/setup_systemd_protege.sh "${MILLEGRILLES_ROOT}/config.env"
+
+  echo "[INFO] Download and start certissuer"
+  systemctl --user daemon-reload
+  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/coremodules/certissuer.yml" pull
+  systemctl --user restart "${INSTANCE_NAME}-certissuer"
+  sleep 5  # Wait for certissuer to start
+
+  echo "[INFO] Generate all local certificates and passwords in secrets directory"
   export CA_PATH="${MILLEGRILLES_ROOT}/etc/millegrille.pem"
   export CERT_PATH="${MILLEGRILLES_ROOT}/secrets/manager.pem"
   export KEY_PATH="${MILLEGRILLES_ROOT}/secrets/manager.pem"
   # ,Run manager to generate certificates/passwords
   "${PATH_VENV}/bin/python3" -m millegrilles_instance --config "${MILLEGRILLES_ROOT}" --init
 
+  # Note : the download can take a while so this makes sure we don't starts services that are not already on disk
+  echo "[INFO] Download all the required images"
+  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/include/certs_serviceconfig.yml" pull
+  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/middleware/node-protege.yml" pull
+
   echo "[INFO] Start middleware"
   systemctl --user restart "${INSTANCE_NAME}-nginx"
+  sleep 5
   systemctl --user restart "${INSTANCE_NAME}-middleware"
+  sleep 10
+  systemctl --user restart "${INSTANCE_NAME}-core"
 
-  echo "[INFO] Start node manager ** TODO"
+  echo "[INFO] Start node manager "
+  systemctl --user restart "${INSTANCE_NAME}-manager"
 
   echo "[OK] Protege installation complete, IDMG=${IDMG}."
   echo
