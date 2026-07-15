@@ -21,6 +21,8 @@ services:
       - ${MILLEGRILLES_ROOT}/var/mq:/var/lib/rabbitmq
     networks:
       - app_net
+    ports:
+      - "5673:5673"
     deploy:
       resources:
         limits:

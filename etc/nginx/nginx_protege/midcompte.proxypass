@@ -1,0 +1,2 @@
+set $upstream_midcompte https://midcompte:2444;
+proxy_pass $upstream_midcompte;

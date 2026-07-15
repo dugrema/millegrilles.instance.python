@@ -34,8 +34,7 @@ services:
         target: passwd.mongo.txt
       - source: passwd_mqadmin
         target: passwd.mqadmin.txt
-    ports:
-      - "2444:2444"
+    hostname: midcompte
     networks:
       - app_net
     depends_on:
