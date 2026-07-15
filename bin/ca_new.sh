@@ -24,7 +24,7 @@ trap 'rm -f "$TMP_CONF"' EXIT
 cat <<EOF > "$TMP_CONF"
 [v3_ca]
 keyUsage = digitalSignature, nonRepudiation, keyEncipherment, keyCertSign
-basicConstraints = CA:TRUE
+basicConstraints = critical, CA:TRUE
 subjectKeyIdentifier = hash
 authorityKeyIdentifier = keyid:always
 EOF
