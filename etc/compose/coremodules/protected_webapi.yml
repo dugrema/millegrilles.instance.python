@@ -1,6 +1,6 @@
 services:
   protected_webapi:
-    image: registry.millegrilles.com/millegrilles/web_python:2025.4.58
+    image: registry.millegrilles.com/millegrilles/web_python:2026.3.4
     x-millegrilles-certificat:
       roles:
         - protected_webapi
@@ -18,40 +18,47 @@ services:
         - protectedwebapisession
     command: ["-m", "millegrilles_web"]
     environment:
-      - MQ_HOSTNAME=mq
+      - MQ_HOSTNAME=${MQ_HOST}
       - MQ_PORT=${MQ_PORT}
       - REDIS_HOSTNAME=redis
       - REDIS_PORT=6379
       - REDIS_PASSWORD_PATH=/run/secrets/passwd.redis.txt
-      - CERT_PATH=/run/secrets/cert.pem
+      - CERT_PATH=/run/secrets/key.pem
       - KEY_PATH=/run/secrets/key.pem
       - CA_PATH=/run/secrets/millegrille.cert.pem
       - WEB_PORT=1443
     deploy:
-      placement:
-        constraints:
-          - node.labels.millegrilles.web == true
       resources:
         limits:
           cpus: '2.0'
           memory: 150M
       restart_policy:
         condition: on-failure
-        delay: 5s
-        max_attempts: 5
+        delay: 10s
+        max_attempts: 1000
     configs:
-      - source: pki.protected_webapi
-        target: /run/secrets/cert.pem
-      - source: pki.protected_webapi
-        target: /run/secrets/webcert.pem
-      - source: pki.millegrille
+      - source: mgca
         target: /run/secrets/millegrille.cert.pem
     secrets:
-      - source: pki.protected_webapi
+      - source: webapi
+        target: cert.pem
+      - source: webapi
+        target: webcert.pem
+      - source: webapi
         target: key.pem
-      - source: pki.protected_webapi
+      - source: webapi
         target: webkey.pem
-      - source: passwd.redis
+      - source: passwd_redis
         target: passwd.redis.txt
     networks:
       - app_net
+
+configs:
+  mgca:
+    file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
+
+secrets:
+  webapi:
+    file: ${MILLEGRILLES_ROOT}/secrets/protected_webapi.pem
+  passwd_redis:
+    file: ${MILLEGRILLES_ROOT}/secrets/redis.txt
