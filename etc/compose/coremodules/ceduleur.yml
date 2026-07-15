@@ -1,6 +1,6 @@
 services:
   ceduleur:
-    image: registry.millegrilles.com/millegrilles/midcompte_python:2025.4.112
+    image: registry.millegrilles.com/millegrilles/midcompte_python:2026.3.4
     x-millegrilles-certificat:
       roles:
         - ceduleur
@@ -13,31 +13,39 @@ services:
     environment:
       - INSTANCE_ID=${INSTANCE_ID}
       - CA_PATH=/run/secrets/pki.millegrille.cert
-      - CERT_PATH=/run/secrets/cert.pem
-      - KEY_PATH=/run/secrets/key.pem
+      - CERT_PATH=/run/secrets/mgkeycert.pem
+      - KEY_PATH=/run/secrets/mgkeycert.pem
       - MQ_HOSTNAME=mq
       - MQ_PORT=${MQ_PORT}
       - REDIS_HOSTNAME=redis
       - REDIS_PORT=6379
     deploy:
-      placement:
-        constraints:
-          - node.labels.millegrilles.ceduleur == true
       resources:
         limits:
           cpus: '0.5'
           memory: 250M
       restart_policy:
-        condition: any
+        condition: on-failure
         delay: 5s
         max_attempts: 1000
     configs:
-      - source: pki.millegrille
+      - source: mgca
         target: /run/secrets/pki.millegrille.cert
-      - source: pki.ceduleur
-        target: /run/secrets/cert.pem
     secrets:
-      - source: pki.ceduleur
-        target: key.pem
+      - source: ceduleur
+        target: mgkeycert.pem
     networks:
       - app_net
+    depends_on:
+      - redis
+      - mq
+      - mongo
+      - midcompte
+
+configs:
+  mgca:
+    file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
+
+secrets:
+  ceduleur:
+    file: ${MILLEGRILLES_ROOT}/secrets/ceduleur.pem

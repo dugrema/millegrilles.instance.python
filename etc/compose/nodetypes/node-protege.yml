@@ -3,7 +3,7 @@ include:
   - ../coremodules/redis.yml
   - ../coremodules/mq.yml
   - ../coremodules/mongo.yml
-  #- ../coremodules/midcompte.yml
-  #- ../coremodules/ceduleur.yml
+  - ../coremodules/midcompte.yml
+  - ../coremodules/ceduleur.yml
   #- ../coremodules/webauth.yml
   #- ../coremodules/protected_webapi.yml
