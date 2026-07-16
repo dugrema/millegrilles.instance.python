@@ -181,6 +181,7 @@ copier_fichiers() {
   cp -v "${REP_ETC}/idmg_validation.json" "${MILLEGRILLES_ROOT}/etc/"
   cp -vr "${REP_ETC}/compose" "${MILLEGRILLES_ROOT}/etc/"
   cp -iv "${REP_ETC}/nginx/config/"* "${MILLEGRILLES_ROOT}/etc/nginx"
+  cp -vr "${REPO_ROOT}/bin" "${MILLEGRILLES_ROOT}/"
 
   echo "[OK] Fichiers copies"
 }
@@ -285,6 +286,16 @@ install_protege_instance() {
 
   echo "[INFO] Start node manager "
   systemctl --user restart "${INSTANCE_NAME}-manager"
+
+  # Install webapps
+  "${MILLEGRILLES_ROOT}/bin/install/install_webapp.sh" \
+    https://docker.maple.maceroc.com/archives/authentication/millegrilles_authentication_typescript.2026.1.8.tar.gz \
+    dev1/var/nginx/html/millegrilles \
+    ae08ed44dfc58a0ac5ff487d6a9d9b516fa00e33c1d1ce6dcea2abedc32e7927
+  "${MILLEGRILLES_ROOT}/bin/install/install_webapp.sh" \
+    https://docker.maple.maceroc.com/archives/coupdoeil/millegrilles_coupdoeil_react.2026.1.2.tar.gz \
+    dev1/var/nginx/html/coupdoeil2 \
+    38772acdd46c280bde6496f346c07dd2846215b6d7577c3d165ce46e9d90ce45
 
   echo "[OK] Protege installation complete, IDMG=${IDMG}."
   echo
