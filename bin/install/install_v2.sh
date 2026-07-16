@@ -283,6 +283,7 @@ install_protege_instance() {
   systemctl --user restart "${INSTANCE_NAME}-middleware"
   sleep 10
   systemctl --user restart "${INSTANCE_NAME}-core"
+  systemctl --user restart "${INSTANCE_NAME}-maitredescles"
 
   echo "[INFO] Start services and node manager "
   systemctl --user restart "${INSTANCE_NAME}-manager"
@@ -291,6 +292,7 @@ install_protege_instance() {
   systemctl --user enable "${INSTANCE_NAME}-nginx"
   systemctl --user enable "${INSTANCE_NAME}-middleware"
   systemctl --user enable "${INSTANCE_NAME}-core"
+  systemctl --user enable "${INSTANCE_NAME}-maitredescles"
   systemctl --user enable "${INSTANCE_NAME}-manager"
 
   # Activate the certificate updater with timer

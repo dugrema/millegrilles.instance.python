@@ -62,6 +62,7 @@ generate_service "$TEMPLATE_DIR/certissuer.service.template" "$DEST_DIR/${INSTAN
 generate_service "$TEMPLATE_DIR/nginx.service.template" "$DEST_DIR/${INSTANCE_NAME}-nginx.service"
 generate_service "$TEMPLATE_DIR/middleware.service.template" "$DEST_DIR/${INSTANCE_NAME}-middleware.service"
 generate_service "$TEMPLATE_DIR/core.service.template" "$DEST_DIR/${INSTANCE_NAME}-core.service"
+generate_service "$TEMPLATE_DIR/maitredescles.service.template" "$DEST_DIR/${INSTANCE_NAME}-maitredescles.service"
 
 # Generate node manager: ${INSTANCE_NAME}.service
 generate_service "$TEMPLATE_DIR/manager.service.template" "$DEST_DIR/${INSTANCE_NAME}-manager.service"
