@@ -65,6 +65,8 @@ generate_service "$TEMPLATE_DIR/core.service.template" "$DEST_DIR/${INSTANCE_NAM
 
 # Generate node manager: ${INSTANCE_NAME}.service
 generate_service "$TEMPLATE_DIR/manager.service.template" "$DEST_DIR/${INSTANCE_NAME}-manager.service"
+generate_service "$TEMPLATE_DIR/certs_updater.service.template" "$DEST_DIR/${INSTANCE_NAME}-certs_updater.service"
+cp -vi "$TEMPLATE_DIR/certs_updater.timer" "$DEST_DIR/${INSTANCE_NAME}-certs_updater.timer"
 
 echo ""
 echo "Successfully created systemd user services in $DEST_DIR:"

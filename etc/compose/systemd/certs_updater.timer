@@ -1,0 +1,10 @@
+[Unit]
+Description=Regular check/rotation of certificates
+
+[Timer]
+OnBootSec=6s
+OnUnitActiveSec=15m
+Persistent=true
+
+[Install]
+WantedBy=timers.target
