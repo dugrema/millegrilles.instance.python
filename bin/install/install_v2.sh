@@ -273,7 +273,7 @@ install_protege_instance() {
 
   # Note : the download can take a while so this makes sure we don't starts services that are not already on disk
   echo "[INFO] Download all the required images"
-  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/include/certs_serviceconfig.yml" pull
+  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/include/protege_service_deps.yml" pull
   docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/middleware/node-protege.yml" pull
 
   echo "[INFO] Start middleware"
