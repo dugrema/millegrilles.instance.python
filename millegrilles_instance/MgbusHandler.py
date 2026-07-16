@@ -68,6 +68,9 @@ class MgbusHandler(MgbusHandlerInterface):
         channel_requests = create_requests_channel(instance_id, niveau_securite_ajuste, context, self.on_request_message)
         await self.__manager.context.bus_connector.add_channel(channel_requests)
 
+        if self.__task_group is None:
+            raise TypeError("Task Group not initialized")
+
         # Start mgbus connector thread
         self.__task_group.create_task(self.__manager.context.bus_connector.run())
 
@@ -79,6 +82,10 @@ class MgbusHandler(MgbusHandlerInterface):
     async def on_exclusive_message(self, message: MessageWrapper):
         # Authorization check
         enveloppe = message.certificat
+        if enveloppe is None:
+            self.__logger.warning("No certificate provided on exclusive_message - ignoring")
+            return None
+
         try:
             domaines = enveloppe.get_domaines
         except ExtensionNotFound:
@@ -96,53 +103,29 @@ class MgbusHandler(MgbusHandlerInterface):
 
         self.__logger.info("on_exclusive_message Ignoring unknown action %s" % action)
 
+        return None
+
     async def on_application_message(self, message: MessageWrapper):
         # Authorization check
-        enveloppe = message.certificat
-        try:
-            delegation_globale = enveloppe.get_delegation_globale
-        except ExtensionNotFound:
-            delegation_globale = None
-
         action = message.routage['action']
-
-        if delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
-            if action == ConstantesInstance.COMMANDE_APPLICATION_INSTALLER:
-                return await self.__manager.install_application(message)
-            elif action == ConstantesInstance.COMMANDE_APPLICATION_UPGRADE:
-                return await self.__manager.upgrade_application(message)
-            elif action == ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER:
-                return await self.__manager.remove_application(message)
-            elif action == ConstantesInstance.COMMANDE_APPLICATION_DEMARRER:
-                return await self.__manager.start_application(message)
-            elif action == ConstantesInstance.COMMANDE_APPLICATION_ARRETER:
-                return await self.__manager.stop_application(message)
-
         self.__logger.info("on_application_message Ignoring unknown action %s" % action)
 
     async def on_request_message(self, message: MessageWrapper):
         # Authorization check
         enveloppe = message.certificat
         try:
-            exchanges = enveloppe.get_exchanges
-        except ExtensionNotFound:
-            exchanges = list()
-        try:
             delegation_globale = enveloppe.get_delegation_globale
         except ExtensionNotFound:
             delegation_globale = None
 
         action = message.routage['action']
-        if Constantes.SECURITE_PROTEGE in exchanges:
-            if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
-                return await self.__manager.send_application_packages()
-        elif delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
-            if action == ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES:
-                return await self.__manager.send_application_packages()
-            elif action == ConstantesInstance.REQUETE_GET_PASSWORDS:
+        if delegation_globale == Constantes.DELEGATION_GLOBALE_PROPRIETAIRE:
+            if action == ConstantesInstance.REQUETE_GET_PASSWORDS:
                 return await self.__manager.get_instance_passwords(message)
 
         self.__logger.info("on_request_message Ignoring unknown action %s" % action)
+
+        return None
 
 
 def create_exclusive_q_channel(context: MilleGrillesBusContext,

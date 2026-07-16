@@ -1,15 +1,12 @@
 import asyncio
 import json
-import os
 import urllib.parse
-
-import pathlib
 
 import aiohttp
 import logging
 
 from aiohttp.client_exceptions import ClientConnectorError
-from os import path, makedirs
+from os import path
 from typing import Optional, Union
 
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
@@ -26,13 +23,10 @@ class NginxHandler:
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context: InstanceContext = context
 
-        self.__url_nginx = 'https://127.0.0.1:443'
-        self.__url_nginx_sslclient = 'https://127.0.0.1:444'
+        self.__url_nginx = 'https://localhost:443'
+        self.__url_nginx_sslclient = 'https://localhost:444'
 
         self.__repertoire_configuration_pret = False
-
-    async def setup(self):
-        await self.preparer_nginx()
 
     def __ssl_session(self, timeout: Optional[aiohttp.ClientTimeout] = None):
         return self.__context.ssl_session(timeout)
@@ -47,8 +41,6 @@ class NginxHandler:
     async def __maintenance(self):
         while self.__context.stopping is False:
             try:
-                # await self.__verifier_certificat_web()
-                # await self.__verifier_tor()
                 await self.__load_fiche()
             except asyncio.CancelledError as e:
                 raise e
@@ -86,9 +78,7 @@ class NginxHandler:
 
                 fiche_contenu = reponse_fiche.contenu
                 self.__logger.debug("Fiche chargee via requete : %s" % fiche_contenu)
-                path_nginx = self.__context.configuration.path_nginx
-                path_fiche_json = urllib.parse.urljoin(path_nginx, 'html', 'fiche.json')
-                self.sauvegarder_fichier_data(path_fiche_json, fiche_contenu)
+                await asyncio.to_thread(self.sauvegarder_fichier_data, 'fiche.json', fiche_contenu)
             else:
                 self.__logger.warning("Error accessing fiche.json via https, response code %d" % reponse.status)
         except ValueNotAvailable:
@@ -96,25 +86,8 @@ class NginxHandler:
         except ClientConnectorError:
             self.__logger.exception("While loading fichier.json, nginx is unavailable")
 
-    async def preparer_nginx(self):
-        raise NotImplementedError("TODO")
-        # self.__logger.info("Preparer nginx")
-
-        # S'assurer que l'instance nginxinstall est supprimee
-        # await nginx_installation_cleanup(self.__docker_handler)
-        # configuration_modifiee = await asyncio.to_thread(self.verifier_repertoire_configuration)
-        # self.__entretien_initial_complete = True
-        # self.__logger.info("Configuration nginx prete (configuration modifiee? %s)" % configuration_modifiee)
-
-        # if configuration_modifiee is True:
-        #     await self.__context.reload_wait()
-
-    def sauvegarder_fichier_data(self, path_fichier: str, contenu: Union[str, bytes, dict], path_html=False):
-        path_nginx = self.__context.configuration.path_nginx
-        if path_html is True:
-            path_nginx_fichier = path.join(path_nginx, 'html', path_fichier)
-        else:
-            path_nginx_fichier = path.join(path_nginx, 'data', path_fichier)
+    def sauvegarder_fichier_data(self, path_fichier: str, contenu: Union[str, bytes, dict]):
+        path_nginx_fichier = self.__context.configuration.path_millegrilles / "var/nginx/html" / path_fichier
 
         if isinstance(contenu, str):
             contenu = contenu.encode('utf-8')

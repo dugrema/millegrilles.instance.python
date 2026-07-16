@@ -33,11 +33,3 @@ class MgbusHandlerInterface:
     async def unregister(self):
         raise NotImplementedError('must implement')
 
-
-class GenerateurCertificatsInterface:
-
-    def __init__(self):
-        pass
-
-    async def demander_signature(self, nom_module: str, params: Optional[dict] = None, timeout=45):
-        raise NotImplementedError('must implement')

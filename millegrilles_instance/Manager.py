@@ -1,8 +1,5 @@
 import asyncio
-import docker
-import json
 import logging
-import lzma
 import pathlib
 
 from asyncio import TaskGroup
@@ -15,7 +12,6 @@ from millegrilles_instance.NginxHandler import NginxHandler
 from millegrilles_instance.apps.AppManager import AppManager
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages import Constantes
-from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
 from millegrilles_messages.messages.EnveloppeCertificat import CertificatExpire
 from millegrilles_messages.messages.MessagesModule import MessageWrapper
@@ -36,11 +32,6 @@ class InstanceManager:
         self.__runlevel_changed = asyncio.Event()
         self.__loop = asyncio.get_event_loop()
         self.__reload_configuration = asyncio.Event()
-
-
-        # self.__reload_configuration = threading.Event()
-
-        # self.__runlevel = CONST_RUNLEVEL_INIT
         self.__runlevel_changed = asyncio.Event()
 
         self.__loop = asyncio.get_event_loop()
@@ -76,7 +67,6 @@ class InstanceManager:
 
     async def __change_runlevel(self, level: int):
         self.__context.runlevel = level
-        # self.__runlevel = level
         self.__runlevel_changed.set()
 
     async def __runlevel_thread(self):
@@ -92,7 +82,7 @@ class InstanceManager:
                         await self.__stop_normal_operation()
 
                     if runlevel == InstanceContext.CONST_RUNLEVEL_EXPIRED:
-                        await self.__start_runlevel_expired()
+                        raise Exception("Manager certificate is expired")
                     elif runlevel == InstanceContext.CONST_RUNLEVEL_LOCAL:
                         await self.__start_runlevel_local()
                     elif runlevel == InstanceContext.CONST_RUNLEVEL_NORMAL:
@@ -109,12 +99,10 @@ class InstanceManager:
             await self.__runlevel_changed.wait()
 
     def callback_changement_configuration(self):
-        # self.__reload_configuration.set()
         self.__loop.call_soon_threadsafe(self.__reload_configuration.set)
 
     async def __reload_configuration_thread(self):
         while self.context.stopping is False:
-            # await asyncio.to_thread(self.__reload_configuration.wait)
             await self.__reload_configuration.wait()
             if self.context.stopping:
                 return  # Exit condition
@@ -138,28 +126,11 @@ class InstanceManager:
         Initial preparation of folders and files for a new system. Idempotent.
         Reloads the context configuration.
         """
-        configuration: ConfigurationInstance = self.__context.configuration
-        self.__logger.info("Prepare folders and files under %s" % configuration.path_millegrilles)
-        # await asyncio.to_thread(makedirs, configuration.path_secrets, 0o700, exist_ok=True)
-        # await asyncio.to_thread(makedirs, configuration.path_secrets_partages, 0o700, exist_ok=True)
-        await self.__prepare_folder_configuration()
-        # await self.__prepare_self_signed_web_certificates()
-
         # Initial load of the configuration
         try:
             await asyncio.to_thread(self.context.reload)
         except CertificatExpire:
             self.__logger.warning("__prepare_configuration Certificate is expired - context only partially loaded")
-
-    async def __prepare_folder_configuration(self):
-        configuration: ConfigurationInstance = self.__context.configuration
-        # await asyncio.to_thread(makedirs, configuration.path_configuration, 0o700, exist_ok=True)
-
-        # instance_id is now managed in config.env via install_v2.sh
-
-    # async def __prepare_self_signed_web_certificates(self):
-    #     configuration: ConfigurationInstance = self.__context.configuration
-    #     await asyncio.to_thread(preparer_certificats_web, str(configuration.path_secrets))
 
     async def __load_application_list(self):
         try:
@@ -179,64 +150,26 @@ class InstanceManager:
                 expired = None  # No valid certificate
 
         if expired:
-            self.__logger.info("Recovery mode with docker")
-            if securite in [Constantes.SECURITE_PROTEGE, Constantes.SECURITE_SECURE]:
-                raise Exception("Unsupported state - expired manager certificate for Protected/Secure node")
-                # self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_SECURE_EXPIRE
-            # else:
-            #     self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_CERTIFICAT_EXPIRE
-            await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_EXPIRED)
+            raise Exception("Unsupported state - expired manager certificate for Protected/Secure node")
         else:
-            # Normal operation mode with docker
             if securite == Constantes.SECURITE_PUBLIC:
-                self.__logger.info("Docker mode 1.public")
-                # self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_PUBLICS
+                self.__logger.info("Mode 1.public")
             elif securite == Constantes.SECURITE_PRIVE:
-                self.__logger.info("Docker mode 2.prive")
-                # self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_PRIVES
+                self.__logger.info("Mode 2.prive")
             elif securite == Constantes.SECURITE_PROTEGE:
-                self.__logger.info("Docker mode 3.protege")
-                # self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_PROTEGES
+                self.__logger.info("Mode 3.protege")
             elif securite == Constantes.SECURITE_SECURE:
-                self.__logger.info("Docker mode 4.secure")
-                # self.__context.application_status.required_modules = ModulesRequisInstance.CONFIG_MODULES_SECURES
+                self.__logger.info("Mode 4.secure")
             else:
                 raise ValueError('Unsupported security mode: %s' % securite)
 
             # Change runlevel to local. This will run through the process to make system operational.
             await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_LOCAL)
 
-        # for disabled_module in disabled_modules:
-        #     try:
-        #         self.__context.application_status.required_modules.modules.remove(disabled_module)
-        #     except ValueError:
-        #         pass  # List not loaded yet
-
-        # if current_runlevel != InstanceContext.CONST_RUNLEVEL_INIT:
-        #     # Trigger application maintenance
-        #     await self.__gestionnaire_applications.callback_changement_applications()
-
         pass
-
-    async def __start_runlevel_expired(self):
-        self.__logger.info("Starting runlevel EXPIRED")
-
-        # Read current application status
-        # await self.__gestionnaire_applications.update_application_status()
-
-        # self.__context.initial_application_configuration_update.set()  # Release app update thread
-        # await self.__gestionnaire_applications.callback_changement_applications()
-        # await wait_for_application(self.__context, 'nginx')
-        self.__logger.info("Ready for recovery\nGo to https://%s or https://%s using a web browser to begin." % (self.__context.hostname, self.__context.ip_address))
 
     async def __start_runlevel_local(self):
         self.__logger.info("Starting runlevel LOCAL")
-
-        # Read current application status
-        # await self.__gestionnaire_applications.update_application_status()
-
-        # 1. Wait for app certificates/passwords to be updated
-        await self.__app_manager.wait_initial_refresh_done()
 
         # 2. Refresh nginx configuration
         await self.__nginx_handler.refresh_configuration(
@@ -246,27 +179,7 @@ class InstanceManager:
         await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_NORMAL)
 
     async def __start_runlevel_normal(self):
-        securite = self.__context.securite
-
         self.__logger.info("Starting runlevel NORMAL")
-
-        if securite == Constantes.SECURITE_PROTEGE:
-            # Ensure middleware is running (nginx, mq, mongo, redis, midcompte)
-            # await self.__gestionnaire_applications.callback_changement_applications()
-
-            # Note - only wait on the 3.protege instance because it is the one with the bus. This avoids connection errors.
-            # All other server instances should connect as soons as possible.
-            # Check that MQ and midcompte are running. Mongo is optional but is done before midcompte when required.
-            # await wait_for_application(self.__context, 'nginx')
-            # await wait_for_application(self.__context, 'mq')
-            # await wait_for_application(self.__context, 'midcompte')
-
-            # Restart nginx to ensure configuration is ready for creating bus account
-            # await self.__docker_handler.redemarrer_nginx('Midcompte ready - ensure configuration is updated')
-            self.__logger.info("Reload nginx configuration")
-            await self.__app_manager.reload_nginx()
-
-            await self.__context.wait(3)
 
         # Connect to mgbus (MQ)
         if self.__context.validateur_message is None:
@@ -287,8 +200,6 @@ class InstanceManager:
                 try:
                     # await self.__docker_handler.emettre_presence(timeout=20)  # Wait 20 secs max for connection to mqbus
                     await self.request_fiche_json()
-                    if securite == Constantes.SECURITE_PROTEGE:
-                        await self.send_application_packages()
                     break
                 except asyncio.TimeoutError:
                     await self.context.wait(5)
@@ -304,27 +215,12 @@ class InstanceManager:
 
     async def update_fiche_publique(self, message: MessageWrapper):
         contenu = message.contenu
-        await asyncio.to_thread(self.__nginx_handler.sauvegarder_fichier_data, 'fiche.json', contenu, True)
-
-    async def send_application_packages(self):
-        self.__logger.info("Transmettre catalogues")
-        path_catalogues = self.context.configuration.path_catalogues
-        producer = await asyncio.wait_for(self.__context.get_producer(), 3)
-        for f in path_catalogues.iterdir():
-            if f.is_file() and f.name.endswith('.json.xz'):
-                with lzma.open(f, 'rt') as fichier:
-                    app_transaction = json.load(fichier)
-                commande = {"catalogue": app_transaction}
-                await producer.command(commande,
-                                       domain=Constantes.DOMAINE_CORE_CATALOGUES,
-                                       action='catalogueApplication',
-                                       exchange=Constantes.SECURITE_PROTEGE,
-                                       nowait=True)
-
-        return {'ok': True}
+        await asyncio.to_thread(self.__nginx_handler.sauvegarder_fichier_data, 'fiche.json', contenu)
 
     async def get_instance_passwords(self, message: MessageWrapper):
         enveloppe = message.certificat
+        if enveloppe is None:
+            raise ValueError("Certificate has not been initialized")
 
         try:
             delegation_globale = enveloppe.get_delegation_globale
@@ -334,7 +230,7 @@ class InstanceManager:
         if delegation_globale != 'proprietaire':
             return {"ok": False, "err": "Access denied"}
 
-        path_secrets = pathlib.Path(self.__context.configuration.path_secrets)
+        path_secrets = self.__context.configuration.path_millegrilles / "secrets"
         secrets = dict()
         for file in path_secrets.iterdir():
             if file.is_file() and file.name.startswith('passwd'):
@@ -355,47 +251,4 @@ class InstanceManager:
                                                 'ficheMillegrille',
                                                 exchange=Constantes.SECURITE_PUBLIC)
         contenu = fiche_response.contenu
-        await asyncio.to_thread(self.__nginx_handler.sauvegarder_fichier_data, 'fiche.json', contenu, True)
-
-    async def install_application(self, message: MessageWrapper):
-        raise NotImplementedError("TODO")
-        # configuration = message.parsed['configuration']
-        # app_status = ServiceStatus(configuration)
-        # return await self.__gestionnaire_applications.installer_application(app_status, command=message)
-
-    async def upgrade_application(self, message: MessageWrapper):
-        raise NotImplementedError("TODO")
-        # configuration = message.parsed['configuration']
-        # return await self.__gestionnaire_applications.upgrade_application(configuration, command=message)
-
-    async def remove_application(self, message: MessageWrapper):
-        raise NotImplementedError("TODO")
-        # nom_application = message.parsed['nom_application']
-        # return await self.__gestionnaire_applications.supprimer_application(nom_application)
-
-    async def start_application(self, message: MessageWrapper):
-        raise NotImplementedError("TODO")
-        # nom_application = message.parsed['nom_application']
-        # return await self.__gestionnaire_applications.demarrer_application(nom_application)
-
-    async def stop_application(self, message: MessageWrapper):
-        raise NotImplementedError("TODO")
-        # nom_application = message.parsed['nom_application']
-        # return await self.__gestionnaire_applications.arreter_application(nom_application)
-
-
-
-
-async def wait_for_application(context: InstanceContext, app_name: str):
-    raise NotImplementedError("TODO")
-    # while context.stopping is False:
-    #     app = context.application_status.apps.get(app_name)
-    #     try:
-    #         if app['status']['running'] is True:
-    #             break
-    #         elif app['status']['disabled'] is True:
-    #             break  # Not applicable
-    #     except (TypeError, KeyError):
-    #         pass
-    #     LOGGER.info("Waiting for application %s" % app_name)
-    #     await context.wait(5)
+        await asyncio.to_thread(self.__nginx_handler.sauvegarder_fichier_data, 'fiche.json', contenu)

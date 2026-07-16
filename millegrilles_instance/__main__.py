@@ -16,7 +16,6 @@ from millegrilles_instance.NginxHandler import NginxHandler
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.Manager import InstanceManager
-from millegrilles_instance.WebServer import WebServer
 from millegrilles_instance.MgbusHandler import MgbusHandler
 
 LOGGER = logging.getLogger(__name__)
@@ -78,12 +77,10 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     context.add_reload_listener(manager.callback_changement_configuration)
 
     # Access modules
-    web_server = WebServer(manager)
     bus_handler = MgbusHandler(manager)
 
     # Setup / injecting dependencies
     await manager.setup(bus_handler)
-    await web_server.setup()
     # await nginx_handler.setup()
 
     # Create tasks
@@ -92,7 +89,6 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
         system_status.run(),
         app_manager.run(),
         manager.run(),
-        web_server.run(),
         bus_handler.run(),
         nginx_handler.run(),
     ]

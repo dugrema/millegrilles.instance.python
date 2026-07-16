@@ -4,7 +4,6 @@ import logging
 import os
 import pathlib
 
-from typing import Optional
 from urllib.parse import urlparse
 
 from millegrilles_instance import Constantes as ContantesInstance
