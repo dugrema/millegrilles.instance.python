@@ -2,6 +2,7 @@
 Description=Manager pour instance MilleGrilles {{INSTANCE_NAME}}.
 # Requires=docker.service
 Wants={{INSTANCE_NAME}}-certissuer.service
+Wants={{INSTANCE_NAME}}-middleware.service
 
 [Service]
 Type=simple
