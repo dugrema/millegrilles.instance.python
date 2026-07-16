@@ -1,6 +1,8 @@
 #!/bin/bash
 set -e
 
+# Generate a set of CA/leaf self-signed certificates using RSA.
+
 # Function to print error and exit
 error_exit() {
     echo "Error: $1" >&2

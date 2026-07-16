@@ -22,7 +22,7 @@ services:
           memory: 150M
       restart_policy:
         condition: on-failure
-        delay: 5s
+        delay: 20s
         max_attempts: 1000
     configs:
       - source: mgca

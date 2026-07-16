@@ -6,7 +6,6 @@ from datetime import timedelta
 
 from millegrilles_messages.certificats.Generes import CleCsrGenere, TypeGenere, ajouter_exchanges, ajouter_roles
 from millegrilles_messages.messages.CleCertificat import CleCertificat
-from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages import Constantes
 from cryptography.x509.base import CertificateBuilder
 

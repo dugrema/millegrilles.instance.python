@@ -31,14 +31,12 @@ else
   echo "[WARN] ${REP_ETC}/daemon.json not found, skipping."
 fi
 
+echo "[INFO] Adding user to docker group"
+sudo usermod -aG docker "$SUDO_USER"
+
 echo "[INFO] Enabling and restarting Docker..."
 systemctl enable docker
 systemctl restart docker
 
-# 3. Configure rsyslog if required (Optional, currently commented out in installer)
-# echo "[INFO] Configuring rsyslog..."
-# cp "${REP_ETC}/01-millegrilles.conf" /etc/rsyslog.d/ || true
-# systemctl restart rsyslog
-
-echo "[OK] System setup complete. Please ensure your user is in the 'docker' group."
-echo "[INFO] Run 'sudo usermod -aG docker \$USER' and log out/in to use docker without sudo."
+echo "[OK] System setup complete."
+echo "[INFO] Your user has been added to the 'docker' group, you may have to log out/in to use docker without sudo."

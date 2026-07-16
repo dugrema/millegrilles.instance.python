@@ -1,4 +1,7 @@
 #!/bin/env bash
+
+# Sets-up the signing certificate for a millegrille.
+
 set -ex
 set -euo pipefail
 
@@ -15,14 +18,21 @@ if [ -z "${INSTANCE_NAME:-}" ]; then
 fi
 
 usage() {
-  echo "Usage: $0 --password <password>"
+  echo "Usage: $0 [--capath <path>] --password <password>"
   exit 1
 }
+
+# Define paths
+SIGNING_CA_DIR="${MILLEGRILLES_ROOT}/secrets/certissuer"
+SIGNING_CA_CERT="${SIGNING_CA_DIR}/cert.pem"
+SIGNING_CA_KEY="${SIGNING_CA_DIR}/key.pem"
+ROOT_CA="${SIGNING_CA_DIR}/ca.pem"
 
 # Parse arguments
 PASSWORD=""
 while [[ "$#" -gt 0 ]]; do
   case $1 in
+    --capath) ROOT_CA="$2"; shift ;;
     --password) PASSWORD="$2"; shift ;;
     *) usage ;;
   esac
@@ -31,12 +41,6 @@ done
 
 # Get INSTANCE_ID or default
 INSTANCE_ID="${INSTANCE_ID:-$(uuidgen 2>/dev/null || echo "default-id")}"
-
-# Define paths
-SIGNING_CA_DIR="${MILLEGRILLES_ROOT}/secrets/certissuer"
-ROOT_CA="${SIGNING_CA_DIR}/ca.pem"
-SIGNING_CA_CERT="${SIGNING_CA_DIR}/cert.pem"
-SIGNING_CA_KEY="${SIGNING_CA_DIR}/key.pem"
 
 # Check if Root CA exists
 if [ ! -f "$ROOT_CA" ]; then

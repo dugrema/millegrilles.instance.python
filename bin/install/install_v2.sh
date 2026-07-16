@@ -6,7 +6,7 @@ set -euo pipefail
 # It avoids creating system users/groups and minimizes sudo requirements.
 # ==============================================================================
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="${REPO_ROOT}" || "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 export REP_ETC="${REPO_ROOT}/etc"
 export REP_BIN="${REPO_ROOT}/bin"
 
@@ -15,6 +15,9 @@ INSTANCE_NAME="$(hostname -s)"
 INSTANCE_DOMAIN="$(hostname -f)"
 MILLEGRILLES_ROOT="${HOME}/.local/${INSTANCE_NAME}"
 TYPE="protege"
+
+# Check if all apt packages are installed and docker is available to the user
+"${REPO_ROOT}/bin/install/env_check.sh"
 
 # Parse arguments
 usage() {
@@ -154,7 +157,7 @@ install_web_files() {
   cp -vr "$REPO_ROOT/etc/nginx/html" "$REP_NGINX/"
 
   # Generate self-signed certificates
-  bin/generate_selfsigned.sh "${MILLEGRILLES_ROOT}/secrets"
+  bin/x509/web_selfsigned.sh "${MILLEGRILLES_ROOT}/secrets"
 
   echo "[OK] Fichier web copie"
 }
@@ -227,13 +230,13 @@ install_protege_instance() {
   # Generate a random password for the root CA
   local password
   password=$(openssl rand -base64 32)
-  ./bin/ca_new.sh $password
+  ./bin/x509/ca_new.sh $password
 
   echo "[INFO] Generating Signing CA..."
-  ./bin/ca_signing.sh --password "$password"
+  ./bin/x509/ca_signing.sh --password "$password"
 
   echo "[INFO] Generating Node Certificate..."
-  "${PATH_VENV}/bin/python3" bin/ca_protege.py \
+  "${PATH_VENV}/bin/python3" bin/x509/ca_protege.py \
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
     --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem"
 
@@ -253,7 +256,7 @@ install_protege_instance() {
   set +a
 
   echo "[INFO] Preparing node systemd configuration files for protege"
-  ./bin/setup_systemd_protege.sh "${MILLEGRILLES_ROOT}/config.env"
+  ./bin/install/setup_systemd_protege.sh "${MILLEGRILLES_ROOT}/config.env"
 
   echo "[INFO] Download and start certissuer"
   systemctl --user daemon-reload

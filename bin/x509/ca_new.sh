@@ -1,4 +1,6 @@
 #!/bin/env bash
+# Creates a new MilleGrille certificate (CA)
+
 set -euo pipefail
 
 # Ensure MILLEGRILLES_ROOT is set
