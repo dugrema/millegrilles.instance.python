@@ -326,6 +326,12 @@ install_protege_instance() {
   echo "!! The PASSWORD is ONLY shown here !!"
   echo "Both the password and CA file are required for future operations (restoring backups, system updates, deploying secure nodes, etc)."
   echo "To increase security, store the ca.pem file and the password separately."
+  echo
+  echo "[INFO] Server url: https://${INSTANCE_DOMAIN}."
+  echo "[INFO] https://localhost will also work properly on this machine"
+  echo "[INFO] If you don't plan to use a web certificate authority like Let's Encrypt,"
+  echo "       import the following file as a new website CA certificate in your browser:"
+  echo "       ${MILLEGRILLES_ROOT}/secrets/webcass.pem"
 }
 
 # ------------------------------------------------------------------------------
