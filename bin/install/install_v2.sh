@@ -331,7 +331,7 @@ install_protege_instance() {
   echo "[INFO] https://localhost will also work properly on this machine"
   echo "[INFO] If you don't plan to use a web certificate authority like Let's Encrypt,"
   echo "       import the following file as a new website CA certificate in your browser:"
-  echo "       ${MILLEGRILLES_ROOT}/secrets/webcass.pem"
+  echo "       ${MILLEGRILLES_ROOT}/secrets/webcass.cert.pem"
 }
 
 # ------------------------------------------------------------------------------
