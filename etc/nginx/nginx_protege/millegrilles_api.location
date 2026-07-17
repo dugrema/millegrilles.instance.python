@@ -41,7 +41,6 @@ location /millegrilles/locales/ {
 
 location /millegrilles/assets/ {
   root /usr/share/nginx/html/applications;
-  try_files $uri =404;
   expires 1y;
   access_log off;
   add_header Cache-Control "public, immutable";
@@ -51,10 +50,15 @@ location /millegrilles/assets/ {
 # Image resources
 location ~/millegrilles/.*\.(?:png|svg|jpg)$ {
   root /usr/share/nginx/html/applications;
-  try_files $uri =404;
   expires 15m;
   access_log off;
   add_header Cache-Control "public";
+}
+
+# Javascript map files are not provided
+location ~ /millegrilles/.*\.map$ {
+  access_log off;
+  return 404;
 }
 
 # Application React - s'occupe de l'authentification (non protege)

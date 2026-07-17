@@ -304,9 +304,9 @@ install_protege_instance() {
   echo "[INFO] Installing web applications"
   # Install webapps
   "${MILLEGRILLES_ROOT}/bin/install/install_webapp.sh" \
-    https://docker.maple.maceroc.com/archives/authentication/millegrilles_authentication_typescript.2026.1.8.tar.gz \
+    https://docker.maple.maceroc.com/archives/authentication/millegrilles_authentication_typescript.2026.3.10.tar.gz \
     "${MILLEGRILLES_ROOT}/var/nginx/html/applications/millegrilles" \
-    ae08ed44dfc58a0ac5ff487d6a9d9b516fa00e33c1d1ce6dcea2abedc32e7927
+    38d923371d6d5c256908e5aec036ee9ba4a5456bf30aa346cc88849ad9cf962d
   "${MILLEGRILLES_ROOT}/bin/install/install_webapp.sh" \
     https://docker.maple.maceroc.com/archives/coupdoeil/millegrilles_coupdoeil_react.2026.1.2.tar.gz \
     "${MILLEGRILLES_ROOT}/var/nginx/html/applications/coupdoeil2" \
