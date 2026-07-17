@@ -32,7 +32,14 @@ location /millegrilles/socket.io {
   include /etc/nginx/conf.d/component_base.include;
 }
 
-location /millegrilles/static/ {
+location /millegrilles/locales/ {
+  root /usr/share/nginx/html/applications;
+  add_header 'Cache-Control' 'public,max-age=120';
+  access_log off;
+  include /etc/nginx/conf.d/component_gzip.include;
+}
+
+location /millegrilles/assets/ {
   root /usr/share/nginx/html/applications;
   try_files $uri =404;
   expires 1y;
@@ -42,7 +49,7 @@ location /millegrilles/static/ {
 }
 
 # Image resources
-location ~/millegrilles/.*\.(?:png|svg)$ {
+location ~/millegrilles/.*\.(?:png|svg|jpg)$ {
   root /usr/share/nginx/html/applications;
   try_files $uri =404;
   expires 15m;
