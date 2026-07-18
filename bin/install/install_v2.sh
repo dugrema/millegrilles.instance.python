@@ -301,16 +301,15 @@ install_protege_instance() {
   systemctl --user start "${INSTANCE_NAME}-certs_updater"
   echo "[OK] Services and node manager started"
 
-  echo "[INFO] Installing web applications"
-  # Install webapps
-  "${MILLEGRILLES_ROOT}/bin/install/install_webapp.sh" \
-    https://docker.maple.maceroc.com/archives/authentication/millegrilles_authentication_typescript.2026.3.10.tar.gz \
-    "${MILLEGRILLES_ROOT}/var/nginx/html/applications/millegrilles" \
-    38d923371d6d5c256908e5aec036ee9ba4a5456bf30aa346cc88849ad9cf962d
-  "${MILLEGRILLES_ROOT}/bin/install/install_webapp.sh" \
-    https://docker.maple.maceroc.com/archives/coupdoeil/millegrilles_coupdoeil_react.2026.1.2.tar.gz \
-    "${MILLEGRILLES_ROOT}/var/nginx/html/applications/coupdoeil2" \
-    38772acdd46c280bde6496f346c07dd2846215b6d7577c3d165ce46e9d90ce45
+  echo "[INFO] Installing web applications from catalogue"
+  "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install \
+    --name authentication \
+    --catalogue_url "${REPO_ROOT}/etc/catalogue/applicationCatalogue.json" \
+    --root "${MILLEGRILLES_ROOT}"
+  "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install \
+    --name coupdoeil \
+    --catalogue_url "${REPO_ROOT}/etc/catalogue/applicationCatalogue.json" \
+    --root "${MILLEGRILLES_ROOT}"
 
   echo "[OK] Protege installation complete, IDMG=${IDMG}."
   echo

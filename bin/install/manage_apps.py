@@ -62,10 +62,7 @@ class AppManager:
         with open(self.installed_apps_file, 'w') as f:
             json.dump(apps, f, indent=2)
 
-    def install_from_package(self, pkg_url, expected_hash, root_path):
-        root = os.path.abspath(root_path)
-        manager = AppManager(root)
-
+    def install_from_package(self, pkg_url, expected_hash):
         with tempfile.TemporaryDirectory() as tmp_dir:
             pkg_path = os.path.join(tmp_dir, "package.tar.gz")
             print(f"Downloading {pkg_url}...")
@@ -82,7 +79,7 @@ class AppManager:
             os.makedirs(extract_dir, exist_ok=True)
             print("Extracting package...")
             run_command(f"tar -xzf {pkg_path} -C {extract_dir} --strip-components=1")
-
+ 
             # 1. Read metadata.json
             metadata_file = os.path.join(extract_dir, "metadata.json")
             if not os.path.exists(metadata_file):
@@ -96,45 +93,46 @@ class AppManager:
             version = metadata['version']
             app_path = metadata['path']
             labels = metadata.get('labels', {})
-
+            
             print(f"Installing {name} (version: {version}, path: {app_path})...")
-
+ 
             # 2. Handle Nginx Config
             nginx_conf = os.path.join(extract_dir, "nginx.conf")
             if os.path.exists(nginx_conf):
-                dest_nginx_conf = os.path.join(manager.nginx_apps_dir, f"{name}.conf")
+                dest_nginx_conf = os.path.join(self.nginx_apps_dir, f"{name}.conf")
                 print(f"Configuring Nginx: {dest_nginx_conf}")
                 run_command(f"cp {nginx_conf} {dest_nginx_conf}")
-
+ 
             # 3. Handle Docker Compose
             docker_compose = os.path.join(extract_dir, "docker-compose.yml")
             if os.path.exists(docker_compose):
-                dest_docker_compose = os.path.join(manager.compose_apps_dir, f"{name}.yml")
+                dest_docker_compose = os.path.join(self.compose_apps_dir, f"{name}.yml")
                 print(f"Configuring Docker Compose: {dest_docker_compose}")
                 run_command(f"cp {docker_compose} {dest_docker_compose}")
-
+ 
             # 4. Handle Application Files
             app_files_dir = os.path.join(extract_dir, "files")
             if os.path.exists(app_files_dir):
-                dest_html_dir = os.path.join(manager.html_apps_dir, app_path)
+                dest_html_dir = os.path.join(self.html_apps_dir, app_path)
                 print(f"Deploying application files to {dest_html_dir}...")
                 if os.path.exists(dest_html_dir):
                     run_command(f"rm -rf {dest_html_dir}")
                 os.makedirs(dest_html_dir, exist_ok=True)
                 run_command(f"cp -r {app_files_dir}/. {dest_html_dir}/")
-
+ 
             # 5. Update local catalogue
-            installed_apps = manager.get_installed_apps()
+            installed_apps = self.get_installed_apps()
             installed_apps[name] = {
                 "labels": labels,
                 "version": version,
                 "url": f"/applications/{app_path}"
             }
-            manager.save_installed_apps(installed_apps)
-
+            self.save_installed_apps(installed_apps)
+ 
             # 6. Restart Nginx
-            restart_nginx(root)
+            restart_nginx(self.root)
             print("Installation complete.")
+
 
     def uninstall(self, name, root_path):
         root = os.path.abspath(root_path)
@@ -179,7 +177,7 @@ class AppManager:
 
     def list_available(self, catalogue_url=None):
         if not catalogue_url:
-            catalogue_url = "https://localhost/catalogue/stable.json"
+            catalogue_url = "https://libs.millegrilles.com/archives/stable.json"
         print(f"Fetching available applications from {catalogue_url}...")
         catalogue = self.fetch_json(catalogue_url)
         
@@ -256,9 +254,9 @@ def main():
                 print(f"Error: Version mismatch. Requested: {args.version}, Catalogue has: {app_data.get('version')}")
                 sys.exit(1)
             
-            manager.install_from_package(app_data['url'], app_data.get('sha256'), root)
+            manager.install_from_package(app_data['url'], app_data.get('sha256'))
         else:
-            manager.install_from_package(args.url, args.hash, root)
+            manager.install_from_package(args.url, args.hash)
 
     elif args.command == "uninstall":
         manager.uninstall(args.name, args.root)

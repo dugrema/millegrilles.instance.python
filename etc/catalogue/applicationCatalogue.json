@@ -1,0 +1,18 @@
+{
+  "authentication": {
+    "labels": {
+      "en": "Authentication"
+    },
+    "version": "2026.3.10",
+    "url": "https://libs.millegrilles.com/archives/authentication/millegrilles_authentication_typescript.2026.3.10.tar.gz",
+    "sha256": "38d923371d6d5c256908e5aec036ee9ba4a5456bf30aa346cc88849ad9cf962d"
+  },
+  "coupdoeil": {
+    "labels": {
+      "en": "Coup d'oeil"
+    },
+    "version": "2026.1.2",
+    "url": "https://libs.millegrilles.com/archives/coupdoeil/millegrilles_coupdoeil_react.2026.1.2.tar.gz",
+    "sha256": "38772acdd46c280bde6496f346c07dd2846215b6d7577c3d165ce46e9d90ce45"
+  }
+}
