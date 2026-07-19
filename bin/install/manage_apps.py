@@ -1,7 +1,9 @@
 import argparse
+import hashlib
 import json
 import os
 import pathlib
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -21,6 +23,36 @@ def run_command(command, env=None):
         print(f"Stdout: {e.stdout}")
         print(f"Stderr: {e.stderr}")
         sys.exit(1)
+
+def download_file(url: str, dest_path: pathlib.Path):
+    """Downloads a file from a URL to the specified destination."""
+    try:
+        with urllib.request.urlopen(url) as response, open(dest_path, 'wb') as out_file:
+            shutil.copyfileobj(response, out_file)
+    except Exception as e:
+        print(f"Error downloading {url}: {e}")
+        sys.exit(1)
+
+def calculate_sha256(file_path: pathlib.Path) -> str:
+    """Calculates the SHA256 hash of a file."""
+    sha256_hash = hashlib.sha256()
+    with open(file_path, "rb") as f:
+        for byte_block in iter(lambda: f.read(4096), b""):
+            sha256_hash.update(byte_block)
+    return sha256_hash.hexdigest()
+
+def copy_file(src: pathlib.Path, dest: pathlib.Path):
+    """Copies a file from src to dest, preserving metadata."""
+    shutil.copy2(src, dest)
+
+def copy_dir(src: pathlib.Path, dest: pathlib.Path):
+    """Copies a directory from src to dest, including its contents."""
+    shutil.copytree(src, dest, dirs_exist_ok=True)
+
+def remove_dir(path: pathlib.Path):
+    """Removes a directory and its contents if it exists."""
+    if path.exists():
+        shutil.rmtree(path, ignore_errors=True)
 
 def reload_nginx(instance_name: str):
     print(f"Reloading {instance_name}-nginx...")
@@ -74,11 +106,11 @@ class AppManager:
         with tempfile.TemporaryDirectory() as tmp_dir:
             pkg_path = pathlib.Path(tmp_dir) / "package.tar.gz"
             print(f"Downloading {pkg_url}...")
-            run_command(f"curl -sL {pkg_url} -o {pkg_path}")
+            download_file(pkg_url, pkg_path)
             
             if expected_hash:
                 print("Verifying hash...")
-                actual_hash = run_command(f"sha256sum {pkg_path} | awk '{{print $1}}'")
+                actual_hash = calculate_sha256(pkg_path)
                 if actual_hash != expected_hash:
                     print(f"Error: Hash mismatch! Expected {expected_hash}, got {actual_hash}")
                     sys.exit(1)
@@ -87,7 +119,7 @@ class AppManager:
             os.makedirs(extract_dir, exist_ok=True)
             print("Extracting package...")
             run_command(f"tar -xf {pkg_path} -C {extract_dir} --strip-components=1")
- 
+  
             # 1. Read metadata.json
             metadata_file = extract_dir / "metadata.json"
             if not metadata_file.exists():
@@ -100,7 +132,7 @@ class AppManager:
             name = metadata['name']
             version = metadata['version']
             app_path = metadata.get('path')
-
+ 
             print(f"Installing {name} (version: {version}, path: {app_path})...")
  
             # 2. Handle Nginx Config
@@ -108,14 +140,14 @@ class AppManager:
             if nginx_conf.exists():
                 dest_nginx_conf = self.nginx_apps_conf_dir / f"{name}.conf"
                 print(f"Configuring Nginx: {dest_nginx_conf}")
-                run_command(f"cp {nginx_conf} {dest_nginx_conf}")
+                copy_file(nginx_conf, dest_nginx_conf)
  
             # 3. Handle Docker Compose
             docker_compose = extract_dir / "docker-compose.yml"
             if docker_compose.exists():
                 dest_docker_compose = self.compose_apps_dir / f"{name}.yml"
                 print(f"Configuring Docker Compose: {dest_docker_compose}")
-                run_command(f"cp {docker_compose} {dest_docker_compose}")
+                copy_file(docker_compose, dest_docker_compose)
                 # Add application file to applications.yml include list
                 app_yaml_filepath = str(dest_docker_compose.relative_to(self.compose_dir))
                 with open(self.compose_apps_yaml) as f:
@@ -126,17 +158,15 @@ class AppManager:
                     yaml_includes.append(app_yaml_filepath)
                     with open(self.compose_apps_yaml, 'w') as f:
                         yaml.safe_dump(yaml_app_file, f)
-
+ 
             # 4. Handle Application Files
             app_files_dir = extract_dir / "files"
             if app_path and app_files_dir.exists():
                 dest_html_dir = self.nginx_apps_html_dir / app_path
                 print(f"Deploying application files to {dest_html_dir}...")
-                if dest_html_dir.exists():
-                    run_command(f"rm -rf {dest_html_dir}")
-                os.makedirs(dest_html_dir, exist_ok=True)
-                run_command(f"cp -r {app_files_dir}/. {dest_html_dir}/")
-
+                remove_dir(dest_html_dir)
+                copy_dir(app_files_dir, dest_html_dir)
+ 
             # 5. Update local catalogue metadata for this app
             installed_apps = self.get_installed_apps()
             installed_apps[name] = metadata
@@ -147,8 +177,9 @@ class AppManager:
                 reload_nginx(self.instance_name)
             if docker_compose:
                 reload_compose_applications(self.instance_name)
-
+ 
             print("Installation complete.")
+
 
 
     def uninstall(self, name, root_path):
@@ -156,38 +187,39 @@ class AppManager:
         if name not in installed_apps:
             print(f"Error: Application '{name}' is not installed.")
             sys.exit(1)
-
+ 
         app_info = installed_apps[name]
         app_url = app_info['url']
         app_path = app_url.replace("/applications/", "")
-
+ 
         print(f"Uninstalling {name}...")
-
+ 
         # 1. Remove Nginx Config
         nginx_conf = self.nginx_apps_conf_dir / f"{name}.conf"
         if nginx_conf.exists():
             print(f"Removing Nginx config: {nginx_conf}")
             os.remove(nginx_conf)
-
+ 
         # 2. Remove Docker Compose
         docker_compose = self.compose_apps_dir / f"{name}.yml"
         if docker_compose.exists():
             print(f"Removing Docker Compose file: {docker_compose}")
             os.remove(docker_compose)
-
+ 
         # 3. Remove Application Files
         dest_html_dir = self.nginx_apps_html_dir / app_path
         if dest_html_dir.exists():
             print(f"Removing application files: {dest_html_dir}")
-            run_command(f"rm -rf {dest_html_dir}")
-
+            remove_dir(dest_html_dir)
+ 
         # 4. Update local catalogue
         del installed_apps[name]
         self.save_installed_apps(installed_apps)
-
+ 
         # 5. Restart Nginx
         reload_nginx()
         print("Uninstallation complete.")
+
 
     def list_available(self, catalogue_url: str):
         print(f"Fetching available applications from {catalogue_url}...")
