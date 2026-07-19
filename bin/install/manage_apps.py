@@ -60,20 +60,19 @@ class AppManager:
             sys.exit(1)
 
     def get_installed_apps(self):
-
-        if os.path.exists(self.installed_apps_file):
+        if self.installed_apps_file.exists():
             with open(self.installed_apps_file, 'r') as f:
                 return json.load(f)
         return {}
 
     def save_installed_apps(self, apps):
-        os.makedirs(os.path.dirname(self.installed_apps_file), exist_ok=True)
+        os.makedirs(self.installed_apps_file.parent, exist_ok=True)
         with open(self.installed_apps_file, 'w') as f:
             json.dump(apps, f, indent=2)
 
     def install_from_package(self, pkg_url: str, expected_hash: Optional[str]):
         with tempfile.TemporaryDirectory() as tmp_dir:
-            pkg_path = os.path.join(tmp_dir, "package.tar.gz")
+            pkg_path = pathlib.Path(tmp_dir) / "package.tar.gz"
             print(f"Downloading {pkg_url}...")
             run_command(f"curl -sL {pkg_url} -o {pkg_path}")
             
@@ -84,14 +83,14 @@ class AppManager:
                     print(f"Error: Hash mismatch! Expected {expected_hash}, got {actual_hash}")
                     sys.exit(1)
             
-            extract_dir = os.path.join(tmp_dir, "extracted")
+            extract_dir = pathlib.Path(tmp_dir) / "extracted"
             os.makedirs(extract_dir, exist_ok=True)
             print("Extracting package...")
             run_command(f"tar -xf {pkg_path} -C {extract_dir} --strip-components=1")
  
             # 1. Read metadata.json
-            metadata_file = os.path.join(extract_dir, "metadata.json")
-            if not os.path.exists(metadata_file):
+            metadata_file = extract_dir / "metadata.json"
+            if not metadata_file.exists():
                 print("Error: metadata.json not found in package.")
                 sys.exit(1)
             
@@ -105,15 +104,15 @@ class AppManager:
             print(f"Installing {name} (version: {version}, path: {app_path})...")
  
             # 2. Handle Nginx Config
-            nginx_conf = os.path.join(extract_dir, "nginx.conf")
-            if os.path.exists(nginx_conf):
-                dest_nginx_conf = os.path.join(self.nginx_apps_conf_dir, f"{name}.conf")
+            nginx_conf = extract_dir / "nginx.conf"
+            if nginx_conf.exists():
+                dest_nginx_conf = self.nginx_apps_conf_dir / f"{name}.conf"
                 print(f"Configuring Nginx: {dest_nginx_conf}")
                 run_command(f"cp {nginx_conf} {dest_nginx_conf}")
  
             # 3. Handle Docker Compose
-            docker_compose = os.path.join(extract_dir, "docker-compose.yml")
-            if os.path.exists(docker_compose):
+            docker_compose = extract_dir / "docker-compose.yml"
+            if docker_compose.exists():
                 dest_docker_compose = self.compose_apps_dir / f"{name}.yml"
                 print(f"Configuring Docker Compose: {dest_docker_compose}")
                 run_command(f"cp {docker_compose} {dest_docker_compose}")
@@ -129,11 +128,11 @@ class AppManager:
                         yaml.safe_dump(yaml_app_file, f)
 
             # 4. Handle Application Files
-            app_files_dir = os.path.join(extract_dir, "files")
-            if app_path and os.path.exists(app_files_dir):
-                dest_html_dir = os.path.join(self.nginx_apps_html_dir, app_path)
+            app_files_dir = extract_dir / "files"
+            if app_path and app_files_dir.exists():
+                dest_html_dir = self.nginx_apps_html_dir / app_path
                 print(f"Deploying application files to {dest_html_dir}...")
-                if os.path.exists(dest_html_dir):
+                if dest_html_dir.exists():
                     run_command(f"rm -rf {dest_html_dir}")
                 os.makedirs(dest_html_dir, exist_ok=True)
                 run_command(f"cp -r {app_files_dir}/. {dest_html_dir}/")
@@ -165,20 +164,20 @@ class AppManager:
         print(f"Uninstalling {name}...")
 
         # 1. Remove Nginx Config
-        nginx_conf = os.path.join(self.nginx_apps_conf_dir, f"{name}.conf")
-        if os.path.exists(nginx_conf):
+        nginx_conf = self.nginx_apps_conf_dir / f"{name}.conf"
+        if nginx_conf.exists():
             print(f"Removing Nginx config: {nginx_conf}")
             os.remove(nginx_conf)
 
         # 2. Remove Docker Compose
-        docker_compose = os.path.join(self.compose_apps_dir, f"{name}.yml")
-        if os.path.exists(docker_compose):
+        docker_compose = self.compose_apps_dir / f"{name}.yml"
+        if docker_compose.exists():
             print(f"Removing Docker Compose file: {docker_compose}")
             os.remove(docker_compose)
 
         # 3. Remove Application Files
-        dest_html_dir = os.path.join(self.nginx_apps_html_dir, app_path)
-        if os.path.exists(dest_html_dir):
+        dest_html_dir = self.nginx_apps_html_dir / app_path
+        if dest_html_dir.exists():
             print(f"Removing application files: {dest_html_dir}")
             run_command(f"rm -rf {dest_html_dir}")
 
