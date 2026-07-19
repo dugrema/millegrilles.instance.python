@@ -36,7 +36,7 @@
     "sha256": "4dc8f299cbcf0e7ec9b4f19bfcf0ccd6deba80f2aa0b1a9e195807af12a37a9a"
   },
   "mongoexpress": {
-    "version": "2026.3.1",
+    "version": "2026.3.2",
     "labels": {
       "en": "MongoExpress Client application for MongoDB",
       "fr": "Application de gestion MongoExpress pour MongoDB"
@@ -46,8 +46,8 @@
       "path": "/",
       "admin": true
     },
-    "url": "https://libs.millegrilles.com/archives/mongoexpress/mongoexpress.2026.3.1.tar.gz",
-    "sha256": "05351fe7dae2d086aee371a1fc1754f04acc675afa0e2a205079233c50743c48"
+    "url": "https://libs.millegrilles.com/archives/mongoexpress/mongoexpress.2026.3.2.tar.gz",
+    "sha256": "c4857612f937e69e02c65605d1922050cc032474f2218d8e6ec180970a3bbd99"
   },
   "mqadmin": {
     "version": "2026.3.1",
