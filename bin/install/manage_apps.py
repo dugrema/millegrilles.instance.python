@@ -103,7 +103,7 @@ class AppManager:
         with open(self.installed_apps_file, 'w') as f:
             json.dump(apps, f, indent=2)
 
-    def install_from_package(self, pkg_url: str, expected_hash: Optional[str]):
+    def install_from_package(self, pkg_url: str, expected_hash: Optional[str], noreload = False):
         with tempfile.TemporaryDirectory() as tmp_dir:
             pkg_path = pathlib.Path(tmp_dir) / "package.tar.gz"
             print(f"Downloading {pkg_url}...")
@@ -137,11 +137,14 @@ class AppManager:
             print(f"Installing {name} (version: {version}, path: {app_path})...")
  
             # 2. Handle Nginx Config
-            nginx_conf = extract_dir / "nginx.conf"
-            if nginx_conf.exists():
-                dest_nginx_conf = self.nginx_apps_conf_dir / f"{name}.conf"
-                print(f"Configuring Nginx: {dest_nginx_conf}")
-                copy_file(nginx_conf, dest_nginx_conf)
+            nginx_conf_dir = extract_dir / "nginx"
+            if nginx_conf_dir.exists():
+                for f in nginx_conf_dir.iterdir():
+                    if f.is_file():
+                        # Store with "[package name]__[config file name]", allows easy association to package for uninstallation.
+                        dest_nginx_conf = self.nginx_apps_conf_dir / f"{name}__{f.name}"
+                        print(f"Configuring Nginx, adding file: {dest_nginx_conf}")
+                        copy_file(f, dest_nginx_conf)
  
             # 3. Handle Docker Compose
             docker_compose = extract_dir / "docker-compose.yml"
@@ -172,12 +175,13 @@ class AppManager:
             installed_apps = self.get_installed_apps()
             installed_apps[name] = metadata
             self.save_installed_apps(installed_apps)
- 
-            # 6. Reload middleware
-            if app_path or nginx_conf:
-                reload_nginx(self.instance_name)
-            if docker_compose:
-                reload_compose_applications(self.instance_name)
+
+            if not noreload:
+                # 6. Reload middleware
+                if app_path or nginx_conf_dir:
+                    reload_nginx(self.instance_name)
+                if docker_compose:
+                    reload_compose_applications(self.instance_name)
  
             print("Installation complete.")
 
@@ -270,6 +274,7 @@ def main():
     install_parser.add_argument("--catalogue_url", help="Remote catalogue URL", default=DEFAULT_CATALOGUE_URL)
     install_parser.add_argument("--hash", help="SHA256 hash for verification")
     install_parser.add_argument("--root", help="MILLEGRILLES_ROOT directory")
+    install_parser.add_argument("--noreload", action="store_true", help="Do not reload the systemd services (nginx, applications)")
 
     # uninstall command
     uninstall_parser = subparsers.add_parser("uninstall")
@@ -309,9 +314,9 @@ def main():
                 print(f"Error: Version mismatch. Requested: {args.version}, Catalogue has: {app_data.get('version')}")
                 sys.exit(1)
             
-            manager.install_from_package(app_data['url'], app_data.get('sha256'))
+            manager.install_from_package(app_data['url'], app_data.get('sha256'), noreload=args.noreload)
         else:
-            manager.install_from_package(args.url, args.hash)
+            manager.install_from_package(args.url, args.hash, noreload=args.noreload)
 
     elif args.command == "uninstall":
         manager.uninstall(args.name, args.root)

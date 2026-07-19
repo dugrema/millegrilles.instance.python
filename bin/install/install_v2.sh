@@ -283,17 +283,23 @@ install_protege_instance() {
   sleep 5
   systemctl --user restart "${INSTANCE_NAME}-middleware"
   sleep 10
-  systemctl --user restart "${INSTANCE_NAME}-core"
-  systemctl --user restart "${INSTANCE_NAME}-maitredescles"
+
+  echo "[INFO] Installing applications from catalogue"
+  "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name core --noreload
+  "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name maitredescles --noreload
+  "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name authentication --noreload
+  # "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name coupdoeil --noreload
+  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/applications.yml" pull
 
   echo "[INFO] Start services and node manager "
+  systemctl --user reload "${INSTANCE_NAME}-nginx"
+  systemctl --user restart "${INSTANCE_NAME}-applications"
   systemctl --user restart "${INSTANCE_NAME}-manager"
 
   # Enable services on start, register timers
   systemctl --user enable "${INSTANCE_NAME}-nginx"
   systemctl --user enable "${INSTANCE_NAME}-middleware"
-  systemctl --user enable "${INSTANCE_NAME}-core"
-  systemctl --user enable "${INSTANCE_NAME}-maitredescles"
+  systemctl --user enable "${INSTANCE_NAME}-applications"
   systemctl --user enable "${INSTANCE_NAME}-manager"
 
   # Activate the certificate updater with timer
@@ -301,16 +307,6 @@ install_protege_instance() {
   systemctl --user enable --now "${INSTANCE_NAME}-certs_updater.service"
   systemctl --user start "${INSTANCE_NAME}-certs_updater"
   echo "[OK] Services and node manager started"
-
-  echo "[INFO] Installing web applications from catalogue"
-  "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install \
-    --name authentication \
-    --catalogue_url "${REPO_ROOT}/etc/catalogue/applicationCatalogue.json" \
-    --root "${MILLEGRILLES_ROOT}"
-  "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install \
-    --name coupdoeil \
-    --catalogue_url "${REPO_ROOT}/etc/catalogue/applicationCatalogue.json" \
-    --root "${MILLEGRILLES_ROOT}"
 
   echo "[OK] Protege installation complete, IDMG=${IDMG}."
   echo

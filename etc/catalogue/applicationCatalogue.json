@@ -4,9 +4,9 @@
       "en": "MilleGrilles Web API and Portal",
       "fr": "Portail et Web API pour MilleGrilles"
     },
-    "version": "2026.3.10",
-    "url": "https://libs.millegrilles.com/archives/authentication/millegrilles_authentication_typescript.2026.3.10.tar.gz",
-    "sha256": "38d923371d6d5c256908e5aec036ee9ba4a5456bf30aa346cc88849ad9cf962d"
+    "version": "2026.3.14",
+    "url": "https://libs.millegrilles.com/archives/authentication/millegrilles_authentication_typescript.2026.3.14.tar.gz",
+    "sha256": "9f4430ee8508b78a5ee1f010921fb5fdca577adf7df8e836d03c90ca0976b802"
   },
   "core": {
     "labels": {
