@@ -37,54 +37,27 @@ def get_metadata_from_archive(archive_path: Path) -> dict:
     except Exception as e:
         raise ValueError(f"Error reading archive: {e}")
 
-def update_catalogue(catalogue_path: Path, archive_path: Path, base_url: str):
-    """Updates the catalogue JSON with information from the archive."""
-    # 1. Extract information
-    sha256 = calculate_sha256(archive_path)
-    metadata = get_metadata_from_archive(archive_path)
-    
-    name = metadata.get("name")
-    version = metadata.get("version")
-    labels = metadata.get("labels")
-    
-    if not all([name, version, labels]):
-        raise ValueError("Metadata must contain 'name', 'version', and 'labels'")
-    
-    # 2. Construct entry
-    # Ensure base_url ends with a slash and archive name doesn't start with one
-    archive_name = archive_path.name
-    if not base_url.endswith('/'):
-        base_url += '/'
-    url = f"{base_url}{archive_name}"
-    
-    new_entry = {
-        "labels": labels,
-        "version": version,
-        "url": url,
-        "sha256": sha256
-    }
-    
-    # 3. Update catalogue
-    catalogue = {}
-    if catalogue_path.exists():
-        try:
-            with open(catalogue_path, "r") as f:
-                catalogue = json.load(f)
-        except json.JSONDecodeError:
-            print(f"Warning: {catalogue_path} is not a valid JSON file. Overwriting it.")
-    
-    catalogue[name] = new_entry
-    
-    # 4. Sort and write back
-    # Python dictionaries are ordered by insertion order since 3.7. 
-    # To sort by key, we create a new dict from sorted items.
+def delete_module(catalogue_path: Path, module_name: str):
+    """Removes a module from the catalogue."""
+    if not catalogue_path.exists():
+        raise FileNotFoundError(f"Catalogue file not found: {catalogue_path}")
+
+    with open(catalogue_path, "r") as f:
+        catalogue = json.load(f)
+
+    if module_name not in catalogue:
+        raise ValueError(f"Module '{module_name}' not found in catalogue")
+
+    del catalogue[module_name]
+
+    # Sort and write back
     sorted_catalogue = {k: catalogue[k] for k in sorted(catalogue.keys())}
-    
+
     with open(catalogue_path, "w") as f:
         json.dump(sorted_catalogue, f, indent=2)
-    
-    print(f"Successfully updated catalogue: {catalogue_path}")
-    print(f"Added/Updated entry: {name} (version {version})")
+
+    print(f"Successfully deleted module: {module_name} from {catalogue_path}")
+
 
 def main():
     parser = argparse.ArgumentParser(description="MilleGrilles Application Catalogue Manager")
@@ -95,6 +68,10 @@ def main():
     update_parser.add_argument("--archive", type=str, required=True, help="Path to the .tar.gz archive")
     update_parser.add_argument("--baseurl", type=str, required=True, help="Base URL for the archive")
 
+    delete_parser = subparsers.add_parser("delete", help="Delete a module from the application catalogue")
+    delete_parser.add_argument("catalogue_path", type=str, help="Path to the catalogue JSON file")
+    delete_parser.add_argument("--module", type=str, required=True, help="Name of the module to delete")
+
     args = parser.parse_args()
 
     if args.command == "update":
@@ -104,6 +81,15 @@ def main():
 
         try:
             update_catalogue(catalogue_path, archive_path, base_url)
+        except Exception as e:
+            print(f"Error: {e}", file=sys.stderr)
+            sys.exit(1)
+    elif args.command == "delete":
+        catalogue_path = Path(args.catalogue_path)
+        module_name = args.module
+
+        try:
+            delete_module(catalogue_path, module_name)
         except Exception as e:
             print(f"Error: {e}", file=sys.stderr)
             sys.exit(1)
