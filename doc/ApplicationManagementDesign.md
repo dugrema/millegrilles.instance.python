@@ -33,8 +33,9 @@ Used to register the application in the local catalogue and provide human-readab
   },
   "path": "app_path",
   "portal": {
-    "path": "https://a_custom.url/with/a/path",
+    "path": "/path/to/app",
     "port": 8000,
+    "url": "https://a_custom.url:1234/with/a/path",
     "admin": false
   }
 }
@@ -44,8 +45,9 @@ Used to register the application in the local catalogue and provide human-readab
 - `labels`: A dictionary of localized names to display for this application.
 - `path`: Optional - The relative subdirectory name used under `${MILLEGRILLES_ROOT}/var/nginx/html/applications/`, required only when `files/` are present.
 - `portal`: Optional - Parameters used to display a web link on the user's portal. When present (event if empty), a web link is displayed to the user.
-- `path`: Optional - Either a relative path or complete url (with https://...) that is supplied to the front-end for the link on the user's portal. Default is application path.
-- `port`: Optional - Tells the web application the link is on the same hostname but different port.
+- `path`: Optional - A relative path that is supplied to the front-end for the link on the user's portal. Default is application path.
+- `port`: Optional - Tells the web application the link is on the same hostname but different port, combine with path.
+- `url`: Optional - Full static URL to the application. Can be used to link to externally managed sites. Cannot be combined with path/port elements above.
 - `admin`: Optional - When true, only administrators see the link.
 
 #### `nginx/`

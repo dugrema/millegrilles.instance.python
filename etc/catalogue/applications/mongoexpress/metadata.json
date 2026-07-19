@@ -1,0 +1,13 @@
+{
+  "name": "mongoexpress",
+  "version": "2026.3.1",
+  "labels": {
+    "en": "MongoExpress Client application for MongoDB",
+    "fr": "Application de gestion MongoExpress pour MongoDB"
+  },
+  "portal": {
+    "port": 1444,
+    "path": "/",
+    "admin": true
+  }
+}

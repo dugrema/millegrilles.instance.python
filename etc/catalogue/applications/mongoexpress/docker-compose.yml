@@ -1,0 +1,80 @@
+include:
+  - path: ../include/app_net.yml
+    project_directory: .
+
+name: ${INSTANCE_NAME}
+
+services:
+  mongoexpress:
+    image: registry.millegrilles.com/millegrilles/mongoexpress:1.0.2-20-alpine3.19.master.2
+    x-millegrilles-certificat:
+      roles:
+        - mongoexpress
+      dns:
+        hostnames:
+          - mongoexpress
+      split: true
+      passwords:
+        - mongoexpress
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://admin@mongo:27017
+      - ME_CONFIG_MONGODB_ADMINPASSWORD_FILE=/run/secrets/mongo.password.txt
+      - ME_CONFIG_MONGODB_TLS=true 
+      - ME_CONFIG_MONGODB_SSL=true
+      - ME_CONFIG_MONGODB_TLS_CA_FILE=/run/secrets/millegrille.pem
+      - ME_CONFIG_MONGODB_TLS_CERT_FILE=/run/secrets/cert.pem
+      - ME_CONFIG_MONGODB_TLS_CERT_KEY_FILE=/run/secrets/key.pem
+      - PORT=443
+      - ME_CONFIG_BASICAUTH=true
+      - ME_CONFIG_BASICAUTH_USERNAME=mongo
+      - ME_CONFIG_BASICAUTH_PASSWORD_FILE=/run/secrets/web.password.txt
+      - ME_CONFIG_SITE_SSL_KEY_PATH=/run/secrets/web.key.pem
+      - ME_CONFIG_SITE_SSL_ENABLED=true
+      - ME_CONFIG_SITE_SSL_CRT_PATH=/run/secrets/web.cert.pem
+      - ME_CONFIG_MONGODB_ENABLE_ADMIN=true"
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 100M
+      restart_policy:
+        condition: on-failure
+        delay: 20s
+        max_attempts: 1000
+    configs:
+      - source: webcert
+        target: /run/secrets/web.cert.pem
+      - source: mongoexpress
+        target: /run/secrets/cert.pem
+      - source: mgca
+        target: /run/secrets/millegrille.pem
+    secrets:
+      - source: webkey
+        target: web.key.pem
+      - source: mongoexpress
+        target: key.pem
+      - source: passwd_mongo
+        target: mongo.password.txt
+      - source: passwd_mongoexpress
+        target: web.password.txt
+    hostname: mongoexpress
+    networks:
+      - app_net
+
+configs:
+  webcert:
+    file: ${MILLEGRILLES_ROOT}/secrets/web.cert.pem
+  mongoexpress:
+    file: ${MILLEGRILLES_ROOT}/secrets/mongoexpress.cert.pem
+  mgca:
+    file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
+
+secrets:
+  webkey:
+    file: ${MILLEGRILLES_ROOT}/secrets/web.key.pem
+  mongoexpress:
+    file: ${MILLEGRILLES_ROOT}/secrets/mongoexpress.key.pem
+  passwd_mongo:
+    file: ${MILLEGRILLES_ROOT}/secrets/mongo.txt
+  passwd_mongoexpress:
+    file: ${MILLEGRILLES_ROOT}/secrets/mongoexpress.txt
