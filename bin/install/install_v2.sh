@@ -165,7 +165,8 @@ install_web_files() {
 creer_repertoires() {
   echo "[INFO] Configurer les repertoires de MilleGrilles"
   mkdir -p "${MILLEGRILLES_ROOT}/bin"
-  mkdir -p "${MILLEGRILLES_ROOT}/etc/nginx"
+  mkdir -p "${MILLEGRILLES_ROOT}/etc/nginx/applications"
+  mkdir -p "${MILLEGRILLES_ROOT}/etc/compose/applications"
   mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer"
   mkdir -p "${MILLEGRILLES_ROOT}/var/mq"
   mkdir -p "${MILLEGRILLES_ROOT}/var/mongo"

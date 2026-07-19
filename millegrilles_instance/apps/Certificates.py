@@ -92,7 +92,7 @@ def load_compose_files(securite: str, configuration: ConfigurationInstance) -> l
 
     applications_file = configuration.path_millegrilles / "etc/compose/applications.yml"
     if applications_file.exists():
-        config_applications = load_yaml_recursive(compose_file_nodetype)
+        config_applications = load_yaml_recursive(applications_file)
         composefiles.append(config_applications)
 
     return composefiles

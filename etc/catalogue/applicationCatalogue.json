@@ -1,18 +1,38 @@
 {
   "authentication": {
     "labels": {
-      "en": "Authentication"
+      "en": "MilleGrilles Web API and Portal",
+      "fr": "Portail et Web API pour MilleGrilles"
     },
     "version": "2026.3.10",
     "url": "https://libs.millegrilles.com/archives/authentication/millegrilles_authentication_typescript.2026.3.10.tar.gz",
     "sha256": "38d923371d6d5c256908e5aec036ee9ba4a5456bf30aa346cc88849ad9cf962d"
   },
+  "core": {
+    "labels": {
+      "en": "MilleGrilles core services",
+      "fr": "Services essentiels pour MilleGrilles"
+    },
+    "version": "2026.1.3",
+    "url": "https://libs.millegrilles.com/archives/core/core.2026.3.1.tar.gz",
+    "sha256": "beeb03257f03842080ef524b83b4023a24423bb0d6371f6143451e3091251f31"
+  },
   "coupdoeil": {
     "labels": {
-      "en": "Coup d'oeil"
+      "en": "Coup d'oeil",
+      "fr": "Coup d'oeil"
     },
     "version": "2026.1.2",
     "url": "https://libs.millegrilles.com/archives/coupdoeil/millegrilles_coupdoeil_react.2026.1.2.tar.gz",
     "sha256": "38772acdd46c280bde6496f346c07dd2846215b6d7577c3d165ce46e9d90ce45"
+  },
+  "maitredescles": {
+    "labels": {
+      "en": "Keymaster for MilleGrilles",
+      "fr": "Maitre des cles pour MilleGrilles"
+    },
+    "version": "2026.3.1",
+    "url": "https://libs.millegrilles.com/archives/maitredescles/maitredescles.2026.3.1.tar.gz",
+    "sha256": "4dc8f299cbcf0e7ec9b4f19bfcf0ccd6deba80f2aa0b1a9e195807af12a37a9a"
   }
 }

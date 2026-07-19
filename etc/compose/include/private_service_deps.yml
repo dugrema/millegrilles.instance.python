@@ -2,5 +2,5 @@
 # This file is also used for the initial docker image pull (downloads).
 
 include:
-  - ../coremodules/certissuer.yml
   - ../coremodules/nginx.yml
+  

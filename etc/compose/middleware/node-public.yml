@@ -1,29 +1,6 @@
+name: ${INSTANCE_NAME}
+
 include:
   - ../include/app_net.yml
-  - ../include/nginx-protege.yml
-  - ../include/redis.yml
-  - ../include/webauth.yml
-
-configs:
-  pki.web:
-    file: ${MILLEGRILLES_ROOT}/secrets/webcert.pem # TODO
-  pki.nginx:
-    file: ${MILLEGRILLES_ROOT}/secrets/nginx.cert.pem # TODO
-  pki.millegrille:
-    file: ${MILLEGRILLES_ROOT}/secrets/millegrille.cert.pem # TODO
-  pki.redis:
-    file: ${MILLEGRILLES_ROOT}/secrets/cert.pem # TODO
-  pki.webauth:
-    file: ${MILLEGRILLES_ROOT}/secrets/cert.pem # TODO
-
-secrets:
-  pki.web:
-    file: ${MILLEGRILLES_ROOT}/secrets/webkey.pem
-  pki.nginx:
-    file: ${MILLEGRILLES_ROOT}/secrets/nginx.key.pem
-  pki.redis:
-    file: ${MILLEGRILLES_ROOT}/secrets/key.pem # TODO
-  pki.webauth:
-    file: ${MILLEGRILLES_ROOT}/secrets/key.pem # TODO
-  passwd.redis:
-    file: ${MILLEGRILLES_ROOT}/secrets/passwd.redis.txt # TODO
+  - ../coremodules/redis.yml
+  - ../coremodules/webauth.yml

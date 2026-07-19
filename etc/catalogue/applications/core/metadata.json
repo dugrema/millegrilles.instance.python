@@ -1,0 +1,8 @@
+{
+  "name": "core",
+  "version": "2026.3.1",
+  "labels": {
+    "en": "MilleGrilles core services",
+    "fr": "Services essentiels pour MilleGrilles"
+  }
+}

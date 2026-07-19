@@ -1,0 +1,5 @@
+name: ${INSTANCE_NAME}
+
+include:
+  - include/app_net.yml
+  # Maintain applications below this line

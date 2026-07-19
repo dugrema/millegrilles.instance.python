@@ -1,0 +1,16 @@
+[Unit]
+Description=MilleGrilles applications
+After=network.target
+Wants={{INSTANCE_NAME}}-middleware.service
+
+[Service]
+Type=simple
+WorkingDirectory={{MILLEGRILLES_ROOT}}
+EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
+ExecStart=/usr/bin/docker compose -f etc/compose/applications.yml up
+ExecReload=/usr/bin/docker compose -f etc/compose/applications.yml up -d
+ExecStop=/usr/bin/docker compose -f etc/compose/applications.yml down
+Restart=always
+
+[Install]
+WantedBy=default.target
