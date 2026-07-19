@@ -26,8 +26,8 @@ services:
           - core
       split: true
     environment:
-      - MG_MQ_HOST=mq
-      - MG_MQ_PORT=5673
+      - MG_MQ_HOST=${MQ_HOSTNAME:-mq}
+      - MG_MQ_PORT=${MQ_PORT:-5673}
       - MG_MONGO_HOST=mongo
       - MG_MQ_SSL=on
       - MG_MQ_AUTH_CERT=on

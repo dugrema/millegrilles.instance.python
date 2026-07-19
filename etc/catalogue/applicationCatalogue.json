@@ -41,11 +41,6 @@
       "en": "MongoExpress Client application for MongoDB",
       "fr": "Application de gestion MongoExpress pour MongoDB"
     },
-    "portal": {
-      "port": 1444,
-      "path": "/",
-      "admin": true
-    },
     "url": "https://libs.millegrilles.com/archives/mongoexpress/mongoexpress.2026.3.2.tar.gz",
     "sha256": "c4857612f937e69e02c65605d1922050cc032474f2218d8e6ec180970a3bbd99"
   },
@@ -54,11 +49,6 @@
     "labels": {
       "en": "RabbitMQ Administration port",
       "fr": "Port d'administration de RabbitMQ"
-    },
-    "portal": {
-      "port": 1443,
-      "path": "/",
-      "admin": true
     },
     "url": "https://libs.millegrilles.com/archives/mqadmin/mqadmin.2026.3.1.tar.gz",
     "sha256": "66bbcbf120296a7b60f8b15ba3351a8b4e6e6baf16dd7d63d05761e6cc0eadaf"
