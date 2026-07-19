@@ -34,5 +34,19 @@
     "version": "2026.3.1",
     "url": "https://libs.millegrilles.com/archives/maitredescles/maitredescles.2026.3.1.tar.gz",
     "sha256": "4dc8f299cbcf0e7ec9b4f19bfcf0ccd6deba80f2aa0b1a9e195807af12a37a9a"
+  },
+  "mqadmin": {
+    "version": "2026.3.1",
+    "labels": {
+      "en": "RabbitMQ Administration port",
+      "fr": "Port d'administration de RabbitMQ"
+    },
+    "portal": {
+      "port": 1443,
+      "path": "/",
+      "admin": true
+    },
+    "url": "https://libs.millegrilles.com/archives/mqadmin/mqadmin.2026.3.1.tar.gz",
+    "sha256": "66bbcbf120296a7b60f8b15ba3351a8b4e6e6baf16dd7d63d05761e6cc0eadaf"
   }
 }
