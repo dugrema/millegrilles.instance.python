@@ -278,9 +278,10 @@ install_protege_instance() {
   docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/include/protege_service_deps.yml" pull
   docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/middleware/node-protege.yml" pull
 
-  echo "[INFO] Start middleware"
+  echo "[INFO] Start nginx"
   systemctl --user restart "${INSTANCE_NAME}-nginx"
   sleep 5
+  echo "[INFO] Start middleware"
   systemctl --user restart "${INSTANCE_NAME}-middleware"
   sleep 10
 
@@ -288,7 +289,7 @@ install_protege_instance() {
   "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name core --noreload
   "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name maitredescles --noreload
   "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name authentication --noreload
-  # "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name coupdoeil --noreload
+  "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name coupdoeil2 --noreload
   docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/applications.yml" pull
 
   echo "[INFO] Start services and node manager "

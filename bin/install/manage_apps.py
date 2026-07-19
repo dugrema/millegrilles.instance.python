@@ -60,10 +60,11 @@ def reload_nginx(instance_name: str):
     run_command(f"systemctl --user reload {instance_name}-nginx")
 
 def reload_compose_applications(instance_name: str):
-    print(f"Reloading {instance_name}-applications...")
-    run_command(f"systemctl --user reload {instance_name}-applications")
+    # Need to generate certificates first to avoid reload issue with applications service
     print(f"Generating certificates using {instance_name}-certs_updater...")
     run_command(f"systemctl --user start {instance_name}-certs_updater")
+    print(f"Reloading {instance_name}-applications...")
+    run_command(f"systemctl --user reload {instance_name}-applications")
 
 class AppManager:
     def __init__(self, root: str, instance_name: str):
