@@ -81,8 +81,8 @@ MANAGER_URL="https://localhost:2443"
 CERTISSUER_URL="http://localhost:2080"
 REDIS_URL="rediss://localhost:6379"
 SECURITE="${SECURITE}"
-MQ_PORT=$MQ_PORT
-MQ_HOSTNAME=$MQ_HOSTNAME
+# MQ_PORT=$MQ_PORT
+# MQ_HOSTNAME=$MQ_HOSTNAME
 EOF
 
   # Source the newly created config
@@ -288,7 +288,7 @@ install_protege_instance() {
   echo "[INFO] Installing applications from catalogue"
   "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name core --noreload
   "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name maitredescles --noreload
-  "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name authentication --noreload
+  "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name webapiprotege --noreload
   "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name coupdoeil2 --noreload
   docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/applications.yml" pull
 
