@@ -37,6 +37,57 @@ def get_metadata_from_archive(archive_path: Path) -> dict:
     except Exception as e:
         raise ValueError(f"Error reading archive: {e}")
 
+
+def update_catalogue(catalogue_path: Path, archive_path: Path, base_url: str):
+    """Updates the catalogue JSON with information from the archive."""
+    # 1. Extract information
+    sha256 = calculate_sha256(archive_path)
+    metadata = get_metadata_from_archive(archive_path)
+
+    name = metadata.get("name")
+    version = metadata.get("version")
+    labels = metadata.get("labels")
+
+    if not all([name, version, labels]):
+        raise ValueError("Metadata must contain 'name', 'version', and 'labels'")
+
+    # 2. Construct entry
+    # Ensure base_url ends with a slash and archive name doesn't start with one
+    archive_name = archive_path.name
+    if not base_url.endswith('/'):
+        base_url += '/'
+    url = f"{base_url}{archive_name}"
+
+    new_entry = {
+        "labels": labels,
+        "version": version,
+        "url": url,
+        "sha256": sha256
+    }
+
+    # 3. Update catalogue
+    catalogue = {}
+    if catalogue_path.exists():
+        try:
+            with open(catalogue_path, "r") as f:
+                catalogue = json.load(f)
+        except json.JSONDecodeError:
+            print(f"Warning: {catalogue_path} is not a valid JSON file. Overwriting it.")
+
+    catalogue[name] = new_entry
+
+    # 4. Sort and write back
+    # Python dictionaries are ordered by insertion order since 3.7.
+    # To sort by key, we create a new dict from sorted items.
+    sorted_catalogue = {k: catalogue[k] for k in sorted(catalogue.keys())}
+
+    with open(catalogue_path, "w") as f:
+        json.dump(sorted_catalogue, f, indent=2)
+
+    print(f"Successfully updated catalogue: {catalogue_path}")
+    print(f"Added/Updated entry: {name} (version {version})")
+
+
 def delete_module(catalogue_path: Path, module_name: str):
     """Removes a module from the catalogue."""
     if not catalogue_path.exists():
