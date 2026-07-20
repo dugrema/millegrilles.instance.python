@@ -304,8 +304,11 @@ def main():
 
     if args.command == "install":
         if args.name:
-            print(f"Resolving {args.name} from {args.catalogue_url}...")
-            catalogue = manager.fetch_json(args.catalogue_url)
+            catalogue_url = args.catalogue_url
+            if args.env != 'stable':
+                catalogue_url = catalogue_url.replace('stable.json', f"{args.env}.json")
+            print(f"Resolving {args.name} from {catalogue_url}...")
+            catalogue = manager.fetch_json(catalogue_url)
             if args.name not in catalogue:
                 print(f"Error: Application '{args.name}' not found in catalogue.")
                 sys.exit(1)
@@ -323,7 +326,10 @@ def main():
         manager.uninstall(args.name, args.root)
 
     elif args.command == "list":
-        manager.list_available(args.catalogue_url)
+        catalogue_url = args.catalogue_url
+        if args.env != 'stable':
+            catalogue_url = catalogue_url.replace('stable.json', f"{args.env}.json")
+        manager.list_available(catalogue_url)
 
     elif args.command == "list-installed":
         manager.list_installed()
