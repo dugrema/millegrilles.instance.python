@@ -194,7 +194,7 @@ configurer_reps() {
 
 configurer_docker_network() {
   echo "[INFO] Configurer docker pour instance: ${INSTANCE_NAME}"
-  docker network create -d overlay --attachable --scope swarm "${INSTANCE_NAME}_net" > /dev/null 2>&1 || true
+  docker network create --ipv6 --subnet "2001:db8:2::/64" --attachable "${INSTANCE_NAME}_net" > /dev/null 2>&1 || true
   echo "[OK] Configuration docker network completee"
 }
 

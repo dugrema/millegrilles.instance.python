@@ -164,7 +164,7 @@ class AppManager:
                     for service_name, service_info in yaml_app_file['services'].items():
                         try:
                             for volume in service_info['volumes']:
-                                bind_path, bind_mount = volume.split(":")
+                                bind_path = volume.split(":")[0]
                                 # Check if this is a bind or volume mount (volume has no '/').
                                 if "/" in bind_path:
                                     # This is a bind path
