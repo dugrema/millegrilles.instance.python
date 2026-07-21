@@ -171,7 +171,6 @@ creer_repertoires() {
   mkdir -p "${MILLEGRILLES_ROOT}/var/mq"
   mkdir -p "${MILLEGRILLES_ROOT}/var/mongo"
   mkdir -p "${MILLEGRILLES_ROOT}/var/nginx/html"
-  mkdir -p "${MILLEGRILLES_ROOT}/var/files"
   mkdir -p "${MILLEGRILLES_ROOT}/var/backup/domains"
 
   echo "[OK] Repertoires crees"
@@ -256,6 +255,9 @@ install_protege_instance() {
   set -a
   . "${MILLEGRILLES_ROOT}/config.env"
   set +a
+
+  # Initialize the local filehost repository
+  mkdir -p "${MILLEGRILLES_ROOT}/var/filehost/files/${IDMG}"
 
   echo "[INFO] Preparing node systemd configuration files for protege"
   ./bin/install/setup_systemd_protege.sh "${MILLEGRILLES_ROOT}/config.env"
