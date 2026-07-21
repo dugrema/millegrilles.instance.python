@@ -155,6 +155,28 @@ class AppManager:
             # 3. Handle Docker Compose
             docker_compose = extract_dir / "docker-compose.yml"
             if docker_compose.exists():
+                # Parse the file to ensure it is properly formatted
+                with open(docker_compose) as f:
+                    yaml_app_file = yaml.safe_load(f)
+
+                # Pre-initialize the bind mounts, this avoids permission issues
+                try:
+                    for service_name, service_info in yaml_app_file['services'].items():
+                        try:
+                            for volume in service_info['volumes']:
+                                bind_path, bind_mount = volume.split(":")
+                                # Check if this is a bind or volume mount (volume has no '/').
+                                if "/" in bind_path:
+                                    # This is a bind path
+                                    bind_path = bind_path.replace("${MILLEGRILLES_ROOT}/", "")
+                                    bind_path_resolved = self.root / bind_path
+                                    print(f"Creating bind mount {bind_path_resolved}")
+                                    bind_path_resolved.mkdir(parents=True, exist_ok=True)
+                        except KeyError:
+                            pass
+                except KeyError:
+                    pass
+
                 dest_docker_compose = self.compose_apps_dir / f"{name}.yml"
                 print(f"Configuring Docker Compose: {dest_docker_compose}")
                 copy_file(docker_compose, dest_docker_compose)
