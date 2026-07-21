@@ -198,26 +198,27 @@ class AppManager:
         if name not in installed_apps:
             print(f"Error: Application '{name}' is not installed.")
             sys.exit(1)
- 
-        app_info = installed_apps[name]
-        try:
-            app_url = app_info['url']
-            app_path: Optional[str] = app_url.replace("/applications/", "")
-        except KeyError as e:
-            app_path = None
- 
+
         print(f"Uninstalling {name}...")
- 
+
+        nginx_reload = False
+        compose_reload = False
+
         # 1. Remove Nginx Config
-        nginx_conf_prefix = self.nginx_apps_conf_dir / "applications" / f"{name}__"
-        print(f"Removing Nginx config: {nginx_conf_prefix}")
-        # os.remove(nginx_conf)  # TODO, need to remove files matching f"{nginx_conf_prefix}*"
+        nginx_conf_prefix = self.nginx_apps_conf_dir
+        print(f"Removing Nginx config files matching: {nginx_conf_prefix}/{name}__*")
+        for nginx_conf in nginx_conf_prefix.glob(f"{name}__*"):
+            if nginx_conf.is_file():
+                print(f"Removing Nginx config file: {nginx_conf}")
+                nginx_conf.unlink()
+                nginx_reload = True
  
         # 2. Remove Docker Compose
         docker_compose = self.compose_apps_dir / f"{name}.yml"
         if docker_compose.exists():
             print(f"Removing Docker Compose file: {docker_compose}")
             os.remove(docker_compose)
+            compose_reload = True
 
         # Remove application file from applications.yml include list
         app_yaml_filepath = str(docker_compose.relative_to(self.compose_dir))
@@ -225,13 +226,22 @@ class AppManager:
             yaml_app_file = yaml.safe_load(f)
         yaml_includes: list = yaml_app_file['include']
         if app_yaml_filepath in yaml_includes:
-            # Append new app to list and overwrite app file
+            # Remove app from list and overwrite app file
+            print(f"Removing Docker Compose fil from applications.yamle: {app_yaml_filepath}")
+
             yaml_includes.remove(app_yaml_filepath)
             with open(self.compose_apps_yaml, 'w') as f:
                 yaml.safe_dump(yaml_app_file, f)
 
+            compose_reload = True
+
         # 3. Remove Application Files
-        if app_path:
+        app_info = installed_apps[name]
+        try:
+            app_path: str = app_info['path']
+        except KeyError:
+            pass
+        else:
             dest_nginx_files = self.nginx_apps_html_dir / app_path
 
             if dest_nginx_files.exists():
@@ -242,9 +252,11 @@ class AppManager:
         del installed_apps[name]
         self.save_installed_apps(installed_apps)
  
-        # 5. Reload Nginx / Restart Appllications (TODO: remove app only, reload does not work)
-        reload_nginx(self.instance_name)
-        restart_compose_applications(self.instance_name)
+        # 5. Reload Nginx / Restart Appllications (later: remove app only, reload does not work)
+        if nginx_reload:
+            reload_nginx(self.instance_name)
+        if compose_reload:
+            restart_compose_applications(self.instance_name)
         print("Uninstallation complete.")
 
 
