@@ -28,9 +28,12 @@ usage() {
   echo "  --name <name>      Set the instance name (default: ${INSTANCE_NAME})"
   echo "  --domain <domain>  Set the instance domain name (default: ${INSTANCE_DOMAIN})"
   echo "  --type <type>      Installation type: public, prive, protege, secure (default: protege)"
+  echo "  --ca <path>        Path to an existing Root CA certificate"
   echo "  --help             Display this help message"
   exit 0
 }
+
+EXISTING_CA_CERT=""
 
 while [[ "$#" -gt 0 ]]; do
   case $1 in
@@ -38,6 +41,7 @@ while [[ "$#" -gt 0 ]]; do
     --name) INSTANCE_NAME="$2"; shift ;;
     --domain) INSTANCE_DOMAIN="$2"; shift ;;
     --type) TYPE="$2"; shift ;;
+    --ca) EXISTING_CA_CERT="$2"; shift ;;
     --help) usage ;;
     *) echo "Unknown parameter: $1"; usage; exit 1 ;;
   esac
@@ -228,13 +232,62 @@ install_protege_instance() {
 
   echo "[INFO] Generating Root CA..."
 
-  # Generate a random password for the root CA
-  local password
-  password=$(openssl rand -base64 32)
-  ./bin/x509/ca_new.sh $password
+  local password=""
+  if [ -n "$EXISTING_CA_CERT" ]; then
+    if [ ! -f "$EXISTING_CA_CERT" ]; then
+      echo "[ERROR] Existing CA certificate not found at $EXISTING_CA_CERT"
+      exit 1
+    fi
+    echo "[INFO] Using existing Root CA from $EXISTING_CA_CERT"
+    cp "$EXISTING_CA_CERT" "${MILLEGRILLES_ROOT}/etc/millegrille.pem"
 
-  echo "[INFO] Generating Signing CA..."
-  ./bin/x509/ca_signing.sh --password "$password"
+    echo "[INFO] Generating Signing CSR from existing CA..."
+    mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer"
+    
+    # Generate an unencrypted ed25519 private key for the signing CA
+    openssl genpkey -algorithm ed25519 -out "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_key.pem"
+
+    # Generate the Signing CA CSR
+    . "${PATH_VENV}/bin/activate"
+    IDMG=$(python3 bin/utils/get_idmg.py "${MILLEGRILLES_ROOT}/etc/millegrille.pem")
+    if [ -z "$IDMG" ]; then
+      echo "[ERROR] Failed to retrieve IDMG from existing Root CA."
+      exit 1
+    fi
+
+    openssl req -new -key "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_key.pem" \
+      -out "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.csr" \
+      -subj "/CN=${INSTANCE_ID}/OU=${INSTANCE_NAME}/O=${IDMG}"
+
+    # Wait for user to paste the certificate
+    echo "[INFO] Use the following certificate request"
+    echo "[INFO] ---------------------------------------------------"
+    cat "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.csr"
+    echo "[INFO] ---------------------------------------------------"
+    echo "[INFO] Please paste the signed certificate for the Signing CA below and press Ctrl+D:"
+    cat > "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_cert.pem"
+
+    if [ ! -s "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_cert.pem" ]; then
+      echo "[ERROR] Certificate input was empty."
+      exit 1
+    fi
+
+    # Combine key and certificate into signing_ca.pem
+    cat "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_key.pem" "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_cert.pem" > "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem"
+    
+    # Clean up temporary files
+    rm "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.csr" "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_key.pem" "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_cert.pem"
+
+    echo "[INFO] Signing CA assembled from user input."
+    password="N/A (Using unencrypted signing key)"
+  else
+    # Generate a random password for the root CA
+    password=$(openssl rand -base64 32)
+    ./bin/x509/ca_new.sh $password
+
+    echo "[INFO] Generating Signing CA..."
+    ./bin/x509/ca_signing.sh --password "$password"
+  fi
 
   echo "[INFO] Generating Node Certificate..."
   "${PATH_VENV}/bin/python3" bin/x509/ca_protege.py \
@@ -313,18 +366,20 @@ install_protege_instance() {
 
   echo "[OK] Protege installation complete, IDMG=${IDMG}."
   echo
-  echo "------------------------------------------------------------------------------"
-  echo "# Certificate Authority (CA) PEM File"
-  echo "# ${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
-  cat "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
-  echo "------------------------------------------------------------------------------"
-  echo "CA Password: $password"
-  echo "------------------------------------------------------------------------------"
-  echo
-  echo "IMPORTANT: Save the password (above) and ca.pem file content! The password is not saved anywhere."
-  echo "!! The PASSWORD is ONLY shown here !!"
-  echo "Both the password and CA file are required for future operations (restoring backups, system updates, deploying secure nodes, etc)."
-  echo "To increase security, store the ca.pem file and the password separately."
+  if [ -f "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem" ]; then
+    echo "------------------------------------------------------------------------------"
+    echo "# Certificate Authority (CA) PEM File"
+    echo "# ${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
+    cat "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
+    echo "------------------------------------------------------------------------------"
+    echo "CA Password: $password"
+    echo "------------------------------------------------------------------------------"
+    echo
+    echo "IMPORTANT: Save the password (above) and ca.pem file content! The password is not saved anywhere."
+    echo "!! The PASSWORD is ONLY shown here !!"
+    echo "Both the password and CA file are required for future operations (restoring backups, system updates, deploying secure nodes, etc)."
+    echo "To increase security, store the ca.pem file and the password separately."
+  fi
   echo
   echo "[INFO] Server url: https://${INSTANCE_DOMAIN}."
   echo "[INFO] https://localhost will also work properly on this machine"
