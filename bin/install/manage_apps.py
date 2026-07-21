@@ -66,6 +66,11 @@ def reload_compose_applications(instance_name: str):
     print(f"Reloading {instance_name}-applications...")
     run_command(f"systemctl --user reload {instance_name}-applications")
 
+def restart_compose_applications(instance_name: str):
+    # Need to generate certificates first to avoid reload issue with applications service
+    print(f"Restarting {instance_name}-applications...")
+    run_command(f"systemctl --user restart {instance_name}-applications")
+
 class AppManager:
     def __init__(self, root: str, instance_name: str):
         self.root = pathlib.Path(root)
@@ -188,42 +193,58 @@ class AppManager:
 
 
 
-    def uninstall(self, name, root_path):
+    def uninstall(self, name):
         installed_apps = self.get_installed_apps()
         if name not in installed_apps:
             print(f"Error: Application '{name}' is not installed.")
             sys.exit(1)
  
         app_info = installed_apps[name]
-        app_url = app_info['url']
-        app_path = app_url.replace("/applications/", "")
+        try:
+            app_url = app_info['url']
+            app_path: Optional[str] = app_url.replace("/applications/", "")
+        except KeyError as e:
+            app_path = None
  
         print(f"Uninstalling {name}...")
  
         # 1. Remove Nginx Config
-        nginx_conf = self.nginx_apps_conf_dir / f"{name}.conf"
-        if nginx_conf.exists():
-            print(f"Removing Nginx config: {nginx_conf}")
-            os.remove(nginx_conf)
+        nginx_conf_prefix = self.nginx_apps_conf_dir / "applications" / f"{name}__"
+        print(f"Removing Nginx config: {nginx_conf_prefix}")
+        # os.remove(nginx_conf)  # TODO, need to remove files matching f"{nginx_conf_prefix}*"
  
         # 2. Remove Docker Compose
         docker_compose = self.compose_apps_dir / f"{name}.yml"
         if docker_compose.exists():
             print(f"Removing Docker Compose file: {docker_compose}")
             os.remove(docker_compose)
- 
+
+        # Remove application file from applications.yml include list
+        app_yaml_filepath = str(docker_compose.relative_to(self.compose_dir))
+        with open(self.compose_apps_yaml) as f:
+            yaml_app_file = yaml.safe_load(f)
+        yaml_includes: list = yaml_app_file['include']
+        if app_yaml_filepath in yaml_includes:
+            # Append new app to list and overwrite app file
+            yaml_includes.remove(app_yaml_filepath)
+            with open(self.compose_apps_yaml, 'w') as f:
+                yaml.safe_dump(yaml_app_file, f)
+
         # 3. Remove Application Files
-        dest_html_dir = self.nginx_apps_html_dir / app_path
-        if dest_html_dir.exists():
-            print(f"Removing application files: {dest_html_dir}")
-            remove_dir(dest_html_dir)
- 
+        if app_path:
+            dest_nginx_files = self.nginx_apps_html_dir / app_path
+
+            if dest_nginx_files.exists():
+                print(f"Removing application files: {dest_nginx_files}")
+                remove_dir(dest_nginx_files)
+
         # 4. Update local catalogue
         del installed_apps[name]
         self.save_installed_apps(installed_apps)
  
-        # 5. Restart Nginx
-        reload_nginx()
+        # 5. Reload Nginx / Restart Appllications (TODO: remove app only, reload does not work)
+        reload_nginx(self.instance_name)
+        restart_compose_applications(self.instance_name)
         print("Uninstallation complete.")
 
 
@@ -280,7 +301,7 @@ def main():
     # uninstall command
     uninstall_parser = subparsers.add_parser("uninstall")
     uninstall_parser.add_argument("--name", required=True, help="Application name to uninstall")
-    uninstall_parser.add_argument("--root", required=True, help="MILLEGRILLES_ROOT directory")
+    uninstall_parser.add_argument("--root", required=False, help="MILLEGRILLES_ROOT directory")
 
     # list command
     list_parser = subparsers.add_parser("list")
@@ -289,7 +310,7 @@ def main():
 
     # list-installed command
     list_installed_parser = subparsers.add_parser("list-installed")
-    list_installed_parser.add_argument("--root", required=True, help="MILLEGRILLES_ROOT directory")
+    list_installed_parser.add_argument("--root", required=False, help="MILLEGRILLES_ROOT directory")
 
     args = parser.parse_args()
     root = getattr(args, 'root', None)
@@ -323,7 +344,7 @@ def main():
             manager.install_from_package(args.url, args.hash, noreload=args.noreload)
 
     elif args.command == "uninstall":
-        manager.uninstall(args.name, args.root)
+        manager.uninstall(args.name)
 
     elif args.command == "list":
         catalogue_url = args.catalogue_url
