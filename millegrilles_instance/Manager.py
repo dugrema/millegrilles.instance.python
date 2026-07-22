@@ -1,6 +1,5 @@
 import asyncio
 import logging
-import pathlib
 
 from asyncio import TaskGroup
 from typing import Optional
@@ -8,7 +7,7 @@ from typing import Optional
 from cryptography.x509 import ExtensionNotFound
 
 from millegrilles_instance.Interfaces import MgbusHandlerInterface
-from millegrilles_instance.NginxHandler import NginxHandler
+from millegrilles_instance.NginxUtil import publish_to_nginx
 from millegrilles_instance.apps.AppManager import AppManager
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages import Constantes
@@ -23,11 +22,10 @@ class InstanceManager:
     """
     Facade for system handlers. Used by access modules (mq, web).
     """
-    def __init__(self, context: InstanceContext, app_manager: AppManager, nginx_handler: NginxHandler):
+    def __init__(self, context: InstanceContext, app_manager: AppManager):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__context = context
         self.__app_manager = app_manager
-        self.__nginx_handler = nginx_handler
         self.__mgbus_handler: Optional[MgbusHandlerInterface] = None
         self.__runlevel_changed = asyncio.Event()
         self.__loop = asyncio.get_event_loop()
@@ -171,10 +169,6 @@ class InstanceManager:
     async def __start_runlevel_local(self):
         self.__logger.info("Starting runlevel LOCAL")
 
-        # 2. Refresh nginx configuration
-        await self.__nginx_handler.refresh_configuration(
-            "Switching to runlevel %d" % InstanceContext.CONST_RUNLEVEL_LOCAL)
-
         self.__logger.info("Runlevel LOCAL done")
         await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_NORMAL)
 
@@ -199,7 +193,7 @@ class InstanceManager:
             for i in range(0, 3):
                 try:
                     # await self.__docker_handler.emettre_presence(timeout=20)  # Wait 20 secs max for connection to mqbus
-                    await self.request_fiche_json()
+                    await self.update_fiche_json()
                     break
                 except asyncio.TimeoutError:
                     await self.context.wait(5)
@@ -215,7 +209,7 @@ class InstanceManager:
 
     async def update_fiche_publique(self, message: MessageWrapper):
         contenu = message.contenu
-        await asyncio.to_thread(self.__nginx_handler.sauvegarder_fichier_data, 'fiche.json', contenu)
+        await asyncio.to_thread(publish_to_nginx, self.context.configuration, 'fiche.json', contenu)
 
     async def get_instance_passwords(self, message: MessageWrapper):
         enveloppe = message.certificat
@@ -244,11 +238,22 @@ class InstanceManager:
 
         return None
 
-    async def request_fiche_json(self):
+    async def update_fiche_json(self, retries=3):
         producer = await asyncio.wait_for(self.__context.get_producer(), 3)
         idmg = self.context.idmg
-        fiche_response = await producer.request({'idmg': idmg}, Constantes.DOMAINE_CORE_TOPOLOGIE,
-                                                'ficheMillegrille',
-                                                exchange=Constantes.SECURITE_PUBLIC)
-        contenu = fiche_response.contenu
-        await asyncio.to_thread(self.__nginx_handler.sauvegarder_fichier_data, 'fiche.json', contenu)
+        for i in range(0, retries):
+            try:
+                fiche_response = await producer.request({'idmg': idmg}, Constantes.DOMAINE_CORE_TOPOLOGIE,
+                                                        'ficheMillegrille',
+                                                        exchange=Constantes.SECURITE_PUBLIC,
+                                                        timeout=5)
+                contenu = fiche_response.contenu
+                await asyncio.to_thread(publish_to_nginx, self.context.configuration, 'fiche.json', contenu)
+                return
+            except asyncio.TimeoutError:
+                if i < retries - 1:
+                    self.__logger.warning("Timeout requesting ficheMillegrille, retrying ...")
+                    await asyncio.sleep(15)
+                else:
+                    self.__logger.error("Timed out requesting ficheMillegrille, fiche not updated")
+                    return

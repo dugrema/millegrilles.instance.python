@@ -18,13 +18,11 @@ from millegrilles_instance.Exceptions import InstallationModeException
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance import Constantes as ConstantesInstance
-from millegrilles_instance.Certificats import preparer_certificats_web, generer_passwords
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_messages.IpUtils import get_ip, get_hostnames
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.FormatteurMessages import SignateurTransactionSimple, FormatteurMessageMilleGrilles
-from millegrilles_instance.NginxHandler import NginxHandler
 from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 from millegrilles_messages.messages.ValidateurCertificats import ValidateurCertificatCache
 from millegrilles_messages.messages.ValidateurMessage import ValidateurMessage
@@ -55,8 +53,6 @@ class EtatInstance:
         self.__docker_present = False
         self.__docker_actif = False
         self.__csr_genere: Optional[CleCsrGenere] = None
-
-        self.__entretien_nginx: Optional[NginxHandler] = None
 
         # Liste de listeners qui sont appeles sur changement de configuration
         self.__config_listeners = list()
@@ -96,11 +92,6 @@ class EtatInstance:
         self.__ip_address = get_ip()
         self.__hostname, self.__hostnames = get_hostnames(fqdn=True)
         self.__logger.debug("Nom domaine instance: %s, liste domaines : %s" % (self.__hostname, self.__hostnames))
-
-        # Generer les certificats web self-signed au besoin
-        path_cert_web, path_cle_web = preparer_certificats_web(self.__configuration.path_secrets)
-        self.__configuration.path_certificat_web = path_cert_web
-        self.__configuration.path_cle_web = path_cle_web
 
         self.__instance_id = load_fichier_config(self.__configuration.instance_id_path)
         self.__logger.info("Instance id : %s", self.__instance_id)
@@ -403,9 +394,6 @@ class EtatInstance:
     #                                                etat_docker, nom_module: str, configuration: dict):
     #     config = {nom_module: configuration}
     #     await generer_certificats_modules_satellites(producer, self, etat_docker, config)
-
-    async def generer_passwords(self, etat_docker, passwords: list):
-        await generer_passwords(self, etat_docker, passwords)
 
     # def partition_usage(self):
     #     partitions = psutil.disk_partitions()

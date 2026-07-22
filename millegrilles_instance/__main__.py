@@ -12,7 +12,6 @@ from millegrilles_instance.apps.AppManager import AppManager
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopListener
 from millegrilles_messages.bus.BusExceptions import ConfigurationFileError
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
-from millegrilles_instance.NginxHandler import NginxHandler
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.Manager import InstanceManager
@@ -69,11 +68,10 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     bus_connector = MilleGrillesPikaConnector(context)
     context.bus_connector = bus_connector
     system_status = SystemStatus(context)
-    nginx_handler = NginxHandler(context)
-    app_manager = AppManager(context, nginx_handler)
+    app_manager = AppManager(context)
 
     # Facade
-    manager = InstanceManager(context, app_manager, nginx_handler)
+    manager = InstanceManager(context, app_manager)
     context.add_reload_listener(manager.callback_changement_configuration)
 
     # Access modules
@@ -81,7 +79,6 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
 
     # Setup / injecting dependencies
     await manager.setup(bus_handler)
-    # await nginx_handler.setup()
 
     # Create tasks
     coros = [
@@ -90,7 +87,6 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
         app_manager.run(),
         manager.run(),
         bus_handler.run(),
-        nginx_handler.run(),
     ]
 
     return coros

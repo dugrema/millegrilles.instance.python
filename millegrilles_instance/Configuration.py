@@ -92,8 +92,8 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         self.__certissuer_url = 'http://localhost:2080'
         self.__instance_password_mq_path = self.__path_millegrilles / 'secrets/mqadmin.txt'
 
-        self.web_cert_pem_path = self.__path_millegrilles / 'secrets/web.cert'
-        self.web_key_pem_path = self.__path_millegrilles / 'secrets/web.key'
+        # self.web_cert_pem_path = self.__path_millegrilles / 'secrets/web.cert'
+        # self.web_key_pem_path = self.__path_millegrilles / 'secrets/web.key'
 
         # Apply instance defaults - usual defaults are meant for usage in docker containers
         self.default_override()
@@ -135,8 +135,8 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         self.__host_docker_internal = os.environ.get(ContantesInstance.PARAM_INSTANCE_HOST_DOCKER_INTERNAL) or self.__host_docker_internal
         self.__certissuer_url = os.environ.get(ContantesInstance.PARAM_INSTANCE_CERTISSUER_URL) or self.__certissuer_url
         self.__instance_password_mq_path = pathlib.Path(os.environ.get(ContantesInstance.PARAM_INSTANCE_PASSWD_MQ_PATH) or self.__instance_password_mq_path)
-        self.web_cert_pem_path = pathlib.Path(os.environ.get(ContantesInstance.ENV_WEB_CERT_PEM) or self.web_cert_pem_path)
-        self.web_key_pem_path = pathlib.Path(os.environ.get(ContantesInstance.ENV_WEB_KEY_PEM) or self.web_key_pem_path)
+        # self.web_cert_pem_path = pathlib.Path(os.environ.get(ContantesInstance.ENV_WEB_CERT_PEM) or self.web_cert_pem_path)
+        # self.web_key_pem_path = pathlib.Path(os.environ.get(ContantesInstance.ENV_WEB_KEY_PEM) or self.web_key_pem_path)
 
 
     def parse_args(self, args: argparse.Namespace):

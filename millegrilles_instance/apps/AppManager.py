@@ -4,15 +4,13 @@ import logging
 from asyncio import TaskGroup
 
 from millegrilles_instance.Context import InstanceContext
-from millegrilles_instance.NginxHandler import NginxHandler
 
 
 class AppManager:
 
-    def __init__(self, context: InstanceContext, nginx_handler: NginxHandler):
+    def __init__(self, context: InstanceContext):
         self.__logger = logging.getLogger(__name__)
         self.__context: InstanceContext = context
-        self.__nginx_handler = nginx_handler
 
         self.__applications_changed = asyncio.Event()
         self.__stopping = asyncio.Event()
