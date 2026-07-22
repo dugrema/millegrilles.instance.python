@@ -2,22 +2,75 @@ import asyncio
 import logging
 import psutil
 import time
+from typing import Any, Dict, List, Optional, Union, TypedDict
+
+class PartitionUsageItem(TypedDict):
+    mountpoint: str
+    free: int
+    used: int
+    total: int
+
+class MemoryInfo(TypedDict):
+    total: int
+    available: int
+    percent: float
+    used: int
+    free: int
+
+class SwapInfo(TypedDict):
+    total: int
+    used: int
+    free: int
+    percent: float
+
+class NetworkInfo(TypedDict):
+    bytes_sent: int
+    bytes_recv: int
+    packets_sent: int
+    packets_recv: int
+    errin: int
+    errout: int
+    dropin: int
+    dropout: int
+
+class DiskIOInfo(TypedDict):
+    read_bytes: int
+    write_bytes: int
+    read_count: int
+    write_count: int
+    read_time: float
+    write_time: float
+
+class SystemState(TypedDict, total=False):
+    disk: List[PartitionUsageItem]
+    load_average: List[float]
+    memory: MemoryInfo
+    swap: SwapInfo
+    cpu_count: int
+    cpu_usage_percent: float
+    network: NetworkInfo
+    disk_io: DiskIOInfo
+    uptime_seconds: float
+    system_temperature: Dict[str, Any]
+    system_fans: Dict[str, Any]
+    system_battery: Any
+    apc: Dict[str, Any]
 
 
 class SystemStatus:
 
     def __init__(self):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        self.__apc_info = None
-        self.__current_state = dict()
+        self.__apc_info: Union[Dict[str, Any], bool, None] = None
+        self.__current_state: SystemState = {}
         psutil.cpu_percent(interval=None)
 
     @property
-    def current_state(self):
+    def current_state(self) -> SystemState:
         return self.__current_state
 
-    def read_system_status(self):
-        info_systeme = dict()
+    def read_system_status(self) -> None:
+        info_systeme: SystemState = {}
         info_systeme['disk'] = self.partition_usage()
         info_systeme['load_average'] = [round(l * 100) / 100 for l in list(psutil.getloadavg())]
 
@@ -57,14 +110,15 @@ class SystemStatus:
 
         # Disk IO
         disk_io = psutil.disk_io_counters()
-        info_systeme['disk_io'] = {
-            'read_bytes': disk_io.read_bytes,
-            'write_bytes': disk_io.write_bytes,
-            'read_count': disk_io.read_count,
-            'write_count': disk_io.write_count,
-            'read_time': disk_io.read_time,
-            'write_time': disk_io.write_time,
-        }
+        if disk_io:
+            info_systeme['disk_io'] = {
+                'read_bytes': disk_io.read_bytes,
+                'write_bytes': disk_io.write_bytes,
+                'read_count': disk_io.read_count,
+                'write_count': disk_io.write_count,
+                'read_time': disk_io.read_time,
+                'write_time': disk_io.write_time,
+            }
 
         # Uptime
         info_systeme['uptime_seconds'] = time.time() - psutil.boot_time()
@@ -91,12 +145,12 @@ class SystemStatus:
         except AttributeError:
             pass
 
-        if self.__apc_info:
+        if self.__apc_info and self.__apc_info is not False:
             info_systeme['apc'] = self.__apc_info
 
         self.__current_state = info_systeme
 
-    async def apc_info(self):
+    async def apc_info(self) -> bool:
         """
         Charge l'information du UPS de type APC.
         L'option se desactive automatiquement au premier echec
@@ -117,9 +171,9 @@ class SystemStatus:
 
         return False  # Keep going
 
-    def partition_usage(self):
+    def partition_usage(self) -> List[PartitionUsageItem]:
         partitions = psutil.disk_partitions()
-        reponse = list()
+        reponse: List[PartitionUsageItem] = list()
         for p in partitions:
             if 'rw' in p.opts and '/boot' not in p.mountpoint:
                 usage = psutil.disk_usage(p.mountpoint)
