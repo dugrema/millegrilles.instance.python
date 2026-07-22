@@ -1,15 +1,36 @@
 import asyncio
 import logging
+from asyncio import TaskGroup
+
 import psutil
 import time
 from typing import Any, Dict, List, Optional, Union, TypedDict
 
+from millegrilles_instance.Context import InstanceContext
+from millegrilles_messages.messages import Constantes as MilleGrillesConstantes
+
+
+# Rust mapping:
+# struct PartitionUsageItem {
+#     mountpoint: String,
+#     free: u64,
+#     used: u64,
+#     total: u64,
+# }
 class PartitionUsageItem(TypedDict):
     mountpoint: str
     free: int
     used: int
     total: int
 
+# Rust mapping:
+# struct MemoryInfo {
+#     total: u64,
+#     available: u64,
+#     percent: f64,
+#     used: u64,
+#     free: u64,
+# }
 class MemoryInfo(TypedDict):
     total: int
     available: int
@@ -17,12 +38,30 @@ class MemoryInfo(TypedDict):
     used: int
     free: int
 
+# Rust mapping:
+# struct SwapInfo {
+#     total: u64,
+#     used: u64,
+#     free: u64,
+#     percent: f64,
+# }
 class SwapInfo(TypedDict):
     total: int
     used: int
     free: int
     percent: float
 
+# Rust mapping:
+# struct NetworkInfo {
+#     bytes_sent: u64,
+#     bytes_recv: u64,
+#     packets_sent: u64,
+#     packets_recv: u64,
+#     errin: u64,
+#     errout: u64,
+#     dropin: u64,
+#     dropout: u64,
+# }
 class NetworkInfo(TypedDict):
     bytes_sent: int
     bytes_recv: int
@@ -33,6 +72,15 @@ class NetworkInfo(TypedDict):
     dropin: int
     dropout: int
 
+# Rust mapping:
+# struct DiskIOInfo {
+#     read_bytes: u64,
+#     write_bytes: u64,
+#     read_count: u64,
+#     write_count: u64,
+#     read_time: f64,
+#     write_time: f64,
+# }
 class DiskIOInfo(TypedDict):
     read_bytes: int
     write_bytes: int
@@ -41,6 +89,22 @@ class DiskIOInfo(TypedDict):
     read_time: float
     write_time: float
 
+# Rust mapping:
+# struct SystemState {
+#     disk: Vec<PartitionUsageItem>,
+#     load_average: Vec<f64>,
+#     memory: MemoryInfo,
+#     swap: SwapInfo,
+#     cpu_count: i32,
+#     cpu_usage_percent: f64,
+#     network: NetworkInfo,
+#     disk_io: Option<DiskIOInfo>,
+#     uptime_seconds: f64,
+#     system_temperature: Option<serde_json::Value>,
+#     system_fans: Option<serde_json::Value>,
+#     system_battery: Option<serde_json::Value>,
+#     apc: Option<serde_json::Value>,
+# }
 class SystemState(TypedDict, total=False):
     disk: List[PartitionUsageItem]
     load_average: List[float]
@@ -150,6 +214,8 @@ class SystemStatus:
 
         self.__current_state = info_systeme
 
+        return info_systeme
+
     async def apc_info(self) -> bool:
         """
         Charge l'information du UPS de type APC.
@@ -180,3 +246,75 @@ class SystemStatus:
                 reponse.append(
                     {'mountpoint': p.mountpoint, 'free': usage.free, 'used': usage.used, 'total': usage.total})
         return reponse
+
+
+class SystemStatusManager:
+
+    def __init__(self, context: InstanceContext):
+        self.__logger = logging.getLogger(__name__)
+        self.__context: InstanceContext = context
+
+        self.__applications_changed = asyncio.Event()
+        self.__stopping = asyncio.Event()
+
+        self.__initial_refresh_done = asyncio.Event()
+
+        self.__handler = SystemStatus()
+
+        # Downgrade securite level 4.secure to 3.protege
+        self.__securite: Optional[str] = None
+
+    async def wait_initial_refresh_done(self):
+        await self.__initial_refresh_done.wait()
+
+    async def __stop_thread(self):
+        await self.__context.wait()
+        self.__stopping.set()
+
+    async def setup(self):
+        self.__securite = self.__context.securite if self.__context.securite != MilleGrillesConstantes.SECURITE_SECURE else MilleGrillesConstantes.SECURITE_PROTEGE
+
+    async def run(self):
+        self.__logger.debug("SystemStatusManager thread started")
+        try:
+            async with TaskGroup() as group:
+                group.create_task(self.__stop_thread())
+                group.create_task(self.__emit_status_thread())
+        except *Exception as e:  # Fail on first exception
+            raise e
+        self.__logger.debug("SystemStatusManager thread done")
+
+    async def __emit_status_thread(self):
+        """
+        Thread that manages certificates that are about to expire. Refreshes the certificates and reloads the
+        docker compose services.
+        """
+        await self.__context.wait(4)
+        self.__logger.info("Starting emit status thread")
+        while self.__context.stopping is False:
+            try:
+                await self.__emit_status()
+            except Exception:
+                self.__logger.exception("Error renewing certificates in manager")
+            await self.__context.wait(30)
+        self.__logger.info("Stopping emit status thread")
+
+    async def __emit_status(self):
+        try:
+            producer = await asyncio.wait_for(self.__context.get_producer(), 1)
+        except asyncio.TimeoutError:
+            self.__logger.warning("Timeout waiting for producer to emit instance status")
+            return
+
+        system_state = await asyncio.to_thread(self.__handler.read_system_status)
+
+        event_message = {
+            'system_state': system_state,
+        }
+
+        await producer.event(
+            event_message,
+            'instance',
+            'presenceInstanceV2',
+            exchange=self.__securite,
+        )
