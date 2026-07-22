@@ -336,7 +336,7 @@ class AppManager:
 
         print(f"{'Name':<20} {'Version':<10} {'Path'}")
         print("-" * 50)
-        for name, info in installed_apps.items():
+        for name, info in sorted(installed_apps.items()):
             print(f"{name:<20} {info.get('version', 'N/A'):<10} {info.get('url', 'N/A')}")
 
 def main():
