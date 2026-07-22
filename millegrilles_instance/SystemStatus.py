@@ -1,5 +1,6 @@
 import asyncio
 import logging
+import socket
 from asyncio import TaskGroup
 
 import psutil
@@ -9,6 +10,15 @@ from typing import Any, Dict, List, Optional, Union, TypedDict
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_messages.messages import Constantes as MilleGrillesConstantes
 
+
+# Rust mapping:
+# struct HostInfo {
+#     hostname: String,
+#     ip_addresses: Vec<String>,
+# }
+class HostInfo(TypedDict):
+    hostname: str
+    ip_addresses: List[str]
 
 # Rust mapping:
 # struct PartitionUsageItem {
@@ -91,6 +101,7 @@ class DiskIOInfo(TypedDict):
 
 # Rust mapping:
 # struct SystemState {
+#     host: Option<HostInfo>,
 #     disk: Vec<PartitionUsageItem>,
 #     load_average: Vec<f64>,
 #     memory: MemoryInfo,
@@ -106,6 +117,7 @@ class DiskIOInfo(TypedDict):
 #     apc: Option<serde_json::Value>,
 # }
 class SystemState(TypedDict, total=False):
+    host: HostInfo
     disk: List[PartitionUsageItem]
     load_average: List[float]
     memory: MemoryInfo
@@ -135,6 +147,35 @@ class SystemStatus:
 
     def read_system_status(self) -> None:
         info_systeme: SystemState = {}
+        
+        # Host info
+        hostname = socket.getfqdn()
+        ip_addresses: List[str] = []
+
+        # Get all non-loopback, non-docker IP addresses (IPv4 and IPv6)
+        for interface, addrs in psutil.net_if_addrs().items():
+            # Skip common container/virtual network interfaces
+            if any(prefix in interface for prefix in ['docker', 'veth', 'br-', 'docker0', 'cali', 'flannel']):
+                continue
+            for addr in addrs:
+                if addr.family in (socket.AF_INET, socket.AF_INET6):
+                    # Skip loopback
+                    if addr.address.startswith('127.') or addr.address == '::1':
+                        continue
+                    ip_addresses.append(addr.address)
+
+        # Fallback if no suitable IP was found
+        if not ip_addresses:
+            try:
+                ip_addresses.append(socket.gethostbyname(hostname))
+            except Exception:
+                pass
+
+        info_systeme['host'] = {
+            'hostname': hostname,
+            'ip_addresses': ip_addresses
+        }
+
         info_systeme['disk'] = self.partition_usage()
         info_systeme['load_average'] = [round(l * 100) / 100 for l in list(psutil.getloadavg())]
 
