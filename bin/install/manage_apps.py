@@ -109,6 +109,38 @@ class AppManager:
         with open(self.installed_apps_file, 'w') as f:
             json.dump(apps, f, indent=2)
 
+    def get_updates(self, catalogue_url: str):
+        catalogue = self.fetch_json(catalogue_url)
+        if not catalogue:
+            return []
+
+        installed_apps = self.get_installed_apps()
+        updates = []
+
+        def parse_version(v):
+            try:
+                return tuple(int(x) for x in str(v).split('.'))
+            except (ValueError, AttributeError):
+                return (0,)
+
+        for name, installed_info in installed_apps.items():
+            if name in catalogue:
+                available_info = catalogue[name]
+                installed_version = installed_info.get('version')
+                available_version = available_info.get('version')
+
+                if installed_version and available_version:
+                    if parse_version(available_version) > parse_version(installed_version):
+                        updates.append({
+                            'name': name,
+                            'current_version': installed_version,
+                            'available_version': available_version,
+                            'url': available_info.get('url'),
+                            'sha256': available_info.get('sha256')
+                        })
+        return updates
+
+
     def install_from_package(self, pkg_url: str, expected_hash: Optional[str], noreload = False):
         with tempfile.TemporaryDirectory() as tmp_dir:
             pkg_path = pathlib.Path(tmp_dir) / "package.tar.gz"
@@ -346,6 +378,13 @@ def main():
     list_installed_parser = subparsers.add_parser("list-installed")
     list_installed_parser.add_argument("--root", required=False, help="MILLEGRILLES_ROOT directory")
 
+    # update command
+    update_parser = subparsers.add_parser("update")
+    update_parser.add_argument("-i", "--install", action="store_true", help="Install updates automatically")
+    update_parser.add_argument("--env", choices=['dev', 'test', 'stable'], default='stable', help="Environment (default: stable)")
+    update_parser.add_argument("--catalogue_url", help="Remote catalogue URL", default=DEFAULT_CATALOGUE_URL)
+    update_parser.add_argument("--root", required=False, help="MILLEGRILLES_ROOT directory")
+
     args = parser.parse_args()
     root = getattr(args, 'root', None)
     if not root:
@@ -388,6 +427,27 @@ def main():
 
     elif args.command == "list-installed":
         manager.list_installed()
+
+    elif args.command == "update":
+        catalogue_url = args.catalogue_url
+        if args.env != 'stable':
+            catalogue_url = catalogue_url.replace('stable.json', f"{args.env}.json")
+        
+        updates = manager.get_updates(catalogue_url)
+        
+        if not updates:
+            print("All applications are up to date.")
+        else:
+            print(f"{'Name':<20} {'Current':<10} {'Available':<10}")
+            print("-" * 40)
+            for u in updates:
+                print(f"{u['name']:<20} {u['current_version']:<10} {u['available_version']:<10}")
+
+            if args.install:
+                for u in updates:
+                    print(f"\nUpdating {u['name']} from {u['current_version']} to {u['available_version']}...")
+                    manager.install_from_package(u['url'], u['sha256'])
+                print("\nAll updates completed.")
 
 if __name__ == "__main__":
     main()
