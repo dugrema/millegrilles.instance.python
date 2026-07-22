@@ -68,7 +68,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     # Handlers (services)
     bus_connector = MilleGrillesPikaConnector(context)
     context.bus_connector = bus_connector
-    system_status = SystemStatus(context)
+    # system_status = SystemStatus(context)
     app_manager = AppManager(context)
     certificate_manager = CertificatesManager(context)
 
@@ -85,7 +85,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     # Create tasks
     coros = [
         context.run(),
-        system_status.run(),
+        # system_status.run(),
         app_manager.run(),
         manager.run(),
         bus_handler.run(),

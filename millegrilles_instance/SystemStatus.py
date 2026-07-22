@@ -1,52 +1,75 @@
 import asyncio
 import logging
 import psutil
-
-from asyncio import TaskGroup
-
-from millegrilles_instance.Context import InstanceContext
+import time
 
 
 class SystemStatus:
 
-    def __init__(self, context: InstanceContext):
+    def __init__(self):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
-        self.__context = context
         self.__apc_info = None
         self.__current_state = dict()
-
-    async def run(self):
-        self.__logger.debug("SystemStatus thread started")
-        try:
-            async with TaskGroup() as group:
-                group.create_task(self.__polling_thread())
-                group.create_task(self.__apc_thread())
-        except *Exception as e:  # Fail on first exception
-            raise e
-        self.__logger.debug("SystemStatus thread done")
+        psutil.cpu_percent(interval=None)
 
     @property
     def current_state(self):
         return self.__current_state
 
-    async def __polling_thread(self):
-        while self.__context.stopping is False:
-            # Charger information UPS APC (si disponible)
-            await asyncio.to_thread(self.__read_system_status)
-            await self.__context.wait(20)
-
-    async def __apc_thread(self):
-        while self.__context.stopping is False:
-            stop = await self.apc_info()
-            if stop:
-                return  # Stopping thread
-            await self.__context.wait(15)
-
-    def __read_system_status(self):
+    def read_system_status(self):
         info_systeme = dict()
         info_systeme['disk'] = self.partition_usage()
         info_systeme['load_average'] = [round(l * 100) / 100 for l in list(psutil.getloadavg())]
 
+        # Memory
+        mem = psutil.virtual_memory()
+        info_systeme['memory'] = {
+            'total': mem.total,
+            'available': mem.available,
+            'percent': mem.percent,
+            'used': mem.used,
+            'free': mem.free
+        }
+        swap = psutil.swap_memory()
+        info_systeme['swap'] = {
+            'total': swap.total,
+            'used': swap.used,
+            'free': swap.free,
+            'percent': swap.percent
+        }
+
+        # CPU
+        info_systeme['cpu_count'] = psutil.cpu_count()
+        info_systeme['cpu_usage_percent'] = psutil.cpu_percent()
+
+        # Network
+        net = psutil.net_io_counters()
+        info_systeme['network'] = {
+            'bytes_sent': net.bytes_sent,
+            'bytes_recv': net.bytes_recv,
+            'packets_sent': net.packets_sent,
+            'packets_recv': net.packets_recv,
+            'errin': net.errin,
+            'errout': net.errout,
+            'dropin': net.dropin,
+            'dropout': net.dropout
+        }
+
+        # Disk IO
+        disk_io = psutil.disk_io_counters()
+        info_systeme['disk_io'] = {
+            'read_bytes': disk_io.read_bytes,
+            'write_bytes': disk_io.write_bytes,
+            'read_count': disk_io.read_count,
+            'write_count': disk_io.write_count,
+            'read_time': disk_io.read_time,
+            'write_time': disk_io.write_time,
+        }
+
+        # Uptime
+        info_systeme['uptime_seconds'] = time.time() - psutil.boot_time()
+
+        # Sensors
         try:
             system_temperature = psutil.sensors_temperatures()
             if system_temperature and len(system_temperature) > 0:
@@ -72,9 +95,6 @@ class SystemStatus:
             info_systeme['apc'] = self.__apc_info
 
         self.__current_state = info_systeme
-
-        # Inject into context
-        self.__context.current_system_state = self.__current_state
 
     async def apc_info(self):
         """
