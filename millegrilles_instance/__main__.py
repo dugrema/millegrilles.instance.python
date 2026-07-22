@@ -68,7 +68,6 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     # Handlers (services)
     bus_connector = MilleGrillesPikaConnector(context)
     context.bus_connector = bus_connector
-    # system_status = SystemStatus(context)
     app_manager = AppManager(context)
     certificate_manager = CertificatesManager(context)
     system_status_manager = SystemStatusManager(context)
@@ -83,11 +82,11 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     # Setup / injecting dependencies
     await manager.setup(bus_handler)
     await system_status_manager.setup()
+    await app_manager.setup()
 
     # Create tasks
     coros = [
         context.run(),
-        # system_status.run(),
         app_manager.run(),
         manager.run(),
         bus_handler.run(),

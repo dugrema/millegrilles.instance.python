@@ -1,13 +1,13 @@
 {
   "name": "mqadmin",
-  "version": "2026.3.1",
+  "version": "2026.3.2",
   "labels": {
     "en": "RabbitMQ Administration port",
     "fr": "Port d'administration de RabbitMQ"
   },
-  "portal": {
+  "portal": [{
     "port": 1443,
     "path": "/",
     "admin": true
-  }
+  }]
 }

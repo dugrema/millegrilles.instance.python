@@ -357,5 +357,6 @@ class SystemStatusManager:
             event_message,
             'instance',
             'presenceInstanceV2',
+            partition=self.__context.instance_id,
             exchange=self.__securite,
         )
