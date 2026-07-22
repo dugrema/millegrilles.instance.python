@@ -233,9 +233,9 @@ class InstanceManager:
         path_secrets = self.__context.configuration.path_millegrilles / "secrets"
         secrets = dict()
         for file in path_secrets.iterdir():
-            if file.is_file() and file.name.startswith('passwd'):
+            if file.is_file() and file.name.endswith('.txt'):
                 with open(file, 'rt') as fichier:
-                    file_content = fichier.read(10240)
+                    file_content = fichier.read(4096)
                 secrets[file.name] = file_content
 
         # Retourner la reponse chiffree

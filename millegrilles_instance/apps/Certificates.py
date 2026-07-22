@@ -142,6 +142,7 @@ def check_certificates(configuration: ConfigurationInstance, certs: list[Certifi
     secret_path = configuration.path_millegrilles / "secrets"
 
     to_renew = list()
+    init_only = configuration.init_only
 
     for cert in certs:
         if cert.get('split'):
@@ -156,7 +157,12 @@ def check_certificates(configuration: ConfigurationInstance, certs: list[Certifi
             continue
 
         info_expiration = cert_enveloppe.calculer_expiration()
-        if info_expiration.get('expire') or info_expiration.get('renouveler'):
+        if info_expiration.get('expire'):
+            # Always regenerate certificates that are expired immediately
+            # This has an impact on some domains like Maitredescles (it needs to be notified on key changes to migrate its secrets)
+            to_renew.append(cert)
+        elif not init_only and info_expiration.get('renouveler'):
+            # Only renew certificates if the manager is currently running (so not in --init mode)
             to_renew.append(cert)
 
     return to_renew
@@ -245,6 +251,12 @@ def renew_certificates(context: InstanceContext) -> bool:
     formatteur = context.formatteur
     secrets_path = context.configuration.path_millegrilles / "secrets"
     for cert_config in certs_to_renew:
+        try:
+            if MillegrillesConstantes.DOMAINE_MAITRE_DES_CLES in cert_config['domaines']:
+                raise NotImplementedError('TODO')
+        except KeyError:
+            pass
+
         clecert, new_certificate = signer_module(context.configuration, cert_config, formatteur)
         key_pem = clecert.get_pem_cle().strip()
         cert_pem = "".join(new_certificate).strip()

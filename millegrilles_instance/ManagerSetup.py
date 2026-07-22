@@ -1,4 +1,3 @@
-from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.apps.Certificates import renew_certificates
 from millegrilles_messages.messages.EnveloppeCertificat import CertificatExpire

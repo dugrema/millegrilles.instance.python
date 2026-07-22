@@ -62,8 +62,8 @@ class MgbusHandler(MgbusHandlerInterface):
         channel_exclusive = create_exclusive_q_channel(context, self.on_exclusive_message)
         await self.__manager.context.bus_connector.add_channel(channel_exclusive)
 
-        channel_applications = create_applications_channel(instance_id, niveau_securite_ajuste, context, self.on_application_message)
-        await self.__manager.context.bus_connector.add_channel(channel_applications)
+        # channel_applications = create_applications_channel(instance_id, niveau_securite_ajuste, context, self.on_application_message)
+        # await self.__manager.context.bus_connector.add_channel(channel_applications)
 
         channel_requests = create_requests_channel(instance_id, niveau_securite_ajuste, context, self.on_request_message)
         await self.__manager.context.bus_connector.add_channel(channel_requests)
@@ -140,32 +140,32 @@ def create_exclusive_q_channel(context: MilleGrillesBusContext,
 
     return exclusive_q_channel
 
-def create_applications_channel(instance_id: str, niveau_securite: str, context: InstanceContext,
-                                on_message: Callable[[MessageWrapper], Coroutine[Any, Any, None]]) -> MilleGrillesPikaChannel:
-
-    q_channel = MilleGrillesPikaChannel(context, prefetch_count=1)
-    q = MilleGrillesPikaQueueConsumer(context, on_message, f'instance/{instance_id}/applications',
-                                      arguments={'x-message-ttl': 300_000})
-
-    if niveau_securite == Constantes.SECURITE_SECURE:
-        # Downgrade securite a 3.protege pour recevoir les commandes
-        niveau_securite_ajuste = Constantes.SECURITE_PROTEGE
-    else:
-        niveau_securite_ajuste = niveau_securite
-
-    q.add_routing_key(RoutingKey(niveau_securite_ajuste,
-                                  f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_INSTALLER}'))
-    q.add_routing_key(RoutingKey(niveau_securite_ajuste,
-                                  f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_UPGRADE}'))
-    q.add_routing_key(RoutingKey(niveau_securite_ajuste,
-                                  f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER}'))
-    q.add_routing_key(RoutingKey(niveau_securite_ajuste,
-                                  f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_DEMARRER}'))
-    q.add_routing_key(RoutingKey(niveau_securite_ajuste,
-                                  f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_ARRETER}'))
-
-    q_channel.add_queue(q)
-    return q_channel
+# def create_applications_channel(instance_id: str, niveau_securite: str, context: InstanceContext,
+#                                 on_message: Callable[[MessageWrapper], Coroutine[Any, Any, None]]) -> MilleGrillesPikaChannel:
+#
+#     q_channel = MilleGrillesPikaChannel(context, prefetch_count=1)
+#     q = MilleGrillesPikaQueueConsumer(context, on_message, f'instance/{instance_id}/applications',
+#                                       arguments={'x-message-ttl': 300_000})
+#
+#     if niveau_securite == Constantes.SECURITE_SECURE:
+#         # Downgrade securite a 3.protege pour recevoir les commandes
+#         niveau_securite_ajuste = Constantes.SECURITE_PROTEGE
+#     else:
+#         niveau_securite_ajuste = niveau_securite
+#
+#     q.add_routing_key(RoutingKey(niveau_securite_ajuste,
+#                                   f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_INSTALLER}'))
+#     q.add_routing_key(RoutingKey(niveau_securite_ajuste,
+#                                   f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_UPGRADE}'))
+#     q.add_routing_key(RoutingKey(niveau_securite_ajuste,
+#                                   f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_SUPPRIMER}'))
+#     q.add_routing_key(RoutingKey(niveau_securite_ajuste,
+#                                   f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_DEMARRER}'))
+#     q.add_routing_key(RoutingKey(niveau_securite_ajuste,
+#                                   f'commande.instance.{instance_id}.{ConstantesInstance.COMMANDE_APPLICATION_ARRETER}'))
+#
+#     q_channel.add_queue(q)
+#     return q_channel
 
 
 def create_requests_channel(instance_id: str, niveau_securite: str, context: InstanceContext,
@@ -182,8 +182,8 @@ def create_requests_channel(instance_id: str, niveau_securite: str, context: Ins
 
     q.add_routing_key(RoutingKey(niveau_securite_ajuste, f'requete.instance.{instance_id}.{ConstantesInstance.REQUETE_GET_PASSWORDS}'))
 
-    if niveau_securite == Constantes.SECURITE_PROTEGE:
-        q.add_routing_key(RoutingKey(Constantes.SECURITE_PROTEGE, f'commande.instance.{ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES}'))
+    # if niveau_securite == Constantes.SECURITE_PROTEGE:
+    #     q.add_routing_key(RoutingKey(Constantes.SECURITE_PROTEGE, f'commande.instance.{ConstantesInstance.COMMANDE_TRANSMETTRE_CATALOGUES}'))
 
     q_channel.add_queue(q)
     return q_channel

@@ -73,6 +73,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
     def __init__(self, args: argparse.Namespace):
         super().__init__()
         self.__logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+        self.verbose = args.verbose
 
         # Load the configuration file
         if args.config:

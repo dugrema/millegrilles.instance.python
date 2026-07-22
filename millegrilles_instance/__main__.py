@@ -98,6 +98,10 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
 
 async def main():
     config = ConfigurationInstance.load()
+    if config.verbose:
+        LOGGER.setLevel(logging.DEBUG)
+    else:
+        LOGGER.setLevel(logging.INFO)
 
     try:
         context = InstanceContext(config)
@@ -106,6 +110,7 @@ async def main():
         sys.exit(1)  # Quit
 
     if config.init_only:
+        LOGGER.info("Starting maintenance of the environment")
         try:
             await setup_manager(context)
         except Exception as e:
