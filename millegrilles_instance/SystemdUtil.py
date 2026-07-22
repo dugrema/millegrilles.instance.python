@@ -1,7 +1,6 @@
 import subprocess
 import sys
-
-from millegrilles.lib import logging
+import logging
 
 LOGGER = logging.getLogger(__name__)
 
