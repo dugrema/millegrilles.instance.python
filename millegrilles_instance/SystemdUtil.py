@@ -9,9 +9,17 @@ def reload_nginx(instance_name: str):
     LOGGER.info(f"Reloading {instance_name}-nginx...")
     run_command(f"systemctl --user reload {instance_name}-nginx")
 
+def restart_nginx(instance_name: str):
+    LOGGER.info(f"Restarting {instance_name}-nginx...")
+    run_command(f"systemctl --user restart {instance_name}-nginx")
+
 def reload_middleware(instance_name: str):
     LOGGER.info(f"Reloading {instance_name}-middleware...")
     run_command(f"systemctl --user reload {instance_name}-middleware")
+
+def restart_middleware(instance_name: str):
+    LOGGER.info(f"Restarting {instance_name}-middleware...")
+    run_command(f"systemctl --user restart {instance_name}-middleware")
 
 def reload_compose_applications(instance_name: str, update_certs=True):
     # Need to generate certificates first to avoid reload issue with applications service

@@ -26,7 +26,7 @@ async def sanity_check(context: InstanceContext) -> None:
 
 async def generate_secrets(context: InstanceContext):
     # Generate missing/expired secrets
-    renew_certificates(context)
+    await renew_certificates(context)
 
 
 async def setup_apps(context: InstanceContext):

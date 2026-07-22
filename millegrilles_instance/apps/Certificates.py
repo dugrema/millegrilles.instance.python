@@ -13,6 +13,7 @@ from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages import Constantes as MillegrillesConstantes
+from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.FormatteurMessages import FormatteurMessageMilleGrilles
 
@@ -225,7 +226,7 @@ def generer_password(type_generateur='password', size: int = None):
 
     return valeur
 
-def renew_certificates(context: InstanceContext) -> bool:
+async def renew_certificates(context: InstanceContext) -> list[dict]:
     """
     Loads all base docker compose files and recursively goes through includes to cumulate the x-certificate-configuration elements.
     Each certificate under secrets/ that matches the configuration is checked and appropriate certificates are created/renewed.
@@ -245,21 +246,32 @@ def renew_certificates(context: InstanceContext) -> bool:
     # Get certs to renew
     certs_to_renew = check_certificates(context.configuration, certs)
 
-    changes_pending = False
+    renewed_config: list[dict] = list()
 
     # Submit certs
     formatteur = context.formatteur
     secrets_path = context.configuration.path_millegrilles / "secrets"
     for cert_config in certs_to_renew:
-        try:
-            if MillegrillesConstantes.DOMAINE_MAITRE_DES_CLES in cert_config['domaines']:
-                raise NotImplementedError('TODO')
-        except KeyError:
-            pass
-
         clecert, new_certificate = signer_module(context.configuration, cert_config, formatteur)
         key_pem = clecert.get_pem_cle().strip()
         cert_pem = "".join(new_certificate).strip()
+
+        # Check if we have to notify the maitre des cles (if --init, the certificate will only show up when ALREADY expired)
+        if not context.configuration.init_only:
+            try:
+                if MillegrillesConstantes.DOMAINE_MAITRE_DES_CLES in cert_config['domaines']:
+                    try:
+                        cert_path = secrets_path / f"{cert_config['name']}.cert.pem"
+                        old_cert = EnveloppeCertificat.from_file(cert_path)
+                        await rotation_maitredescles(context, old_cert, new_certificate)
+                    except (TimeoutError, ValueError):
+                        LOGGER.exception("Error rotation certificate for keymaster")
+                        continue  # Keep going with other certificates
+                    except FileNotFoundError:
+                        LOGGER.warning("Old keymaster certificate cannot be loaded, rotating without warning")
+            except KeyError:
+                pass
+
         if cert_config.get('split'):
             key_path = secrets_path / f"{cert_config['name']}.key.pem"
             cert_path = secrets_path / f"{cert_config['name']}.cert.pem"
@@ -288,7 +300,7 @@ def renew_certificates(context: InstanceContext) -> bool:
                 pem_file.write(cert_pem)
 
         LOGGER.debug(f"Certificate {cert_config['name']} renewed")
-        changes_pending = True
+        renewed_config.append(cert_config)
 
     # Generate missing passwords
     passwords_to_generate = check_passwords(context.configuration, certs)
@@ -297,7 +309,28 @@ def renew_certificates(context: InstanceContext) -> bool:
         filename = secrets_path / f"{p}.txt"
         with open(filename, "w") as file:
             file.write(password)
-        changes_pending = True
         LOGGER.debug(f"Password {p} generated")
 
-    return changes_pending
+    return renewed_config
+
+
+async def rotation_maitredescles(context: InstanceContext, old_certificate: EnveloppeCertificat, new_certificate: list[str]):
+    producer = await context.get_producer()
+
+    fingerprint = old_certificate.fingerprint
+    command = {
+        'certificat': new_certificate,
+    }
+
+    LOGGER.info(f"Requesting rotation of keymaster with key fingerprint {fingerprint}")
+    response = await producer.command(
+        command, 'MaitreDesCles', 'rotationCertificat',
+        exchange='3.protege',
+        partition=fingerprint
+    )
+
+    if not response:
+        raise ValueError("No response received from MaitreDesCles for rotationCertificat")
+
+    if response.parsed['ok'] is False:
+        raise ValueError(f'Error trying to rotate a keymaster certificate: {response.parsed.get('err')}')

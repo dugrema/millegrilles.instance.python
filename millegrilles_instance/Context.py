@@ -13,7 +13,6 @@ from millegrilles_messages.IpUtils import get_ip, get_hostnames
 from millegrilles_messages.bus.BusContext import MilleGrillesBusContext, ForceTerminateExecution
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
 from millegrilles_messages.bus.PikaMessageProducer import MilleGrillesPikaMessageProducer
-from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages.EnveloppeCertificat import CertificatExpire,EnveloppeCertificat
 
 LOGGER = logging.getLogger(__name__)
@@ -31,16 +30,10 @@ class InstanceContext(MilleGrillesBusContext):
         super().__init__(configuration, False)
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
         self.__bus_connector: Optional[MilleGrillesPikaConnector] = None
-        # self.__docker_handler: Optional[DockerHandlerInterface] = None
 
-        self.__instance_id: Optional[str] = None
-        self.__instance_name: Optional[str] = None
-        self.__securite: Optional[str] = None
-        self.__idmg: Optional[str] = None
         self.__ip_address: Optional[str] = None
         self.__hostname: Optional[str] = None
         self.__hostnames: Optional[list[str]] = None
-        self.__csr_genere: Optional[CleCsrGenere] = None
 
         self.__reload_q: asyncio.Queue[Optional[float]] = asyncio.Queue(maxsize=2)
         self.__reload_listeners: list[Callable[[], None]] = list()
@@ -150,42 +143,20 @@ class InstanceContext(MilleGrillesBusContext):
     def bus_connector(self, value: MilleGrillesPikaConnector):
         self.__bus_connector = value
 
-    # @property
-    # def docker_actif(self) -> bool:
-    #     return self.__docker_handler is not None
-
-    # @property
-    # def docker_handler(self) -> DockerHandlerInterface:
-    #     if self.__docker_handler is None:
-    #         raise Exception('not initialized')
-    #     return self.__docker_handler
-    #
-    # @docker_handler.setter
-    # def docker_handler(self, value: DockerHandlerInterface):
-    #     self.__docker_handler = value
-
     async def get_producer(self) -> MilleGrillesPikaMessageProducer:
         return await self.__bus_connector.get_producer()
 
     @property
     def instance_id(self):
-        if self.__instance_id is None:
-            raise ValueNotAvailable()
-        return self.__instance_id
+        return self.signing_key.enveloppe.subject_common_name
 
     @property
     def securite(self):
         return self.signing_key.enveloppe.get_exchanges[0]
-        # securite = self.configuration.securite
-        # if not securite:
-        #     raise ValueNotAvailable('Securite not defined')
-        # return securite
 
     @property
     def idmg(self):
-        if self.__idmg is None:
-            raise ValueNotAvailable()
-        return self.__idmg
+        return self.signing_key.enveloppe.idmg
 
     @property
     def hostname(self):
@@ -198,12 +169,6 @@ class InstanceContext(MilleGrillesBusContext):
     @property
     def ip_address(self):
         return self.__ip_address
-
-    @property
-    def csr_genere(self):
-        if self.__csr_genere is None:
-            self.__csr_genere = CleCsrGenere.build(self.instance_id)
-        return self.__csr_genere
 
     @property
     # def application_status(self) -> ApplicationInstallationStatus:
@@ -220,9 +185,6 @@ class InstanceContext(MilleGrillesBusContext):
     @property
     def initial_application_configuration_update(self) -> asyncio.Event:
         return self.__initial_application_configuration_update
-
-    def clear_csr_genere(self):
-        self.__csr_genere = None
 
     async def delay_reload(self, delay: float):
         self.__reload_done.clear()

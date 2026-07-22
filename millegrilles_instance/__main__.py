@@ -9,6 +9,7 @@ from typing import Awaitable
 from millegrilles_instance.ManagerSetup import setup_manager
 from millegrilles_instance.SystemStatus import SystemStatus
 from millegrilles_instance.apps.AppManager import AppManager
+from millegrilles_instance.apps.CertificatesManager import CertificatesManager
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution, StopListener
 from millegrilles_messages.bus.BusExceptions import ConfigurationFileError
 from millegrilles_messages.bus.PikaConnector import MilleGrillesPikaConnector
@@ -69,6 +70,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
     context.bus_connector = bus_connector
     system_status = SystemStatus(context)
     app_manager = AppManager(context)
+    certificate_manager = CertificatesManager(context)
 
     # Facade
     manager = InstanceManager(context, app_manager)
@@ -87,6 +89,7 @@ async def wiring(context: InstanceContext) -> list[Awaitable]:
         app_manager.run(),
         manager.run(),
         bus_handler.run(),
+        certificate_manager.run(),
     ]
 
     return coros
