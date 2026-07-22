@@ -196,14 +196,16 @@ class AppManager:
                     for service_name, service_info in yaml_app_file['services'].items():
                         try:
                             for volume in service_info['volumes']:
-                                bind_path = volume.split(":")[0]
-                                # Check if this is a bind or volume mount (volume has no '/').
-                                if "/" in bind_path:
-                                    # This is a bind path
-                                    bind_path = bind_path.replace("${MILLEGRILLES_ROOT}/", "")
-                                    bind_path_resolved = self.root / bind_path
-                                    print(f"Creating bind mount {bind_path_resolved}")
-                                    bind_path_resolved.mkdir(parents=True, exist_ok=True)
+                                mount_path = volume.split(":")[0]
+                                if "MILLEGRILLES_ROOT" in mount_path:
+                                    mount_path = mount_path.replace("${MILLEGRILLES_ROOT}", str(self.root))
+
+                                # Replace variables using env as format
+                                mount_path = mount_path.format(**os.environ)
+                                mount_path_resolved = pathlib.Path(mount_path).resolve()
+
+                                print(f"Creating mount {mount_path_resolved}")
+                                mount_path_resolved.mkdir(parents=True, exist_ok=True)
                         except KeyError:
                             pass
                 except KeyError:
