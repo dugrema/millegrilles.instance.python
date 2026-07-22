@@ -3,7 +3,7 @@ Description=Regular check/rotation of certificates
 
 [Timer]
 OnBootSec=6s
-OnUnitActiveSec=15m
+OnUnitActiveSec=8h
 Persistent=true
 
 [Install]
