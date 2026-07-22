@@ -8,6 +8,7 @@ from cryptography.x509 import ExtensionNotFound
 
 from millegrilles_instance.Interfaces import MgbusHandlerInterface
 from millegrilles_instance.NginxUtil import publish_to_nginx
+from millegrilles_instance.SystemdUtil import reload_nginx, reload_compose_applications, reload_middleware
 from millegrilles_instance.apps.AppManager import AppManager
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages import Constantes
@@ -148,7 +149,7 @@ class InstanceManager:
                 expired = None  # No valid certificate
 
         if expired:
-            raise Exception("Unsupported state - expired manager certificate for Protected/Secure node")
+            raise Exception("Expired manager certificate. Run the Signing CA or Manager certificate creation script.")
         else:
             if securite == Constantes.SECURITE_PUBLIC:
                 self.__logger.info("Mode 1.public")
@@ -160,6 +161,13 @@ class InstanceManager:
                 self.__logger.info("Mode 4.secure")
             else:
                 raise ValueError('Unsupported security mode: %s' % securite)
+
+            # Reload all systemd services
+            instance_name = self.context.configuration.instance_name
+            if securite != Constantes.SECURITE_SECURE:
+                reload_nginx(instance_name)
+            reload_middleware(instance_name)
+            reload_compose_applications(instance_name, update_certs=False)
 
             # Change runlevel to local. This will run through the process to make system operational.
             await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_LOCAL)

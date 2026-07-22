@@ -86,6 +86,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
 
         self.__path_millegrilles = pathlib.Path(self.__millegrille_env['MILLEGRILLES_ROOT'])
         self.__init_only = False  # When True, means that the system should run initial setup only (i.e. certs, nginx config, setup directories) then exit
+        self.__instance_name = self.__millegrille_env['INSTANCE_NAME']
 
         # Set up folders from root
         self.__host_docker_internal = 'docker'
@@ -178,3 +179,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
     @property
     def init_only(self) -> bool:
         return self.__init_only
+
+    @property
+    def instance_name(self) -> str:
+        return self.__instance_name
