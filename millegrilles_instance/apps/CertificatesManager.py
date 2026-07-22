@@ -6,8 +6,7 @@ from asyncio import TaskGroup
 from millegrilles_messages.messages import Constantes as MilleGrillesConstantes
 
 from millegrilles_instance.Context import InstanceContext
-from millegrilles_instance.SystemdUtil import restart_compose_applications, restart_middleware, restart_nginx, \
-    reload_compose_applications, reload_middleware, reload_nginx
+from millegrilles_instance.SystemdUtil import restart_compose_applications, restart_middleware, restart_nginx
 from millegrilles_instance.apps.Certificates import renew_certificates
 
 
@@ -62,13 +61,18 @@ class CertificatesManager:
 
         names_renewed: set[str] = set([c['name'] for c in renewed_config])
 
+        # Possible improvements:
+        #   - read .yml files and extract service names directly
+        #   - use docker compose restart on individual services
+
         try:
-            names_renewed.remove('nginx')
+            names_renewed.remove('nginx')  # Hard-coded module name
             nginx_renewed = True
         except KeyError:
             nginx_renewed = False
 
         middleware_renewed = False
+        # Hard-coded module names
         if self.__context.securite == MilleGrillesConstantes.SECURITE_PROTEGE:
             middleware_list = ['mq', 'mongo', 'midcompte', 'redis', 'ceduleur', 'webauth']
         else:
@@ -80,6 +84,7 @@ class CertificatesManager:
             except KeyError:
                 pass
 
+        # Anything left is in the applications.yml file
         applications_renewed = len(names_renewed) > 0
 
         instance_name = self.__context.configuration.instance_name

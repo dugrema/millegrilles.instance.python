@@ -11,7 +11,6 @@ async def setup_manager(context: InstanceContext) -> None:
     """
     await sanity_check(context)
     await generate_secrets(context)
-    await setup_apps(context)
 
 
 async def sanity_check(context: InstanceContext) -> None:
@@ -27,7 +26,3 @@ async def sanity_check(context: InstanceContext) -> None:
 async def generate_secrets(context: InstanceContext):
     # Generate missing/expired secrets
     await renew_certificates(context)
-
-
-async def setup_apps(context: InstanceContext):
-    pass
