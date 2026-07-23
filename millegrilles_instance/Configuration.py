@@ -188,3 +188,16 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
     @property
     def instance_name(self) -> str:
         return self.__instance_name
+
+    @property
+    def instance_ports(self) -> dict[str, int]:
+        http = int(self.__millegrille_env.get('HTTP_PORT') or '80')
+        https = int(self.__millegrille_env.get('HTTPS_PORT') or '443')
+        mtls = int(self.__millegrille_env.get('MTLS_PORT') or 444)
+        return {
+            "http": http,
+            "https": https,
+            "wss": https,
+            "https_mtls": mtls,
+            "wss_mtls": mtls,
+        }

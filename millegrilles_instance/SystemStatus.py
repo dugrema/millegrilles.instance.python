@@ -7,6 +7,7 @@ import psutil
 import time
 from typing import Any, Dict, List, Optional, Union, TypedDict
 
+from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_messages.messages import Constantes as MilleGrillesConstantes
 
@@ -15,10 +16,12 @@ from millegrilles_messages.messages import Constantes as MilleGrillesConstantes
 # struct HostInfo {
 #     hostname: String,
 #     ip_addresses: Vec<String>,
+#     ports: HashMap<String,u16>,
 # }
 class HostInfo(TypedDict):
     hostname: str
     ip_addresses: List[str]
+    ports: dict[str, int]
 
 # Rust mapping:
 # struct PartitionUsageItem {
@@ -135,8 +138,9 @@ class SystemState(TypedDict, total=False):
 
 class SystemStatus:
 
-    def __init__(self):
+    def __init__(self, configuration: ConfigurationInstance):
         self.__logger = logging.getLogger(__name__ + '.' + self.__class__.__name__)
+        self.__configuration = configuration
         self.__apc_info: Union[Dict[str, Any], bool, None] = None
         self.__current_state: SystemState = {}
         psutil.cpu_percent(interval=None)
@@ -171,9 +175,18 @@ class SystemStatus:
             except Exception:
                 pass
 
+        ports = self.__configuration.instance_ports
+
         info_systeme['host'] = {
             'hostname': hostname,
-            'ip_addresses': ip_addresses
+            'ip_addresses': ip_addresses,
+            'ports': {
+                "http": ports['http'],
+                "https": ports['https'],
+                "wss": ports['wss'],
+                "https_mtls": ports['https_mtls'],
+                "wss_mtls": ports['wss_mtls']
+            }
         }
 
         info_systeme['disk'] = self.partition_usage()
@@ -300,7 +313,7 @@ class SystemStatusManager:
 
         self.__initial_refresh_done = asyncio.Event()
 
-        self.__handler = SystemStatus()
+        self.__handler = SystemStatus(context.configuration)
 
         # Downgrade securite level 4.secure to 3.protege
         self.__securite: Optional[str] = None
