@@ -63,7 +63,8 @@ class AppManager:
             self.__logger.warning("Timeout waiting for producer to emit applications list")
             return
 
-        with open('/home/mathieu/tas/dev/millegrilles/dev1/etc/installed_applications.json', 'r') as f:
+        installed_applications_path = self.__context.configuration.path_millegrilles / "etc" / "installed_applications.json"
+        with open(installed_applications_path, 'r') as f:
             content = await asyncio.to_thread(json.load, f)
 
         event_message = {
