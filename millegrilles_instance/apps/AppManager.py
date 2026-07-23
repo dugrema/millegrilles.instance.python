@@ -89,14 +89,16 @@ class AppManager:
 #     port: Optional[int]
 #     path: Optional[str]
 #     labels: Optional[ApplicationLabels]
+#     api: Optional[bool]
 #
 # # Metadata for a single application
 # class ApplicationInfo(TypedDict):
 #     name: str
 #     version: str
+#     securite: str
 #     labels: ApplicationLabels
 #     path: Optional[str]       # e.g., "millegrilles" or "apps"
-#     portal: Optional[List[PortalItem]] # Always a list, or not present
+#     web: Optional[List[PortalItem]] # Always a list, or not present
 #
 # # Top-level mapping: app_id -> application_data
 # InstalledApplications = Dict[str, ApplicationInfo]
