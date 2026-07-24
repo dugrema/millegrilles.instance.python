@@ -344,7 +344,7 @@ class SystemStatusManager:
                 await self.__emit_status()
             except Exception:
                 self.__logger.exception("Error renewing certificates in manager")
-            await self.__context.wait(30)
+            await self.__context.wait(10)
         self.__logger.info("Stopping emit status thread")
 
     async def __emit_status(self):
