@@ -148,15 +148,15 @@ class InstanceContext(MilleGrillesBusContext):
 
     @property
     def instance_id(self):
-        return self.signing_key.enveloppe.subject_common_name
+        return self.configuration.instance_id
 
     @property
     def securite(self):
-        return self.signing_key.enveloppe.get_exchanges[0]
+        return self.configuration.securite
 
     @property
     def idmg(self):
-        return self.signing_key.enveloppe.idmg
+        return self.configuration.idmg
 
     @property
     def hostname(self):

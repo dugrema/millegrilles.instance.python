@@ -158,6 +158,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         """
         Reload values from config files
         """
+        super().reload()
         self.reload_config_env()
 
     @property

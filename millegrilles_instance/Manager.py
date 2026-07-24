@@ -217,7 +217,10 @@ class InstanceManager:
 
     async def update_fiche_publique(self, message: MessageWrapper):
         contenu = message.contenu
+        path_etc_fiche = self.__context.configuration.path_millegrilles / "etc" / "fiche.json"
         await asyncio.to_thread(publish_to_nginx, self.context.configuration, 'fiche.json', contenu)
+        with open(path_etc_fiche, 'wb') as f:
+            f.write(contenu)
 
     async def get_instance_passwords(self, message: MessageWrapper):
         enveloppe = message.certificat
@@ -255,9 +258,9 @@ class InstanceManager:
                                                         'ficheMillegrille',
                                                         exchange=Constantes.SECURITE_PUBLIC,
                                                         timeout=5)
-                contenu = fiche_response.contenu
-                await asyncio.to_thread(publish_to_nginx, self.context.configuration, 'fiche.json', contenu)
-                return
+                if fiche_response:
+                    await self.update_fiche_publique(fiche_response)
+                    return
             except asyncio.TimeoutError:
                 if i < retries - 1:
                     self.__logger.warning("Timeout requesting ficheMillegrille, retrying ...")
