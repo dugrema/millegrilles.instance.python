@@ -7,6 +7,7 @@ import pathlib
 from urllib.parse import urlparse
 
 from millegrilles_instance import Constantes as ContantesInstance
+from millegrilles_messages.messages import Constantes as MilleGrillesConstantes
 from millegrilles_messages.bus.BusConfiguration import MilleGrillesBusConfiguration
 
 LOGGING_NAMES = [__name__, 'millegrilles_messages', 'millegrilles_instance']
@@ -195,10 +196,17 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         http = int(self.__millegrille_env.get('HTTP_PORT') or 80)
         https = int(self.__millegrille_env.get('HTTPS_PORT') or 443)
         mtls = int(self.__millegrille_env.get('MTLS_PORT') or 444)
-        return {
+
+        ports = {
             "http": http,
             "https": https,
             "wss": https,
             "https_mtls": mtls,
             "wss_mtls": mtls,
         }
+
+        # Add RabbitMQ port for 3.protege
+        if self.securite == MilleGrillesConstantes.SECURITE_PROTEGE:
+            ports['amqps'] = int(self.__millegrille_env.get('MQ_PORT') or 5673)
+
+        return ports

@@ -180,13 +180,7 @@ class SystemStatus:
         info_systeme['host'] = {
             'hostname': hostname,
             'ip_addresses': ip_addresses,
-            'ports': {
-                "http": ports['http'],
-                "https": ports['https'],
-                "wss": ports['wss'],
-                "https_mtls": ports['https_mtls'],
-                "wss_mtls": ports['wss_mtls']
-            }
+            'ports': ports
         }
 
         info_systeme['disk'] = self.partition_usage()
