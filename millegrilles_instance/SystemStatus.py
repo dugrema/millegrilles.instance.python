@@ -156,24 +156,25 @@ class SystemStatus:
         hostname = socket.getfqdn()
         ip_addresses: List[str] = []
 
+        # Note: removed, internal ips not useful for public card
         # Get all non-loopback, non-docker IP addresses (IPv4 and IPv6)
-        for interface, addrs in psutil.net_if_addrs().items():
-            # Skip common container/virtual network interfaces
-            if any(prefix in interface for prefix in ['docker', 'veth', 'br-', 'docker0', 'cali', 'flannel']):
-                continue
-            for addr in addrs:
-                if addr.family in (socket.AF_INET, socket.AF_INET6):
-                    # Skip loopback
-                    if addr.address.startswith('127.') or addr.address == '::1':
-                        continue
-                    ip_addresses.append(addr.address)
+        # for interface, addrs in psutil.net_if_addrs().items():
+        #     # Skip common container/virtual network interfaces
+        #     if any(prefix in interface for prefix in ['docker', 'veth', 'br-', 'docker0', 'cali', 'flannel']):
+        #         continue
+        #     for addr in addrs:
+        #         if addr.family in (socket.AF_INET, socket.AF_INET6):
+        #             # Skip loopback
+        #             if addr.address.startswith('127.') or addr.address == '::1':
+        #                 continue
+        #             ip_addresses.append(addr.address)
 
-        # Fallback if no suitable IP was found
-        if not ip_addresses:
-            try:
-                ip_addresses.append(socket.gethostbyname(hostname))
-            except Exception:
-                pass
+        # # Fallback if no suitable IP was found
+        # if not ip_addresses:
+        #     try:
+        #         ip_addresses.append(socket.gethostbyname(hostname))
+        #     except Exception:
+        #         pass
 
         ports = self.__configuration.instance_ports
 
