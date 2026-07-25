@@ -46,7 +46,7 @@ def process_fiche(millegrilles_root):
         with open(os.path.join(millegrilles_root, "etc", "fiche_env"), 'w') as f:
             f.write(f"MQ_HOSTNAME={remote_host}\n")
             f.write(f"MQ_PORT={amqps_port}\n")
-            f.write(f"PORT_HTTPS_MTLS={https_mtls_port}\n")
+            f.write(f"MTLS_PORT={https_mtls_port}\n")
             f.write(f"IDMG={idmg}\n")
         print("OK_ENV")
         

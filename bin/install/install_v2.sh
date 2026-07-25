@@ -73,13 +73,10 @@ case $TYPE in
 esac
 
 save_configenv() {
-  MQ_PORT=5673
-  MQ_HOSTNAME=localhost
-
   if [ "$TYPE" != "protege" ]; then
     if [ -f "${MILLEGRILLES_ROOT}/etc/fiche_env" ]; then
       source "${MILLEGRILLES_ROOT}/etc/fiche_env"
-      CERTISSUER_URL="https://${MQ_HOSTNAME}:${PORT_HTTPS_MTLS}"
+      CERTISSUER_URL="https://${MQ_HOSTNAME}:${MTLS_PORT}"
     else
       echo "[ERROR] fiche_env not found. Did you run process_fiche_file?"
       exit 1
@@ -102,8 +99,10 @@ save_configenv() {
     echo "REDIS_URL=\"rediss://localhost:6379\""
     echo "SECURITE=\"${SECURITE}\""
     if [ "$TYPE" != "protege" ]; then
-      echo "MQ_PORT=${MQ_PORT}"
       echo "MQ_HOSTNAME=${MQ_HOSTNAME}"
+      echo "MQ_PORT=${MQ_PORT}"
+      echo "MTLS_PORT=${MTLS_PORT}"
+      echo "IDMG=${IDMG}"
     fi
   } > "${MILLEGRILLES_ROOT}/config.env"
 
@@ -447,6 +446,14 @@ install_secure_instance() {
   source "${MILLEGRILLES_ROOT}/config.env"
 
   generate_signing_ca
+
+  echo "[INFO] Generating Node Manager Certificate..."
+  "${PATH_VENV}/bin/python3" bin/x509/ca_protege.py \
+    --millegrilles-root "${MILLEGRILLES_ROOT}" \
+    --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem"
+
+  echo "[INFO] Preparing node systemd configuration files for secure"
+  ./bin/install/setup_systemd_secure.sh "${MILLEGRILLES_ROOT}/config.env"
 
   echo "[INFO] Download and start certissuer"
   systemctl --user daemon-reload
