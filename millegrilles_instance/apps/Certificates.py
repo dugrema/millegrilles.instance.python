@@ -193,6 +193,7 @@ def signer_module(config: ConfigurationInstance, cert_config: CertificateConfigu
     certificat = formatteur_message.clecert.enveloppe
     instance_id = certificat.subject_common_name
     idmg = certificat.idmg
+
     # instance_id = config.instance_id
     # idmg = config.idmg
     cle_csr = CleCsrGenere.build(instance_id, idmg)
@@ -251,16 +252,33 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
     formatteur = context.formatteur
     secrets_path = context.configuration.path_millegrilles / "secrets"
     for cert_config in certs_to_renew:
-        clecert, new_certificate = signer_module(context.configuration, cert_config, formatteur)
+        # Inject local hostname when required
+        cert_config_copy: CertificateConfiguration = cert_config.copy()
+        try:
+            dns = cert_config_copy['dns'].copy()
+            if dns.get('domain') is True:
+                hostname = context.hostname
+                hostnames = [hostname]
+                short_name = hostname.split('.')[0]
+                if short_name != hostname:
+                    hostnames.append(short_name)
+                if dns.get('hostnames') is not None:
+                    hostnames.extend(dns['hostnames'])
+                dns['hostnames'] = hostnames
+                cert_config_copy['dns'] = dns
+        except KeyError:
+            pass
+
+        clecert, new_certificate = signer_module(context.configuration, cert_config_copy, formatteur)
         key_pem = clecert.get_pem_cle().strip()
         cert_pem = "".join(new_certificate).strip()
 
         # Check if we have to notify the maitre des cles (if --init, the certificate will only show up when ALREADY expired)
         if not context.configuration.init_only:
             try:
-                if MillegrillesConstantes.DOMAINE_MAITRE_DES_CLES in cert_config['domaines']:
+                if MillegrillesConstantes.DOMAINE_MAITRE_DES_CLES in cert_config_copy['domaines']:
                     try:
-                        cert_path = secrets_path / f"{cert_config['name']}.cert.pem"
+                        cert_path = secrets_path / f"{cert_config_copy['name']}.cert.pem"
                         old_cert = EnveloppeCertificat.from_file(cert_path)
                         await rotation_maitredescles(context, old_cert, new_certificate)
                     except (TimeoutError, ValueError):
@@ -272,8 +290,8 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
                 pass
 
         if cert_config.get('split'):
-            key_path = secrets_path / f"{cert_config['name']}.key.pem"
-            cert_path = secrets_path / f"{cert_config['name']}.cert.pem"
+            key_path = secrets_path / f"{cert_config_copy['name']}.key.pem"
+            cert_path = secrets_path / f"{cert_config_copy['name']}.cert.pem"
 
             # Delete old files when present
             try:
@@ -292,14 +310,14 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
                 cert_file.write(cert_pem)
         else:
             # Combined key/cert pem file
-            pem_path = secrets_path / f"{cert_config['name']}.pem"
+            pem_path = secrets_path / f"{cert_config_copy['name']}.pem"
             with open(pem_path, "w") as pem_file:
                 pem_file.write(key_pem)
                 pem_file.write("\n")
                 pem_file.write(cert_pem)
 
-        LOGGER.debug(f"Certificate {cert_config['name']} renewed")
-        renewed_config.append(cert_config)
+        LOGGER.debug(f"Certificate {cert_config_copy['name']} renewed")
+        renewed_config.append(cert_config_copy)
 
     # Generate missing passwords
     passwords_to_generate = check_passwords(context.configuration, certs)
