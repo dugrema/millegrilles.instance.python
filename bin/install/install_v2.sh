@@ -15,6 +15,8 @@ INSTANCE_NAME="$(hostname -s)"
 INSTANCE_DOMAIN="$(hostname -f)"
 MILLEGRILLES_ROOT="${HOME}/.local/${INSTANCE_NAME}"
 TYPE="protege"
+FICHE_URL=""
+EXISTING_CA_CERT=""
 
 # Check if all apt packages are installed and docker is available to the user
 "${REPO_ROOT}/bin/install/env_check.sh"
@@ -28,12 +30,11 @@ usage() {
   echo "  --name <name>      Set the instance name (default: ${INSTANCE_NAME})"
   echo "  --domain <domain>  Set the instance domain name (default: ${INSTANCE_DOMAIN})"
   echo "  --type <type>      Installation type: public, prive, protege, secure (default: protege)"
+  echo "  --fiche <url>      URL of the fiche file (required for non-protege types)"
   echo "  --ca <path>        Path to an existing Root CA certificate"
   echo "  --help             Display this help message"
   exit 0
 }
-
-EXISTING_CA_CERT=""
 
 while [[ "$#" -gt 0 ]]; do
   case $1 in
@@ -41,8 +42,9 @@ while [[ "$#" -gt 0 ]]; do
     --name) INSTANCE_NAME="$2"; shift ;;
     --domain) INSTANCE_DOMAIN="$2"; shift ;;
     --type) TYPE="$2"; shift ;;
+    --fiche) FICHE_URL="$2"; shift ;;
     --ca) EXISTING_CA_CERT="$2"; shift ;;
-    --help) usage ;;
+    --help) usage; exit 1 ;;
     *) echo "Unknown parameter: $1"; usage; exit 1 ;;
   esac
   shift
@@ -74,6 +76,18 @@ save_configenv() {
   MQ_PORT=5673
   MQ_HOSTNAME=localhost
 
+  if [ "$TYPE" != "protege" ]; then
+    if [ -f "${MILLEGRILLES_ROOT}/etc/fiche_env" ]; then
+      source "${MILLEGRILLES_ROOT}/etc/fiche_env"
+      CERTISSUER_URL="https://${MQ_HOSTNAME}:${PORT_HTTPS_MTLS}"
+    else
+      echo "[ERROR] fiche_env not found. Did you run process_fiche_file?"
+      exit 1
+    fi
+  else
+    CERTISSUER_URL="http://localhost:2080"
+  fi
+
   cat <<EOF > "${MILLEGRILLES_ROOT}/config.env"
 INSTANCE_ID="${INSTANCE_ID}"
 CONTAINER_UID="${CONTAINER_UID}"
@@ -84,7 +98,7 @@ MOUNT_MONGO="${MILLEGRILLES_ROOT}/var/mongo"
 INSTANCE_NAME="${INSTANCE_NAME}"
 INSTANCE_DOMAIN="${INSTANCE_DOMAIN}"
 MANAGER_URL="https://localhost:2443"
-CERTISSUER_URL="http://localhost:2080"
+CERTISSUER_URL="${CERTISSUER_URL}"
 REDIS_URL="rediss://localhost:6379"
 SECURITE="${SECURITE}"
 # MQ_PORT=$MQ_PORT
@@ -199,7 +213,7 @@ configurer_reps() {
 
 configurer_docker_network() {
   echo "[INFO] Configurer docker pour instance: ${INSTANCE_NAME}"
-  docker network create --ipv6 --subnet "2001:db8:2::/64" --attachable "${INSTANCE_NAME}_net" > /dev/null 2>&1 || true
+  docker network create --ipv6 --subnet "2001:db8:3::/64" --attachable "${INSTANCE_NAME}_net" > /dev/null 2>&1 || true
   echo "[OK] Configuration docker network completee"
 }
 
@@ -403,8 +417,12 @@ main() {
     protege)
       install_protege_instance
       ;;
-    public|prive|secure)
-      install_instance_v2
+    secure)
+      install_secure_instance
+      ;;
+    public|prive)
+      echo "[ERROR] Not implemented yet: $TYPE"
+      exit 1
       ;;
     *)
       echo "[ERROR] Invalid type: $TYPE"
