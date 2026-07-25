@@ -56,8 +56,12 @@ def remove_dir(path: pathlib.Path):
         shutil.rmtree(path, ignore_errors=True)
 
 def reload_nginx(instance_name: str):
-    print(f"Reloading {instance_name}-nginx...")
-    run_command(f"systemctl --user reload {instance_name}-nginx")
+    print(f"Securite {os.environ.get('SECURITE')}")
+    if os.environ.get('SECURITE') != '4.secure':
+        print(f"Reloading {instance_name}-nginx...")
+        run_command(f"systemctl --user reload {instance_name}-nginx")
+    else:
+        print("Secure environment, not reloading nginx")
 
 def reload_compose_applications(instance_name: str):
     # Need to generate certificates first to avoid reload issue with applications service
