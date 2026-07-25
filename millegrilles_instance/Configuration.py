@@ -90,7 +90,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         self.__init_only = False  # When True, means that the system should run initial setup only (i.e. certs, nginx config, setup directories) then exit
         self.__instance_id = self.__millegrille_env['INSTANCE_ID']
         self.__instance_name = self.__millegrille_env['INSTANCE_NAME']
-        self.__securite: Optional[str] = os.environ.get("SECURITE")
+        self.__is_secure_manager = os.environ.get("SECURITE") == MilleGrillesConstantes.SECURITE_SECURE
 
         # Set up folders from root
         self.__host_docker_internal = 'docker'
@@ -215,5 +215,9 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
 
     @property
     def securite(self):
-        # Allow overriding of certificate security for level 4.secure (cetificate is 3.protege)
-        return self.__securite or super().securite
+        return super().securite
+
+    @property
+    def is_secure_manager(self):
+        """ Secure manager has level 3.protege securite """
+        return self.__is_secure_manager

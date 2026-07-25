@@ -42,4 +42,4 @@ def run_command(command, env=None):
         LOGGER.info(f"Command: {e.cmd}")
         LOGGER.info(f"Stdout: {e.stdout}")
         LOGGER.info(f"Stderr: {e.stderr}")
-        sys.exit(1)
+        raise e

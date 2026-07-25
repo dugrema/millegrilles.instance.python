@@ -2,6 +2,7 @@ import asyncio
 import logging
 
 from asyncio import TaskGroup
+from subprocess import CalledProcessError
 from typing import Optional
 
 from cryptography.x509 import ExtensionNotFound
@@ -164,10 +165,13 @@ class InstanceManager:
 
             # Reload all systemd services
             instance_name = self.context.configuration.instance_name
-            if securite != Constantes.SECURITE_SECURE:
+            if not self.context.configuration.is_secure_manager:
                 reload_nginx(instance_name)
             reload_middleware(instance_name)
-            reload_compose_applications(instance_name, update_certs=False)
+            try:
+                reload_compose_applications(instance_name, update_certs=False)
+            except CalledProcessError:
+                self.__logger.exception("Error during applications reload - applications will not be available until fixed")
 
             # Change runlevel to local. This will run through the process to make system operational.
             await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_LOCAL)
