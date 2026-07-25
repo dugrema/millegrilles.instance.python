@@ -17,9 +17,9 @@ fi
 echo "[INFO] Starting system setup..."
 
 # 1. Install system dependencies
-echo "[INFO] Installing system dependencies (git, sudo, dpkg, python3-pip, python3-venv, docker.io)..."
+echo "[INFO] Installing system dependencies (git, sudo, dpkg, python3-pip, python3-venv, docker.io, curl)..."
 apt update
-apt install -y git sudo dpkg python3-pip python3-venv docker.io docker-compose-v2
+apt install -y git sudo dpkg python3-pip python3-venv docker.io docker-compose-v2 curl
 
 # 2. Configure Docker
 echo "[INFO] Configuring Docker..."
