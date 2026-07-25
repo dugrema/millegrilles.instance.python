@@ -13,41 +13,41 @@ def process_fiche(millegrilles_root):
             data = json.load(f)
         
         # Get millegrille certificate
-        millegrille = data['contenu']['millegrille']
-        ca_list = millegrille.get('ca', [])
-        if ca_list:
-            with open(os.path.join(millegrilles_root, "etc", "millegrille.pem"), 'w') as f:
-                for cert in ca_list:
-                    f.write(cert.strip() + "\n")
-            print("OK_CERT")
-        else:
-            print("ERROR_CERT")
-            sys.exit(1)
-        
+        millegrille = data['millegrille']
+        with open(os.path.join(millegrilles_root, "etc", "millegrille.pem"), 'w') as f:
+            f.write(millegrille)
+        print("OK_CERT")
+
+        parsed_contenu = json.loads(data['contenu'])
+
         # Get IDMG
-        idmg = millegrille.get('idmg')
+        idmg = parsed_contenu.get('idmg')
         if not idmg:
              print("ERROR_IDMG")
              sys.exit(1)
         print(f"IDMG={idmg}")
         
         # Get remote instance info
-        instances = millegrille.get('instances', {})
+        instances = parsed_contenu.get('instances', {})
         if not instances:
              print("ERROR_NO_INSTANCES")
              sys.exit(1)
-             
-        first_instance_id = next(iter(instances))
-        instance_info = instances[first_instance_id]
-        
-        remote_host = instance_info.get('domaines', ["localhost"])[0]
-        amqps_port = instance_info.get('ports', {}).get('amqps', 5673)
-        https_mtls_port = instance_info.get('ports', {}).get('https_mtls', 443)
-        
+
+        for instance_id, value in instances.items():
+            if value['securite'] == '3.protege':
+                remote_host = value['domaines'][0]
+                amqps_port = value['ports']['amqps']
+                https_mtls_port = value['ports']['https_mtls']
+                break
+        else:
+            print("Instance 3.protege not found in the system card")
+            sys.exit(1)
+
         with open(os.path.join(millegrilles_root, "etc", "fiche_env"), 'w') as f:
             f.write(f"MQ_HOSTNAME={remote_host}\n")
             f.write(f"MQ_PORT={amqps_port}\n")
             f.write(f"PORT_HTTPS_MTLS={https_mtls_port}\n")
+            f.write(f"IDMG={idmg}\n")
         print("OK_ENV")
         
     except Exception as e:
