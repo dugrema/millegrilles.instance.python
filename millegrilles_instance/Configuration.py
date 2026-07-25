@@ -3,6 +3,7 @@ import argparse
 import logging
 import os
 import pathlib
+from typing import Optional
 
 from urllib.parse import urlparse
 
@@ -89,6 +90,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         self.__init_only = False  # When True, means that the system should run initial setup only (i.e. certs, nginx config, setup directories) then exit
         self.__instance_id = self.__millegrille_env['INSTANCE_ID']
         self.__instance_name = self.__millegrille_env['INSTANCE_NAME']
+        self.__securite: Optional[str] = os.environ.get("SECURITE")
 
         # Set up folders from root
         self.__host_docker_internal = 'docker'
@@ -110,11 +112,11 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         # Push configuration values to superclass
         try:
             mq_url = urlparse(self.__millegrille_env['MQ_URL'])
+            self.mq_hostname = mq_url.hostname
+            self.mq_port = mq_url.port
         except KeyError:
-            mq_url = urlparse('amqps://localhost:5673')
+            pass  # Use previous env approach
 
-        self.mq_hostname = mq_url.hostname
-        self.mq_port = mq_url.port
 
     def save_config_env(self):
         raise NotImplementedError('TODO')
@@ -210,3 +212,8 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
             ports['amqps'] = int(self.__millegrille_env.get('MQ_PORT') or 5673)
 
         return ports
+
+    @property
+    def securite(self):
+        # Allow overriding of certificate security for level 4.secure (cetificate is 3.protege)
+        return self.__securite or super().securite
