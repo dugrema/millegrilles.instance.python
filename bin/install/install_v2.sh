@@ -88,22 +88,24 @@ save_configenv() {
     CERTISSUER_URL="http://localhost:2080"
   fi
 
-  cat <<EOF > "${MILLEGRILLES_ROOT}/config.env"
-INSTANCE_ID="${INSTANCE_ID}"
-CONTAINER_UID="${CONTAINER_UID}"
-CONTAINER_GID="${CONTAINER_GID}"
-MILLEGRILLES_ROOT="${MILLEGRILLES_ROOT}"
-MOUNT_FILEHOST="${MILLEGRILLES_ROOT}/var/filehost"
-MOUNT_MONGO="${MILLEGRILLES_ROOT}/var/mongo"
-INSTANCE_NAME="${INSTANCE_NAME}"
-INSTANCE_DOMAIN="${INSTANCE_DOMAIN}"
-MANAGER_URL="https://localhost:2443"
-CERTISSUER_URL="${CERTISSUER_URL}"
-REDIS_URL="rediss://localhost:6379"
-SECURITE="${SECURITE}"
-# MQ_PORT=$MQ_PORT
-# MQ_HOSTNAME=$MQ_HOSTNAME
-EOF
+  {
+    echo "INSTANCE_ID=\"${INSTANCE_ID}\""
+    echo "CONTAINER_UID=\"${CONTAINER_UID}\""
+    echo "CONTAINER_GID=\"${CONTAINER_GID}\""
+    echo "MILLEGRILLES_ROOT=\"${MILLEGRILLES_ROOT}\""
+    echo "MOUNT_FILEHOST=\"${MILLEGRILLES_ROOT}/var/filehost\""
+    echo "MOUNT_MONGO=\"${MILLEGRILLES_ROOT}/var/mongo\""
+    echo "INSTANCE_NAME=\"${INSTANCE_NAME}\""
+    echo "INSTANCE_DOMAIN=\"${INSTANCE_DOMAIN}\""
+    echo "MANAGER_URL=\"https://localhost:2443\""
+    echo "CERTISSUER_URL=\"${CERTISSUER_URL}\""
+    echo "REDIS_URL=\"rediss://localhost:6379\""
+    echo "SECURITE=\"${SECURITE}\""
+    if [ "$TYPE" != "protege" ]; then
+      echo "MQ_PORT=${MQ_PORT}"
+      echo "MQ_HOSTNAME=${MQ_HOSTNAME}"
+    fi
+  } > "${MILLEGRILLES_ROOT}/config.env"
 
   # Source the newly created config
   source "${MILLEGRILLES_ROOT}/config.env"
@@ -217,6 +219,35 @@ configurer_docker_network() {
   echo "[OK] Configuration docker network completee"
 }
 
+process_fiche_file() {
+  if [ "$TYPE" == "protege" ]; then
+    return 0
+  fi
+
+  if [ -z "$FICHE_URL" ]; then
+    echo "[ERROR] --fiche <url> is required for type $TYPE"
+    exit 1
+  fi
+
+  echo "[INFO] Downloading fiche from $FICHE_URL"
+  mkdir -p "${MILLEGRILLES_ROOT}/etc"
+  curl -sL --insecure "$FICHE_URL" -o "${MILLEGRILLES_ROOT}/etc/fiche.json"
+
+  if [ ! -s "${MILLEGRILLES_ROOT}/etc/fiche.json" ]; then
+    echo "[ERROR] Failed to download fiche.json or file is empty."
+    exit 1
+  fi
+
+  echo "[INFO] Extracting information from fiche.json"
+  # Use python3 to parse the JSON
+  python3 "${REPO_ROOT}/bin/install/process_fiche.py" "${MILLEGRILLES_ROOT}"
+
+  if [ $? -ne 0 ]; then
+    echo "[ERROR] Failed to process fiche.json"
+    exit 1
+  fi
+}
+
 install_instance_v2() {
   echo "[INFO] Preparation d'une instance de base"
 
@@ -230,36 +261,19 @@ install_instance_v2() {
     "${PATH_VENV}/bin/pip" install -e .
 
     echo "[INFO] Copier fichiers de configuration, code python"
-    install_web_files
+    if [ "$TYPE" != "secure" ]; then
+      install_web_files
+    fi
     configurer_docker_network
   else
     echo "[WARN] Dossier configuration déjà existant. Installation ignorée."
   fi
 }
 
-install_protege_instance() {
-  echo "[INFO] Starting Protege installation..."
-  
-  install_instance_v2
-  source "${MILLEGRILLES_ROOT}/config.env"
-
-  echo "[INFO] Copying protege level nginx files"
-  cp -iv "${REP_ETC}/nginx/nginx_protege/"* "${MILLEGRILLES_ROOT}/etc/nginx"
-
-  echo "[INFO] Generating Root CA..."
-
-  local password=""
-  if [ -n "$EXISTING_CA_CERT" ]; then
-    if [ ! -f "$EXISTING_CA_CERT" ]; then
-      echo "[ERROR] Existing CA certificate not found at $EXISTING_CA_CERT"
-      exit 1
-    fi
-    echo "[INFO] Using existing Root CA from $EXISTING_CA_CERT"
-    cp "$EXISTING_CA_CERT" "${MILLEGRILLES_ROOT}/etc/millegrille.pem"
-
+generate_signing_ca() {
     echo "[INFO] Generating Signing CSR from existing CA..."
     mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer"
-    
+
     # Generate an unencrypted ed25519 private key for the signing CA
     openssl genpkey -algorithm ed25519 -out "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_key.pem"
 
@@ -290,13 +304,35 @@ install_protege_instance() {
 
     # Combine key and certificate into signing_ca.pem
     cat "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_key.pem" "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_cert.pem" > "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem"
-    
+
     # Clean up temporary files
     rm "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.csr" "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_key.pem" "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_cert.pem"
 
     echo "[INFO] Signing CA assembled from user input."
+}
+
+install_protege_instance() {
+  echo "[INFO] Starting Protege installation..."
+  
+  install_instance_v2
+  source "${MILLEGRILLES_ROOT}/config.env"
+
+  echo "[INFO] Copying protege level nginx files"
+  cp -iv "${REP_ETC}/nginx/nginx_protege/"* "${MILLEGRILLES_ROOT}/etc/nginx"
+
+  local password=""
+  if [ -n "$EXISTING_CA_CERT" ]; then
+    if [ ! -f "$EXISTING_CA_CERT" ]; then
+      echo "[ERROR] Existing CA certificate not found at $EXISTING_CA_CERT"
+      exit 1
+    fi
+    echo "[INFO] Using existing Root CA from $EXISTING_CA_CERT"
+    cp "$EXISTING_CA_CERT" "${MILLEGRILLES_ROOT}/etc/millegrille.pem"
+
+    generate_signing_ca
     password="N/A (Using unencrypted signing key)"
   else
+    echo "[INFO] Generating Root CA..."
     # Generate a random password for the root CA
     password=$(openssl rand -base64 32)
     ./bin/x509/ca_new.sh $password
@@ -404,13 +440,41 @@ install_protege_instance() {
   echo "       ${MILLEGRILLES_ROOT}/secrets/webcass.cert.pem"
 }
 
+install_secure_instance() {
+  echo "[INFO] Starting Secure installation..."
+  
+  install_instance_v2
+  source "${MILLEGRILLES_ROOT}/config.env"
+
+  generate_signing_ca
+
+  echo "[INFO] Download and start certissuer"
+  systemctl --user daemon-reload
+  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/coremodules/certissuer.yml" pull
+  systemctl --user restart "${INSTANCE_NAME}-certissuer"
+  sleep 5
+
+  echo "[INFO] Initialize manager certificates"
+  "${PATH_VENV}/bin/python3" -m millegrilles_instance --config "${MILLEGRILLES_ROOT}" --init
+
+  echo "[INFO] Download and start middleware"
+  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/middleware/node-secure.yml" pull
+  systemctl --user restart "${INSTANCE_NAME}-middleware"
+
+  echo "[INFO] Start manager"
+  systemctl --user restart "${INSTANCE_NAME}-manager"
+
+  echo "[OK] Secure installation complete."
+}
+
 # ------------------------------------------------------------------------------
 # Main Execution
 # ------------------------------------------------------------------------------
 
 main() {
   preflight_check
-
+  
+  process_fiche_file
   save_configenv
 
   case $TYPE in
