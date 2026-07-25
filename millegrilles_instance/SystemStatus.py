@@ -356,8 +356,11 @@ class SystemStatusManager:
 
         system_state = await asyncio.to_thread(self.__handler.read_system_status)
 
+        securite = MilleGrillesConstantes.SECURITE_SECURE if self.__context.configuration.is_secure_manager else self.__securite
+
         event_message = {
             'system_state': system_state,
+            'securite': securite,
         }
 
         await producer.event(

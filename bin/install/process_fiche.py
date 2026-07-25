@@ -11,14 +11,14 @@ def process_fiche(millegrilles_root):
 
         with open(fiche_path, 'r') as f:
             data = json.load(f)
-        
+
+        parsed_contenu = json.loads(data['contenu'])
+
         # Get millegrille certificate
-        millegrille = data['millegrille']
+        millegrille = parsed_contenu['ca']
         with open(os.path.join(millegrilles_root, "etc", "millegrille.pem"), 'w') as f:
             f.write(millegrille)
         print("OK_CERT")
-
-        parsed_contenu = json.loads(data['contenu'])
 
         # Get IDMG
         idmg = parsed_contenu.get('idmg')
