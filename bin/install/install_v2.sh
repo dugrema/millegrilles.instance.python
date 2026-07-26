@@ -522,6 +522,9 @@ install_prive_instance() {
   install_instance_v2
   source "${MILLEGRILLES_ROOT}/config.env"
 
+  echo "[INFO] Copying protege level nginx files"
+  cp -iv "${REP_ETC}/nginx/nginx_protege/"* "${MILLEGRILLES_ROOT}/etc/nginx"
+
   echo "[INFO] Requesting Node Manager Certificate..."
   "${PATH_VENV}/bin/python3" bin/x509/request_satellite.py
 
@@ -529,6 +532,10 @@ install_prive_instance() {
   ./bin/install/setup_systemd_prive.sh "${MILLEGRILLES_ROOT}/config.env"
 
   echo "[INFO] Download and start middleware"
+
+  # Note : the download can take a while so this makes sure we don't starts services that are not already on disk
+  echo "[INFO] Download all the required images"
+  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/include/private_service_deps.yml" pull
   docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/middleware/node-prive.yml" pull
   systemctl --user restart "${INSTANCE_NAME}-middleware"
 
