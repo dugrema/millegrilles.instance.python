@@ -12,7 +12,7 @@ services:
           - webauth
         domain: true
     environment:
-      - MQ_HOSTNAME=${MQ_HOST}
+      - MQ_HOSTNAME=${MQ_HOSTNAME}
       - MQ_PORT=${MQ_PORT}
       - REDIS_PORT=6379
       - REDIS_PASSWORD_PATH=/run/secrets/redis.txt
