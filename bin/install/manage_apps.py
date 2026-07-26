@@ -9,12 +9,16 @@ import subprocess
 import sys
 import tempfile
 import urllib.request
+from subprocess import CalledProcessError
+
 import yaml
+import time
+
 from typing import Optional
 
 DEFAULT_CATALOGUE_URL = "https://libs.millegrilles.com/archives/stable.json"
 
-def run_command(command, env=None):
+def run_command(command, env=None, no_exit=False):
     try:
         result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True, env=env)
         return result.stdout.strip()
@@ -23,6 +27,8 @@ def run_command(command, env=None):
         print(f"Command: {e.cmd}")
         print(f"Stdout: {e.stdout}")
         print(f"Stderr: {e.stderr}")
+        if no_exit:
+            raise e
         sys.exit(1)
 
 def download_file(url: str, dest_path: pathlib.Path):
@@ -66,7 +72,13 @@ def reload_nginx(instance_name: str):
 def reload_compose_applications(instance_name: str):
     # Need to generate certificates first to avoid reload issue with applications service
     print(f"Generating certificates using {instance_name}-certs_updater...")
-    run_command(f"systemctl --user start {instance_name}-certs_updater")
+    try:
+        run_command(f"systemctl --user start {instance_name}-certs_updater", no_exit=True)
+    except CalledProcessError:
+        print("Exception trying to renew certs, switching to restart manager")
+        run_command(f"systemctl --user restart {instance_name}-manager")
+        time.sleep(10)
+
     print(f"Reloading {instance_name}-applications...")
     run_command(f"systemctl --user reload {instance_name}-applications")
 

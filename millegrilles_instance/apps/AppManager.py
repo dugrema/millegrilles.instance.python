@@ -64,8 +64,12 @@ class AppManager:
             return
 
         installed_applications_path = self.__context.configuration.path_millegrilles / "etc" / "installed_applications.json"
-        with open(installed_applications_path, 'r') as f:
-            content = await asyncio.to_thread(json.load, f)
+        try:
+            with open(installed_applications_path, 'r') as f:
+                content = await asyncio.to_thread(json.load, f)
+        except FileNotFoundError:
+            self.__logger.info("No installed applications file found")
+            return
 
         event_message = {
             'applications': content,

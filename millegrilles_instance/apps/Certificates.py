@@ -89,9 +89,19 @@ def load_compose_files(securite: str, configuration: ConfigurationInstance) -> l
     config_nodetype = load_yaml_recursive(compose_file_nodetype)
     composefiles.append(config_nodetype)
 
-    if securite == MillegrillesConstantes.SECURITE_PROTEGE:
-        # Add service dependencies for the 3.protege node (certs, downloading new docker images)
+    # Add service dependencies (certs, downloading new docker images)
+    if securite == MillegrillesConstantes.SECURITE_SECURE:
+        certs_service_file = configuration.path_millegrilles / "etc/compose/include/secure_service_deps.yml"
+    elif securite == MillegrillesConstantes.SECURITE_PROTEGE:
         certs_service_file = configuration.path_millegrilles / "etc/compose/include/protege_service_deps.yml"
+    elif securite == MillegrillesConstantes.SECURITE_PRIVE:
+        certs_service_file = configuration.path_millegrilles / "etc/compose/include/private_service_deps.yml"
+    elif securite == MillegrillesConstantes.SECURITE_PUBLIC:
+        certs_service_file = configuration.path_millegrilles / "etc/compose/include/public_service_deps.yml"
+    else:
+        certs_service_file = None
+
+    if certs_service_file:
         config_services = load_yaml_recursive(certs_service_file)
         composefiles.append(config_services)
 
