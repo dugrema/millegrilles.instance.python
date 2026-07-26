@@ -9,7 +9,8 @@ from cryptography.x509 import ExtensionNotFound
 
 from millegrilles_instance.Interfaces import MgbusHandlerInterface
 from millegrilles_instance.NginxUtil import publish_to_nginx
-from millegrilles_instance.SystemdUtil import reload_nginx, reload_compose_applications, reload_middleware
+from millegrilles_instance.SystemdUtil import reload_nginx, reload_compose_applications, reload_middleware, \
+    restart_nginx, restart_compose_applications
 from millegrilles_instance.apps.AppManager import AppManager
 from millegrilles_instance.apps.Certificates import check_certissuer_available, renew_certificates
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
@@ -175,6 +176,7 @@ class InstanceManager:
         # Try to refresh local certificates when local certissuer is available
         if await asyncio.to_thread(check_certissuer_available, self.context.configuration):
             await renew_certificates(self.context)
+            self.context.certificates_generated.set()
 
         self.__logger.info("Runlevel LOCAL done")
         await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_NORMAL)
@@ -208,17 +210,29 @@ class InstanceManager:
             self.__logger.exception("Error during initial information exchange after connection to mgbus")
 
         # Refresh certificates using bus (e.g. when local certissuer not available)
+        await renew_certificates(self.context)
 
+        # Always release this flag to let Certificate thread proceed
+        self.context.certificates_generated.set()
 
-        # Reload all systemd services
+        # Reload all systemd services (force restart if reload fails)
         instance_name = self.context.configuration.instance_name
         if not self.context.configuration.is_secure_manager:
-            reload_nginx(instance_name)
+            try:
+                await asyncio.to_thread(reload_nginx, instance_name)
+            except CalledProcessError:
+                # Try restart
+                self.__logger.warning("Error during nginx reload, trying nginx restart")
+                await asyncio.to_thread(restart_nginx, instance_name)
+
         reload_middleware(instance_name)
         try:
             reload_compose_applications(instance_name, update_certs=False)
         except CalledProcessError:
-            self.__logger.exception("Error during applications reload - applications will not be available until fixed")
+            try:
+                restart_compose_applications(instance_name)
+            except CalledProcessError:
+                self.__logger.exception("Error during applications restart - applications will not be available until fixed")
 
         self.__logger.info("Runlevel normal READY")
 

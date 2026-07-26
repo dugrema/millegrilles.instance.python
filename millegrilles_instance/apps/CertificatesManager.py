@@ -31,6 +31,12 @@ class CertificatesManager:
     async def run(self):
         self.__logger.debug("CertificatesManager thread started")
         try:
+            await asyncio.wait_for(self.__context.certificates_generated.wait(), 30)
+        except asyncio.TimeoutError:
+            return
+        if self.__context.stopping:
+            return  # Closing
+        try:
             async with TaskGroup() as group:
                 group.create_task(self.__stop_thread())
                 group.create_task(self.__renew_thread())

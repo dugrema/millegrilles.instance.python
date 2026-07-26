@@ -47,6 +47,8 @@ class InstanceContext(MilleGrillesBusContext):
         # Flag to prevent maintenance before the initial application check/update
         self.__initial_application_configuration_update = asyncio.Event()
 
+        self.__certificates_generated = asyncio.Event()
+
     @property
     def configuration(self) -> ConfigurationInstance:
         return super().configuration
@@ -117,6 +119,7 @@ class InstanceContext(MilleGrillesBusContext):
         await self.wait()
         await self.__reload_q.put(None)
         self.__initial_application_configuration_update.set()
+        self.__certificates_generated.set()
         raise ForceTerminateExecution()  # Kick out the __presence_thread thread if stuck on get_producer
 
     def add_reload_listener(self, listener: Callable[[], None]):
@@ -185,6 +188,10 @@ class InstanceContext(MilleGrillesBusContext):
     @property
     def initial_application_configuration_update(self) -> asyncio.Event:
         return self.__initial_application_configuration_update
+
+    @property
+    def certificates_generated(self):
+        return self.__certificates_generated
 
     async def delay_reload(self, delay: float):
         self.__reload_done.clear()

@@ -1,3 +1,4 @@
+import asyncio
 import base64
 import logging
 import pathlib
@@ -13,11 +14,13 @@ from aiohttp import ClientError
 
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
+from millegrilles_messages.bus.PikaMessageProducer import MilleGrillesPikaMessageProducer
 from millegrilles_messages.certificats.Generes import CleCsrGenere
 from millegrilles_messages.messages import Constantes as MillegrillesConstantes
+from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.FormatteurMessages import FormatteurMessageMilleGrilles
-
+from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 
 LOGGER = logging.getLogger(__name__)
 
@@ -191,11 +194,30 @@ def check_passwords(configuration: ConfigurationInstance, certs: list[Certificat
     return to_generate
 
 
-def signer_module_core(config: ConfigurationInstance, cert_config: CertificateConfiguration, formatteur_message: FormatteurMessageMilleGrilles):
+async def signer_module_core(producer: MilleGrillesPikaMessageProducer, context: InstanceContext, configuration_cert: CertificateConfiguration) -> CleCertificat:
     """
     Uses the MQ Bus with Core to renew certificates. Used when local certissuer is not available (e.g. public/private satellite nodes)
     """
-    raise NotImplementedError()
+    config = context.configuration
+    instance_id = config.instance_id
+    idmg = config.idmg
+    clecsr = CleCsrGenere.build(instance_id, idmg)
+    csr_str = clecsr.get_pem_csr()
+
+    configuration_cert['csr'] = csr_str
+
+    # Demander un nouveau certificat. Timeout long (60 secondes).
+    message_reponse = await producer.command(configuration_cert, 'CorePki', 'signerCsr',
+                                             exchange=MillegrillesConstantes.SECURITE_PUBLIC, timeout=3)
+    reponse = message_reponse.parsed
+    certificat = reponse['certificat']
+
+    # Confirmer correspondance entre certificat et cle
+    clecertificat = CleCertificat.from_pems(clecsr.get_pem_cle(), ''.join(certificat))
+    if clecertificat.cle_correspondent() is False:
+        raise Exception("Erreur cert/cle ne correspondent pas")
+
+    return clecertificat
 
 
 def check_certissuer_available(config: ConfigurationInstance):
@@ -208,7 +230,7 @@ def check_certissuer_available(config: ConfigurationInstance):
     return response.status_code == 200
 
 
-def signer_module_certissuer(config: ConfigurationInstance, cert_config: CertificateConfiguration, formatteur_message: FormatteurMessageMilleGrilles):
+def signer_module_certissuer(config: ConfigurationInstance, cert_config: CertificateConfiguration, formatteur_message: FormatteurMessageMilleGrilles) -> CleCertificat:
     certificat = formatteur_message.clecert.enveloppe
     instance_id = certificat.subject_common_name
     idmg = certificat.idmg
@@ -230,7 +252,11 @@ def signer_module_certissuer(config: ConfigurationInstance, cert_config: Certifi
     response_message = response.json()
     certificat = response_message['certificat']
 
-    return cle_csr, certificat
+    clecertificat = CleCertificat.from_pems(cle_csr.get_pem_cle(), ''.join(certificat))
+    if clecertificat.cle_correspondent() is False:
+        raise Exception("Erreur cert/cle ne correspondent pas")
+
+    return clecertificat
 
 
 def generer_password(type_generateur='password', size: int = None):
@@ -265,6 +291,16 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
     # Get certs to renew
     certs_to_renew = check_certificates(context.configuration, certs)
 
+    if not certs_to_renew:
+        return []  # Done
+
+    cert_issuer_avaiable = await asyncio.to_thread(check_certissuer_available, context.configuration)
+    if not cert_issuer_avaiable:
+        # Ensure that we have access to the MQ producer
+        producer = await asyncio.wait_for(context.get_producer(), 1)
+    else:
+        producer = None
+
     renewed_config: list[dict] = list()
 
     # Submit certs
@@ -288,9 +324,16 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
         except KeyError:
             pass
 
-        clecert, new_certificate = signer_module_certissuer(context.configuration, cert_config_copy, formatteur)
-        key_pem = clecert.get_pem_cle().strip()
-        cert_pem = "".join(new_certificate).strip()
+        if cert_issuer_avaiable:
+            cle_certificat = signer_module_certissuer(context.configuration, cert_config_copy, formatteur)
+        elif producer:
+            cle_certificat = await signer_module_core(producer, context, cert_config_copy)
+        else:
+            raise Exception('No means of accessing certissuer found')
+
+        key_pem = cle_certificat.private_key_bytes().decode('utf-8')
+        new_certificate = cle_certificat.enveloppe
+        cert_pem = "\n".join(new_certificate.chaine_pem()) + "\n"
 
         # Check if we have to notify the maitre des cles (if --init, the certificate will only show up when ALREADY expired)
         if not context.configuration.init_only:
@@ -350,12 +393,12 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
     return renewed_config
 
 
-async def rotation_maitredescles(context: InstanceContext, old_certificate: EnveloppeCertificat, new_certificate: list[str]):
+async def rotation_maitredescles(context: InstanceContext, old_certificate: EnveloppeCertificat, new_certificate: EnveloppeCertificat):
     producer = await context.get_producer()
 
     fingerprint = old_certificate.fingerprint
     command = {
-        'certificat': new_certificate,
+        'certificat': new_certificate.chaine_pem(),
     }
 
     LOGGER.info(f"Requesting rotation of keymaster with key fingerprint {fingerprint}")
