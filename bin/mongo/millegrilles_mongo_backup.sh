@@ -14,7 +14,7 @@ usage() {
 }
 
 # Initialize variables
-OUT_DIR="."
+OUT_DIR="${MILLEGRILLES_ROOT}/var/backup/mongo"
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do

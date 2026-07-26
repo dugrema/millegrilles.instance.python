@@ -196,6 +196,7 @@ creer_repertoires() {
     mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer"
     mkdir -p "${MILLEGRILLES_ROOT}/var/mongo"
     mkdir -p "${MILLEGRILLES_ROOT}/var/backup/domains"
+    mkdir -p "${MILLEGRILLES_ROOT}/var/backup/mongo"
   fi
 
   # Type 4.secure does not have nginx (or any ports exposed)
