@@ -65,7 +65,7 @@ VOLUME_NAME="millegrilles_mongo_vol_restore_$(date +%s)"
 docker volume create "$VOLUME_NAME" > /dev/null
 
 # Copy restore file to volume
-docker run --rm -v "$VOLUME_NAME:/dump_restore" alpine cp "$RESTORE_FILE" /dump_restore/backup.archive.gz
+docker run --rm -v "$(realpath "$RESTORE_FILE")":/restore_file -v "$VOLUME_NAME:/dump_restore" alpine cp /restore_file /dump_restore/backup.archive.gz
 
 # Execute mongorestore inside a container
 echo "[INFO] Running mongorestore in Docker..."
