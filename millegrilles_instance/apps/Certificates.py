@@ -9,6 +9,8 @@ import yaml
 
 from typing import Optional, Any, TypedDict
 
+from aiohttp import ClientError
+
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_messages.certificats.Generes import CleCsrGenere
@@ -189,7 +191,24 @@ def check_passwords(configuration: ConfigurationInstance, certs: list[Certificat
     return to_generate
 
 
-def signer_module(config: ConfigurationInstance, cert_config: CertificateConfiguration, formatteur_message: FormatteurMessageMilleGrilles):
+def signer_module_core(config: ConfigurationInstance, cert_config: CertificateConfiguration, formatteur_message: FormatteurMessageMilleGrilles):
+    """
+    Uses the MQ Bus with Core to renew certificates. Used when local certissuer is not available (e.g. public/private satellite nodes)
+    """
+    raise NotImplementedError()
+
+
+def check_certissuer_available(config: ConfigurationInstance):
+    url_issuer = f"{config.certissuer_url}/certificate.pem"
+    try:
+        response = requests.get(url_issuer)
+    except requests.exceptions.RequestException:
+        LOGGER.info("Local certissuer not available")
+        return False
+    return response.status_code == 200
+
+
+def signer_module_certissuer(config: ConfigurationInstance, cert_config: CertificateConfiguration, formatteur_message: FormatteurMessageMilleGrilles):
     certificat = formatteur_message.clecert.enveloppe
     instance_id = certificat.subject_common_name
     idmg = certificat.idmg
@@ -269,7 +288,7 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
         except KeyError:
             pass
 
-        clecert, new_certificate = signer_module(context.configuration, cert_config_copy, formatteur)
+        clecert, new_certificate = signer_module_certissuer(context.configuration, cert_config_copy, formatteur)
         key_pem = clecert.get_pem_cle().strip()
         cert_pem = "".join(new_certificate).strip()
 

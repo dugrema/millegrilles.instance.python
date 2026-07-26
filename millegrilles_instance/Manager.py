@@ -11,6 +11,7 @@ from millegrilles_instance.Interfaces import MgbusHandlerInterface
 from millegrilles_instance.NginxUtil import publish_to_nginx
 from millegrilles_instance.SystemdUtil import reload_nginx, reload_compose_applications, reload_middleware
 from millegrilles_instance.apps.AppManager import AppManager
+from millegrilles_instance.apps.Certificates import check_certissuer_available, renew_certificates
 from millegrilles_messages.bus.BusContext import ForceTerminateExecution
 from millegrilles_messages.messages import Constantes
 from millegrilles_instance.Context import InstanceContext, ValueNotAvailable
@@ -163,16 +164,6 @@ class InstanceManager:
             else:
                 raise ValueError('Unsupported security mode: %s' % securite)
 
-            # Reload all systemd services
-            instance_name = self.context.configuration.instance_name
-            if not self.context.configuration.is_secure_manager:
-                reload_nginx(instance_name)
-            reload_middleware(instance_name)
-            try:
-                reload_compose_applications(instance_name, update_certs=False)
-            except CalledProcessError:
-                self.__logger.exception("Error during applications reload - applications will not be available until fixed")
-
             # Change runlevel to local. This will run through the process to make system operational.
             await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_LOCAL)
 
@@ -180,6 +171,10 @@ class InstanceManager:
 
     async def __start_runlevel_local(self):
         self.__logger.info("Starting runlevel LOCAL")
+
+        # Try to refresh local certificates when local certissuer is available
+        if await asyncio.to_thread(check_certissuer_available, self.context.configuration):
+            await renew_certificates(self.context)
 
         self.__logger.info("Runlevel LOCAL done")
         await self.__change_runlevel(InstanceContext.CONST_RUNLEVEL_NORMAL)
@@ -211,6 +206,19 @@ class InstanceManager:
                     await self.context.wait(5)
         except:
             self.__logger.exception("Error during initial information exchange after connection to mgbus")
+
+        # Refresh certificates using bus (e.g. when local certissuer not available)
+
+
+        # Reload all systemd services
+        instance_name = self.context.configuration.instance_name
+        if not self.context.configuration.is_secure_manager:
+            reload_nginx(instance_name)
+        reload_middleware(instance_name)
+        try:
+            reload_compose_applications(instance_name, update_certs=False)
+        except CalledProcessError:
+            self.__logger.exception("Error during applications reload - applications will not be available until fixed")
 
         self.__logger.info("Runlevel normal READY")
 
