@@ -75,4 +75,6 @@ echo "  - ${INSTANCE_NAME}-applications.service"
 echo "  - ${INSTANCE_NAME}-manager.service"
 echo "  - ${INSTANCE_NAME}-certs_updater.service"
 echo ""
-echo "To load the new services, run: systemctl --user daemon-reload"
+
+systemctl --user daemon-reload
+# echo "To load the new services, run: systemctl --user daemon-reload"

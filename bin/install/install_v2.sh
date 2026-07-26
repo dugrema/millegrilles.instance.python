@@ -186,13 +186,23 @@ install_web_files() {
 creer_repertoires() {
   echo "[INFO] Configurer les repertoires de MilleGrilles"
   mkdir -p "${MILLEGRILLES_ROOT}/bin"
-  mkdir -p "${MILLEGRILLES_ROOT}/etc/nginx/applications"
   mkdir -p "${MILLEGRILLES_ROOT}/etc/compose/applications"
-  mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer"
-  mkdir -p "${MILLEGRILLES_ROOT}/var/mq"
-  mkdir -p "${MILLEGRILLES_ROOT}/var/mongo"
-  mkdir -p "${MILLEGRILLES_ROOT}/var/nginx/html"
-  mkdir -p "${MILLEGRILLES_ROOT}/var/backup/domains"
+
+  if [ "$TYPE" != "secure" ]; then
+    mkdir -p "${MILLEGRILLES_ROOT}/var/mq"
+  fi
+
+  if [ "$TYPE" == "secure" ] || [ "$TYPE" == "protege" ]; then
+    mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer"
+    mkdir -p "${MILLEGRILLES_ROOT}/var/mongo"
+    mkdir -p "${MILLEGRILLES_ROOT}/var/backup/domains"
+  fi
+
+  # Type 4.secure does not have nginx (or any ports exposed)
+  if [ "$TYPE" != "secure" ]; then
+    mkdir -p "${MILLEGRILLES_ROOT}/etc/nginx/applications"
+    mkdir -p "${MILLEGRILLES_ROOT}/var/nginx/html"
+  fi
 
   echo "[OK] Repertoires crees"
 }
@@ -201,8 +211,11 @@ copier_fichiers() {
   echo "[INFO] Copier fichiers systeme"
   cp -v "${REP_ETC}/idmg_validation.json" "${MILLEGRILLES_ROOT}/etc/"
   cp -vr "${REP_ETC}/compose" "${MILLEGRILLES_ROOT}/etc/"
-  cp -iv "${REP_ETC}/nginx/config/"* "${MILLEGRILLES_ROOT}/etc/nginx"
   cp -vr "${REPO_ROOT}/bin" "${MILLEGRILLES_ROOT}/"
+
+  if [ "$TYPE" != "secure" ]; then
+    cp -iv "${REP_ETC}/nginx/config/"* "${MILLEGRILLES_ROOT}/etc/nginx"
+  fi
 
   echo "[OK] Fichiers copies"
 }
@@ -212,9 +225,38 @@ configurer_reps() {
   copier_fichiers
 }
 
+#configurer_docker_network() {
+#  echo "[INFO] Configurer docker pour instance: ${INSTANCE_NAME}"
+#  docker network create --ipv6 --subnet "2001:db8:3::/64" --attachable "${INSTANCE_NAME}_net" > /dev/null 2>&1 || true
+#  echo "[OK] Configuration docker network completee"
+#}
+
 configurer_docker_network() {
   echo "[INFO] Configurer docker pour instance: ${INSTANCE_NAME}"
-  docker network create --ipv6 --subnet "2001:db8:3::/64" --attachable "${INSTANCE_NAME}_net" > /dev/null 2>&1 || true
+
+  local SUBNET=""
+  local EXISTING_SUBNETS
+  EXISTING_SUBNETS=$(docker network inspect $(docker network ls -q) --format '{{range .IPAM.Config}}{{.Subnet}}{{"\n"}}{{end}}' 2>/dev/null)
+
+  # Try to find an unused IPv6 subnet
+  for i in $(seq 1 255); do
+    local HEX_I
+    HEX_I=$(printf '%x' "$i")
+    local CANDIDATE="2001:db8:${HEX_I}::/64"
+
+    if ! echo "$EXISTING_SUBNETS" | grep -Fxq "$CANDIDATE"; then
+      SUBNET="$CANDIDATE"
+      break
+    fi
+  done
+
+  if [ -z "$SUBNET" ]; then
+    echo "[ERROR] Could not find an unused IPv6 subnet in the range 2001:db8:1::/64 to 2001:db8:ff::/64"
+    exit 1
+  fi
+
+  echo "[INFO] Using subnet $SUBNET"
+  docker network create --ipv6 --subnet "$SUBNET" --attachable "${INSTANCE_NAME}_net" > /dev/null 2>&1 || true
   echo "[OK] Configuration docker network completee"
 }
 
@@ -341,7 +383,7 @@ install_protege_instance() {
   fi
 
   echo "[INFO] Generating Node Certificate..."
-  "${PATH_VENV}/bin/python3" bin/x509/ca_protege.py \
+  "${PATH_VENV}/bin/python3" bin/x509/sign_protege.py \
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
     --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem"
 
@@ -448,7 +490,7 @@ install_secure_instance() {
   generate_signing_ca
 
   echo "[INFO] Generating Node Manager Certificate..."
-  "${PATH_VENV}/bin/python3" bin/x509/ca_protege.py \
+  "${PATH_VENV}/bin/python3" bin/x509/sign_protege.py \
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
     --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem"
 
@@ -474,6 +516,28 @@ install_secure_instance() {
   echo "[OK] Secure installation complete."
 }
 
+install_prive_instance() {
+  echo "[INFO] Starting Private installation..."
+
+  install_instance_v2
+  source "${MILLEGRILLES_ROOT}/config.env"
+
+  echo "[INFO] Requesting Node Manager Certificate..."
+  "${PATH_VENV}/bin/python3" bin/x509/request_satellite.py
+
+  echo "[INFO] Preparing node systemd configuration files for secure"
+  ./bin/install/setup_systemd_prive.sh "${MILLEGRILLES_ROOT}/config.env"
+
+  echo "[INFO] Download and start middleware"
+  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/middleware/node-prive.yml" pull
+  systemctl --user restart "${INSTANCE_NAME}-middleware"
+
+  echo "[INFO] Start manager"
+  systemctl --user restart "${INSTANCE_NAME}-manager"
+
+  echo "[OK] Secure installation complete."
+}
+
 # ------------------------------------------------------------------------------
 # Main Execution
 # ------------------------------------------------------------------------------
@@ -491,7 +555,10 @@ main() {
     secure)
       install_secure_instance
       ;;
-    public|prive)
+    prive)
+      install_prive_instance
+      ;;
+    public)
       echo "[ERROR] Not implemented yet: $TYPE"
       exit 1
       ;;

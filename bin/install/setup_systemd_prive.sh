@@ -7,7 +7,7 @@ set -e
 CONFIG_FILE="$1"
 TEMPLATE_DIR="etc/compose/systemd"
 DEST_DIR="$HOME/.config/systemd/user"
-NODE_TYPE="private"
+NODE_TYPE="prive"
 
 if [ "$#" -ne 1 ]; then
     echo "Usage: $0 <config_env_path>"
@@ -58,7 +58,8 @@ generate_service() {
 }
 
 # Generate middleware services
-generate_service "$TEMPLATE_DIR/middleware_private.service.template" "$DEST_DIR/${INSTANCE_NAME}-middleware.service"
+generate_service "$TEMPLATE_DIR/nginx.service.template" "$DEST_DIR/${INSTANCE_NAME}-nginx.service"
+generate_service "$TEMPLATE_DIR/middleware_satellite.service.template" "$DEST_DIR/${INSTANCE_NAME}-middleware.service"
 generate_service "$TEMPLATE_DIR/applications.service.template" "$DEST_DIR/${INSTANCE_NAME}-applications.service"
 
 # Generate node manager: ${INSTANCE_NAME}.service
@@ -66,8 +67,11 @@ generate_service "$TEMPLATE_DIR/manager.service.template" "$DEST_DIR/${INSTANCE_
 
 echo ""
 echo "Successfully created systemd user services in $DEST_DIR:"
+echo "  - ${INSTANCE_NAME}-nginx.service"
 echo "  - ${INSTANCE_NAME}-middleware.service"
 echo "  - ${INSTANCE_NAME}-applications.service"
 echo "  - ${INSTANCE_NAME}-manager.service"
 echo ""
-echo "To load the new services, run: systemctl --user daemon-reload"
+
+systemctl --user daemon-reload
+# echo "To load the new services, run: systemctl --user daemon-reload"

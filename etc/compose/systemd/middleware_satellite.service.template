@@ -1,0 +1,16 @@
+[Unit]
+Description=MilleGrilles middleware ({{NODE_TYPE}})
+After=network.target
+Wants={{INSTANCE_NAME}}-nginx.service
+
+[Service]
+Type=simple
+WorkingDirectory={{MILLEGRILLES_ROOT}}
+EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
+ExecStart=/usr/bin/docker compose -f etc/compose/middleware/node-{{NODE_TYPE}}.yml up
+ExecReload=/usr/bin/docker compose -f etc/compose/middleware/node-{{NODE_TYPE}}.yml up -d
+ExecStop=/usr/bin/docker compose -f etc/compose/middleware/node-{{NODE_TYPE}}.yml down
+Restart=always
+
+[Install]
+WantedBy=default.target
