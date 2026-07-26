@@ -60,28 +60,21 @@ fi
 # Build connection string
 CONNECTION_STRING="mongodb://admin:${ENCODED_PASSWORD}@${MONGO_CONTAINER}:27017/?authSource=admin&tls=true&tlsCAFile=/etc_millegrille/millegrille.pem&tlsCertificateKeyFile=/secrets/mongo.pem"
 
-# Create a temporary volume for the restore
-VOLUME_NAME="millegrilles_mongo_vol_restore_$(date +%s)"
-docker volume create "$VOLUME_NAME" > /dev/null
-
-# Copy restore file to volume
-docker run --rm -v "$(realpath "$RESTORE_FILE")":/restore_file -v "$VOLUME_NAME:/dump_restore" alpine cp /restore_file /dump_restore/backup.archive.gz
-
 # Execute mongorestore inside a container
 echo "[INFO] Running mongorestore in Docker..."
 if [ -n "$DOMAIN" ]; then
     echo "[INFO] Domain filter applied: $DOMAIN"
-    RESTORE_CMD="mongorestore --uri='${CONNECTION_STRING}' --db '${IDMG}' --nsInclude='${IDMG}.${DOMAIN}/.*' --drop --gzip --archive='/dump_restore/backup.archive.gz'"
+    RESTORE_CMD="mongorestore --uri='${CONNECTION_STRING}' --nsInclude='${IDMG}\.${DOMAIN}/*' --drop --gzip --archive='/dump_restore/backup.archive.gz'"
 else
     echo "[INFO] Full database restore."
-    RESTORE_CMD="mongorestore --uri='${CONNECTION_STRING}' --db '${IDMG}' --drop --gzip --archive='/dump_restore/backup.archive.gz'"
+    RESTORE_CMD="mongorestore --uri='${CONNECTION_STRING}' --nsInclude='${IDMG}.*' --drop --gzip --archive='/dump_restore/backup.archive.gz'"
 fi
 
 docker run --rm \
     --network "${INSTANCE_NAME}_net" \
     -v "$MILLEGRILLES_ROOT/etc:/etc_millegrille:ro" \
     -v "$MILLEGRILLES_ROOT/secrets:/secrets:ro" \
-    -v "$VOLUME_NAME:/dump_restore" \
+    -v "$(realpath $RESTORE_FILE):/dump_restore/backup.archive.gz:ro" \
     mongo:latest \
     bash -c "$RESTORE_CMD" || { echo "[ERROR] mongorestore failed."; exit 1; }
 

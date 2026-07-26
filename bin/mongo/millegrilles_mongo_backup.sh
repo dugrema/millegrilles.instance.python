@@ -9,19 +9,16 @@ source "${SOURCE_DIR}/millegrilles_mongo_common.sh"
 
 usage() {
     echo "Usage: $0 [--domain <DOMAIN>] [--out <DIR>]"
-    echo "  --domain <DOMAIN>  Backup only collections starting with DOMAIN/"
     echo "  --out <DIR>        Output directory (default: current directory)"
     exit 1
 }
 
 # Initialize variables
-DOMAIN=""
 OUT_DIR="."
 
 # Parse arguments
 while [[ "$#" -gt 0 ]]; do
     case $1 in
-        --domain) DOMAIN="$2"; shift ;;
         --out) OUT_DIR="$2"; shift ;;
         *) usage ;;
     esac
@@ -65,34 +62,19 @@ CONTAINER_NAME="mongo_backup_container_${TIMESTAMP}"
 CONNECTION_STRING="mongodb://${MONGO_USER}:${ENCODED_PASSWORD}@mongo:27017/?authSource=admin&tls=true&tlsCAFile=/etc_millegrille/millegrille.pem&tlsCertificateKeyFile=/secrets/mongo.pem"
 
 # Determine dump command
-if [ -n "$DOMAIN" ]; then
-    echo "[INFO] Domain filter applied: $DOMAIN"
-    DUMP_CMD="mongodump --uri='${CONNECTION_STRING}' --db '${IDMG}' --nsInclude='${IDMG}.${DOMAIN}/.*' --archive='/dump/backup.archive.gz' --gzip"
-else
-    echo "[INFO] Full database backup."
-    DUMP_CMD="mongodump --uri='${CONNECTION_STRING}' --db '${IDMG}' --archive='/dump/backup.archive.gz' --gzip"
-fi
+echo "[INFO] Full database backup."
+DUMP_CMD="mongodump --uri='${CONNECTION_STRING}' --db '${IDMG}' --archive='/dump/${BACKUP_NAME}' --gzip"
 
 # Execute mongodump inside a temporary container
 echo "[INFO] Running mongodump in Docker..."
-CONTAINER_ID=$(docker run -d --name "$CONTAINER_NAME" --network "${INSTANCE_NAME}_net" \
+
+# Run as current user to avoid permission issues on output volume
+docker run --rm --network "${INSTANCE_NAME}_net" \
+    --user "$(id -u):$(id -g)" \
     -v "$MILLEGRILLES_ROOT/etc:/etc_millegrille:ro" \
     -v "$MILLEGRILLES_ROOT/secrets:/secrets:ro" \
     -v "$OUT_DIR:/dump" \
-    mongo:latest sleep infinity)
-
-if ! docker exec "$CONTAINER_ID" bash -c "$DUMP_CMD"; then
-    echo "[ERROR] mongodump failed."
-    docker stop "$CONTAINER_ID" > /dev/null || true
-    docker rm "$CONTAINER_ID" > /dev/null || true
-    exit 1
-fi
-
-# Copy the archive from the container to the host
-docker cp "$CONTAINER_ID:/dump/backup.archive.gz" "$TARGET_FILE"
-
-# Cleanup container
-docker stop "$CONTAINER_ID" > /dev/null
-docker rm "$CONTAINER_ID" > /dev/null
+    mongo:latest \
+    bash -c "$DUMP_CMD"
 
 echo "[SUCCESS] Backup completed: $TARGET_FILE"
