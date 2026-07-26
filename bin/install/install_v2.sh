@@ -297,7 +297,11 @@ install_instance_v2() {
     
     echo "[INFO] Creer venv python3 sous ${PATH_VENV}"
     install_python_venv "${PATH_VENV}"
-    
+
+    # Create an environment activation script (imports config.env and activates the python venv)
+    sed "s|__replace_me__|${MILLEGRILLES_ROOT}|" "${REPO_ROOT}/bin/activate.sh.template" > "${MILLEGRILLES_ROOT}/bin/activate.sh" && \
+      chmod 755 "${MILLEGRILLES_ROOT}/bin/activate.sh"
+
     echo "[INFO] Installer millegrilles_instance en mode editable"
     "${PATH_VENV}/bin/pip" install -e .
 

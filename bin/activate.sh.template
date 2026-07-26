@@ -1,0 +1,13 @@
+#!/bin/env bash
+set -a
+
+MILLEGRILLES_ROOT="__replace_me__"
+
+if [ ! -d "${MILLEGRILLES_ROOT}" ]; then
+  echo "ERROR: Path ${MILLEGRILLES_ROOT} not found"
+else
+  export $(grep -v '^#' "${MILLEGRILLES_ROOT}/config.env" | xargs) && \
+    source "${MILLEGRILLES_ROOT}/venv/bin/activate"
+fi
+
+set +a
