@@ -71,10 +71,10 @@ docker run --rm -v "$(realpath "$RESTORE_FILE")":/restore_file -v "$VOLUME_NAME:
 echo "[INFO] Running mongorestore in Docker..."
 if [ -n "$DOMAIN" ]; then
     echo "[INFO] Domain filter applied: $DOMAIN"
-    RESTORE_CMD="mongorestore --uri='${CONNECTION_STRING}' --db '${IDMG}' --nsInclude='${IDMG}.${DOMAIN}/.*' --archive='/dump_restore/backup.archive.gz'"
+    RESTORE_CMD="mongorestore --uri='${CONNECTION_STRING}' --db '${IDMG}' --nsInclude='${IDMG}.${DOMAIN}/.*' --drop --gzip --archive='/dump_restore/backup.archive.gz'"
 else
     echo "[INFO] Full database restore."
-    RESTORE_CMD="mongorestore --uri='${CONNECTION_STRING}' --db '${IDMG}' --archive='/dump_restore/backup.archive.gz'"
+    RESTORE_CMD="mongorestore --uri='${CONNECTION_STRING}' --db '${IDMG}' --drop --gzip --archive='/dump_restore/backup.archive.gz'"
 fi
 
 docker run --rm \
