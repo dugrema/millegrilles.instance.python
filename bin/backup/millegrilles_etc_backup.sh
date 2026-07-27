@@ -44,6 +44,6 @@ mkdir -p "$OUT_DIR"
 # Execute mongodump inside a temporary container
 echo "[INFO] Running backup ..."
 
-tar -C "${MILLEGRILLES_ROOT}" -zcf "${TARGET_FILE}" "etc/"
+tar --sort=name -C "${MILLEGRILLES_ROOT}" -zcf "${TARGET_FILE}" "etc/"
 
 echo "[SUCCESS] Backup completed: $TARGET_FILE"
