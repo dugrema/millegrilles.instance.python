@@ -8,7 +8,7 @@ SOURCE_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 source "${SOURCE_DIR}/millegrilles_mongo_common.sh"
 
 usage() {
-    echo "Usage: $0 [--domain <DOMAIN>] [--out <DIR>]"
+    echo "Usage: $0 [--out <DIR>]"
     echo "  --out <DIR>        Output directory (default: current directory)"
     exit 1
 }
