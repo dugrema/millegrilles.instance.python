@@ -109,6 +109,11 @@ save_configenv() {
   # Source the newly created config
   source "${MILLEGRILLES_ROOT}/config.env"
 
+  echo "[INFO] Loaded new config.env"
+  echo "-----------------------"
+  cat "${MILLEGRILLES_ROOT}/config.env"
+  echo "-----------------------"
+
   # Define essential paths relative to MILLEGRILLES_ROOT
   export PATH_MILLEGRILLES="${MILLEGRILLES_ROOT}"
   export PATH_LOGS="${MILLEGRILLES_ROOT}/logs"
@@ -383,13 +388,14 @@ install_protege_instance() {
     ./bin/x509/ca_new.sh $password
 
     echo "[INFO] Generating Signing CA..."
-    ./bin/x509/ca_signing.sh --password "$password"
+    ./bin/x509/ca_signing.sh --password "$password" --instanceid "$INSTANCE_ID"
   fi
 
   echo "[INFO] Generating Node Certificate..."
   "${PATH_VENV}/bin/python3" bin/x509/sign_protege.py \
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
-    --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem"
+    --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem" \
+    --instanceid "$INSTANCE_ID"
 
   # Get IDMG for configuration
   IDMG=$("${PATH_VENV}/bin/python3" bin/utils/get_idmg.py "${MILLEGRILLES_ROOT}/etc/millegrille.pem")

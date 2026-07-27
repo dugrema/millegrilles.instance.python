@@ -34,6 +34,7 @@ while [[ "$#" -gt 0 ]]; do
   case $1 in
     --capath) ROOT_CA="$2"; shift ;;
     --password) PASSWORD="$2"; shift ;;
+    --instanceid) INSTANCE_ID="$2"; shift ;;
     *) usage ;;
   esac
   shift

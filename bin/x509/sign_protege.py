@@ -16,8 +16,11 @@ def main():
     parser.add_argument("--ca-pem", required=True, help="Path to the combined CA PEM (key + cert)")
     parser.add_argument("--ca-password", required=False, help="Password for the CA private key")
     parser.add_argument("--days", type=int, default=31, help="Validity days for the node certificate")
+    parser.add_argument("--instanceid", required=False, type=str, help="INSTANCE_ID to use")
 
     args = parser.parse_args()
+
+    instance_id = args.instanceid or os.environ['INSTANCE_ID']
 
     millegrilles_root = args.millegrilles_root
     # instance_id = args.instance_id
@@ -45,7 +48,6 @@ def main():
     ca_cert_pem = cert_match.group(0)
 
     cle_ca = CleCertificat.from_pems(ca_key_pem, ca_cert_pem, password=ca_password)
-    instance_id = cle_ca.enveloppe.subject_common_name
 
     # 2. Generate a CSR
     idmg = cle_ca.enveloppe.idmg
