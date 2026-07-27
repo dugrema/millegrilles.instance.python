@@ -111,7 +111,7 @@ The local instance maintains a record of all installed applications.
 
 ## 3. Management Tools
 
-### `bin/install/manage_apps.py` (The Orchestrator)
+### `../bin/manage_apps.py` (The Orchestrator)
 The primary Python-based CLI for managing applications. It encapsulates all logic for discovery, installation, and uninstallation.
 
 **Commands:**

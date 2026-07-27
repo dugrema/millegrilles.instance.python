@@ -438,10 +438,10 @@ install_protege_instance() {
   sleep 10
 
   echo "[INFO] Installing applications from catalogue"
-  "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name core --noreload
-  "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name maitredescles --noreload
-  "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name webapiprotege --noreload
-  "${MILLEGRILLES_ROOT}/bin/install/manage_apps.py" install --name coupdoeil2 --noreload
+  "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name core --noreload
+  "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name maitredescles --noreload
+  "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name webapiprotege --noreload
+  "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name coupdoeil2 --noreload
   docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/applications.yml" pull
 
   echo "[INFO] Start services and node manager "
@@ -526,7 +526,7 @@ install_prive_instance() {
   source "${MILLEGRILLES_ROOT}/config.env"
 
   echo "[INFO] Copying protege level nginx files"
-  cp -iv "${REP_ETC}/nginx/nginx_protege/"* "${MILLEGRILLES_ROOT}/etc/nginx"
+  cp -iv "${REP_ETC}/nginx/nginx_prive/"* "${MILLEGRILLES_ROOT}/etc/nginx"
 
   echo "[INFO] Requesting Node Manager Certificate..."
   "${PATH_VENV}/bin/python3" bin/x509/request_satellite.py
