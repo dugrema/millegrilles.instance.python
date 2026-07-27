@@ -215,6 +215,8 @@ class AppManager:
                                 mount_path = volume.split(":")[0]
                                 if "MILLEGRILLES_ROOT" in mount_path:
                                     mount_path = mount_path.replace("${MILLEGRILLES_ROOT}", str(self.root))
+                                elif "$" in mount_path:
+                                    continue  # Skip, this could be mongo or filehost (already handled in install script)
 
                                 # Replace variables using env as format
                                 mount_path = mount_path.format(**os.environ)
