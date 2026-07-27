@@ -12,7 +12,15 @@ fi
 echo "[INFO] Starting backup job"
 
 # Run backup
-"${MILLEGRILLES_ROOT}/bin/backup/millegrilles_mongo_backup.sh"
+if [ -f "${MILLEGRILLES_ROOT}/secrets/mongo.txt" ]; then
+    echo "[INFO] MongoDB secrets found. Running MongoDB backup..."
+    if ! "${MILLEGRILLES_ROOT}/bin/backup/millegrilles_mongo_backup.sh"; then
+        echo "[WARN] MongoDB backup failed. Continuing with other backups."
+    fi
+else
+    echo "[INFO] MongoDB not configured (no secrets/mongo.txt). Skipping MongoDB backup."
+fi
+
 "${MILLEGRILLES_ROOT}/bin/backup/millegrilles_etc_backup.sh"
 
 # Function to rotate backups
