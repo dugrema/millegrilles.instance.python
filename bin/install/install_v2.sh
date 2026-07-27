@@ -537,6 +537,9 @@ install_prive_instance() {
   echo "[INFO] Requesting Node Manager Certificate..."
   "${PATH_VENV}/bin/python3" bin/x509/request_satellite.py
 
+  # Initialize the local filehost repository
+  mkdir -p "${MILLEGRILLES_ROOT}/var/filehost/files/${IDMG}"
+
   echo "[INFO] Preparing node systemd configuration files for secure"
   ./bin/install/setup_systemd_prive.sh "${MILLEGRILLES_ROOT}/config.env"
 
