@@ -60,7 +60,7 @@ generate_service() {
 # Generate middleware services
 generate_service "$TEMPLATE_DIR/certissuer.service.template" "$DEST_DIR/${INSTANCE_NAME}-certissuer.service"
 generate_service "$TEMPLATE_DIR/nginx.service.template" "$DEST_DIR/${INSTANCE_NAME}-nginx.service"
-generate_service "$TEMPLATE_DIR/middleware.service.template" "$DEST_DIR/${INSTANCE_NAME}-middleware.service"
+generate_service "$TEMPLATE_DIR/middleware_protege.service.template" "$DEST_DIR/${INSTANCE_NAME}-middleware.service"
 generate_service "$TEMPLATE_DIR/applications.service.template" "$DEST_DIR/${INSTANCE_NAME}-applications.service"
 
 # Generate node manager: ${INSTANCE_NAME}.service
