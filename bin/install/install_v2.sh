@@ -210,7 +210,6 @@ creer_repertoires() {
 
 copier_fichiers() {
   echo "[INFO] Copier fichiers systeme"
-  cp -v "${REP_ETC}/idmg_validation.json" "${MILLEGRILLES_ROOT}/etc/"
   cp -vr "${REP_ETC}/compose" "${MILLEGRILLES_ROOT}/etc/"
   cp -vr "${REPO_ROOT}/bin" "${MILLEGRILLES_ROOT}/"
 
@@ -416,7 +415,7 @@ install_protege_instance() {
   echo "[INFO] Download and start certissuer"
   systemctl --user daemon-reload
   docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/coremodules/certissuer.yml" pull
-  systemctl --user restart "${INSTANCE_NAME}-certissuer"
+  systemctl --user enable --now "${INSTANCE_NAME}-certissuer"
   sleep 5  # Wait for certissuer to start
 
   echo "[INFO] Generate all local certificates and passwords in secrets directory"
@@ -447,21 +446,18 @@ install_protege_instance() {
 
   echo "[INFO] Start services and node manager "
   systemctl --user reload "${INSTANCE_NAME}-nginx"
-  systemctl --user restart "${INSTANCE_NAME}-applications"
-  systemctl --user restart "${INSTANCE_NAME}-manager"
 
-  # Enable services on start, register timers
+  # Enable services on start
   systemctl --user enable "${INSTANCE_NAME}-nginx"
-  systemctl --user enable "${INSTANCE_NAME}-middleware"
-  systemctl --user enable "${INSTANCE_NAME}-applications"
-  systemctl --user enable "${INSTANCE_NAME}-manager"
+  systemctl --user enable --now "${INSTANCE_NAME}-middleware"
+  systemctl --user enable --now  "${INSTANCE_NAME}-applications"
+  systemctl --user enable --now "${INSTANCE_NAME}-manager"
 
   # Activate the certificate updater with timer
   systemctl --user enable --now "${INSTANCE_NAME}-certs_updater.timer"
   systemctl --user enable --now "${INSTANCE_NAME}-certs_updater.service"
-  systemctl --user start "${INSTANCE_NAME}-certs_updater"
   systemctl --user enable --now "${INSTANCE_NAME}-backup.timer"
-  systemctl --user enable "${INSTANCE_NAME}-backup"
+  systemctl --user enable --now "${INSTANCE_NAME}-backup.service"
   echo "[OK] Services and node manager started"
 
   echo "[OK] Protege installation complete, IDMG=${IDMG}."
