@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-# Generate a set of CA/leaf self-signed certificates using RSA.
+# Generate a set of CA/leaf self-signed certificates using EC.
 
 # Function to print error and exit
 error_exit() {
@@ -35,7 +35,7 @@ CHAIN_CRT="$CERT_DIR/webss.cert.pem"
 # 1. Create Root CA
 if [ ! -f "$ROOT_CA_PEM" ]; then
     echo "Creating Root CA..."
-    openssl genrsa -out "$ROOT_CA_KEY" 2048 &> /dev/null || error_exit "Failed to generate Root CA key"
+    openssl ecparam -name prime256v1 -genkey -noout -out "$ROOT_CA_KEY" &> /dev/null || error_exit "Failed to generate Root CA key"
     openssl req -x509 -new -nodes -key "$ROOT_CA_KEY" -sha256 -days 3650 -out "$ROOT_CA_PEM" -subj "/CN=Local Dev CA" &> /dev/null || error_exit "Failed to generate Root CA certificate"
 else
     echo "Root CA already exists. Skipping creation."
@@ -69,7 +69,7 @@ IP.1 = 127.0.0.1
 EOF
 
 # Generate Server Key and CSR
-openssl genrsa -out "$SERVER_KEY" 2048 &> /dev/null || error_exit "Failed to generate server key"
+openssl ecparam -name prime256v1 -genkey -noout -out "$SERVER_KEY" &> /dev/null || error_exit "Failed to generate server key"
 openssl req -new -key "$SERVER_KEY" -out "$CERT_DIR/server.csr" -config "$CONF_FILE" &> /dev/null || error_exit "Failed to generate CSR"
 
 # Sign Server Certificate with Root CA
