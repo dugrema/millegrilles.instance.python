@@ -460,6 +460,8 @@ install_protege_instance() {
   systemctl --user enable --now "${INSTANCE_NAME}-certs_updater.timer"
   systemctl --user enable --now "${INSTANCE_NAME}-certs_updater.service"
   systemctl --user start "${INSTANCE_NAME}-certs_updater"
+  systemctl --user enable --now "${INSTANCE_NAME}-backup.timer"
+  systemctl --user enable "${INSTANCE_NAME}-backup"
   echo "[OK] Services and node manager started"
 
   echo "[OK] Protege installation complete, IDMG=${IDMG}."

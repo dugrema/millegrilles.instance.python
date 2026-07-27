@@ -64,6 +64,8 @@ generate_service "$TEMPLATE_DIR/applications.service.template" "$DEST_DIR/${INST
 
 # Generate node manager: ${INSTANCE_NAME}.service
 generate_service "$TEMPLATE_DIR/manager.service.template" "$DEST_DIR/${INSTANCE_NAME}-manager.service"
+generate_service "$TEMPLATE_DIR/backup.service.template" "$DEST_DIR/${INSTANCE_NAME}-backup.service"
+cp -vi "$TEMPLATE_DIR/backup.timer" "$DEST_DIR/${INSTANCE_NAME}-backup.timer"
 
 echo ""
 echo "Successfully created systemd user services in $DEST_DIR:"
@@ -71,6 +73,7 @@ echo "  - ${INSTANCE_NAME}-nginx.service"
 echo "  - ${INSTANCE_NAME}-middleware.service"
 echo "  - ${INSTANCE_NAME}-applications.service"
 echo "  - ${INSTANCE_NAME}-manager.service"
+echo "  - ${INSTANCE_NAME}-backup.service"
 echo ""
 
 systemctl --user daemon-reload

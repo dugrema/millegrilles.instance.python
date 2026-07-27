@@ -1,0 +1,10 @@
+[Unit]
+Description=Regular backup of configuration and database
+
+[Timer]
+OnBootSec=6s
+OnUnitActiveSec=24h
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -67,6 +67,8 @@ generate_service "$TEMPLATE_DIR/applications.service.template" "$DEST_DIR/${INST
 generate_service "$TEMPLATE_DIR/manager.service.template" "$DEST_DIR/${INSTANCE_NAME}-manager.service"
 generate_service "$TEMPLATE_DIR/certs_updater.service.template" "$DEST_DIR/${INSTANCE_NAME}-certs_updater.service"
 cp -vi "$TEMPLATE_DIR/certs_updater.timer" "$DEST_DIR/${INSTANCE_NAME}-certs_updater.timer"
+generate_service "$TEMPLATE_DIR/backup.service.template" "$DEST_DIR/${INSTANCE_NAME}-backup.service"
+cp -vi "$TEMPLATE_DIR/backup.timer" "$DEST_DIR/${INSTANCE_NAME}-backup.timer"
 
 echo ""
 echo "Successfully created systemd user services in $DEST_DIR:"
@@ -76,6 +78,7 @@ echo "  - ${INSTANCE_NAME}-middleware.service"
 echo "  - ${INSTANCE_NAME}-applications.service"
 echo "  - ${INSTANCE_NAME}-manager.service"
 echo "  - ${INSTANCE_NAME}-certs_updater.service"
+echo "  - ${INSTANCE_NAME}-backup.service"
 echo ""
 
 systemctl --user daemon-reload
