@@ -4,7 +4,7 @@
 
 get_mongo_container_name() {
     local container
-    container=$(docker ps --filter "network=${INSTANCE_NAME}_net" --format "{{.Names}}" | grep mongo | head -n 1)
+    container=$(docker ps --filter "network=${INSTANCE_NAME}_net" --format "{{.Names}}" | grep -E "\-mongo\-[0-9]+$" | head -n 1)
     
     if [ -z "$container" ]; then
         echo "[ERROR] No mongo container found on network ${INSTANCE_NAME}_net." >&2
