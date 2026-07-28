@@ -10,7 +10,7 @@ get_mongo_container_name() {
         echo "[ERROR] No mongo container found on network ${INSTANCE_NAME}_net." >&2
         return 1
     fi
-    echo "mongo"
+    echo "$container"
 }
 
 cleanup() {
