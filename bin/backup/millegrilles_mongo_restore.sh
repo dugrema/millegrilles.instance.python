@@ -52,13 +52,8 @@ fi
 MONGO_PASSWORD=$(cat "$MILLEGRILLES_ROOT/secrets/mongo.txt")
 ENCODED_PASSWORD=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$MONGO_PASSWORD', safe=''))")
 
-MONGO_CONTAINER=$(get_mongo_container_name)
-if [ $? -ne 0 ]; then
-    exit 1
-fi
-
 # Build connection string
-CONNECTION_STRING="mongodb://admin:${ENCODED_PASSWORD}@${MONGO_CONTAINER}:27017/?authSource=admin&tls=true&tlsCAFile=/etc_millegrille/millegrille.pem&tlsCertificateKeyFile=/secrets/mongo.pem"
+CONNECTION_STRING="mongodb://admin:${ENCODED_PASSWORD}@mongo:27017/?authSource=admin&tls=true&tlsCAFile=/etc_millegrille/millegrille.pem&tlsCertificateKeyFile=/secrets/mongo.pem"
 
 # Execute mongorestore inside a container
 echo "[INFO] Running mongorestore in Docker..."

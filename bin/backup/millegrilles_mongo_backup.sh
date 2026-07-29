@@ -56,7 +56,6 @@ MONGO_PASSWORD=$(cat "$MILLEGRILLES_ROOT/secrets/mongo.txt")
 ENCODED_PASSWORD=$(python3 -c "import urllib.parse; print(urllib.parse.quote('$MONGO_PASSWORD', safe=''))")
 
 MONGO_USER="admin"
-CONTAINER_NAME="mongo_backup_container_${TIMESTAMP}"
 
 # Build connection string
 CONNECTION_STRING="mongodb://${MONGO_USER}:${ENCODED_PASSWORD}@mongo:27017/?authSource=admin&tls=true&tlsCAFile=/etc_millegrille/millegrille.pem&tlsCertificateKeyFile=/secrets/mongo.pem"
