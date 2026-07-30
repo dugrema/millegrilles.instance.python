@@ -501,6 +501,7 @@ install_secure_instance() {
   echo "[INFO] Generating Node Manager Certificate..."
   "${PATH_VENV}/bin/python3" bin/x509/sign_protege.py \
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
+    --instance-id $INSTANCE_ID \
     --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem"
 
   echo "[INFO] Preparing node systemd configuration files for secure"

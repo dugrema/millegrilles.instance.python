@@ -12,7 +12,7 @@ from cryptography.x509.base import CertificateBuilder
 def main():
     parser = argparse.ArgumentParser(description="Generate a node certificate using MilleGrilles library.")
     parser.add_argument("--millegrilles-root", required=True, help="MILLEGRILLES_ROOT directory")
-    # parser.add_argument("--instance-id", required=True, help="INSTANCE_ID")
+    parser.add_argument("--instance-id", required=True, help="INSTANCE_ID")
     parser.add_argument("--ca-pem", required=True, help="Path to the combined CA PEM (key + cert)")
     parser.add_argument("--ca-password", required=False, help="Password for the CA private key")
     parser.add_argument("--days", type=int, default=31, help="Validity days for the node certificate")
@@ -20,7 +20,7 @@ def main():
 
     args = parser.parse_args()
 
-    instance_id = args.instanceid or os.environ['INSTANCE_ID']
+    instance_id = args.instance_id or os.environ['INSTANCE_ID']
 
     millegrilles_root = args.millegrilles_root
     # instance_id = args.instance_id
