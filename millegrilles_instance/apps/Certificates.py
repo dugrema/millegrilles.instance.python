@@ -10,7 +10,7 @@ import yaml
 
 from typing import Optional, Any, TypedDict
 
-from aiohttp import ClientError
+from aiohttp import ClientError, ClientSession, TCPConnector, ClientTimeout
 
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
@@ -20,7 +20,6 @@ from millegrilles_messages.messages import Constantes as MillegrillesConstantes
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 from millegrilles_messages.messages.FormatteurMessages import FormatteurMessageMilleGrilles
-from millegrilles_messages.messages.MessagesModule import MessageProducerFormatteur
 
 LOGGER = logging.getLogger(__name__)
 
@@ -230,14 +229,23 @@ async def signer_module_core(producer: MilleGrillesPikaMessageProducer, context:
     return clecertificat
 
 
-def check_certissuer_available(config: ConfigurationInstance):
+async def check_certissuer_available(context: InstanceContext):
+    config = context.configuration
     url_issuer = f"{config.certissuer_url}/certificate.pem"
+    timeout = ClientTimeout(3)
+    if url_issuer.startswith('https'):
+        connector = TCPConnector(ssl=context.ssl_context)
+        session = ClientSession(timeout=timeout, connector=connector)
+        session.verify = True
+    else:
+        session = ClientSession(timeout=timeout)
     try:
-        response = requests.get(url_issuer)
-    except requests.exceptions.RequestException:
-        LOGGER.info("Local certissuer not available")
+        async with session.get(url_issuer) as response:
+            return response.status == 200
+    except ClientError as e:
+        LOGGER.info(f"Local certissuer not available: {e}")
         return False
-    return response.status_code == 200
+
 
 
 def signer_module_certissuer(config: ConfigurationInstance, cert_config: CertificateConfiguration, formatteur_message: FormatteurMessageMilleGrilles) -> CleCertificat:
@@ -304,7 +312,7 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
     if not certs_to_renew:
         return []  # Done
 
-    cert_issuer_avaiable = await asyncio.to_thread(check_certissuer_available, context.configuration)
+    cert_issuer_avaiable = await check_certissuer_available(context)
     if not cert_issuer_avaiable:
         # Ensure that we have access to the MQ producer
         producer = await asyncio.wait_for(context.get_producer(), 1)

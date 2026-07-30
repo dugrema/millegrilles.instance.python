@@ -174,7 +174,7 @@ class InstanceManager:
         self.__logger.info("Starting runlevel LOCAL")
 
         # Try to refresh local certificates when local certissuer is available
-        if await asyncio.to_thread(check_certissuer_available, self.context.configuration):
+        if await check_certissuer_available(self.context):
             await renew_certificates(self.context)
             self.context.certificates_generated.set()
 
