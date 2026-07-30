@@ -405,7 +405,7 @@ install_protege_instance() {
   "${PATH_VENV}/bin/python3" bin/x509/sign_protege.py \
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
     --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem" \
-    --instanceid "$INSTANCE_ID"
+    --instance-id $INSTANCE_ID
 
   # Get IDMG for configuration
   IDMG=$("${PATH_VENV}/bin/python3" bin/utils/get_idmg.py "${MILLEGRILLES_ROOT}/etc/millegrille.pem")
@@ -511,8 +511,8 @@ install_secure_instance() {
   echo "[INFO] Generating Node Manager Certificate..."
   "${PATH_VENV}/bin/python3" bin/x509/sign_protege.py \
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
-    --instance-id $INSTANCE_ID \
-    --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem"
+    --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem" \
+    --instance-id $INSTANCE_ID
 
   echo "[INFO] Preparing node systemd configuration files for secure"
   ./bin/install/setup_systemd_secure.sh "${MILLEGRILLES_ROOT}/config.env"
