@@ -1,4 +1,5 @@
 import asyncio
+import datetime
 import logging
 import socket
 from asyncio import TaskGroup
@@ -7,9 +8,13 @@ import psutil
 import time
 from typing import Any, Dict, List, Optional, Union, TypedDict
 
+from aiohttp import ClientSession, ClientError, ClientTimeout
+from urllib.parse import urlparse
+
 from millegrilles_instance.Configuration import ConfigurationInstance
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_messages.messages import Constantes as MilleGrillesConstantes
+from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
 
 
 # Rust mapping:
@@ -295,7 +300,6 @@ class SystemStatus:
                     {'mountpoint': p.mountpoint, 'free': usage.free, 'used': usage.used, 'total': usage.total})
         return reponse
 
-
 class SystemStatusManager:
 
     def __init__(self, context: InstanceContext):
@@ -311,6 +315,10 @@ class SystemStatusManager:
 
         # Downgrade securite level 4.secure to 3.protege
         self.__securite: Optional[str] = None
+
+        self.__next_certissuer_check: Optional[datetime.datetime] = None
+        self.__certissuer_not_before: Optional[datetime.datetime] = None
+        self.__certissuer_not_after: Optional[datetime.datetime] = None
 
     async def wait_initial_refresh_done(self):
         await self.__initial_refresh_done.wait()
@@ -358,9 +366,20 @@ class SystemStatusManager:
 
         securite = MilleGrillesConstantes.SECURITE_SECURE if self.__context.configuration.is_secure_manager else self.__securite
 
+        await self.get_certissuer_status()
+
+        if self.__certissuer_not_before and self.__certissuer_not_after:
+            certissuer = {
+                'not_before': int(self.__certissuer_not_before.timestamp()),
+                'not_after': int(self.__certissuer_not_after.timestamp())
+            }
+        else:
+            certissuer = None
+
         event_message = {
             'system_state': system_state,
             'securite': securite,
+            'certissuer': certissuer,
         }
 
         await producer.event(
@@ -370,3 +389,32 @@ class SystemStatusManager:
             partition=self.__context.instance_id,
             exchange=self.__securite,
         )
+
+    async def get_certissuer_status(self):
+        certissuer_url = self.__context.configuration.certissuer_url
+        if not certissuer_url:
+            return None  # Nothing to see
+
+        now = datetime.datetime.now()
+        if self.__next_certissuer_check and self.__next_certissuer_check > now:
+            return None  # Use cached values
+
+        url_parsed = urlparse(certissuer_url + "/certificate.pem")
+        session = ClientSession(timeout=ClientTimeout(2))
+        try:
+            async with session.get(url_parsed.geturl()) as response:
+                signing_pem = await response.text()
+        except ClientError as e:
+            self.__logger.debug(f"Error connecting to local certissuer: {e}")
+            self.__next_certissuer_check = now + datetime.timedelta(minutes = 5)
+            return None
+
+        try:
+            cert = EnveloppeCertificat.from_pem(signing_pem)
+            self.__certissuer_not_before = cert.not_valid_before
+            self.__certissuer_not_after = cert.not_valid_after
+            self.__next_certissuer_check = now + datetime.timedelta(hours=3)
+        except Exception as e:
+            self.__logger.warning(f"Error parsing PEM from certissuer: {e}")
+            self.__next_certissuer_check = now + datetime.timedelta(minutes = 5)
+            return None
