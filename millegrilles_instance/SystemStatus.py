@@ -400,10 +400,10 @@ class SystemStatusManager:
             return None  # Use cached values
 
         url_parsed = urlparse(certissuer_url + "/certificate.pem")
-        session = ClientSession(timeout=ClientTimeout(2))
         try:
-            async with session.get(url_parsed.geturl()) as response:
-                signing_pem = await response.text()
+            async with ClientSession(timeout=ClientTimeout(2)) as session:
+                async with session.get(url_parsed.geturl()) as response:
+                    signing_pem = await response.text()
         except ClientError as e:
             self.__logger.debug(f"Error connecting to local certissuer: {e}")
             self.__next_certissuer_check = now + datetime.timedelta(minutes = 5)
