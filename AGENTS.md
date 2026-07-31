@@ -8,7 +8,7 @@ The python project is under `millegrilles_instance`.
 
 ## Scripts
 
-The main installation script is `install_v2.sh`. Other scripts are available under `bin/`. 
+The main installation script is `install.sh`. Other installation scripts are available under `bin/install/`. 
 
 Configuration goes under `etc/`.
 
@@ -16,8 +16,6 @@ A patched version of os_crypto is in `lib/`, it contains a patch regarding the o
 
 ## Project setup
 
-The project has a few system dependencies that need to be set-up with sudo once per system using script `bin/setup_system.sh`.
+The project has a few system dependencies that need to be set-up with sudo once per system using script `bin/install/setup_system.sh`.
 
-A millegrille instance can be installed using `install_v2.sh`. The script has parameters that allow naming an instance and providing a custom root folder.
-
-
+A millegrille instance can be installed using `install.sh`. The script has parameters that allow naming an instance and providing a custom root folder.
