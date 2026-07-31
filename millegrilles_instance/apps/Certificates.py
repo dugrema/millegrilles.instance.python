@@ -245,6 +245,8 @@ async def check_certissuer_available(context: InstanceContext):
     except ClientError as e:
         LOGGER.info(f"Local certissuer not available: {e}")
         return False
+    finally:
+        await session.close()
 
 
 
