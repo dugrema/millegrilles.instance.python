@@ -27,17 +27,14 @@ services:
         condition: on-failure
         delay: 5s
         max_attempts: 1000
-    configs:
+    secrets:
       - source: millegrille_cert
         target: /run/secrets/millegrille.pem
-    secrets:
       - source: signing_key
         target: signing_ca.pem
 
-configs:
+secrets:
   millegrille_cert:
     file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
-
-secrets:
   signing_key:
     file: ${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem

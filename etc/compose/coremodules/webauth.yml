@@ -28,10 +28,9 @@ services:
         condition: on-failure
         delay: 20s
         max_attempts: 100
-    configs:
+    secrets:
       - source: mgca
         target: /run/secrets/millegrille.cert.pem
-    secrets:
       - source: webauth
         target: key.pem
       - source: passwd_redis
@@ -39,11 +38,9 @@ services:
     networks:
       - app_net
 
-configs:
+secrets:
   mgca:
     file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
-
-secrets:
   webauth:
     file: ${MILLEGRILLES_ROOT}/secrets/webauth.pem
   passwd_redis:

@@ -37,28 +37,25 @@ services:
         condition: on-failure
         delay: 5s
         max_attempts: 1000
-    configs:
+    secrets:
       - source: webcert
         target: /run/secrets/webcert.pem
       - source: mgcert
         target: /run/secrets/nginx.cert.pem
       - source: mgca
         target: /usr/share/nginx/files/certs/millegrille.cert.pem
-    secrets:
       - source: webkey
         target: webkey.pem
       - source: mgkey
         target: nginx.key.pem
 
-configs:
+secrets:
   webcert:
     file: ${MILLEGRILLES_ROOT}/secrets/web.cert.pem
   mgcert:
     file: ${MILLEGRILLES_ROOT}/secrets/nginx.cert.pem
   mgca:
     file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
-
-secrets:
   webkey:
     file: ${MILLEGRILLES_ROOT}/secrets/web.key.pem
   mgkey:

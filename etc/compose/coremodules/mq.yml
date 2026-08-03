@@ -36,9 +36,9 @@ services:
     configs:
       - source: mgca
         target: /opt/rabbitmq/dist/certs/calist.cert.pem
-      - source: mq
+      - source: mqcert
         target: /opt/rabbitmq/dist/certs/cert.pem
-      - source: mq
+      - source: mqcert
         target: /opt/rabbitmq/dist/certs/webcert.pem
       - source: mqkey
         target: /opt/rabbitmq/dist/keys/key.pem
@@ -46,19 +46,15 @@ services:
         target: /opt/rabbitmq/dist/keys/webkey.pem
     # A faire -> fix secrets, env params ne fonctionnent pas. Changer rabbitmq.config pour pointer vers /run/secrets pour cles
     secrets:
-      - source: mq
+      - source: mqkey
         target: key.pem
-      - source: mq
+      - source: mqkey
         target: webkey.pem
 
-configs:
-  mq:
+secrets:
+  mqcert:
     file: ${MILLEGRILLES_ROOT}/secrets/mq.cert.pem
   mqkey:
     file: ${MILLEGRILLES_ROOT}/secrets/mq.key.pem
   mgca:
     file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
-
-secrets:
-  mq:
-    file: ${MILLEGRILLES_ROOT}/secrets/mq.key.pem

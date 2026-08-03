@@ -1,23 +1,6 @@
 services:
-  mongo_init:
-    image: mongo:8.2.6
-    user: "${CONTAINER_UID}:${CONTAINER_GID}"
-    command: ["mongod", "--replSet", "rs0"]
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=admin
-      - MONGO_INITDB_ROOT_PASSWORD_FILE=/run/secrets/mongo.root.password
-    volumes:
-      - ${MOUNT_MONGO}:/data/db
-    configs:
-      - source: mgca
-        target: /run/secrets/millegrille.cert.pem
-    secrets:
-      - source: mongo
-        target: mongo.key_cert.pem
-      - source: passwd_mongo
-        target: mongo.root.password
   mongo:
-    image: mongo:8.2.6
+    image: docker.io/library/mongo:8.2.6
     x-millegrilles-certificat:
       roles:
         - mongo
@@ -30,7 +13,7 @@ services:
       passwords:
         - mongo
     hostname: mongo
-    user: "${CONTAINER_UID}:${CONTAINER_GID}"
+    # user: "${CONTAINER_UID}:${CONTAINER_GID}"
     command: [
       "mongod",
       "--tlsMode", "requireTLS",
@@ -58,22 +41,19 @@ services:
         condition: on-failure
         delay: 5s
         max_attempts: 1000
-    configs:
+    secrets:
       - source: mgca
         target: /run/secrets/millegrille.cert.pem
-    secrets:
       - source: mongo
         target: mongo.key_cert.pem
       - source: passwd_mongo
         target: mongo.root.password
-    depends_on:
-      - mongo_init
-
-configs:
-  mgca:
-    file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
+    # depends_on:
+    #   - mongo_init
 
 secrets:
+  mgca:
+    file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
   mongo:
     file: ${MILLEGRILLES_ROOT}/secrets/mongo.pem
   passwd_mongo:

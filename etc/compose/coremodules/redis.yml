@@ -29,25 +29,22 @@ services:
         condition: on-failure
         delay: 5s
         max_attempts: 1000
-    configs:
-      - source: redis
+    secrets:
+      - source: redis_cert
         target: /run/secrets/cert.pem
       - source: mgca
         target: /run/secrets/millegrille.cert.pem
-    secrets:
-      - source: redis
+      - source: redis_key
         target: key.pem
       - source: passwd_redis
         target: passwd.redis.txt
 
-configs:
-  redis:
+secrets:
+  redis_cert:
     file: ${MILLEGRILLES_ROOT}/secrets/redis.cert.pem
   mgca:
     file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
-
-secrets:
-  redis:
+  redis_key:
     file: ${MILLEGRILLES_ROOT}/secrets/redis.key.pem
   passwd_redis:
     file: ${MILLEGRILLES_ROOT}/secrets/redis.txt

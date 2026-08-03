@@ -28,10 +28,9 @@ services:
         condition: on-failure
         delay: 30s
         max_attempts: 1000
-    configs:
+    secrets:
       - source: mgca
         target: /run/secrets/pki.millegrille.cert
-    secrets:
       - source: ceduleur
         target: mgkeycert.pem
     networks:
@@ -41,10 +40,8 @@ services:
       - mq
       - midcompte
 
-configs:
+secrets:
   mgca:
     file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
-
-secrets:
   ceduleur:
     file: ${MILLEGRILLES_ROOT}/secrets/ceduleur.pem

@@ -24,10 +24,9 @@ services:
         condition: on-failure
         delay: 20s
         max_attempts: 1000
-    configs:
+    secrets:
       - source: mgca
         target: /run/secrets/pki.millegrille.cert
-    secrets:
       - source: midcompte
         target: key.pem
       - source: passwd_mongo
@@ -42,11 +41,9 @@ services:
       - mq
       - mongo
 
-configs:
+secrets:
   mgca:
     file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
-
-secrets:
   midcompte:
     file: ${MILLEGRILLES_ROOT}/secrets/midcompte.pem
   passwd_mongo:
