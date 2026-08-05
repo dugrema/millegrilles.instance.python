@@ -432,7 +432,7 @@ install_protege_instance() {
   systemctl --user daemon-reload
   docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/coremodules/certissuer.yml" pull
   systemctl --user enable --now "${INSTANCE_NAME}-certissuer"
-  sleep 5  # Wait for certissuer to start
+  sleep 10  # Wait for certissuer to start
 
   echo "[INFO] Generate all local certificates and passwords in secrets directory"
   export CA_PATH="${MILLEGRILLES_ROOT}/etc/millegrille.pem"
