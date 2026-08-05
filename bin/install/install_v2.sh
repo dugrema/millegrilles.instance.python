@@ -73,17 +73,17 @@ case $TYPE in
 esac
 
 save_configenv() {
-#  if [ "$TYPE" != "protege" ]; then
-#    if [ -f "${MILLEGRILLES_ROOT}/etc/fiche_env" ]; then
-#      source "${MILLEGRILLES_ROOT}/etc/fiche_env"
-#      CERTISSUER_URL="https://${MQ_HOSTNAME}:${MTLS_PORT}"
-#    else
-#      echo "[ERROR] fiche_env not found. Did you run process_fiche_file?"
-#      exit 1
-#    fi
-#  else
-#    CERTISSUER_URL="http://localhost:2080"
-#  fi
+  if [ "$TYPE" != "protege" ]; then
+    if [ -f "${MILLEGRILLES_ROOT}/etc/fiche_env" ]; then
+      source "${MILLEGRILLES_ROOT}/etc/fiche_env"
+      # CERTISSUER_URL="https://${MQ_HOSTNAME}:${MTLS_PORT}"
+    else
+      echo "[ERROR] fiche_env not found. Did you run process_fiche_file?"
+      exit 1
+    fi
+  #else
+  #  CERTISSUER_URL="http://localhost:2080"
+  fi
 
   # Change in design - certissuer is always local (3.protege and 4.secure)
   # Otherwise the manager MUST connect to MQ to renew certificates
