@@ -36,7 +36,7 @@ services:
       - REDMINE_DB_PASSWORD_FILE=/run/secrets/mariadb_redmine
       - REDMINE_DB_DATABASE=redmine
     volumes:
-      - ${REDMINE_FILES:-${MILLEGRILLES_ROOT}/var/redmine/files}=/usr/src/redmine/files
+      - ${REDMINE_FILES:-${MILLEGRILLES_ROOT}/var/redmine/files}:/usr/src/redmine/files
     secrets:
       - mariadb_redmine
     deploy:
