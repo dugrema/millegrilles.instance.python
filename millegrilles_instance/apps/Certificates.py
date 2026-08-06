@@ -344,62 +344,71 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
         except KeyError:
             pass
 
-        if cert_issuer_avaiable:
-            cle_certificat = signer_module_certissuer(context.configuration, cert_config_copy, formatteur)
-        elif producer:
-            cle_certificat = await signer_module_core(producer, context, cert_config_copy)
-        else:
-            raise Exception('No means of accessing certissuer found')
+        # Remove passwords, they are handled separately
+        keys = set(cert_config_copy.keys())
+        keys.remove('name')
+        try:
+            keys.remove('passwords')
+        except KeyError:
+            pass  # No passwords
 
-        key_pem = cle_certificat.private_key_bytes().decode('utf-8')
-        new_certificate = cle_certificat.enveloppe
-        cert_pem = "\n".join(new_certificate.chaine_pem()) + "\n"
+        if len(keys) > 0:
+            if cert_issuer_avaiable:
+                cle_certificat = signer_module_certissuer(context.configuration, cert_config_copy, formatteur)
+            elif producer:
+                cle_certificat = await signer_module_core(producer, context, cert_config_copy)
+            else:
+                raise Exception('No means of accessing certissuer found')
 
-        # Check if we have to notify the maitre des cles (if --init, the certificate will only show up when ALREADY expired)
-        if not context.configuration.init_only:
-            try:
-                if MillegrillesConstantes.DOMAINE_MAITRE_DES_CLES in cert_config_copy['domaines']:
-                    try:
-                        cert_path = secrets_path / f"{cert_config_copy['name']}.cert.pem"
-                        old_cert = EnveloppeCertificat.from_file(cert_path)
-                        await rotation_maitredescles(context, old_cert, new_certificate)
-                    except (TimeoutError, ValueError):
-                        LOGGER.exception("Error rotation certificate for keymaster")
-                        continue  # Keep going with other certificates
-                    except FileNotFoundError:
-                        LOGGER.warning("Old keymaster certificate cannot be loaded, rotating without warning")
-            except KeyError:
-                pass
+            key_pem = cle_certificat.private_key_bytes().decode('utf-8')
+            new_certificate = cle_certificat.enveloppe
+            cert_pem = "\n".join(new_certificate.chaine_pem()) + "\n"
 
-        if cert_config.get('split'):
-            key_path = secrets_path / f"{cert_config_copy['name']}.key.pem"
-            cert_path = secrets_path / f"{cert_config_copy['name']}.cert.pem"
+            # Check if we have to notify the maitre des cles (if --init, the certificate will only show up when ALREADY expired)
+            if not context.configuration.init_only:
+                try:
+                    if MillegrillesConstantes.DOMAINE_MAITRE_DES_CLES in cert_config_copy['domaines']:
+                        try:
+                            cert_path = secrets_path / f"{cert_config_copy['name']}.cert.pem"
+                            old_cert = EnveloppeCertificat.from_file(cert_path)
+                            await rotation_maitredescles(context, old_cert, new_certificate)
+                        except (TimeoutError, ValueError):
+                            LOGGER.exception("Error rotation certificate for keymaster")
+                            continue  # Keep going with other certificates
+                        except FileNotFoundError:
+                            LOGGER.warning("Old keymaster certificate cannot be loaded, rotating without warning")
+                except KeyError:
+                    pass
 
-            # Delete old files when present
-            try:
-                key_path.unlink()
-            except FileNotFoundError:
-                pass
-            try:
-                cert_path.unlink()
-            except FileNotFoundError:
-                pass
+            if cert_config.get('split'):
+                key_path = secrets_path / f"{cert_config_copy['name']}.key.pem"
+                cert_path = secrets_path / f"{cert_config_copy['name']}.cert.pem"
 
-            # Write new files
-            with open(key_path, "w") as key_file:
-                key_file.write(key_pem)
-            with open(cert_path, "w") as cert_file:
-                cert_file.write(cert_pem)
-        else:
-            # Combined key/cert pem file
-            pem_path = secrets_path / f"{cert_config_copy['name']}.pem"
-            with open(pem_path, "w") as pem_file:
-                pem_file.write(key_pem)
-                pem_file.write("\n")
-                pem_file.write(cert_pem)
+                # Delete old files when present
+                try:
+                    key_path.unlink()
+                except FileNotFoundError:
+                    pass
+                try:
+                    cert_path.unlink()
+                except FileNotFoundError:
+                    pass
 
-        LOGGER.debug(f"Certificate {cert_config_copy['name']} renewed")
-        renewed_config.append(cert_config_copy)
+                # Write new files
+                with open(key_path, "w") as key_file:
+                    key_file.write(key_pem)
+                with open(cert_path, "w") as cert_file:
+                    cert_file.write(cert_pem)
+            else:
+                # Combined key/cert pem file
+                pem_path = secrets_path / f"{cert_config_copy['name']}.pem"
+                with open(pem_path, "w") as pem_file:
+                    pem_file.write(key_pem)
+                    pem_file.write("\n")
+                    pem_file.write(cert_pem)
+
+            LOGGER.debug(f"Certificate {cert_config_copy['name']} renewed")
+            renewed_config.append(cert_config_copy)
 
     # Generate missing passwords
     passwords_to_generate = check_passwords(context.configuration, certs)

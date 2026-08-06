@@ -1,0 +1,12 @@
+{
+  "name": "redmine",
+  "version": "2026.3.3",
+  "securite": "2.prive",
+  "labels": {
+    "en": "Redmine - Issue manager",
+    "fr": "Redmine - Gestionnaire de taches"
+  },
+  "web": [{
+    "path": "/redmine"
+  }]
+}

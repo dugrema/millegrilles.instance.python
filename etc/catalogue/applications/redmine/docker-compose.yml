@@ -1,0 +1,66 @@
+name: ${INSTANCE_NAME}_redmine
+
+services:
+  redminemariadb:
+    image: "registry.millegrilles.com/redmine/mariadb:10.5-redmine"
+    x-millegrilles-certificat:
+      passwords:
+        - mariadb_password
+        - mariadb_redmine
+    environment:
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mariadb_password
+    volumes:
+      - ${MILLEGRILLES_ROOT}/var/redmine/mariadb:/var/lib/mysql
+      - ${MILLEGRILLES_ROOT}/var/backup/redmine/mariadb:/backup
+    secrets:
+      - mariadb_password
+      - mariadb_redmine
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 250M
+      restart_policy:
+        condition: on-failure
+        delay: 20s
+        max_attempts: 1000
+    hostname: redminemariadb
+    networks:
+      - app_net
+
+  redmine:
+    image: "registry.millegrilles.com/redmine/redmine:4.1-alpine-redminepath"
+    environment:
+      - REDMINE_DB_MYSQL=redminemariadb
+      - REDMINE_DB_USERNAME=redmine
+      - REDMINE_DB_PASSWORD_FILE=/run/secrets/mariadb_redmine
+      - REDMINE_DB_DATABASE=redmine
+    volumes:
+      - ${REDMINE_FILES:-${MILLEGRILLES_ROOT}/var/redmine/files}=/usr/src/redmine/files
+    secrets:
+      - mariadb_redmine
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 250M
+      restart_policy:
+        condition: on-failure
+        delay: 20s
+        max_attempts: 1000
+    hostname: redmine
+    networks:
+      - app_net
+    depends_on:
+      - redminemariadb
+
+secrets:
+  mariadb_password:
+    file: ${MILLEGRILLES_ROOT}/secrets/mariadb_password.txt
+  mariadb_redmine:
+    file: ${MILLEGRILLES_ROOT}/secrets/mariadb_redmine.txt
+
+networks:
+  app_net:
+    name: ${INSTANCE_NAME}_net
+    external: true
