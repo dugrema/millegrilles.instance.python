@@ -601,6 +601,7 @@ main() {
 
   echo
   echo "[INFO] Installation path:  $MILLEGRILLES_ROOT."
+  echo "[INFO] Pour permettre aux services de demarrer au boot, utiliser `sudo loginctl enable-linger $(whoami)`"
   echo "[OK] Installation $TYPE completee avec succès."
 }
 
