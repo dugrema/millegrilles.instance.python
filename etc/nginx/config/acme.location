@@ -1,0 +1,7 @@
+location /.well-known/acme-challenge {
+  root /usr/share/nginx/html;
+  include /etc/nginx/conf.d/component_cors.include;
+  add_header Cache-Control "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0";
+  add_header Pragma "no-cache";
+  expires off;
+}
