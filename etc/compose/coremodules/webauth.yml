@@ -48,3 +48,8 @@ secrets:
     file: ${MILLEGRILLES_ROOT}/secrets/webauth.pem
   passwd_redis:
     file: ${MILLEGRILLES_ROOT}/secrets/redis.txt
+
+networks:
+  app_net:
+    name: ${INSTANCE_NAME}_net
+    external: true

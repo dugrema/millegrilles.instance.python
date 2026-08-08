@@ -1,8 +1,4 @@
-include:
-  - path: ../include/app_net.yml
-    project_directory: .
-
-name: ${INSTANCE_NAME}
+name: ${INSTANCE_NAME}-x509
 
 services:
   certissuer:
@@ -41,3 +37,8 @@ configs:
 secrets:
   signing_key:
     file: ${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem
+
+networks:
+  app_net:
+    name: ${INSTANCE_NAME}_net
+    external: true

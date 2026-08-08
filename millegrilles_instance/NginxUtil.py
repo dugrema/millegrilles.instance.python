@@ -8,7 +8,8 @@ def publish_to_nginx(configuration: ConfigurationInstance, path_fichier: str, co
     """
     Publishes a single static file to the nginx server.
     """
-    path_nginx_fichier = configuration.path_millegrilles / "var/nginx/html" / path_fichier
+    # path_nginx_fichier = configuration.path_millegrilles / "var/nginx/html" / path_fichier
+    path_nginx_fichier = configuration.path_nginx_html / path_fichier
 
     if isinstance(contenu, str):
         contenu = contenu.encode('utf-8')

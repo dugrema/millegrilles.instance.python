@@ -95,12 +95,18 @@ save_configenv() {
     CERTISSUER_URL=""
   fi
 
+  # Prefer using /var/www/html for nginx html content, fallback to user dir when not available
+  if [ -d "/var/www/html" ] && [ -w "/var/www/html" ]; then
+    MOUNT_NGINX_HTML="/var/www/html"
+  else
+    MOUNT_NGINX_HTML="${MILLEGRILLES_ROOT}/var/nginx/html"
+  fi
+
   {
     echo "INSTANCE_ID=\"${INSTANCE_ID}\""
     echo "CONTAINER_UID=\"${CONTAINER_UID}\""
     echo "CONTAINER_GID=\"${CONTAINER_GID}\""
     echo "MILLEGRILLES_ROOT=\"${MILLEGRILLES_ROOT}\""
-    echo "MOUNT_FILEHOST=\"${MILLEGRILLES_ROOT}/var/filehost\""
     echo "MOUNT_MONGO=\"${MILLEGRILLES_ROOT}/var/mongo\""
     echo "INSTANCE_NAME=\"${INSTANCE_NAME}\""
     echo "INSTANCE_DOMAIN=\"${INSTANCE_DOMAIN}\""
@@ -113,6 +119,10 @@ save_configenv() {
       echo "MQ_PORT=${MQ_PORT}"
       echo "MTLS_PORT=${MTLS_PORT}"
       echo "IDMG=${IDMG}"
+    fi
+    if [ "$TYPE" != "secure" ]; then
+      echo "MOUNT_FILEHOST=\"${MILLEGRILLES_ROOT}/var/filehost\""
+      echo "MOUNT_NGINX_HTML=\"${MOUNT_NGINX_HTML}\""
     fi
   } > "${MILLEGRILLES_ROOT}/config.env"
 
@@ -185,12 +195,12 @@ install_web_files() {
       source "${MILLEGRILLES_ROOT}/config.env"
   fi
 
-  local REP_NGINX="${MILLEGRILLES_ROOT}/var/nginx"
+  # local REP_NGINX="${MILLEGRILLES_ROOT}/var/nginx"
 
   echo "[INFO] Copier fichier web"
-  mkdir -p "$REP_NGINX/html"
+  mkdir -p "$MOUNT_NGINX_HTML"
 
-  cp -vr "$REPO_ROOT/etc/nginx/html" "$REP_NGINX/"
+  cp -vr "$REPO_ROOT/etc/nginx/html/"* "${MOUNT_NGINX_HTML}/"
 
   # Generate self-signed certificates
   bin/x509/web_selfsigned.sh "${MILLEGRILLES_ROOT}/secrets"
@@ -605,7 +615,7 @@ main() {
 
   echo
   echo "[INFO] Installation path:  $MILLEGRILLES_ROOT."
-  echo "[INFO] Pour permettre aux services de demarrer au boot, utiliser `sudo loginctl enable-linger $(whoami)`"
+  echo "[INFO] Pour permettre aux services de demarrer au boot, utiliser \"sudo loginctl enable-linger $(whoami)\""
   echo "[OK] Installation $TYPE completee avec succès."
 }
 

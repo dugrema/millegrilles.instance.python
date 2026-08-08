@@ -1,4 +1,4 @@
-name: ${INSTANCE_NAME}
+name: ${INSTANCE_NAME}-middleware
 
 include:
   - ../include/app_net.yml

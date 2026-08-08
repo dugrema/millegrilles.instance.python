@@ -53,3 +53,8 @@ secrets:
     file: ${MILLEGRILLES_ROOT}/secrets/mongo.txt
   passwd_mqadmin:
     file: ${MILLEGRILLES_ROOT}/secrets/mqadmin.txt
+
+networks:
+  app_net:
+    name: ${INSTANCE_NAME}_net
+    external: true

@@ -87,6 +87,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
                 raise ValueError("Either command line parameter '--config /path/to/config.env' or environment parameter 'MILLEGRILLES_ROOT=/path/to/millegrille' must be provided")
 
         self.__path_millegrilles = pathlib.Path(self.__millegrille_env['MILLEGRILLES_ROOT'])
+        self.__path_nginx_html = pathlib.Path(self.__millegrille_env['MOUNT_NGINX_HTML'])
         self.__init_only = False  # When True, means that the system should run initial setup only (i.e. certs, nginx config, setup directories) then exit
         self.__instance_id = self.__millegrille_env['INSTANCE_ID']
         self.__instance_name = self.__millegrille_env['INSTANCE_NAME']
@@ -167,6 +168,10 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
     @property
     def path_millegrilles(self) -> pathlib.Path:
         return pathlib.Path(self.__path_millegrilles)
+
+    @property
+    def path_nginx_html(self) -> pathlib.Path:
+        return pathlib.Path(self.__path_nginx_html)
 
     @property
     def host_docker_internal(self) -> str:

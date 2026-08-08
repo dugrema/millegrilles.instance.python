@@ -88,15 +88,18 @@ def restart_compose_applications(instance_name: str):
     run_command(f"systemctl --user restart {instance_name}-applications")
 
 class AppManager:
-    def __init__(self, root: str, instance_name: str):
+    def __init__(self, root: str, html_dir: str, instance_name: str):
         self.root = pathlib.Path(root)
         self.instance_name = instance_name
         self.etc_dir = self.root / "etc"
         self.var_dir = self.root / "var"
+        self.nginx_html_dir = pathlib.Path(html_dir)
+        if not self.nginx_html_dir.exists():
+            raise FileNotFoundError(f"{html_dir} not found")
 
         self.installed_apps_file = self.etc_dir / "installed_applications.json"
         self.nginx_apps_conf_dir = self.etc_dir / "nginx" / "applications"
-        self.nginx_apps_html_dir = self.var_dir / "nginx" / "html" / "applications"
+        self.nginx_apps_html_dir = self.nginx_html_dir / "applications"
         self.compose_dir = self.etc_dir / "compose"
         self.compose_apps_yaml = self.compose_dir / "applications.yml"
         self.compose_apps_dir = self.compose_dir / "applications"
@@ -414,7 +417,9 @@ def main():
             print("Env variable MILLEGRILLES_ROOT must be set.")
             sys.exit(1)
 
-    manager = AppManager(root, instance_name)
+    html_dir = os.environ["MOUNT_NGINX_HTML"]
+
+    manager = AppManager(root, html_dir, instance_name)
 
     if args.command == "install":
         if args.name:

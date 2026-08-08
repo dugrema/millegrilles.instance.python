@@ -2,7 +2,7 @@
 Description=Watch for certificate changes
 
 [Path]
-PathChanged=/home/acmesh/.acme.sh/live/${INSTANCE_NAME}/web.cert.pem
+PathChanged=/home/acmesh/live/${INSTANCE_NAME}/web.cert.pem
 
 [Install]
 WantedBy=default.target

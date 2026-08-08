@@ -55,3 +55,8 @@ secrets:
 volumes:
   redis-data:
     name: ${INSTANCE_NAME}-redis-data
+
+networks:
+  app_net:
+    name: ${INSTANCE_NAME}_net
+    external: true

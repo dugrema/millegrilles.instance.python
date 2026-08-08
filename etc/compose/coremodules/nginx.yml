@@ -1,8 +1,4 @@
-include:
-  - path: ../include/app_net.yml
-    project_directory: .
-
-name: ${INSTANCE_NAME}
+name: ${INSTANCE_NAME}-web
 
 services:
   nginx:
@@ -18,7 +14,7 @@ services:
       split: true
     volumes:
       - ${MILLEGRILLES_ROOT}/etc/nginx:/etc/nginx/conf.d/modules:ro
-      - ${MILLEGRILLES_ROOT}/var/nginx/html:/usr/share/nginx/html:ro
+      - ${MOUNT_NGINX_HTML}:/usr/share/nginx/html:ro
     networks:
       - app_net
     ports:
@@ -63,3 +59,8 @@ secrets:
     file: ${MILLEGRILLES_ROOT}/secrets/web.key.pem
   mgkey:
     file: ${MILLEGRILLES_ROOT}/secrets/nginx.key.pem
+
+networks:
+  app_net:
+    name: ${INSTANCE_NAME}_net
+    external: true

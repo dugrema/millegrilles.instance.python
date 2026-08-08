@@ -62,3 +62,8 @@ configs:
 secrets:
   mq:
     file: ${MILLEGRILLES_ROOT}/secrets/mq.key.pem
+
+networks:
+  app_net:
+    name: ${INSTANCE_NAME}_net
+    external: true
