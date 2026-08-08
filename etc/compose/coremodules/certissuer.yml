@@ -23,6 +23,12 @@ services:
         condition: on-failure
         delay: 5s
         max_attempts: 1000
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://127.0.0.1:2080/certificate.pem" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
     configs:
       - source: millegrille_cert
         target: /run/secrets/millegrille.pem
