@@ -1,0 +1,11 @@
+[Unit]
+Description=Copy ACME public web certificates to local secrets/
+
+[Service]
+Type=oneshot
+WorkingDirectory={{MILLEGRILLES_ROOT}}
+EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
+ExecStart=bin/x509/webcert_copy.sh
+
+[Install]
+WantedBy=default.target

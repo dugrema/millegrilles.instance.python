@@ -207,8 +207,12 @@ creer_repertoires() {
     mkdir -p "${MILLEGRILLES_ROOT}/var/mq"
   fi
 
+  mkdir -p "${MILLEGRILLES_ROOT}/secrets"
+  chmod 700 "${MILLEGRILLES_ROOT}/secrets"
+
   if [ "$TYPE" == "secure" ] || [ "$TYPE" == "protege" ]; then
     mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer"
+    chmod 700 "${MILLEGRILLES_ROOT}/secrets/certissuer"
     mkdir -p "${MILLEGRILLES_ROOT}/var/mongo"
     mkdir -p "${MILLEGRILLES_ROOT}/var/backup/domains"
     mkdir -p "${MILLEGRILLES_ROOT}/var/backup/mongo"

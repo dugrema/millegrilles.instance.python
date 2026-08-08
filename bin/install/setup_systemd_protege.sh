@@ -70,6 +70,9 @@ cp -vi "$TEMPLATE_DIR/certs_updater.timer" "$DEST_DIR/${INSTANCE_NAME}-certs_upd
 generate_service "$TEMPLATE_DIR/backup.service.template" "$DEST_DIR/${INSTANCE_NAME}-backup.service"
 cp -vi "$TEMPLATE_DIR/backup.timer" "$DEST_DIR/${INSTANCE_NAME}-backup.timer"
 
+generate_service "$TEMPLATE_DIR/webcert_update.service.template" "$DEST_DIR/${INSTANCE_NAME}-webcert_update.service"
+generate_service "$TEMPLATE_DIR/webcert_update.path.template" "$DEST_DIR/${INSTANCE_NAME}-webcert_update.path"
+
 echo ""
 echo "Successfully created systemd user services in $DEST_DIR:"
 echo "  - ${INSTANCE_NAME}-certissuer.service"
