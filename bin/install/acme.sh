@@ -20,7 +20,8 @@ chmod 750 "${EXPOSE_SCRIPT}"
   -d ${INSTANCE_DOMAIN} \
   --webroot "/var/www/html/" \
   --key-file "${HOME}/live/${INSTANCE_NAME}/web.key.pem" \
-  --fullchain-file "${HOME}/live/${INSTANCE_NAME}/web.cert.pem"
+  --fullchain-file "${HOME}/live/${INSTANCE_NAME}/web.cert.pem" \
+  --post-hook "${EXPOSE_SCRIPT}"
 
 # From the instance account
 # systemctl --user enable --now webcert_update.path
