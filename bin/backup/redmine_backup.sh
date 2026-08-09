@@ -8,12 +8,11 @@ fi
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_NAME="redmine_backup_${INSTANCE_NAME}_${TIMESTAMP}.tar.xz"
 
-mkdir -p "${WORK_FOLDER}" || (echo "Could not create work folder" && exit 1)
-
 # Cleanup from previous sessions
 rm "${REDMINE_BACKUP_FOLDER}"/*.work || true
 rm -rf "${WORK_FOLDER}"/* || true
 
+mkdir -p "${WORK_FOLDER}" || (echo "Could not create work folder" && exit 1)
 # Create symlink to files (included in backup archive)
 ln -s "${REDMINE_FILES}" "${WORK_FOLDER}/files"
 
