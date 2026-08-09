@@ -24,7 +24,9 @@ fi
 "${MILLEGRILLES_ROOT}/bin/backup/millegrilles_etc_backup.sh"
 
 if [ -d "${MILLEGRILLES_ROOT}/var/backup/redmine" ]; then
+  set +e
   "${MILLEGRILLES_ROOT}/bin/backup/redmine_backup.sh"
+  set -e
 fi
 
 # Function to rotate backups
@@ -62,7 +64,7 @@ if [ -d "${MILLEGRILLES_ROOT}/var/backup/redmine" ]; then
   rotate_backups "${MILLEGRILLES_ROOT}/var/backup/redmine" 3
 fi
 
-if [ -z "${BACKUP_RSYNC_DEST}" ]; then
+if [ -n "${BACKUP_RSYNC_DEST}" ]; then
   echo "[INFO] Synchronizing new backup with rsync to ${BACKUP_RSYNC_DEST}"
   rsync -avr --delete-after "${MILLEGRILLES_ROOT}/var/backup" ${BACKUP_RSYNC_DEST}
 fi

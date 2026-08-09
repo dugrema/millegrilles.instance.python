@@ -11,7 +11,7 @@ services:
       - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mariadb_password
     volumes:
       - ${MILLEGRILLES_ROOT}/var/redmine/mariadb:/var/lib/mysql
-      - ${MILLEGRILLES_ROOT}/var/backup/redmine/mariadb:/backup
+      - ${MILLEGRILLES_ROOT}/var/backup/redmine:/backup
     secrets:
       - mariadb_password
       - mariadb_redmine

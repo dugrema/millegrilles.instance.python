@@ -9,7 +9,11 @@ TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 BACKUP_NAME="redmine_backup_${INSTANCE_NAME}_${TIMESTAMP}.tar.xz"
 
 mkdir -p "${WORK_FOLDER}" || (echo "Could not create work folder" && exit 1)
-rm -rf "${WORK_FOLDER}"/* || true  # Work folder cleanup
+
+# Cleanup from previous sessions
+rm "${REDMINE_BACKUP_FOLDER}"/*.work || true
+rm -rf "${WORK_FOLDER}"/* || true
+
 # Create symlink to files (included in backup archive)
 ln -s "${REDMINE_FILES}" "${WORK_FOLDER}/files"
 
@@ -21,5 +25,5 @@ echo "[INFO] Database backup complete, creating backup archive at ${BACKUP_NAME}
 tar --sort=name -Jchf "${REDMINE_BACKUP_FOLDER}/${BACKUP_NAME}.work" -C "${WORK_FOLDER}" . || exit 3
 mv "${REDMINE_BACKUP_FOLDER}/${BACKUP_NAME}.work" "${REDMINE_BACKUP_FOLDER}/${BACKUP_NAME}" || exit 4
 
-echo "[INFO] Redmine database and files backup complete"
+echo "[SUCCESS] Redmine database and files backup complete"
 rm -rf "${WORK_FOLDER}" || exit 5  # Work folder cleanup
