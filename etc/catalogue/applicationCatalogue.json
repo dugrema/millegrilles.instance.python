@@ -4,9 +4,9 @@
       "en": "AI large language model support (back-end)",
       "fr": "IA support pour modeles de language (back-end)"
     },
-    "version": "2026.3.4",
-    "url": "https://libs.millegrilles.com/archives/millegrilles_ai/millegrilles_ai.2026.3.4.tar.gz",
-    "sha256": "738611ce98a756b0f65c3090bfaace4052391867738e6469f22f88b1a82339af"
+    "version": "2026.3.10",
+    "url": "https://libs.millegrilles.com/archives/millegrilles_ai/millegrilles_ai.2026.3.10.tar.gz",
+    "sha256": "4a7bf3e26cc1a697f34c0ea23cbc238a8f41503756532a985473b7baf8c48697"
   },
   "authentication": {
     "labels": {
@@ -22,170 +22,215 @@
       "en": "MilleGrilles core services",
       "fr": "Services essentiels pour MilleGrilles"
     },
-    "version": "2026.3.7",
-    "url": "https://libs.millegrilles.com/archives/millegrilles_core/millegrilles_core.2026.3.7.tar.gz",
-    "sha256": "2a60a08db135f0698bf88e97378fbb29939781d24ef632fb40e865e137dbabe0"
+    "version": "2026.3.26",
+    "url": "https://libs.millegrilles.com/archives/millegrilles_core/millegrilles_core.2026.3.26.tar.gz",
+    "sha256": "e83c2bcd8bf3f96de62698df5b2646e6b84a45384637621632832c1e89661243"
   },
   "coupdoeil2": {
     "labels": {
       "en": "Coup D'Oeil 2 - Administration console for MilleGrilles",
       "fr": "Console d'administration Coup D'Oeil 2 pour MilleGrilles"
     },
-    "version": "2026.3.15",
-    "url": "https://libs.millegrilles.com/archives/coupdoeil/coupdoeil.2026.3.15.tar.gz",
-    "sha256": "28838c3d729493970439452403766c3458129def1bf744e47b23d0db1c2d2538"
+    "version": "2026.3.33",
+    "url": "https://libs.millegrilles.com/archives/coupdoeil/coupdoeil.2026.3.33.tar.gz",
+    "sha256": "006a4977fd3013fcf76969c960bffcb70589da0e17dfa2ac5c00a9109534328a"
   },
   "documents": {
     "labels": {
       "en": "Documents for MilleGrilles",
       "fr": "Documents pour MilleGrilles"
     },
-    "version": "2026.3.5",
-    "url": "https://libs.millegrilles.com/archives/millegrilles_documents/millegrilles_documents.2026.3.5.tar.gz",
-    "sha256": "3b5b001fabd8e9ed3fc9fc28797f89fa47a8bf9e32cd7b2fbdaca61c08bb5bbf"
+    "version": "2026.3.11",
+    "url": "https://libs.millegrilles.com/archives/millegrilles_documents/millegrilles_documents.2026.3.11.tar.gz",
+    "sha256": "56d70d572b03666148bae750c64fa54559d80c1d47ea57875b9b86b01786f6a5"
   },
   "filecontroler": {
     "labels": {
       "en": "File Controler - Manager for all the filehosts of the MilleGrille",
-      "fr": "Controleur de fichiers - Gère tous les serveurs de fichiers de la MilleGrille"
+      "fr": "Controleur de fichiers - G\u00e8re tous les serveurs de fichiers de la MilleGrille"
     },
-    "version": "2026.3.14",
-    "url": "https://libs.millegrilles.com/archives/filecontroler/filecontroler.2026.3.14.tar.gz",
-    "sha256": "b29a4edfea0d6718226d5cdb45da59855bfe18cf3df7b5a37237b58c38cf00ac"
+    "version": "2026.3.18",
+    "url": "https://libs.millegrilles.com/archives/filecontroler/filecontroler.2026.3.18.tar.gz",
+    "sha256": "2dc75e701d5b4b23b2b020ab00ddc1330447e4afa6b14b825de24e8c680f25ae"
   },
   "filehost": {
     "labels": {
       "en": "Filehost - Handles client files for MilleGrille",
-      "fr": "Hébergeur de fichiers - Conserver les fichiers clients de la MilleGrille"
+      "fr": "H\u00e9bergeur de fichiers - Conserver les fichiers clients de la MilleGrille"
     },
-    "version": "2026.3.14",
-    "url": "https://libs.millegrilles.com/archives/filehost/filehost.2026.3.14.tar.gz",
-    "sha256": "6477507fd192f94891e032675e7c04cf1410754515fb2b1747f2a4f7682737b6"
+    "version": "2026.3.18",
+    "url": "https://libs.millegrilles.com/archives/filehost/filehost.2026.3.18.tar.gz",
+    "sha256": "0e2f6c392600619c91dce48e735c26ff590c388a622b58400523b2f89511e1dc"
   },
   "filehost_1cpu": {
     "labels": {
       "en": "Filehost - Handles client files for MilleGrille (1 core)",
-      "fr": "Hébergeur de fichiers - Conserver les fichiers clients de la MilleGrille (1 core)"
+      "fr": "H\u00e9bergeur de fichiers - Conserver les fichiers clients de la MilleGrille (1 core)"
     },
-    "version": "2026.3.14",
-    "url": "https://libs.millegrilles.com/archives/filehost/filehost_1cpu.2026.3.14.tar.gz",
-    "sha256": "27872858d03001aaf5c37da2aefc86f5b50a84750d053da6a5fcf59408bbc7cf"
+    "version": "2026.3.18",
+    "url": "https://libs.millegrilles.com/archives/filehost/filehost_1cpu.2026.3.18.tar.gz",
+    "sha256": "20ce6bf9a2e7f76e55ba558ea270201ecb2c10cc70214bfbe06870b1845a2b3c"
   },
   "grosfichiers": {
     "labels": {
       "en": "File manager for MilleGrilles",
       "fr": "Gestionnaire de fichiers pour MilleGrilles"
     },
-    "version": "2026.3.7",
-    "url": "https://libs.millegrilles.com/archives/millegrilles_grosfichiers/millegrilles_grosfichiers.2026.3.7.tar.gz",
-    "sha256": "be338cdc1789e6a1e8cdfe09ca49eaa8d16beace18528fcde0f19641e00af68e"
+    "version": "2026.3.15",
+    "url": "https://libs.millegrilles.com/archives/millegrilles_grosfichiers/millegrilles_grosfichiers.2026.3.15.tar.gz",
+    "sha256": "61fd43e16f816451d667eb5b3e6af9ad7a57e45278f57b138826774dd8238527"
+  },
+  "jenkins": {
+    "labels": {
+      "en": "Jenkins proxy",
+      "fr": "Jenkins proxy"
+    },
+    "version": "2026.3.2",
+    "url": "https://libs.millegrilles.com/archives/jenkins/jenkins.2026.3.2.tar.gz",
+    "sha256": "2ebccfe198c82d6a05179e9fb72be0859603e6fd6af7934acb1eab8ff5c3121a"
+  },
+  "kiwix": {
+    "labels": {
+      "en": "Kiwix",
+      "fr": "Kiwix"
+    },
+    "version": "2026.3.1",
+    "url": "https://libs.millegrilles.com/archives/kiwix/kiwix.2026.3.1.tar.gz",
+    "sha256": "d34061ae5165193bcd52e2b4bfdb4bfd92d35263a9b1059fcae9e1370d468cc0"
   },
   "maitredescles": {
     "labels": {
       "en": "MilleGrilles Key Master",
       "fr": "Maitre des cles de MilleGrilles"
     },
-    "version": "2026.3.3",
-    "url": "https://libs.millegrilles.com/archives/millegrilles_maitredescles/millegrilles_maitredescles.2026.3.3.tar.gz",
-    "sha256": "36839ae74b1bd59215e7cda13754d4d945f8adb0e90f5a09f03ef2d15978d3d9"
+    "version": "2026.3.13",
+    "url": "https://libs.millegrilles.com/archives/millegrilles_maitredescles/millegrilles_maitredescles.2026.3.13.tar.gz",
+    "sha256": "572ae4bd8b9b2482c80212ac41d483e5a8ae68310898d8877654dc14d4649f78"
   },
   "media": {
     "labels": {
       "en": "Media handler and converter module",
       "fr": "Module de traitement et conversion de media"
     },
-    "version": "2026.3.6",
-    "url": "https://libs.millegrilles.com/archives/media/media.2026.3.6.tar.gz",
-    "sha256": "cb7150b3044e4d2b42ed799e5cd489a1d77ea237f6b9dd45f0d2d02573d7212c"
+    "version": "2026.3.11",
+    "url": "https://libs.millegrilles.com/archives/media/media.2026.3.11.tar.gz",
+    "sha256": "1d0bf3d119ce8a8e6adba8cb2149ee89615d1230553cd352b3c933204d1fb884"
   },
   "millesens": {
     "labels": {
       "en": "Millesens - Console for switches and sensors in MilleGrilles ",
       "fr": "Millesens - Console pour senseurs et autres appareils MilleGrilles"
     },
-    "version": "2026.3.4",
-    "url": "https://libs.millegrilles.com/archives/millesens/millegrilles_millesens_typescript.2026.3.4.tar.gz",
-    "sha256": "5f590d3e02cd1e72f068a4520f1dea359f8ab3609495989fe60d65686aeccb8d"
+    "version": "2026.3.14",
+    "url": "https://libs.millegrilles.com/archives/millesens/millegrilles_millesens_typescript.2026.3.14.tar.gz",
+    "sha256": "28a2cb1fb3a5f11fcc447bde632cee50e7a823a8309629fe966122f6f6dde0c3"
   },
   "mongo": {
     "labels": {
       "en": "Mongo database and dependencies for 4.secure nodes",
-      "fr": "Base de données mongo et dépendances pour instances 4.secures"
+      "fr": "Base de donn\u00e9es mongo et d\u00e9pendances pour instances 4.secures"
     },
-    "version": "2026.3.10",
-    "url": "https://libs.millegrilles.com/archives/midcompte/mongo.2026.3.10.tar.gz",
-    "sha256": "c96da8dd6f0c0c6324dc8ad90b977790d15f47f6b6e68bcb2cb6fb1617748d4a"
+    "version": "2026.3.23",
+    "url": "https://libs.millegrilles.com/archives/midcompte/mongo.2026.3.23.tar.gz",
+    "sha256": "f5bad66e54981153695872ee402a1243947b4f5acb502d924c3775ca8e5b7ecf"
   },
   "mongoexpress": {
-    "version": "2026.3.2",
+    "version": "2026.3.4",
     "labels": {
       "en": "MongoExpress Client application for MongoDB",
       "fr": "Application de gestion MongoExpress pour MongoDB"
     },
-    "url": "https://libs.millegrilles.com/archives/mongoexpress/mongoexpress.2026.3.2.tar.gz",
-    "sha256": "c4857612f937e69e02c65605d1922050cc032474f2218d8e6ec180970a3bbd99"
+    "url": "https://libs.millegrilles.com/archives/mongoexpress/mongoexpress.2026.3.4.tar.gz",
+    "sha256": "cdc0da0d3fa117f464ed231e378b825fc508be73c6bdfecbfa74dc8def40f892"
   },
   "mqadmin": {
-    "version": "2026.3.1",
+    "version": "2026.3.3",
     "labels": {
       "en": "RabbitMQ Administration port",
       "fr": "Port d'administration de RabbitMQ"
     },
-    "url": "https://libs.millegrilles.com/archives/mqadmin/mqadmin.2026.3.1.tar.gz",
-    "sha256": "66bbcbf120296a7b60f8b15ba3351a8b4e6e6baf16dd7d63d05761e6cc0eadaf"
+    "url": "https://libs.millegrilles.com/archives/mqadmin/mqadmin.2026.3.3.tar.gz",
+    "sha256": "0bc1bd2fe9ae049535a6550ce054f3f0a9b38d221fab8a7a1870f3def6706dc4"
+  },
+  "ollama_relai": {
+    "labels": {
+      "en": "LLM relay for MilleGrilles",
+      "fr": "Relai LLM pour MilleGrilles"
+    },
+    "version": "2026.3.7",
+    "url": "https://libs.millegrilles.com/archives/ollama_relai/ollama_relai.2026.3.7.tar.gz",
+    "sha256": "07bca36c134787df74d7123cfbe8fb3fb8f452d37f6a376c17e67581237bcc0c"
   },
   "private_apps": {
     "labels": {
       "en": "Private applications - File manager and documents for MilleGrilles",
-      "fr": "Applications privées - Gestionnaire de fichiers et documents pour MilleGrilles"
+      "fr": "Applications priv\u00e9es - Gestionnaire de fichiers et documents pour MilleGrilles"
     },
-    "version": "2026.3.9",
-    "url": "https://libs.millegrilles.com/archives/private_apps/millegrilles_private_apps_react.2026.3.9.tar.gz",
-    "sha256": "cb6e28347d0fe31734fac9771b9580acd83abba3a277d3026abf6d4d642aeed4"
+    "version": "2026.3.19",
+    "url": "https://libs.millegrilles.com/archives/private_apps/millegrilles_private_apps_react.2026.3.19.tar.gz",
+    "sha256": "9a1871559d23807fd51732dd2bae347f2ef955ba09f51807ccc52bab980cacb8"
+  },
+  "redmine": {
+    "labels": {
+      "en": "Redmine",
+      "fr": "Redmine"
+    },
+    "version": "2026.3.4",
+    "url": "https://libs.millegrilles.com/archives/redmine/redmine.2026.3.4.tar.gz",
+    "sha256": "b7c0e35a70840ec62a70869d05d5dec7823942fc3e64fe6aa48d778b214369a2"
   },
   "senseurspassifs_backend": {
     "labels": {
       "en": "MilleGrilles sensors and switches backend",
       "fr": "SenseursPassifs pour MilleGrilles"
     },
-    "version": "2026.3.6",
-    "url": "https://libs.millegrilles.com/archives/millegrilles_senseurspassifs/millegrilles_senseurspassifs.2026.3.6.tar.gz",
-    "sha256": "350b7a71a1b1b3f5f1447a68e1b4126751a657a4041a2d36191165de96fb6715"
+    "version": "2026.3.12",
+    "url": "https://libs.millegrilles.com/archives/millegrilles_senseurspassifs/millegrilles_senseurspassifs.2026.3.12.tar.gz",
+    "sha256": "b88861a9d312edf68e6222993334298f099dfda2cf7171ef426aa2296e709e63"
   },
   "senseurspassifs_relai": {
     "labels": {
       "en": "Sensors and switches relay",
       "fr": "Relai pour senseurs et appareils"
     },
-    "version": "2026.3.4",
-    "url": "https://libs.millegrilles.com/archives/senseurspassifs/senseurspassifs_relai.2026.3.4.tar.gz",
-    "sha256": "1c34243da7a005608c85c97b7475ede6a05eccdc66aa82f2c184c5ffefd1c33a"
+    "version": "2026.3.6",
+    "url": "https://libs.millegrilles.com/archives/senseurspassifs/senseurspassifs_relai.2026.3.6.tar.gz",
+    "sha256": "587908a1a53d186da95ff087ec5b51f18641e4b873f23fa2298acae66f023c5c"
+  },
+  "solr": {
+    "labels": {
+      "en": "Full text indexing of documents with Solr",
+      "fr": "Recherche de texte avec Solr"
+    },
+    "version": "2026.3.23",
+    "url": "https://libs.millegrilles.com/archives/midcompte/solr.2026.3.23.tar.gz",
+    "sha256": "ecf11d463bb414fa7b13ed3786892cc8403ecc5476e8e3a48e6ced58c75467da"
   },
   "stream": {
     "labels": {
       "en": "Media streamer for Millegrilles",
       "fr": "Module de streaming media pour MilleGrilles"
     },
-    "version": "2026.3.10",
-    "url": "https://libs.millegrilles.com/archives/midcompte/stream.2026.3.10.tar.gz",
-    "sha256": "775fc39f9f772ccec320ac3c42ee43ff16dd2b290985b46f6e198582a5f8c5a0"
+    "version": "2026.3.23",
+    "url": "https://libs.millegrilles.com/archives/midcompte/stream.2026.3.23.tar.gz",
+    "sha256": "3d93926d3f987b575b6964088d90caf1f0e4c9a5d1fbd9de4ffd36390223f172"
   },
   "webapi": {
     "labels": {
       "en": "MilleGrilles Portal Authentication and Web API",
       "fr": "Authentification Portail MilleGrilles et Web API"
     },
-    "version": "2026.3.17",
-    "url": "https://libs.millegrilles.com/archives/webapi/webapi.2026.3.17.tar.gz",
-    "sha256": "396b53c4f40b1709bdfed9ec721f86a8b3e1a5500d6ac92e4f273a9577494bf1"
+    "version": "2026.3.21",
+    "url": "https://libs.millegrilles.com/archives/webapi/webapi.2026.3.21.tar.gz",
+    "sha256": "fc81081c010c1f37239b48b2b7d1ed1d534c4df079701bcbe0eb020f46188319"
   },
   "webapiprotege": {
     "labels": {
       "en": "MilleGrilles Portal Authentication and Web API for 3.protege environment",
       "fr": "Authentification Portail MilleGrilles et Web API pour environnement 3.protege"
     },
-    "version": "2026.3.17",
-    "url": "https://libs.millegrilles.com/archives/webapi/webapiprotege.2026.3.17.tar.gz",
-    "sha256": "c26329866710232d83ad33751f640160e81c205c67663d364d4b7371f33a23f2"
+    "version": "2026.3.21",
+    "url": "https://libs.millegrilles.com/archives/webapi/webapiprotege.2026.3.21.tar.gz",
+    "sha256": "d23fbd373f684a4a037b23e7845b3ef5b16c2c6681e1986f8e8b5e615603a55d"
   }
 }
