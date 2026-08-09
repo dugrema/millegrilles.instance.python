@@ -1,0 +1,12 @@
+{
+  "name": "kiwix",
+  "version": "2026.3.1",
+  "securite": "2.prive",
+  "labels": {
+    "en": "Kiwix - website copies",
+    "fr": "Kiwix - copies de sites webs"
+  },
+  "web": [{
+    "path": "/kiwix"
+  }]
+}

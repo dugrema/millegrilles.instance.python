@@ -8,3 +8,4 @@ version.txt
 base/requirements.txt
 *.tar.gz
 playground/
+etc/catalogue/build/

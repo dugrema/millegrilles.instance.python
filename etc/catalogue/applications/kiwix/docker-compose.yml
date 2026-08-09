@@ -1,0 +1,27 @@
+services:
+  kiwix:
+    image: "ghcr.io/kiwix/kiwix-serve:3.7.0"
+    command: ["--urlRootLocation", "kiwix/", "/data/*"]
+    environment:
+      - MYSQL_ROOT_PASSWORD_FILE=/run/secrets/mariadb_password
+    volumes:
+      - kiwix-data:/data:ro
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 600M
+      restart_policy:
+        condition: any
+        delay: 20s
+    hostname: kiwix
+    networks:
+      - app_net
+
+networks:
+  app_net:
+    name: ${INSTANCE_NAME}_net
+    external: true
+
+volumes:
+  kiwix-data:

@@ -1,0 +1,5 @@
+location /kiwix {
+  set $upstream_kiwix http://kiwix:8080;
+  proxy_pass $upstream_kiwix;
+  add_header 'Cache-Control' 'public,max-age=3600';
+}
