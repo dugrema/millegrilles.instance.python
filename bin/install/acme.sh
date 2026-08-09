@@ -8,6 +8,7 @@ echo "Installing acme.sh"
 curl https://get.acme.sh | sh -s email=$EMAIL
 
 mkdir -p $HOME/live/${INSTANCE_NAME}
+chmod 750 $HOME/live
 
 EXPOSE_SCRIPT="${HOME}/live/expose.sh"
 # Add script live/expose.sh

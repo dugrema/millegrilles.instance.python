@@ -8,5 +8,5 @@ echo "Copying web key/certs from ${SRC_DIR} to ${DEST_DIR}"
 sleep 2  # Wait of the expose.sh script to make the key readable
 rsync -q --times "${SRC_DIR}"/* "${DEST_DIR}"
 
-echo "Reloading nginx on instance ${INSTANCE_NAME}"
+echo "Restarting nginx on instance ${INSTANCE_NAME}"
 systemctl --user restart ${INSTANCE_NAME}-nginx
