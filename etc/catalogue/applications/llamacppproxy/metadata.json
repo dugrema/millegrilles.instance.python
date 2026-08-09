@@ -1,0 +1,9 @@
+{
+  "name": "llamacppproxy",
+  "version": "2026.3.1",
+  "securite": "2.prive",
+  "labels": {
+    "en": "mTLS proxy for llamacpp",
+    "fr": "mTLS proxy pour llamacpp"
+  }
+}

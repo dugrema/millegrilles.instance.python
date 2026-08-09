@@ -1,0 +1,13 @@
+location /props {
+    proxy_pass http://host.docker.internal:8000;
+    proxy_read_timeout 1m;
+    client_max_body_size 50m;
+    proxy_buffering off;  # Desactiver buffering de la reponse (download)
+}
+
+location /v1 {
+    proxy_pass http://host.docker.internal:8000;
+    proxy_read_timeout 1m;
+    client_max_body_size 50m;
+    proxy_buffering off;  # Desactiver buffering de la reponse (download)
+}
