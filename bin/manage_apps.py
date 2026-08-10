@@ -72,23 +72,24 @@ def reload_nginx(instance_name: str):
     else:
         print("Secure environment, not reloading nginx")
 
-def reload_compose_applications(instance_name: str):
+def reload_compose_applications(instance_name: str, cert_required=True):
     # Need to generate certificates first to avoid reload issue with applications service
-    print(f"Generating certificates using {instance_name}-certs_updater...")
-    try:
-        run_command(f"systemctl --user start {instance_name}-certs_updater", no_exit=True)
-    except CalledProcessError:
-        print("Exception trying to renew certs, switching to restart manager")
-        run_command(f"systemctl --user restart {instance_name}-manager")
-        time.sleep(10)
+    if cert_required:
+        print(f"Generating certificates using {instance_name}-certs_updater...")
+        try:
+            run_command(f"systemctl --user start {instance_name}-certs_updater", no_exit=True)
+        except CalledProcessError:
+            print("Exception trying to renew certs, switching to restart manager")
+            run_command(f"systemctl --user restart {instance_name}-manager")
+            time.sleep(10)
 
     print(f"Reloading {instance_name}-applications...")
     run_command(f"systemctl --user reload {instance_name}-applications")
 
-def restart_compose_applications(instance_name: str):
-    # Need to generate certificates first to avoid reload issue with applications service
-    print(f"Restarting {instance_name}-applications...")
-    run_command(f"systemctl --user restart {instance_name}-applications")
+# def restart_compose_applications(instance_name: str):
+#     # Need to generate certificates first to avoid reload issue with applications service
+#     print(f"Restarting {instance_name}-applications...")
+#     run_command(f"systemctl --user restart {instance_name}-applications")
 
 class AppManager:
     def __init__(self, root: str, html_dir: str, instance_name: str):
@@ -273,7 +274,7 @@ class AppManager:
                     # Download all images required by applications.yml
                     self.download_images(name)
                     # Reload compose configuration
-                    reload_compose_applications(self.instance_name)
+                    reload_compose_applications(self.instance_name, True)
  
             print("Installation complete.")
 
@@ -296,8 +297,11 @@ class AppManager:
                 print(f"Removing Nginx config file: {nginx_conf}")
                 nginx_conf.unlink()
                 nginx_reload = True
- 
-        # 2. Remove Docker Compose
+
+        # 2. Stop and remove the application containers
+        # self.remove_app(name)  # Doesn't work, need individual container group names
+
+        # 3. Remove Docker Compose configuration for application
         docker_compose = self.compose_apps_dir / f"{name}.yml"
         if docker_compose.exists():
             print(f"Removing Docker Compose file: {docker_compose}")
@@ -311,7 +315,7 @@ class AppManager:
         yaml_includes: list = yaml_app_file['include']
         if app_yaml_filepath in yaml_includes:
             # Remove app from list and overwrite app file
-            print(f"Removing Docker Compose fil from applications.yamle: {app_yaml_filepath}")
+            print(f"Removing Docker Compose file from applications.yaml: {app_yaml_filepath}")
 
             yaml_includes.remove(app_yaml_filepath)
             with open(self.compose_apps_yaml, 'w') as f:
@@ -319,7 +323,7 @@ class AppManager:
 
             compose_reload = True
 
-        # 3. Remove Application Files
+        # 4. Remove Application Files
         app_info = installed_apps[name]
         try:
             app_path: str = app_info['path']
@@ -332,15 +336,15 @@ class AppManager:
                 print(f"Removing application files: {dest_nginx_files}")
                 remove_dir(dest_nginx_files)
 
-        # 4. Update local catalogue
+        # 5. Update local catalogue
         del installed_apps[name]
         self.save_installed_apps(installed_apps)
  
-        # 5. Reload Nginx / Restart Appllications (later: remove app only, reload does not work)
+        # 6. Reload Nginx / Restart Appllications (later: remove app only, reload does not work)
         if nginx_reload:
             reload_nginx(self.instance_name)
         if compose_reload:
-            restart_compose_applications(self.instance_name)
+            reload_compose_applications(self.instance_name, False)
         print("Uninstallation complete.")
 
     def list_available(self, catalogue_url: str):
@@ -371,6 +375,11 @@ class AppManager:
     def download_images(self, appname: str):
         print(f"Downloading docker images for applications...")
         run_command(f"docker compose -f {self.root / "etc/compose/applications.yml"} pull {appname}", capture_output=False)
+
+    # def remove_app(self, appname: str):
+    #     print(f"Downloading docker images for applications...")
+    #     run_command(f"docker compose -f {self.root / "etc/compose/applications.yml"} rm -sf {appname}", capture_output=False)
+
 
 def main():
 
