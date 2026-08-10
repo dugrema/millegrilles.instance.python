@@ -14,14 +14,17 @@ from subprocess import CalledProcessError
 import yaml
 import time
 
-from typing import Optional
+from typing import Optional, Union
 
 DEFAULT_CATALOGUE_URL = "https://libs.millegrilles.com/archives/stable.json"
 
-def run_command(command, env=None, no_exit=False):
+def run_command(command, env=None, no_exit=False, capture_output=True) -> Union[str, int]:
     try:
-        result = subprocess.run(command, shell=True, check=True, capture_output=True, text=True, env=env)
-        return result.stdout.strip()
+        result = subprocess.run(command, shell=True, check=True, capture_output=capture_output, text=True, env=env)
+        if capture_output:
+            return result.stdout.strip()
+        else:
+            return result.returncode
     except subprocess.CalledProcessError as e:
         print(f"Error executing command: {e}")
         print(f"Command: {e.cmd}")
@@ -205,6 +208,7 @@ class AppManager:
  
             # 3. Handle Docker Compose
             docker_compose = extract_dir / "docker-compose.yml"
+            compose_installed = False
             if docker_compose.exists():
                 # Parse the file to ensure it is properly formatted
                 with open(docker_compose) as f:
@@ -235,6 +239,7 @@ class AppManager:
                 dest_docker_compose = self.compose_apps_dir / f"{name}.yml"
                 print(f"Configuring Docker Compose: {dest_docker_compose}")
                 copy_file(docker_compose, dest_docker_compose)
+                compose_installed = True
                 # Add application file to applications.yml include list
                 app_yaml_filepath = str(dest_docker_compose.relative_to(self.compose_dir))
                 with open(self.compose_apps_yaml) as f:
@@ -263,12 +268,14 @@ class AppManager:
                 # 6. Reload middleware
                 if app_path or nginx_conf_dir:
                     reload_nginx(self.instance_name)
-                if docker_compose:
+
+                if compose_installed:
+                    # Download all images required by applications.yml
+                    self.download_images(name)
+                    # Reload compose configuration
                     reload_compose_applications(self.instance_name)
  
             print("Installation complete.")
-
-
 
     def uninstall(self, name):
         installed_apps = self.get_installed_apps()
@@ -336,7 +343,6 @@ class AppManager:
             restart_compose_applications(self.instance_name)
         print("Uninstallation complete.")
 
-
     def list_available(self, catalogue_url: str):
         print(f"Fetching available applications from {catalogue_url}...")
         catalogue = self.fetch_json(catalogue_url)
@@ -361,6 +367,10 @@ class AppManager:
         print("-" * 50)
         for name, info in sorted(installed_apps.items()):
             print(f"{name:<20} {info.get('version', 'N/A'):<10} {info.get('url', 'N/A')}")
+
+    def download_images(self, appname: str):
+        print(f"Downloading docker images for applications...")
+        run_command(f"docker compose -f {self.root / "etc/compose/applications.yml"} pull {appname}", capture_output=False)
 
 def main():
 
@@ -473,6 +483,7 @@ def main():
                     print(f"\nUpdating {u['name']} from {u['current_version']} to {u['available_version']}...")
                     manager.install_from_package(u['url'], u['sha256'])
                 print("\nAll updates completed.")
+
 
 if __name__ == "__main__":
     main()
