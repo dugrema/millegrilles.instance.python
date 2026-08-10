@@ -7,9 +7,9 @@ Wants={{INSTANCE_NAME}}-middleware.service
 Type=simple
 WorkingDirectory={{MILLEGRILLES_ROOT}}
 EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
-ExecStart=/usr/bin/docker compose -f etc/compose/applications.yml up
-ExecReload=/usr/bin/docker compose -f etc/compose/applications.yml up -d
-ExecStop=/usr/bin/docker compose -f etc/compose/applications.yml down
+ExecStart=/usr/bin/docker compose -f etc/compose/applications.yml up --remove-orphans
+ExecReload=/usr/bin/docker compose -f etc/compose/applications.yml up -d --remove-orphans
+ExecStop=/usr/bin/docker compose -f etc/compose/applications.yml down --remove-orphans
 Restart=always
 
 [Install]
