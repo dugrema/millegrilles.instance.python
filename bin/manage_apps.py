@@ -86,6 +86,13 @@ def reload_compose_applications(instance_name: str, cert_required=True):
     print(f"Reloading {instance_name}-applications...")
     run_command(f"systemctl --user reload {instance_name}-applications")
 
+def load_service_names(docker_compose_file: pathlib.Path) -> list[str]:
+    with open(docker_compose_file) as f:
+        yaml_app_file = yaml.safe_load(f)
+    service_names = yaml_app_file['services'].keys()
+    return list(service_names)
+
+
 # def restart_compose_applications(instance_name: str):
 #     # Need to generate certificates first to avoid reload issue with applications service
 #     print(f"Restarting {instance_name}-applications...")
@@ -251,6 +258,8 @@ class AppManager:
                     yaml_includes.append(app_yaml_filepath)
                     with open(self.compose_apps_yaml, 'w') as f:
                         yaml.safe_dump(yaml_app_file, f)
+            else:
+                dest_docker_compose = None
  
             # 4. Handle Application Files
             app_files_dir = extract_dir / "files"
@@ -271,8 +280,9 @@ class AppManager:
                     reload_nginx(self.instance_name)
 
                 if compose_installed:
-                    # Download all images required by applications.yml
-                    self.download_images(name)
+                    if dest_docker_compose:
+                        # Download all images required by applications.yml
+                        self.download_images(dest_docker_compose)
                     # Reload compose configuration
                     reload_compose_applications(self.instance_name, True)
  
@@ -372,9 +382,11 @@ class AppManager:
         for name, info in sorted(installed_apps.items()):
             print(f"{name:<20} {info.get('version', 'N/A'):<10} {info.get('url', 'N/A')}")
 
-    def download_images(self, appname: str):
+    def download_images(self, app_file: pathlib.Path):
         print(f"Downloading docker images for applications...")
-        run_command(f"docker compose -f {self.root / "etc/compose/applications.yml"} pull {appname}", capture_output=False)
+        service_names = load_service_names(app_file)
+        for service_name in service_names:
+            run_command(f"docker compose -f {self.root / "etc/compose/applications.yml"} pull {service_name}", capture_output=False)
 
     # def remove_app(self, appname: str):
     #     print(f"Downloading docker images for applications...")
