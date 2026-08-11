@@ -312,14 +312,18 @@ class AppManager:
         # self.remove_app(name)  # Doesn't work, need individual container group names
 
         # 3. Remove Docker Compose configuration for application
-        docker_compose = self.compose_apps_dir / f"{name}.yml"
-        if docker_compose.exists():
-            print(f"Removing Docker Compose file: {docker_compose}")
-            os.remove(docker_compose)
+        docker_compose_app_yaml = self.compose_apps_dir / f"{name}.yml"
+        if docker_compose_app_yaml.exists():
+            for servic_name in load_service_names(docker_compose_app_yaml):
+                print(f"Stopping Docker Compose service: {servic_name}")
+                run_command(f"docker compose -f {self.compose_apps_yaml} rm -fs {servic_name}")
+
+            print(f"Removing Docker Compose file: {docker_compose_app_yaml}")
+            os.remove(docker_compose_app_yaml)
             compose_reload = True
 
         # Remove application file from applications.yml include list
-        app_yaml_filepath = str(docker_compose.relative_to(self.compose_dir))
+        app_yaml_filepath = str(docker_compose_app_yaml.relative_to(self.compose_dir))
         with open(self.compose_apps_yaml) as f:
             yaml_app_file = yaml.safe_load(f)
         yaml_includes: list = yaml_app_file['include']
@@ -352,8 +356,10 @@ class AppManager:
  
         # 6. Reload Nginx / Restart Appllications (later: remove app only, reload does not work)
         if nginx_reload:
+            print("Reloading nginx")
             reload_nginx(self.instance_name)
         if compose_reload:
+            print("Reloading docker compose applications")
             reload_compose_applications(self.instance_name, False)
         print("Uninstallation complete.")
 
@@ -385,6 +391,7 @@ class AppManager:
     def download_images(self, app_file: pathlib.Path):
         print(f"Downloading docker images for applications...")
         service_names = load_service_names(app_file)
+        service_names.reverse()  # Reverse to stop applications by dependency
         for service_name in service_names:
             run_command(f"docker compose -f {self.root / "etc/compose/applications.yml"} pull {service_name}", capture_output=False)
 
