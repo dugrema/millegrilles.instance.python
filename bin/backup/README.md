@@ -16,3 +16,11 @@ To restore the maitre des cles, especially if you're moving it to a new instance
 3. Restart maitre des cles
 4. in Coup D'Oeil, under Key Management, enter the credentials and click Start. 
    You need the master key (ca.pem + password) for this.
+
+
+## Other useful scripts
+
+Delete the primary filecontroler
+
+`db['CoreTopologie/filehostingConfiguration'].deleteOne({'name': 'filecontroler.primary'})`
+
