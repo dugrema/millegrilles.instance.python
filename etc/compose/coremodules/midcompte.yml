@@ -1,6 +1,6 @@
 services:
   midcompte:
-    image: registry.millegrilles.com/millegrilles/midcompte_python:2026.3.19
+    image: registry.millegrilles.com/millegrilles/midcompte_python:2026.4.26
     x-millegrilles-certificat:
       roles:
         - midcompte
@@ -13,8 +13,7 @@ services:
         - mqadmin
     environment:
       - WEB_PORT=2444
-      - CERT_PEM=/run/secrets/key.pem
-      - KEY_PEM=/run/secrets/key.pem
+      - KEY_PEM=/run/secrets/key_cert.pem
     deploy:
       resources:
         limits:
@@ -29,7 +28,7 @@ services:
         target: /run/secrets/pki.millegrille.cert
     secrets:
       - source: midcompte
-        target: key.pem
+        target: key_cert.pem
       - source: passwd_mongo
         target: passwd.mongo.txt
       - source: passwd_mqadmin
