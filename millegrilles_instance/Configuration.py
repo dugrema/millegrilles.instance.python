@@ -123,10 +123,9 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
         raise NotImplementedError('TODO')
 
     def default_override(self):
+        # Default uses a combined key/cert pem file
         self.key_path = self.__path_millegrilles / 'secrets/manager.pem'
         self.ca_path = self.__path_millegrilles / 'etc/millegrille.pem'
-        self.cert_path = self.__path_millegrilles / 'secrets/manager.pem'
-        self.key_path = self.__path_millegrilles / 'secrets/manager.pem'
         self.mq_hostname = 'localhost'
         self.redis_hostname = 'localhost'
         self.redis_password_path = self.__path_millegrilles / 'secrets/redis.txt'

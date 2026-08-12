@@ -7,4 +7,4 @@ PyYAML==6.0.1
 pytest==9.1.1
 pytest-asyncio==1.4.0
 --extra-index-url https://libs.millegrilles.com/python/dist
-millegrilles-messages>=2026.3.9
+millegrilles-messages>=2026.4.12

@@ -11,7 +11,6 @@ Nice=2
 PIDFile=/var/run/{{INSTANCE_NAME}}_manager.pid
 Environment="WEB_PORT=5443"
 Environment="CA_PATH={{MILLEGRILLES_ROOT}}/etc/millegrille.pem"
-Environment="CERT_PATH={{MILLEGRILLES_ROOT}}/secrets/manager.pem"
 Environment="KEY_PATH={{MILLEGRILLES_ROOT}}/secrets/manager.pem"
 EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
 ExecStart={{MILLEGRILLES_ROOT}}/venv/bin/python3 -m millegrilles_instance --config {{MILLEGRILLES_ROOT}}
