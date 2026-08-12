@@ -1,6 +1,6 @@
 services:
   webauth:
-    image: registry.millegrilles.com/millegrilles/webauth_python:2026.3.6
+    image: registry.millegrilles.com/millegrilles/webauth_python:2026.4.7
     x-millegrilles-certificat:
       roles:
         - webauth
@@ -16,8 +16,7 @@ services:
       - MQ_PORT=${MQ_PORT}
       - REDIS_PORT=6379
       - REDIS_PASSWORD_PATH=/run/secrets/redis.txt
-      - CERT_PATH=/run/secrets/key.pem
-      - KEY_PATH=/run/secrets/key.pem
+      - KEY_PATH=/run/secrets/key_cert.pem
       - CA_PATH=/run/secrets/millegrille.cert.pem
     deploy:
       resources:
@@ -33,7 +32,7 @@ services:
         target: /run/secrets/millegrille.cert.pem
     secrets:
       - source: webauth
-        target: key.pem
+        target: key_cert.pem
       - source: passwd_redis
         target: redis.txt
     networks:
