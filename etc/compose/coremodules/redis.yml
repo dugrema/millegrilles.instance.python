@@ -18,19 +18,18 @@ services:
       - redis-data:/data
     networks:
       - app_net
-    # ports:
-    #   - "6379:6379"
+    ports:
+      - "6379:6379"
     deploy:
       resources:
         limits:
           cpus: '1.5'
-          memory: 500M
+          memory: 125M
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 5s
-        max_attempts: 1000
     healthcheck:
-      test: [ "CMD-SHELL", "redis-cli --user client_nodejs -a $(cat /run/secrets/passwd.redis.txt) --tls --cacert /run/secrets/millegrille.cert.pem --cert /run/secrets/cert.pem --key /run/secrets/key.pem ping | grep -q PONG" ]
+      test: [ "CMD-SHELL", "redis-cli --user client_nodejs -a $(cat /run/secrets/passwd.redis.txt) --tls --cacert /run/secrets/millegrille.pem --cert /run/secrets/cert.pem --key /run/secrets/key.pem ping | grep -q PONG" ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -39,7 +38,7 @@ services:
       - source: redis
         target: /run/secrets/cert.pem
       - source: mgca
-        target: /run/secrets/millegrille.cert.pem
+        target: /run/secrets/millegrille.pem
     secrets:
       - source: redis
         target: key.pem
