@@ -3,6 +3,11 @@ location /mongoexpress {
   set $upstream_mongoexpress https://mongoexpress:443;
   proxy_pass $upstream_mongoexpress;
 
+  # Activer l'auth plugin
+  auth_request      /auth/verifier_usager;
+  auth_request_set  $auth_x_user_name  $upstream_http_x_user_name;
+  proxy_set_header  X-Remote-User $auth_x_user_name;
+
   proxy_ssl_certificate         /run/secrets/nginx.cert.pem;
   proxy_ssl_certificate_key     /run/secrets/nginx.key.pem;
   proxy_ssl_trusted_certificate /usr/share/nginx/files/certs/millegrille.cert.pem;

@@ -1,12 +1,6 @@
-include:
-  - path: ../include/app_net.yml
-    project_directory: .
-
-name: ${INSTANCE_NAME}
-
 services:
   mongoexpress:
-    image: registry.millegrilles.com/millegrilles/mongoexpress:1.0.2-20-alpine3.19.master.2
+    image: registry.millegrilles.com/millegrilles/mongoexpress:1.0.2-20-alpine3.19.master.b2
     x-millegrilles-certificat:
       roles:
         - mongoexpress
