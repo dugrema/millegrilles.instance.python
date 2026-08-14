@@ -1,6 +1,6 @@
 services:
   mq:
-    image: registry.millegrilles.com/millegrilles/rabbitmq:4.2.5-management-alpine.master.13
+    image: registry.millegrilles.com/millegrilles/rabbitmq:4.3.4-management-alpine-b3
     x-millegrilles-certificat:
       roles:
         - mq
@@ -13,9 +13,6 @@ services:
     user: "${CONTAINER_UID}:${CONTAINER_GID}"
     hostname: mq
     environment:
-      - MG_KEY=/run/secrets/key.pem
-      - WEB_KEY=/run/secrets/key.pem
-      - CONFIG_FILE=/opt/rabbitmq/dist/config/rabbitmq.config
       - NODENAME=rabbit@mq
     volumes:
       - ${MILLEGRILLES_ROOT}/var/mq:/var/lib/rabbitmq
@@ -30,9 +27,8 @@ services:
           cpus: '3.0'
           memory: 2100M
       restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 1000
+        condition: any
+        delay: 10s
     healthcheck:
       test: [ "CMD", "rabbitmq-diagnostics", "check_running" ]
       interval: 30s
@@ -42,27 +38,16 @@ services:
         30s
     configs:
       - source: mgca
-        target: /opt/rabbitmq/dist/certs/calist.cert.pem
+        target: /run/secrets/millegrille.pem
       - source: mq
-        target: /opt/rabbitmq/dist/certs/cert.pem
-      - source: mq
-        target: /opt/rabbitmq/dist/certs/webcert.pem
-      - source: mqkey
-        target: /opt/rabbitmq/dist/keys/key.pem
-      - source: mqkey
-        target: /opt/rabbitmq/dist/keys/webkey.pem
-    # A faire -> fix secrets, env params ne fonctionnent pas. Changer rabbitmq.config pour pointer vers /run/secrets pour cles
+        target: /run/secrets/cert.pem
     secrets:
       - source: mq
         target: key.pem
-      - source: mq
-        target: webkey.pem
 
 configs:
   mq:
     file: ${MILLEGRILLES_ROOT}/secrets/mq.cert.pem
-  mqkey:
-    file: ${MILLEGRILLES_ROOT}/secrets/mq.key.pem
   mgca:
     file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
 
