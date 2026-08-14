@@ -274,15 +274,17 @@ class AppManager:
             installed_apps[name] = metadata
             self.save_installed_apps(installed_apps)
 
+            # Download docker image
+            if compose_installed and dest_docker_compose:
+                # Download all images required by applications.yml
+                self.download_images(dest_docker_compose)
+
             if not noreload:
                 # 6. Reload middleware
                 if app_path or nginx_conf_dir:
                     reload_nginx(self.instance_name)
 
                 if compose_installed:
-                    if dest_docker_compose:
-                        # Download all images required by applications.yml
-                        self.download_images(dest_docker_compose)
                     # Reload compose configuration
                     reload_compose_applications(self.instance_name, True)
  
@@ -399,6 +401,9 @@ class AppManager:
     #     print(f"Downloading docker images for applications...")
     #     run_command(f"docker compose -f {self.root / "etc/compose/applications.yml"} rm -sf {appname}", capture_output=False)
 
+    def reload_compose_applications(self):
+        reload_compose_applications(self.instance_name, True)
+
 
 def main():
 
@@ -508,9 +513,16 @@ def main():
                 print(f"{u['name']:<20} {u['current_version']:<10} {u['available_version']:<10}")
 
             if args.install:
+                # Install applications (noreload=True)
                 for u in updates:
                     print(f"\nUpdating {u['name']} from {u['current_version']} to {u['available_version']}...")
-                    manager.install_from_package(u['url'], u['sha256'], noreload=args.noreload)
+                    manager.install_from_package(u['url'], u['sha256'], noreload=True)
+
+                if not args.noreload:
+                    # Reload, this will restart all changed applications at the same time
+                    print("Reloading all applications...")
+                    manager.reload_compose_applications()
+
                 print("\nAll updates completed.")
 
 
