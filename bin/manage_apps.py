@@ -445,6 +445,7 @@ def main():
     update_parser.add_argument("--env", choices=['dev', 'test', 'stable'], default='stable', help="Environment (default: stable)")
     update_parser.add_argument("--catalogue_url", help="Remote catalogue URL", default=DEFAULT_CATALOGUE_URL)
     update_parser.add_argument("--root", required=False, help="MILLEGRILLES_ROOT directory")
+    update_parser.add_argument("--noreload", action="store_true", help="Do not reload the systemd services (nginx, applications)")
 
     args = parser.parse_args()
     root = getattr(args, 'root', None)
@@ -509,7 +510,7 @@ def main():
             if args.install:
                 for u in updates:
                     print(f"\nUpdating {u['name']} from {u['current_version']} to {u['available_version']}...")
-                    manager.install_from_package(u['url'], u['sha256'])
+                    manager.install_from_package(u['url'], u['sha256'], noreload=args.noreload)
                 print("\nAll updates completed.")
 
 
