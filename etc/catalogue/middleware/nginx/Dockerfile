@@ -1,4 +1,4 @@
-FROM nginx:1.31-alpine3.24
+FROM nginx:1.31-alpine
 
 ENV APP_BUNDLE_DIR=/opt/nginx/dist
 
