@@ -7,7 +7,7 @@ Type=simple
 WorkingDirectory={{MILLEGRILLES_ROOT}}
 EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
 ExecStart=/usr/bin/docker compose -f etc/compose/coremodules/certissuer.yml up
-ExecReload=/usr/bin/docker compose -f etc/compose/coremodules/certissuer.yml up -d --no-deps
+ExecReload=/usr/bin/docker compose -f etc/compose/coremodules/certissuer.yml up -d
 ExecStop=/usr/bin/docker compose -f etc/compose/coremodules/certissuer.yml down
 Restart=always
 
