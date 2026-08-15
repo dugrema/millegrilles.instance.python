@@ -20,9 +20,8 @@ services:
           cpus: '0.5'
           memory: 150M
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 20s
-        max_attempts: 1000
     configs:
       - source: mgca
         target: /run/secrets/pki.millegrille.cert

@@ -24,9 +24,8 @@ services:
           cpus: '0.5'
           memory: 100M
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 20s
-        max_attempts: 100
     configs:
       - source: mgca
         target: /run/secrets/millegrille.cert.pem

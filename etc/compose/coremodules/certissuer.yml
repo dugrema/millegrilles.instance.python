@@ -20,9 +20,8 @@ services:
           cpus: '0.5'
           memory: 150M
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 5s
-        max_attempts: 1000
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://127.0.0.1:2080/certificate.pem" ]
       interval: 30s

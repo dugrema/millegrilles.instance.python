@@ -32,9 +32,8 @@ services:
           cpus: '2.0'
           memory: 75M
       restart_policy:
-        condition: on-failure
+        condition: any
         delay: 5s
-        max_attempts: 1000
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost/"]
       interval: 30s
