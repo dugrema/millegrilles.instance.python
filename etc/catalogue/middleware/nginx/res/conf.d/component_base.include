@@ -1,0 +1,5 @@
+include /etc/nginx/conf.d/component_proxyheaders.include;
+include /etc/nginx/conf.d/component_gzip.include;
+
+proxy_read_timeout 120s;
+client_max_body_size 256k;

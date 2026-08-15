@@ -1,0 +1,15 @@
+# Serveur tls pour connexion avec certificats clients
+server {
+    listen 444 ssl http2 default_server;
+    listen [::]:444 ssl http2 ipv6only=on default_server;
+
+    server_name _;  # Default server
+
+    # Inclure les conf
+    include /etc/nginx/conf.d/modules/*.conf.tls;
+    include /etc/nginx/conf.d/modules/applications/*.conf.tls;
+
+    # Inclure les autres sites (locations)
+    include /etc/nginx/conf.d/modules/*.location.tls;
+    include /etc/nginx/conf.d/modules/applications/*.location.tls;
+}

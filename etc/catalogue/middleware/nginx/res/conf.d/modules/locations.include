@@ -1,0 +1,26 @@
+# Liste d'applications
+
+# Redirection / vers /vitrine
+location = / {
+  return 302 https://$http_host/vitrine;
+}
+
+# Niveau de securite protege
+location /coupdoeil {
+  include /etc/nginx.conf.d/component/proxypass.include;
+  include /etc/nginx/conf.d/component_base.include;
+}
+
+location /publication {
+  include /etc/nginx.conf.d/component/proxypass.include;
+  include /etc/nginx/conf.d/component_base.include;
+}
+
+# Niveau de securite public
+location /vitrine {
+  include /etc/nginx.conf.d/component/proxypass.include;
+  include /etc/nginx/conf.d/component_base.include;
+}
+
+# Inclure site expose via approche plug-in/app
+include /etc/nginx/conf.d/modules/nginx.locations.*.include;

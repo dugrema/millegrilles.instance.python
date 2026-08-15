@@ -1,0 +1,22 @@
+listen 443 ssl http2;
+
+include /etc/nginx/conf.d/modules/ssl_certs.conf;
+include /etc/nginx/conf.d/ssl_params.conf.include;
+
+# Max upload https
+client_max_body_size 50M;
+
+include /etc/nginx/conf.d/modules/error_page.location;
+
+# Verification de l'authentification
+# Invoque pour **chaque** appel a nginx sous une page prive/protegee
+location = /millegrilles/authentification/verifier {
+  include /etc/nginx/conf.d/modules/millegrilles.proxypass;
+  #proxy_pass https://web_protege:443;
+  proxy_pass_request_body off; # no need to send the POST body
+
+  proxy_set_header  Content-Length "";
+  proxy_set_header  X-Real-IP $remote_addr;
+  proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+  proxy_set_header  X-Forwarded-Proto $scheme;
+}

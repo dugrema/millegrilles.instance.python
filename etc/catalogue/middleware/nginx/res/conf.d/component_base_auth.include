@@ -1,0 +1,5 @@
+# Protection via auth plugin
+include /etc/nginx/conf.d/auth.include;
+
+# Reste de la configuration de base du composant
+include /etc/nginx/conf.d/component_base.include;

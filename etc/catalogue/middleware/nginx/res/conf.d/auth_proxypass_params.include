@@ -1,0 +1,6 @@
+# Parametres a inclure dans le location /auth
+proxy_pass_request_body off;
+proxy_read_timeout 5s;
+proxy_set_header  X-Real-IP $remote_addr;
+proxy_set_header  X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header  X-Original-Uri $request_uri;

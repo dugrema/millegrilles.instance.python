@@ -1,0 +1,2 @@
+set $upstream https://mg-dev4.maple.maceroc.com:3001;
+proxy_pass $upstream;

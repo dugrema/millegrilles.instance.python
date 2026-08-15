@@ -1,0 +1,11 @@
+# Activer l'auth plugin
+auth_request      /auth/verifier_client_tls;
+
+# Retourner les identificateurs
+auth_request_set  $auth_x_roles             $upstream_http_x_roles;
+auth_request_set  $auth_x_exchanges         $upstream_http_x_exchanges;
+
+# proxy_set_header  Host              $host;    # Deja dans component_proxyheaders.include
+proxy_set_header  X-Hostname        $hostname;
+proxy_set_header  X-Roles           $auth_x_roles;
+proxy_set_header  X-Exchanges       $auth_x_exchanges;

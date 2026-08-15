@@ -1,0 +1,15 @@
+# Serveur https par defaut
+server {
+    listen 443 ssl http2 default_server;
+    listen [::]:443 ssl http2 ipv6only=on default_server;
+
+    server_name _;  # Default server
+
+    # Inclure les conf
+    include /etc/nginx/conf.d/modules/*.conf;
+    include /etc/nginx/conf.d/modules/applications/*.conf;
+
+    # Inclure les autres sites (locations)
+    include /etc/nginx/conf.d/modules/*.location;
+    include /etc/nginx/conf.d/modules/applications/*.location;
+}
