@@ -296,14 +296,16 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
     Loads all base docker compose files and recursively goes through includes to cumulate the x-certificate-configuration elements.
     Each certificate under secrets/ that matches the configuration is checked and appropriate certificates are created/renewed.
     """
+    if context.configuration.is_docker_disabled:
+        return []  # Nothing to manage
 
     # Sanity check
     if context.signing_key.enveloppe.calculer_expiration()['expire']:
         raise Exception("Manager certificate is expired - it must be renewed manually")
 
     # Process config files
-    configuration_file = load_compose_files(context.securite, context.configuration)
     certs = list()
+    configuration_file = load_compose_files(context.securite, context.configuration)
     for file_content in configuration_file:
         new_certs = extract_certificate_configuration(file_content)
         certs.extend(new_certs)

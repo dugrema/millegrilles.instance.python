@@ -65,6 +65,11 @@ def _parse_command_line():
         help="Run setup only then exit. Used to initialize certificates, nginx config, etc."
     )
 
+    parser.add_argument(
+        '--nodocker', action="store_true", required=False,
+        help="Disables all docker related features"
+    )
+
     args = parser.parse_args()
     __adjust_logging(args)
     return args
@@ -100,6 +105,8 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
 
         # self.web_cert_pem_path = self.__path_millegrilles / 'secrets/web.cert'
         # self.web_key_pem_path = self.__path_millegrilles / 'secrets/web.key'
+
+        self.__docker_disabled = args.nodocker or False
 
         # Apply instance defaults - usual defaults are meant for usage in docker containers
         self.default_override()
@@ -225,3 +232,7 @@ class ConfigurationInstance(MilleGrillesBusConfiguration):
     def is_secure_manager(self):
         """ Secure manager has level 3.protege securite """
         return self.__is_secure_manager
+
+    @property
+    def is_docker_disabled(self):
+        return self.__docker_disabled

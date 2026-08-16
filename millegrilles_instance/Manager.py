@@ -225,14 +225,15 @@ class InstanceManager:
                 self.__logger.warning("Error during nginx reload, trying nginx restart")
                 await asyncio.to_thread(restart_nginx, instance_name)
 
-        reload_middleware(instance_name)
-        try:
-            reload_compose_applications(instance_name, update_certs=False)
-        except CalledProcessError:
+        if not self.context.configuration.is_docker_disabled:
+            reload_middleware(instance_name)
             try:
-                restart_compose_applications(instance_name)
+                reload_compose_applications(instance_name, update_certs=False)
             except CalledProcessError:
-                self.__logger.exception("Error during applications restart - applications will not be available until fixed")
+                try:
+                    restart_compose_applications(instance_name)
+                except CalledProcessError:
+                    self.__logger.exception("Error during applications restart - applications will not be available until fixed")
 
         self.__logger.info("Runlevel normal READY")
 

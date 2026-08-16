@@ -1,0 +1,16 @@
+[Unit]
+Description=MilleGrilles nginx
+After=network.target
+
+[Service]
+# Type=simple
+Type=oneshot
+WorkingDirectory={{MILLEGRILLES_ROOT}}
+EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
+ExecStart=echo "Modify the nginx.service file to start nginx"
+ExecReload=echo "Modify the nginx.service file to reload nginx"
+ExecStop=echo "Modify the nginx.service file to stop nginx"
+# Restart=always
+
+[Install]
+WantedBy=default.target

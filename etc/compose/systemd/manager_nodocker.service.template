@@ -1,0 +1,21 @@
+[Unit]
+Description=Manager pour instance MilleGrilles {{INSTANCE_NAME}}.
+# Requires=docker.service
+
+[Service]
+Type=simple
+Nice=2
+PIDFile=/var/run/{{INSTANCE_NAME}}_manager.pid
+Environment="WEB_PORT=5443"
+Environment="CA_PATH={{MILLEGRILLES_ROOT}}/etc/millegrille.pem"
+Environment="KEY_PATH={{MILLEGRILLES_ROOT}}/secrets/manager.pem"
+EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
+ExecStart={{MILLEGRILLES_ROOT}}/venv/bin/python3 -m millegrilles_instance --config {{MILLEGRILLES_ROOT}} --nodocker
+Restart=always
+RestartSec=10s
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier={{INSTANCE_NAME}}_manager
+
+[Install]
+WantedBy=default.target

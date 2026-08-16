@@ -98,13 +98,15 @@ class CertificatesManager:
             self.__logger.info("Certificates updated, reloading nginx")
             await asyncio.to_thread(restart_nginx, instance_name)
 
-        if applications_renewed:
-            self.__logger.info("Certificates updated, restarting applications")
-            await asyncio.to_thread(restart_compose_applications, instance_name)
+        if not self.__context.configuration.is_docker_disabled:
 
-        if middleware_renewed:
-            # Note : restarting the middleware potentially cuts the connection to MQ (closes the manager)
-            self.__logger.warning("Certificates updated, restarting middleware (MQ may restart - this crashes the manager)")
-            await asyncio.to_thread(restart_middleware, instance_name)
+            if applications_renewed:
+                self.__logger.info("Certificates updated, restarting applications")
+                await asyncio.to_thread(restart_compose_applications, instance_name)
+
+            if middleware_renewed:
+                # Note : restarting the middleware potentially cuts the connection to MQ (closes the manager)
+                self.__logger.warning("Certificates updated, restarting middleware (MQ may restart - this crashes the manager)")
+                await asyncio.to_thread(restart_middleware, instance_name)
 
         self.__logger.info("Modules have been restarted after certificate renewal")
