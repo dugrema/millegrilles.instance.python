@@ -232,7 +232,7 @@ async def signer_module_core(producer: MilleGrillesPikaMessageProducer, context:
 async def check_certissuer_available(context: InstanceContext):
     config = context.configuration
     url_issuer = f"{config.certissuer_url}/certificate.pem"
-    timeout = ClientTimeout(20)
+    timeout = ClientTimeout(3)
     if url_issuer.startswith('https'):
         connector = TCPConnector(ssl=context.ssl_context)
         session = ClientSession(timeout=timeout, connector=connector)
@@ -242,7 +242,7 @@ async def check_certissuer_available(context: InstanceContext):
     try:
         async with session.get(url_issuer) as response:
             return response.status == 200
-    except ClientError as e:
+    except (ClientError, asyncio.TimeoutError) as e:
         LOGGER.info(f"Local certissuer not available: {e}")
         return False
     finally:
