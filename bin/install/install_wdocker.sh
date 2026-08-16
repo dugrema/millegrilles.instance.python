@@ -2,7 +2,7 @@
 set -euo pipefail
 # ==============================================================================
 # MilleGrilles Installation Script v2
-# This version is designed for user-space execution.
+# This version is designed for user-space execution with Docker.
 # It avoids creating system users/groups and minimizes sudo requirements.
 # ==============================================================================
 
@@ -152,8 +152,12 @@ preflight_check() {
     echo "[ERROR] MilleGrilles is already installed at ${MILLEGRILLES_ROOT} (config.env exists)."
     exit 1
   fi
-  if ! command -v git >/dev/null 2>&1; then
-    echo "[ERROR] git is not installed."
+  if ! command -v docker >/dev/null 2>&1; then
+    echo "[ERROR] docker is not installed."
+    exit 1
+  fi
+  if ! docker info >/dev/null 2>&1; then
+    echo "[ERROR] docker is not executable by this user."
     exit 1
   fi
   if ! command -v dpkg >/dev/null 2>&1; then
