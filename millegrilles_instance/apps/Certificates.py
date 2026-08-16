@@ -367,7 +367,7 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
             cert_pem = "\n".join(new_certificate.chaine_pem()) + "\n"
 
             # Check if we have to notify the maitre des cles (if --init, the certificate will only show up when ALREADY expired)
-            if not context.configuration.init_only:
+            if not context.configuration.init_only and not context.configuration.is_docker_disabled:
                 try:
                     if MillegrillesConstantes.DOMAINE_MAITRE_DES_CLES in cert_config_copy['domaines']:
                         try:
