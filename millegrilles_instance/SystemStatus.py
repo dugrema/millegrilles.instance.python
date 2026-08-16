@@ -404,7 +404,7 @@ class SystemStatusManager:
             async with ClientSession(timeout=ClientTimeout(2)) as session:
                 async with session.get(url_parsed.geturl()) as response:
                     signing_pem = await response.text()
-        except ClientError as e:
+        except (ClientError, asyncio.TimeoutError) as e:
             self.__logger.debug(f"Error connecting to local certissuer: {e}")
             self.__next_certissuer_check = now + datetime.timedelta(minutes = 5)
             return None
