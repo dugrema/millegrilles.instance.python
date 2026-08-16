@@ -443,4 +443,4 @@ async def rotation_maitredescles(context: InstanceContext, old_certificate: Enve
         raise ValueError("No response received from MaitreDesCles for rotationCertificat")
 
     if response.parsed['ok'] is False:
-        raise ValueError(f'Error trying to rotate a keymaster certificate: {response.parsed.get('err')}')
+        raise ValueError('Error trying to rotate a keymaster certificate: %s' % response.parsed.get('err'))
