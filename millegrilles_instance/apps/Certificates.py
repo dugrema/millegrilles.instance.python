@@ -310,6 +310,17 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
         new_certs = extract_certificate_configuration(file_content)
         certs.extend(new_certs)
 
+    secrets_path = context.configuration.path_millegrilles / "secrets"
+
+    # Generate missing passwords
+    passwords_to_generate = check_passwords(context.configuration, certs)
+    for p in passwords_to_generate:
+        password = generer_password()
+        filename = secrets_path / f"{p}.txt"
+        with open(filename, "w") as file:
+            file.write(password)
+        LOGGER.debug(f"Password {p} generated")
+
     # Get certs to renew
     certs_to_renew = check_certificates(context.configuration, certs)
 
@@ -327,7 +338,6 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
 
     # Submit certs
     formatteur = context.formatteur
-    secrets_path = context.configuration.path_millegrilles / "secrets"
     for cert_config in certs_to_renew:
         # Inject local hostname when required
         cert_config_copy: CertificateConfiguration = cert_config.copy()
@@ -411,15 +421,6 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
 
             LOGGER.debug(f"Certificate {cert_config_copy['name']} renewed")
             renewed_config.append(cert_config_copy)
-
-    # Generate missing passwords
-    passwords_to_generate = check_passwords(context.configuration, certs)
-    for p in passwords_to_generate:
-        password = generer_password()
-        filename = secrets_path / f"{p}.txt"
-        with open(filename, "w") as file:
-            file.write(password)
-        LOGGER.debug(f"Password {p} generated")
 
     return renewed_config
 

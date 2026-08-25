@@ -110,14 +110,16 @@ async def main():
         LOGGER.error("Error loading configuration files %s, quitting" % str(e))
         sys.exit(1)  # Quit
 
+    LOGGER.info("Starting maintenance of the environment (secrets)")
+    try:
+        await setup_manager(context)
+    except Exception as e:
+        LOGGER.exception("Error initializing manager")
+        sys.exit(2)
+
     if config.init_only:
-        LOGGER.info("Starting maintenance of the environment")
-        try:
-            await setup_manager(context)
-        except Exception as e:
-            LOGGER.exception("Error initializing manager")
-            sys.exit(2)
         LOGGER.info("Manager initialization completed")
+        sys.exit(0)
     else:
         await run_manager(context)
 
