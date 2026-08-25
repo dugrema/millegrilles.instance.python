@@ -55,16 +55,15 @@ if [ "$SECURITE" != "1.public" ]; then
   cp -a "$PROJECT_PATH"/etc/compose/coremodules/* "$MILLEGRILLES_ROOT"/etc/compose/coremodules/
 fi
 
-echo "[INFO] Updating applications..."
-if [ -f "bin/manage_apps.py" ]; then
-  bin/manage_apps.py update -i
-else
-  echo "[ERROR] bin/manage_apps.py not found in $PROJECT_PATH"
-  exit 1
-fi
-
-echo "[INFO] Restarting services..."
 if [ "$SECURITE" != "1.public" ]; then
+  echo "[INFO] Updating applications..."
+  if [ -f "bin/manage_apps.py" ]; then
+    bin/manage_apps.py update -i
+  else
+    echo "[ERROR] bin/manage_apps.py not found in $PROJECT_PATH"
+    exit 1
+  fi
+
   echo "[INFO] Stopping applications..."
   systemctl --user stop "$INSTANCE_NAME"-applications
 
