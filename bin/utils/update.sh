@@ -77,7 +77,7 @@ if [ "$SECURITE" != "1.public" ]; then
     systemctl --user restart "$INSTANCE_NAME"-nginx
   fi
 
-  if [ "$SECURITE" == "3.protege" ] || [ "$SECURITE" != "4.secure" ]; then
+  if [ "$SECURITE" == "3.protege" ] || [ "$SECURITE" == "4.secure" ]; then
     echo "[INFO] Restarting certissuer..."
     systemctl --user restart "$INSTANCE_NAME"-certissuer
   fi
