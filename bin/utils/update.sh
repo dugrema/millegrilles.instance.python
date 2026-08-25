@@ -51,7 +51,9 @@ git reset --hard origin/$(git rev-parse --abbrev-ref HEAD)
 echo "[INFO] Updating utilities and compose files..."
 # Use cp -a to preserve permissions and ownership
 cp -a "$PROJECT_PATH"/bin/* "$MILLEGRILLES_ROOT"/bin/
-cp -a "$PROJECT_PATH"/etc/compose/coremodules/* "$MILLEGRILLES_ROOT"/etc/compose/coremodules/
+if [ "$SECURITE" != "1.public" ]; then
+  cp -a "$PROJECT_PATH"/etc/compose/coremodules/* "$MILLEGRILLES_ROOT"/etc/compose/coremodules/
+fi
 
 echo "[INFO] Updating applications..."
 if [ -f "bin/manage_apps.py" ]; then
