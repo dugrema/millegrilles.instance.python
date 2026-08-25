@@ -114,8 +114,11 @@ async def main():
     try:
         await setup_manager(context)
     except Exception as e:
-        LOGGER.exception("Error initializing manager")
-        sys.exit(2)
+        if config.init_only:
+            LOGGER.exception("Error initializing manager")
+            sys.exit(2)
+        else:
+            LOGGER.info("Error setting-up secrets, will start running anyway and try again: %s" % e)
 
     if config.init_only:
         LOGGER.info("Manager initialization completed")
