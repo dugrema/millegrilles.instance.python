@@ -484,8 +484,9 @@ install_protege_instance() {
   # Enable services on start
   systemctl --user enable "${INSTANCE_NAME}-nginx"
   systemctl --user enable --now "${INSTANCE_NAME}-middleware"
-  systemctl --user enable --now  "${INSTANCE_NAME}-applications"
   systemctl --user enable --now "${INSTANCE_NAME}-manager"
+  # systemctl --user enable --now  "${INSTANCE_NAME}-applications"  # Let manager start the applications on reboot
+  systemctl --user start  "${INSTANCE_NAME}-applications"
 
   # Activate the certificate updater with timer
   systemctl --user enable --now "${INSTANCE_NAME}-certs_updater.timer"

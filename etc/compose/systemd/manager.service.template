@@ -1,9 +1,6 @@
 [Unit]
 Description=Manager pour instance MilleGrilles {{INSTANCE_NAME}}.
-# Requires=docker.service
-Wants={{INSTANCE_NAME}}-certissuer.service
-Wants={{INSTANCE_NAME}}-certs_updater.service
-Wants={{INSTANCE_NAME}}-middleware.service
+Wants={{INSTANCE_NAME}}-certs_updater.service {{INSTANCE_NAME}}-middleware.service
 
 [Service]
 Type=simple

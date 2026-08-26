@@ -1,0 +1,16 @@
+[Unit]
+Description=Shutdown applications (docker compose down)
+After=docker.service
+# Blocks docker from stopping, install as root service
+Requires=docker.service
+
+[Service]
+Type=oneshot
+EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
+ExecStart=/bin/true
+ExecStop=/usr/bin/docker compose -f etc/compose/applications.yml down --remove-orphans
+RemainAfterExit=yes
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=default.target
