@@ -42,6 +42,9 @@ services:
         target: webauthsession.txt
     networks:
       - app_net
+    depends_on:
+      - redis
+      - mq
 
 configs:
   mgca:
