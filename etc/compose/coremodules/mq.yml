@@ -1,6 +1,6 @@
 services:
   mq:
-    image: registry.millegrilles.com/millegrilles/rabbitmq:4.3.4-management-alpine-b3
+    image: registry.millegrilles.com/millegrilles/rabbitmq:4.3.4-management-alpine-b4
     x-millegrilles-certificat:
       roles:
         - mq
