@@ -45,6 +45,7 @@ services:
     depends_on:
       - redis
       - mq
+      - midcompte
 
 configs:
   mgca:

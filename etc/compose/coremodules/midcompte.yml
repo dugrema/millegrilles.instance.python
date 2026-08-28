@@ -1,6 +1,6 @@
 services:
   midcompte:
-    image: registry.millegrilles.com/millegrilles/midcompte_python:2026.4.28
+    image: registry.millegrilles.com/millegrilles/midcompte_python:2026.4.29
     x-millegrilles-certificat:
       roles:
         - midcompte
@@ -14,6 +14,7 @@ services:
     environment:
       - WEB_PORT=2444
       - KEY_PEM=/run/secrets/key_cert.pem
+      - MQ_URL=https://mq:8443/rabbitmq
     deploy:
       resources:
         limits:
