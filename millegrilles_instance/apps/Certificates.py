@@ -3,8 +3,11 @@ import base64
 import logging
 import pathlib
 import secrets
+import datetime
 
 import math
+
+import pytz
 import requests
 import yaml
 
@@ -171,10 +174,14 @@ def check_certificates(configuration: ConfigurationInstance, certs: list[Certifi
             continue
 
         info_expiration = cert_enveloppe.calculer_expiration()
+        # roles = cert_enveloppe.get_roles
         if info_expiration.get('expire'):
             # Always regenerate certificates that are expired immediately
             # This has an impact on some domains like Maitredescles (it needs to be notified on key changes to migrate its secrets)
             to_renew.append(cert)
+        # # DEBUG
+        # elif 'maitredescles' in roles:
+        #     to_renew.append(cert)
         elif not init_only and info_expiration.get('renouveler'):
             # Only renew certificates if the manager is currently running (so not in --init mode)
             to_renew.append(cert)
@@ -380,13 +387,18 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
             if not context.configuration.init_only and not context.configuration.is_docker_disabled:
                 try:
                     if MillegrillesConstantes.DOMAINE_MAITRE_DES_CLES in cert_config_copy['domaines']:
+                        expired = False
                         try:
-                            cert_path = secrets_path / f"{cert_config_copy['name']}.cert.pem"
+                            cert_path = secrets_path / f"{cert_config_copy['name']}.pem"
                             old_cert = EnveloppeCertificat.from_file(cert_path)
+                            expired = old_cert.not_valid_after <= datetime.datetime.now(tz=pytz.UTC)
                             await rotation_maitredescles(context, old_cert, new_certificate)
                         except (TimeoutError, ValueError):
-                            LOGGER.exception("Error rotation certificate for keymaster")
-                            continue  # Keep going with other certificates
+                            if expired:
+                                LOGGER.warning("MaitreDesCles certificate is expired - rotating without warning")
+                            else:
+                                LOGGER.warning("Error rotating certificate for keymaster (not expired), will retry")
+                                continue  # Keep going with other certificates
                         except FileNotFoundError:
                             LOGGER.warning("Old keymaster certificate cannot be loaded, rotating without warning")
                 except KeyError:
@@ -426,7 +438,7 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
 
 
 async def rotation_maitredescles(context: InstanceContext, old_certificate: EnveloppeCertificat, new_certificate: EnveloppeCertificat):
-    producer = await context.get_producer()
+    producer = await asyncio.wait_for(context.get_producer(), 0.25)
 
     fingerprint = old_certificate.fingerprint
     command = {
