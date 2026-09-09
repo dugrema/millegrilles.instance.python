@@ -4,6 +4,7 @@
 
 if [ -z "$INSTANCE_ID" ]; then
   echo "Load the environment first"
+  exit 1
 fi
 
 "${MILLEGRILLES_ROOT}"/bin/x509/sign_protege.py \
