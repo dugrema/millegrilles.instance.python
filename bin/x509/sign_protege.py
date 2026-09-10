@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
+import datetime
 import os
 import sys
 import argparse
 from datetime import timedelta
 
-from millegrilles_messages.certificats.Generes import CleCsrGenere, TypeGenere, ajouter_exchanges, ajouter_roles
+import pytz
+
+from millegrilles_messages.certificats.Generes import CleCsrGenere, TypeGenere, ajouter_exchanges, ajouter_roles, \
+    EnveloppeCertificat
 from millegrilles_messages.messages.CleCertificat import CleCertificat
 from millegrilles_messages.messages import Constantes
 from cryptography.x509.base import CertificateBuilder
+
+DAYS_TO_RENEW=10
 
 def main():
     parser = argparse.ArgumentParser(description="Generate a node certificate using MilleGrilles library.")
@@ -17,6 +23,7 @@ def main():
     parser.add_argument("--ca-password", required=False, help="Password for the CA private key")
     parser.add_argument("--days", type=int, default=31, help="Validity days for the node certificate")
     parser.add_argument("--instanceid", required=False, type=str, help="INSTANCE_ID to use")
+    parser.add_argument("--cron", action="store_true", help="Only renew when required")
 
     args = parser.parse_args()
 
@@ -29,8 +36,27 @@ def main():
     ca_password = args.ca_password
 
     if not os.path.exists(ca_pem_path):
-        print(f"Error: CA PEM not found at {ca_pem_path}")
+        print(f"[ERROR] CA PEM not found at {ca_pem_path}")
         sys.exit(1)
+
+    node_pem_path = os.path.join(millegrilles_root, "secrets/manager.pem")
+
+    if args.cron:
+        # Check if renewal is due
+        try:
+            certificte_wrapper = EnveloppeCertificat.from_file(node_pem_path)
+            if not certificte_wrapper.date_valide():
+                print(f"[INFO] Certificate is expired, renewing")
+                pass  # Not currently valid, must renew now
+            else:
+                # Check if we have less than 10 days left on the certificate.
+                now = datetime.datetime.now(tz=pytz.UTC)
+                if certificte_wrapper.not_valid_after - now > datetime.timedelta(days=DAYS_TO_RENEW):
+                    print(f"[OK] Certificate has more than {DAYS_TO_RENEW} days left, not renewing (exp: {certificte_wrapper.not_valid_after})")
+                    sys.exit(0)  # Not due for renewal
+                print(f"[INFO] Certificate will expire soon ({(certificte_wrapper.not_valid_after - now).days} days left), renewing")
+        except Exception as e:
+            print(f"[WARN] Error loading PEM, will renew certificate: {e}")
 
     # 1. Load the CA
     with open(ca_pem_path, 'r') as f:
@@ -65,7 +91,6 @@ def main():
     cle_node_genere = csr_genere.signer(cle_ca, role='manager', builder=builder, duree=timedelta(days=days))
 
     # 4. Save the result
-    node_pem_path = os.path.join(millegrilles_root, "secrets/manager.pem")
     os.makedirs(os.path.dirname(node_pem_path), exist_ok=True)
 
     node_key_pem = cle_node_genere.get_pem_cle()

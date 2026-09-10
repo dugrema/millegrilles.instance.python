@@ -10,6 +10,7 @@ Environment="WEB_PORT=5443"
 Environment="CA_PATH={{MILLEGRILLES_ROOT}}/etc/millegrille.pem"
 Environment="KEY_PATH={{MILLEGRILLES_ROOT}}/secrets/manager.pem"
 EnvironmentFile={{MILLEGRILLES_ROOT}}/config.env
+ExecStartPre=-{{MILLEGRILLES_ROOT}}/bin/x509/self_renew_protege.sh
 ExecStart={{MILLEGRILLES_ROOT}}/venv/bin/python3 -m millegrilles_instance --config {{MILLEGRILLES_ROOT}}
 Restart=always
 RestartSec=10s

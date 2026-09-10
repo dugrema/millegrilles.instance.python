@@ -7,7 +7,9 @@ if [ -z "$INSTANCE_ID" ]; then
   exit 1
 fi
 
-"${MILLEGRILLES_ROOT}"/bin/x509/sign_protege.py \
+# Putting in venv to allow calling script from manager.service directly
+"${MILLEGRILLES_ROOT}"/venv/bin/python3 "${MILLEGRILLES_ROOT}"/bin/x509/sign_protege.py \
+  --cron \
   --millegrilles-root "${MILLEGRILLES_ROOT}" \
   --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem" \
   --instance-id $INSTANCE_ID
