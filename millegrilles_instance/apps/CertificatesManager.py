@@ -1,13 +1,17 @@
 import asyncio
+import datetime
 import logging
 
 from asyncio import TaskGroup
+
+import pytz
 
 from millegrilles_messages.messages import Constantes as MilleGrillesConstantes
 
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_instance.SystemdUtil import restart_compose_applications, restart_middleware, restart_nginx
-from millegrilles_instance.apps.Certificates import renew_certificates
+from millegrilles_instance.apps.Certificates import renew_certificates, signer_module_certissuer, signer_module_core, \
+    check_certissuer_available, CertificateConfiguration
 
 
 class CertificatesManager:
@@ -55,7 +59,11 @@ class CertificatesManager:
             try:
                 await self.__renew_certificates()
             except Exception:
-                self.__logger.exception("Error renewing certificates in manager")
+                self.__logger.exception("Error renewing application certificates in manager")
+            try:
+                await self.__conditional_renew_manager()
+            except Exception:
+                self.__logger.exception("Error renewing manager certificate")
             await self.__context.wait(3600)
         self.__logger.info("Stopping certificate renewal check thread")
 
@@ -110,3 +118,55 @@ class CertificatesManager:
                 await asyncio.to_thread(restart_middleware, instance_name)
 
         self.__logger.info("Modules have been restarted after certificate renewal")
+
+    async def __conditional_renew_manager(self):
+        signing_key = self.__context.signing_key
+        expiration = signing_key.enveloppe.not_valid_after
+        now = datetime.datetime.now(tz=pytz.UTC)
+        if expiration - now < datetime.timedelta(days=7):
+            self.__logger.debug(f"Manager certificate can be renewed, expires on {expiration}")
+            await self.__renew_manager_certificate()
+            self.__logger.debug(f"Manager certificate renewed, reloading configuration")
+            await self.__context.reload_wait()
+
+    async def __renew_manager_certificate(self):
+        if self.__context.securite in [MilleGrillesConstantes.SECURITE_PROTEGE, MilleGrillesConstantes.SECURITE_SECURE]:
+            exchanges = [MilleGrillesConstantes.SECURITE_PROTEGE, MilleGrillesConstantes.SECURITE_PRIVE, MilleGrillesConstantes.SECURITE_PUBLIC]
+        elif self.__context.securite == MilleGrillesConstantes.SECURITE_PRIVE:
+            exchanges = [MilleGrillesConstantes.SECURITE_PRIVE, MilleGrillesConstantes.SECURITE_PUBLIC]
+        else:
+            exchanges = [MilleGrillesConstantes.SECURITE_PUBLIC]
+        cert_config = CertificateConfiguration(
+            name='manager',
+            roles=[MilleGrillesConstantes.DOMAINE_INSTANCE, 'manager'],
+            exchanges=exchanges,
+            domaines=None,
+            dns=None,
+            split=False,
+            key_path=None,
+            cert_path=None,
+            passwords=None
+        )
+        cert_issuer_available = await check_certissuer_available(self.__context)
+        if not cert_issuer_available:
+            # Ensure that we have access to the MQ producer
+            producer = await asyncio.wait_for(self.__context.get_producer(), 1)
+        else:
+            producer = None
+        if cert_issuer_available:
+            cle_certificat = signer_module_certissuer(self.__context.configuration, cert_config, self.__context.formatteur)
+        elif producer:
+            cle_certificat = await signer_module_core(producer, self.__context, cert_config)
+        else:
+            raise Exception('No means of accessing certissuer found')
+
+        key_pem = cle_certificat.private_key_bytes().decode('utf-8')
+        new_certificate = cle_certificat.enveloppe
+        cert_pem = "\n".join(new_certificate.chaine_pem()) + "\n"
+
+        secrets_path = self.__context.configuration.path_millegrilles / "secrets"
+        pem_path = secrets_path / "manager.pem"
+        with open(pem_path, "w") as pem_file:
+            pem_file.write(key_pem)
+            pem_file.write("\n")
+            pem_file.write(cert_pem)

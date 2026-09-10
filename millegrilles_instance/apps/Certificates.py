@@ -334,8 +334,8 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
     if not certs_to_renew:
         return []  # Done
 
-    cert_issuer_avaiable = await check_certissuer_available(context)
-    if not cert_issuer_avaiable:
+    cert_issuer_available = await check_certissuer_available(context)
+    if not cert_issuer_available:
         # Ensure that we have access to the MQ producer
         producer = await asyncio.wait_for(context.get_producer(), 1)
     else:
@@ -372,7 +372,7 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
             pass  # No passwords
 
         if len(keys) > 0:
-            if cert_issuer_avaiable:
+            if cert_issuer_available:
                 cle_certificat = signer_module_certissuer(context.configuration, cert_config_copy, formatteur)
             elif producer:
                 cle_certificat = await signer_module_core(producer, context, cert_config_copy)
