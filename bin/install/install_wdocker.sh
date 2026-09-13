@@ -230,6 +230,9 @@ creer_repertoires() {
     mkdir -p "${MILLEGRILLES_ROOT}/var/mongo"
     mkdir -p "${MILLEGRILLES_ROOT}/var/backup/domains"
     mkdir -p "${MILLEGRILLES_ROOT}/var/backup/mongo"
+
+    # Create file that indicates system is ready for backups - remove this file while restoring from backups.
+    touch "${MILLEGRILLES_ROOT}/var/backup/domains/ready.txt"
   fi
 
   # Type 4.secure does not have nginx (or any ports exposed)
