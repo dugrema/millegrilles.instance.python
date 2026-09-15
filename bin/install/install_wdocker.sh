@@ -17,6 +17,7 @@ MILLEGRILLES_ROOT="${HOME}/.local/${INSTANCE_NAME}"
 TYPE="protege"
 FICHE_URL=""
 EXISTING_CA_CERT=""
+CA_MASTER_KEY=""
 
 # Check if all apt packages are installed and docker is available to the user
 "${REPO_ROOT}/bin/install/env_check.sh"
@@ -32,6 +33,7 @@ usage() {
   echo "  --type <type>      Installation type: public, prive, protege, secure (default: protege)"
   echo "  --fiche <url>      URL of the fiche file (required for non-protege types)"
   echo "  --ca <path>        Path to an existing Root CA certificate"
+  echo "  --cakey <path>     Path to the system's master key with CA certificate - password to be provided in console"
   echo "  --help             Display this help message"
   exit 0
 }
@@ -44,6 +46,7 @@ while [[ "$#" -gt 0 ]]; do
     --type) TYPE="$2"; shift ;;
     --fiche) FICHE_URL="$2"; shift ;;
     --ca) EXISTING_CA_CERT="$2"; shift ;;
+    --cakey) CA_MASTER_KEY="$2"; shift ;;
     --help) usage; exit 1 ;;
     *) echo "Unknown parameter: $1"; usage; exit 1 ;;
   esac
@@ -351,12 +354,10 @@ install_instance_v2() {
   fi
 }
 
-generate_signing_ca() {
-    echo "[INFO] Generating Signing CSR from existing CA..."
+# Use this for installation of a protege or secure instance with an existing CA on other device (air gapped)
+request_signing_ca() {
+    echo "[INFO] Building CSR for Signing certificate..."
     mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer"
-
-    # Generate an unencrypted ed25519 private key for the signing CA
-    openssl genpkey -algorithm ed25519 -out "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_key.pem"
 
     # Generate the Signing CA CSR
     . "${PATH_VENV}/bin/activate"
@@ -365,6 +366,9 @@ generate_signing_ca() {
       echo "[ERROR] Failed to retrieve IDMG from existing Root CA."
       exit 1
     fi
+
+    # Generate an unencrypted ed25519 private key for the signing CA
+    openssl genpkey -algorithm ed25519 -out "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_key.pem"
 
     openssl req -new -key "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_key.pem" \
       -out "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.csr" \
@@ -392,6 +396,19 @@ generate_signing_ca() {
     echo "[INFO] Signing CA assembled from user input."
 }
 
+# Use this function to generate all initial certificates from local master key (CA)
+generate_signing_ca() {
+    echo "[INFO] Generating Signing CSR from existing CA..."
+    mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer"
+
+    read -s -p "Enter CA password: " CA_PASSWORD
+
+    echo "[INFO] Generating Signing CA..."
+    ./bin/x509/ca_signing.sh --password "$CA_PASSWORD" --instanceid "$INSTANCE_ID" --capath "$CA_MASTER_KEY"
+
+    echo "[INFO] Signing CA ready."
+}
+
 install_protege_instance() {
   echo "[INFO] Starting Protege installation..."
   
@@ -402,7 +419,19 @@ install_protege_instance() {
   cp -iv "${REP_ETC}/nginx/nginx_protege/"* "${MILLEGRILLES_ROOT}/etc/nginx"
 
   local password=""
-  if [ -n "$EXISTING_CA_CERT" ]; then
+  if [ -n "$CA_MASTER_KEY" ]; then
+    if [ ! -f "$CA_MASTER_KEY" ]; then
+      echo "[ERROR] CA certificate/key not found at $CA_MASTER_KEY"
+      exit 1
+    fi
+
+    # Use openssl to re-export the CA cert (remove private key, comments, etc)
+    echo "[INFO] Using existing Root CA from $CA_MASTER_KEY"
+    openssl x509 -in "$CA_MASTER_KEY" > "${MILLEGRILLES_ROOT}/etc/millegrille.pem"
+
+    echo "[INFO] Generating Signing CA..."
+    generate_signing_ca
+  elif [ -n "$EXISTING_CA_CERT" ]; then
     if [ ! -f "$EXISTING_CA_CERT" ]; then
       echo "[ERROR] Existing CA certificate not found at $EXISTING_CA_CERT"
       exit 1
@@ -410,7 +439,7 @@ install_protege_instance() {
     echo "[INFO] Using existing Root CA from $EXISTING_CA_CERT"
     cp "$EXISTING_CA_CERT" "${MILLEGRILLES_ROOT}/etc/millegrille.pem"
 
-    generate_signing_ca
+    request_signing_ca
     password="N/A (Using unencrypted signing key)"
   else
     echo "[INFO] Generating Root CA..."
@@ -528,7 +557,7 @@ install_secure_instance() {
   install_instance_v2
   source "${MILLEGRILLES_ROOT}/config.env"
 
-  generate_signing_ca
+  request_signing_ca
 
   echo "[INFO] Generating Node Manager Certificate..."
   "${PATH_VENV}/bin/python3" bin/x509/sign_protege.py \
