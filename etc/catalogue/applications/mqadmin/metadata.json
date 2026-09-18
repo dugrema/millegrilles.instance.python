@@ -1,6 +1,6 @@
 {
   "name": "mqadmin",
-  "version": "2026.4.3",
+  "version": "2026.4.5",
   "securite": "3.protege",
   "labels": {
     "en": "RabbitMQ Administration Client",
