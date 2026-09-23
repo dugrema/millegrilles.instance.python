@@ -44,8 +44,8 @@ services:
       - app_net
     depends_on:
       - redis
-      - mq
-      - midcompte
+      # - mq
+      # - midcompte
 
 configs:
   mgca:
