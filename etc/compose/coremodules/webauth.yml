@@ -1,6 +1,6 @@
 services:
   webauth:
-    image: registry.millegrilles.com/millegrilles/webauth_rust:2026.5.19
+    image: registry.millegrilles.com/millegrilles/webauth_rust:2026.5.20
     x-millegrilles-certificat:
       roles:
         - webauth
