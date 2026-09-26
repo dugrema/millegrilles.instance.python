@@ -14,6 +14,7 @@ fi
 
 APP_YAML="${MILLEGRILLES_ROOT}/etc/compose/applications.yml"
 
-docker compose -f "$APP_YAML" down documents
-docker compose -f "$APP_YAML" run --rm documents ./millegrilles_documents --restore --capath /var/opt/millegrilles/archives/ca.pem
-docker compose -f "$APP_YAML" up -d --remove-orphans documents
+docker compose -f "$APP_YAML" down documents_backend
+# docker compose -f "$APP_YAML" run --rm documents_backend ./millegrilles_documents --restore --capath /var/opt/millegrilles/archives/ca.pem
+docker compose -f "$APP_YAML" run --rm documents_backend ./millegrilles_documents --restore --noresume --capath /var/opt/millegrilles/archives/ca.pem
+docker compose -f "$APP_YAML" up -d --remove-orphans documents_backend
