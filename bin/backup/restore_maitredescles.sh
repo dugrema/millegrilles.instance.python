@@ -15,5 +15,5 @@ fi
 APP_YAML="${MILLEGRILLES_ROOT}/etc/compose/applications.yml"
 
 docker compose -f "$APP_YAML" down maitredescles
-docker compose -f "$APP_YAML" run --rm maitredescles ./millegrilles_maitredescles --restore --capath /var/opt/millegrilles/archives/ca.pem
+docker compose -f "$APP_YAML" run --rm maitredescles ./millegrilles_maitredescles --restore --noresume --capath /var/opt/millegrilles/archives/ca.pem
 docker compose -f "$APP_YAML" up -d --remove-orphans maitredescles
