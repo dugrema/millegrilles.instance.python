@@ -12,6 +12,7 @@ from aiohttp import ClientSession, ClientError, ClientTimeout
 from urllib.parse import urlparse
 
 from millegrilles_instance.Configuration import ConfigurationInstance
+from millegrilles_instance.Constantes import EVENEMENT_PRESENCE_INSTANCE_V2
 from millegrilles_instance.Context import InstanceContext
 from millegrilles_messages.messages import Constantes as MilleGrillesConstantes
 from millegrilles_messages.messages.EnveloppeCertificat import EnveloppeCertificat
@@ -385,7 +386,7 @@ class SystemStatusManager:
         await producer.event(
             event_message,
             'instance',
-            'presenceInstanceV2',
+            EVENEMENT_PRESENCE_INSTANCE_V2,
             partition=self.__context.instance_id,
             exchange=self.__securite,
         )

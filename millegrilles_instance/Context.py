@@ -59,7 +59,7 @@ class InstanceContext(MilleGrillesBusContext):
             async with TaskGroup() as group:
                 group.create_task(super().run())
                 group.create_task(self.__reload_thread())
-                group.create_task(self.__presence_thread())
+                # group.create_task(self.__presence_thread())
                 group.create_task(self.__stop_thread())
         except *Exception:  # Stop on any thread exception
             self.__logger.exception("InstanceContext Error")
@@ -82,38 +82,38 @@ class InstanceContext(MilleGrillesBusContext):
             except CertificatExpire:
                 self.__logger.exception("Certificate expired - context only partially reloaded")
 
-    async def __presence_thread(self):
-        while self.stopping is False:
-            try:
-                producer = await self.get_producer()
-            except asyncio.TimeoutError:
-                # Producer not ready yet
-                await self.wait(5)
-                continue
-
-            event_security_level = self.__securite
-            if event_security_level == Constantes.SECURITE_SECURE:
-                # Downgrade 4.secure a niveau 3.protege
-                event_security_level = Constantes.SECURITE_PROTEGE
-
-            status_content = {
-                'hostname': self.hostname,
-                'hostnames': self.hostnames,
-                'ip': self.ip_address,
-                'security': self.securite,
-            }
-            # status_content.update(self.__current_system_state)
-            event_content = {'status': status_content}
-            try:
-                await producer.event(event_content, Constantes.DOMAINE_INSTANCE,
-                                     ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE_V2, exchange=event_security_level)
-            except asyncio.TimeoutError:
-                self.__logger.debug("Timeout sending presence event")
-            except asyncio.CancelledError as e:
-                raise e
-            except:
-                self.__logger.exception("Unhandled error sending presence event")
-            await self.wait(20)
+    # async def __presence_thread(self):
+    #     while self.stopping is False:
+    #         try:
+    #             producer = await self.get_producer()
+    #         except asyncio.TimeoutError:
+    #             # Producer not ready yet
+    #             await self.wait(5)
+    #             continue
+    #
+    #         event_security_level = self.__securite
+    #         if event_security_level == Constantes.SECURITE_SECURE:
+    #             # Downgrade 4.secure a niveau 3.protege
+    #             event_security_level = Constantes.SECURITE_PROTEGE
+    #
+    #         status_content = {
+    #             'hostname': self.hostname,
+    #             'hostnames': self.hostnames,
+    #             'ip': self.ip_address,
+    #             'security': self.securite,
+    #         }
+    #         # status_content.update(self.__current_system_state)
+    #         event_content = {'status': status_content}
+    #         try:
+    #             await producer.event(event_content, Constantes.DOMAINE_INSTANCE,
+    #                                  ConstantesInstance.EVENEMENT_PRESENCE_INSTANCE_V2, exchange=event_security_level)
+    #         except asyncio.TimeoutError:
+    #             self.__logger.debug("Timeout sending presence event")
+    #         except asyncio.CancelledError as e:
+    #             raise e
+    #         except:
+    #             self.__logger.exception("Unhandled error sending presence event")
+    #         await self.wait(20)
 
     async def __stop_thread(self):
         await self.wait()
