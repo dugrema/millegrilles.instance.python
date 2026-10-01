@@ -79,7 +79,7 @@ class AppManager:
             event_message,
             'instance',
             'presenceInstanceApplicationsV2',
-            partition=self.__context.instance_id,
+            # partition=self.__context.instance_id,
             exchange=self.__securite,
         )
 
