@@ -14,8 +14,8 @@ fi
 
 APP_YAML="${MILLEGRILLES_ROOT}/etc/compose/applications.yml"
 
-SERVICE_NAME=corepki
+SERVICE_NAME=coretopology
 docker compose -f "$APP_YAML" down $SERVICE_NAME
-# docker compose -f "$APP_YAML" run --rm $SERVICE_NAME ./millegrilles_corepki_rust --restore --capath /var/opt/millegrilles/archives/ca.pem
-docker compose -f "$APP_YAML" run --rm $SERVICE_NAME ./millegrilles_corepki_rust --restore --noresume --capath /var/opt/millegrilles/archives/ca.pem
+# docker compose -f "$APP_YAML" run --rm $SERVICE_NAME ./millegrilles_coretopology_rust --restore --capath /var/opt/millegrilles/archives/ca.pem
+docker compose -f "$APP_YAML" run --rm $SERVICE_NAME ./millegrilles_coretopology_rust --restore --noresume --capath /var/opt/millegrilles/archives/ca.pem
 docker compose -f "$APP_YAML" up -d --remove-orphans $SERVICE_NAME
