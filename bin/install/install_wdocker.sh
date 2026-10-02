@@ -506,6 +506,7 @@ install_protege_instance() {
   echo "[INFO] Installing applications from catalogue"
   "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name core --noreload
   "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name corepki --noreload
+  "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name coretopology--noreload
   "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name maitredescles --noreload
   "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name webapiprotege --noreload
   "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name coupdoeil2 --noreload
