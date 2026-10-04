@@ -375,7 +375,14 @@ async def renew_certificates(context: InstanceContext) -> list[dict]:
             if cert_issuer_available:
                 cle_certificat = signer_module_certissuer(context.configuration, cert_config_copy, formatteur)
             elif producer:
-                cle_certificat = await signer_module_core(producer, context, cert_config_copy)
+                try:
+                    cle_certificat = await signer_module_core(producer, context, cert_config_copy)
+                except KeyError as e:
+                    if not context.configuration.init_only:
+                        LOGGER.exception("Error trying to renew certificate")
+                        return renewed_config
+                    else:
+                        raise e  # Fatal error for initialization
             else:
                 raise Exception('No means of accessing certissuer found')
 
