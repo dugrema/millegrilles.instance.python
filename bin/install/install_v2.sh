@@ -19,7 +19,7 @@ FICHE_URL=""
 EXISTING_CA_CERT=""
 
 # Check if all apt packages are installed and docker is available to the user
-"${REPO_ROOT}/bin/install/env_check.sh"
+# "${REPO_ROOT}/bin/install/env_check.sh"
 
 # Parse arguments
 usage() {
@@ -324,7 +324,7 @@ install_instance_v2() {
     if [ "$TYPE" != "secure" ]; then
       install_web_files
     fi
-    configurer_docker_network
+    # configurer_docker_network
   else
     echo "[WARN] Dossier configuration déjà existant. Installation ignorée."
   fi
@@ -428,53 +428,53 @@ install_protege_instance() {
   echo "[INFO] Preparing node systemd configuration files for protege"
   ./bin/install/setup_systemd_protege.sh "${MILLEGRILLES_ROOT}/config.env"
 
-  echo "[INFO] Download and start certissuer"
-  systemctl --user daemon-reload
-  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/coremodules/certissuer.yml" pull
-  systemctl --user enable --now "${INSTANCE_NAME}-certissuer"
-  sleep 5  # Wait for certissuer to start
-
-  echo "[INFO] Generate all local certificates and passwords in secrets directory"
-  export CA_PATH="${MILLEGRILLES_ROOT}/etc/millegrille.pem"
-  export CERT_PATH="${MILLEGRILLES_ROOT}/secrets/manager.pem"
-  export KEY_PATH="${MILLEGRILLES_ROOT}/secrets/manager.pem"
-  # ,Run manager to generate certificates/passwords
-  "${PATH_VENV}/bin/python3" -m millegrilles_instance --config "${MILLEGRILLES_ROOT}" --init
-
-  # Note : the download can take a while so this makes sure we don't starts services that are not already on disk
-  echo "[INFO] Download all the required images"
-  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/include/protege_service_deps.yml" pull
-  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/middleware/node-protege.yml" pull
-
-  echo "[INFO] Start nginx"
-  systemctl --user restart "${INSTANCE_NAME}-nginx"
-  sleep 5
-  echo "[INFO] Start middleware"
-  systemctl --user restart "${INSTANCE_NAME}-middleware"
-  sleep 10
-
-  echo "[INFO] Installing applications from catalogue"
-  "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name core --noreload
-  "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name maitredescles --noreload
-  "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name webapiprotege --noreload
-  "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name coupdoeil2 --noreload
-  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/applications.yml" pull
-
-  echo "[INFO] Start services and node manager "
-  systemctl --user reload "${INSTANCE_NAME}-nginx"
-
-  # Enable services on start
-  systemctl --user enable "${INSTANCE_NAME}-nginx"
-  systemctl --user enable --now "${INSTANCE_NAME}-middleware"
-  systemctl --user enable --now  "${INSTANCE_NAME}-applications"
-  systemctl --user enable --now "${INSTANCE_NAME}-manager"
-
-  # Activate the certificate updater with timer
-  systemctl --user enable --now "${INSTANCE_NAME}-certs_updater.timer"
-  systemctl --user enable --now "${INSTANCE_NAME}-certs_updater.service"
-  systemctl --user enable --now "${INSTANCE_NAME}-backup.timer"
-  systemctl --user enable --now "${INSTANCE_NAME}-backup.service"
-  echo "[OK] Services and node manager started"
+#  echo "[INFO] Download and start certissuer"
+#  systemctl --user daemon-reload
+#  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/coremodules/certissuer.yml" pull
+#  systemctl --user enable --now "${INSTANCE_NAME}-certissuer"
+#  sleep 5  # Wait for certissuer to start
+#
+#  echo "[INFO] Generate all local certificates and passwords in secrets directory"
+#  export CA_PATH="${MILLEGRILLES_ROOT}/etc/millegrille.pem"
+#  export CERT_PATH="${MILLEGRILLES_ROOT}/secrets/manager.pem"
+#  export KEY_PATH="${MILLEGRILLES_ROOT}/secrets/manager.pem"
+#  # ,Run manager to generate certificates/passwords
+#  "${PATH_VENV}/bin/python3" -m millegrilles_instance --config "${MILLEGRILLES_ROOT}" --init
+#
+#  # Note : the download can take a while so this makes sure we don't starts services that are not already on disk
+#  echo "[INFO] Download all the required images"
+#  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/include/protege_service_deps.yml" pull
+#  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/middleware/node-protege.yml" pull
+#
+#  echo "[INFO] Start nginx"
+#  systemctl --user restart "${INSTANCE_NAME}-nginx"
+#  sleep 5
+#  echo "[INFO] Start middleware"
+#  systemctl --user restart "${INSTANCE_NAME}-middleware"
+#  sleep 10
+#
+#  echo "[INFO] Installing applications from catalogue"
+#  "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name core --noreload
+#  "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name maitredescles --noreload
+#  "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name webapiprotege --noreload
+#  "${MILLEGRILLES_ROOT}/bin/manage_apps.py" install --name coupdoeil2 --noreload
+#  docker compose -f "${MILLEGRILLES_ROOT}/etc/compose/applications.yml" pull
+#
+#  echo "[INFO] Start services and node manager "
+#  systemctl --user reload "${INSTANCE_NAME}-nginx"
+#
+#  # Enable services on start
+#  systemctl --user enable "${INSTANCE_NAME}-nginx"
+#  systemctl --user enable --now "${INSTANCE_NAME}-middleware"
+#  systemctl --user enable --now  "${INSTANCE_NAME}-applications"
+#  systemctl --user enable --now "${INSTANCE_NAME}-manager"
+#
+#  # Activate the certificate updater with timer
+#  systemctl --user enable --now "${INSTANCE_NAME}-certs_updater.timer"
+#  systemctl --user enable --now "${INSTANCE_NAME}-certs_updater.service"
+#  systemctl --user enable --now "${INSTANCE_NAME}-backup.timer"
+#  systemctl --user enable --now "${INSTANCE_NAME}-backup.service"
+#  echo "[OK] Services and node manager started"
 
   echo "[OK] Protege installation complete, IDMG=${IDMG}."
   echo
