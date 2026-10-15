@@ -355,51 +355,56 @@ install_instance_v2() {
 }
 
 # Use this for installation of a protege or secure instance with an existing CA on other device (air gapped)
-request_signing_ca() {
+request_signing_ca_screen() {
     echo "[INFO] Building CSR for Signing certificate..."
-    mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer"
-
-    # Generate the Signing CA CSR
     . "${PATH_VENV}/bin/activate"
-    IDMG=$(python3 bin/utils/get_idmg.py "${MILLEGRILLES_ROOT}/etc/millegrille.pem")
+
+    # Get IDMG for configuration
+    IDMG=$("${PATH_VENV}/bin/python3" bin/utils/get_idmg.py "${MILLEGRILLES_ROOT}/etc/millegrille.pem")
+    # Generate the Signing CA CSR
     if [ -z "$IDMG" ]; then
       echo "[ERROR] Failed to retrieve IDMG from existing Root CA."
       exit 1
     fi
 
-    # Generate an unencrypted ed25519 private key for the signing CA
-    openssl genpkey -algorithm ed25519 -out "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_key.pem"
+    mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}"
 
-    openssl req -new -key "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_key.pem" \
-      -out "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.csr" \
+    # Copy the root CA certificate for the millegrille into the certissuer domain
+    cp "${MILLEGRILLES_ROOT}/etc/millegrille.pem" "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/ca.pem"
+
+    # Generate an unencrypted ed25519 private key for the signing CA
+    openssl genpkey -algorithm ed25519 -out "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/signing_ca_key.pem"
+
+    openssl req -new -key "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/signing_ca_key.pem" \
+      -out "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/ca.csr" \
       -subj "/CN=${INSTANCE_ID}/OU=${INSTANCE_NAME}/O=${IDMG}"
 
     # Wait for user to paste the certificate
     echo "[INFO] Use the following certificate request"
     echo "[INFO] ---------------------------------------------------"
-    cat "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.csr"
+    cat "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/ca.csr"
     echo "[INFO] ---------------------------------------------------"
     echo "[INFO] Please paste the signed certificate for the Signing CA below and press Ctrl+D:"
-    cat > "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_cert.pem"
+    cat > "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/signing_ca_cert.pem"
 
-    if [ ! -s "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_cert.pem" ]; then
+    if [ ! -s "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/signing_ca_cert.pem" ]; then
       echo "[ERROR] Certificate input was empty."
       exit 1
     fi
 
     # Combine key and certificate into signing_ca.pem
-    cat "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_key.pem" "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_cert.pem" > "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem"
+    cat "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/signing_ca_key.pem" "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/signing_ca_cert.pem" > "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/signing.pem"
 
     # Clean up temporary files
-    rm "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.csr" "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_key.pem" "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca_cert.pem"
+    rm "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/ca.csr" "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/signing_ca_key.pem" "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/signing_ca_cert.pem"
 
     echo "[INFO] Signing CA assembled from user input."
 }
 
 # Use this function to generate all initial certificates from local master key (CA)
-generate_signing_ca() {
+generate_signing_ca_from_master() {
     echo "[INFO] Generating Signing CSR from existing CA..."
-    mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer"
+    mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}"
 
     read -s -p "Enter CA password: " CA_PASSWORD
 
@@ -430,7 +435,7 @@ install_protege_instance() {
     openssl x509 -in "$CA_MASTER_KEY" > "${MILLEGRILLES_ROOT}/etc/millegrille.pem"
 
     echo "[INFO] Generating Signing CA..."
-    generate_signing_ca
+    generate_signing_ca_from_master
   elif [ -n "$EXISTING_CA_CERT" ]; then
     if [ ! -f "$EXISTING_CA_CERT" ]; then
       echo "[ERROR] Existing CA certificate not found at $EXISTING_CA_CERT"
@@ -439,7 +444,7 @@ install_protege_instance() {
     echo "[INFO] Using existing Root CA from $EXISTING_CA_CERT"
     cp "$EXISTING_CA_CERT" "${MILLEGRILLES_ROOT}/etc/millegrille.pem"
 
-    request_signing_ca
+    request_signing_ca_screen
     password="N/A (Using unencrypted signing key)"
   else
     echo "[INFO] Generating Root CA..."
@@ -447,14 +452,17 @@ install_protege_instance() {
     password=$(openssl rand -base64 32)
     ./bin/x509/ca_new.sh $password
 
-    echo "[INFO] Generating Signing CA..."
-    ./bin/x509/ca_signing.sh --password "$password" --instanceid "$INSTANCE_ID"
+    # Get IDMG for configuration
+    IDMG=$("${PATH_VENV}/bin/python3" bin/utils/get_idmg.py "${MILLEGRILLES_ROOT}/etc/millegrille.pem")
+
+    echo "[INFO] Generating Signing CA for ${IDMG}..."
+    ./bin/x509/ca_signing.sh --password "$password" --instanceid "$INSTANCE_ID" --idmg "$IDMG"
   fi
 
   echo "[INFO] Generating Node Certificate..."
   "${PATH_VENV}/bin/python3" bin/x509/sign_protege.py \
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
-    --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem" \
+    --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/signing.pem" \
     --instance-id $INSTANCE_ID
 
   # Get IDMG for configuration
@@ -531,11 +539,11 @@ install_protege_instance() {
 
   echo "[OK] Protege installation complete, IDMG=${IDMG}."
   echo
-  if [ -f "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem" ]; then
+  if [ -f "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/cakey.pem" ]; then
     echo "------------------------------------------------------------------------------"
     echo "# Certificate Authority (CA) PEM File"
-    echo "# ${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
-    cat "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
+    echo "# ${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/cakey.pem"
+    cat "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/cakey.pem"
     echo "------------------------------------------------------------------------------"
     echo "CA Password: $password"
     echo "------------------------------------------------------------------------------"
@@ -559,12 +567,12 @@ install_secure_instance() {
   install_instance_v2
   source "${MILLEGRILLES_ROOT}/config.env"
 
-  request_signing_ca
+  request_signing_ca_screen
 
   echo "[INFO] Generating Node Manager Certificate..."
   "${PATH_VENV}/bin/python3" bin/x509/sign_protege.py \
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
-    --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem" \
+    --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/signing.pem" \
     --instance-id $INSTANCE_ID
 
   echo "[INFO] Preparing node systemd configuration files for secure"

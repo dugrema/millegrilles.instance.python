@@ -18,50 +18,69 @@ if [ -z "${INSTANCE_NAME:-}" ]; then
 fi
 
 usage() {
-  echo "Usage: $0 [--capath <path>] --password <password>"
+  echo "Usage: $0 [--idmg <IDMG>] [--capath <path>] [--password <password>] [--instanceid <instance id>]"
   exit 1
 }
 
-# Define paths
-SIGNING_CA_DIR="${MILLEGRILLES_ROOT}/secrets/certissuer"
-SIGNING_CA_CERT="${SIGNING_CA_DIR}/cert.pem"
-SIGNING_CA_KEY="${SIGNING_CA_DIR}/key.pem"
-ROOT_CA="${SIGNING_CA_DIR}/ca.pem"
+# Activate python venv
+. "${MILLEGRILLES_ROOT}/venv/bin/activate"
 
 # Parse arguments
 PASSWORD=""
+ROOT_CA=""
 while [[ "$#" -gt 0 ]]; do
   case $1 in
     --capath) ROOT_CA="$2"; shift ;;
     --password) PASSWORD="$2"; shift ;;
     --instanceid) INSTANCE_ID="$2"; shift ;;
+    --idmg) IDMG="$2"; shift ;;
     *) usage ;;
   esac
   shift
 done
 
+# Ensure IDMG is set
+if [ -z "${IDMG:-}" ]; then
+  echo "[ERROR] IDMG is not set."
+  exit 1
+fi
+
 # Get INSTANCE_ID or default
 INSTANCE_ID="${INSTANCE_ID:-$(uuidgen 2>/dev/null || echo "default-id")}"
 
 # Check if Root CA exists
+if [ -f "$ROOT_CA" ]; then
+  # Ensure we use proper IDMG
+  IDMG=$(python3 "${MILLEGRILLES_ROOT}/bin/utils/get_idmg.py" "$ROOT_CA")
+  echo "[INFO] Retrieved IDMG: $IDMG"
+  SIGNING_CA_DIR="${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}"
+elif [ -n "$IDMG" ]; then
+  SIGNING_CA_DIR="${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}"
+  ROOT_CA="${SIGNING_CA_DIR}/cakey.pem"
+fi
+
+# Re-check the root ca in case we used IDMG with default root
 if [ ! -f "$ROOT_CA" ]; then
-  echo "[ERROR] Root CA not found at $MILLEGRILLES_ROOT/secrets/certissuer/"
+  echo "[ERROR] Root CA not found at $ROOT_CA and no IDMG provided"
   echo "[INFO] Please run bin/ca_new.sh first."
   exit 1
 fi
 
 # Get IDMG from the Root CA certificate
 #export PYTHONPATH="${PYTHONPATH}:/home/vaicoder1/work/millegrilles.messages.python:$(pwd)"
-# Activate python venv
-. "${MILLEGRILLES_ROOT}/venv/bin/activate"
-IDMG=$(python3 bin/utils/get_idmg.py "$ROOT_CA")
+#IDMG=$(python3 bin/utils/get_idmg.py "$ROOT_CA")
 
-if [ -z "$IDMG" ]; then
-  echo "[ERROR] Failed to retrieve IDMG from Root CA."
-  exit 1
-fi
+#if [ -z "$IDMG" ]; then
+#  echo "[ERROR] Failed to retrieve IDMG from Root CA."
+#  exit 1
+#fi
 
 echo "[INFO] Retrieved IDMG: $IDMG"
+
+# Define paths
+# SIGNING_CA_DIR="${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}"
+SIGNING_CA_CERT="${SIGNING_CA_DIR}/cert.pem"
+SIGNING_CA_KEY="${SIGNING_CA_DIR}/key.pem"
 
 # Create required directories
 mkdir -p "$SIGNING_CA_DIR"
@@ -108,7 +127,7 @@ openssl x509 -req \
   -extensions v3_signing_ca
 
 # 4. Combine key and cert into signing_ca.pem
-cat "$SIGNING_CA_KEY" "$SIGNING_CA_CERT" > "${SIGNING_CA_DIR}/signing_ca.pem"
+cat "$SIGNING_CA_KEY" "$SIGNING_CA_CERT" > "${SIGNING_CA_DIR}/signing.pem"
 
 # Cleanup CSR, serial file and separate key/cert
 rm "${SIGNING_CA_DIR}/ca.csr"

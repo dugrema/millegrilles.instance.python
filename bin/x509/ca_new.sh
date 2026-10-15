@@ -11,9 +11,10 @@ fi
 
 # Get INSTANCE_NAME or default
 INSTANCE_NAME="${INSTANCE_NAME:-millegrille}"
+CERTISSUER_PATH="${MILLEGRILLES_ROOT}/secrets/certissuer"
 
 # Create required directories
-mkdir -p "${MILLEGRILLES_ROOT}/secrets/certissuer"
+mkdir -p "${CERTISSUER_PATH}/tmp"
 
 # Generate a random password for the root CA
 # PASSWORD=$(openssl rand -base64 32)
@@ -40,44 +41,47 @@ authorityKeyIdentifier = keyid:always
 EOF
 
 # 1. Generate the encrypted ed25519 private key
-openssl genpkey -algorithm ed25519 -aes256 -out "${MILLEGRILLES_ROOT}/secrets/certissuer/ca_key.pem" -pass "pass:$PASSWORD"
+openssl genpkey -algorithm ed25519 -aes256 -out "${CERTISSUER_PATH}/tmp/ca_key.pem" -pass "pass:$PASSWORD"
 
 # 2. Generate the self-signed certificate
 # We use a CSR then sign it with x509 to ensure extensions are handled correctly
-openssl req -new -key "${MILLEGRILLES_ROOT}/secrets/certissuer/ca_key.pem" \
+openssl req -new -key "${CERTISSUER_PATH}/tmp/ca_key.pem" \
   -passin "pass:$PASSWORD" \
-  -out "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.csr" \
+  -out "${CERTISSUER_PATH}/tmp/ca.csr" \
   -subj "/CN=${INSTANCE_NAME}/O=MilleGrillles"
 
 openssl x509 -req \
-  -in "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.csr" \
-  -signkey "${MILLEGRILLES_ROOT}/secrets/certissuer/ca_key.pem" \
+  -in "${CERTISSUER_PATH}/tmp/ca.csr" \
+  -signkey "${CERTISSUER_PATH}/tmp/ca_key.pem" \
   -passin "pass:$PASSWORD" \
-  -out "${MILLEGRILLES_ROOT}/secrets/certissuer/ca_cert.pem" \
+  -out "${CERTISSUER_PATH}/tmp/ca.pem" \
   -days 7300 \
   -extfile "$TMP_CONF" \
   -extensions v3_ca
 
 # Clean up CSR
-rm "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.csr"
+rm "${CERTISSUER_PATH}/tmp/ca.csr"
 
 # 3. Copy the certificate to the requested location
-cp "${MILLEGRILLES_ROOT}/secrets/certissuer/ca_cert.pem" "${MILLEGRILLES_ROOT}/etc/millegrille.pem"
+cp "${CERTISSUER_PATH}/tmp/ca.pem" "${MILLEGRILLES_ROOT}/etc/millegrille.pem"
 
 # 4. Get the IDMG hash value
 . "${MILLEGRILLES_ROOT}/venv/bin/activate"
-IDMG=$(python3 bin/utils/get_idmg.py "${MILLEGRILLES_ROOT}/secrets/certissuer/ca_cert.pem")
+IDMG=$(python3 bin/utils/get_idmg.py "${CERTISSUER_PATH}/tmp/ca.pem")
+
+# 5. Move the old tmp/ folder to the certissuer domain (by IDMG)
+CERTDOMAIN_PATH="${CERTISSUER_PATH}/${IDMG}"
+mv "${CERTISSUER_PATH}/tmp" "$CERTDOMAIN_PATH"
 
 # Combine encrypted key and cert into single file
-echo "# MilleGrilles self-signed CA key" > "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
-echo "# Instance: $INSTANCE_NAME" >> "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
-echo "# IDMG: $IDMG" >> "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
-cat "${MILLEGRILLES_ROOT}/secrets/certissuer/ca_key.pem" \
-    "${MILLEGRILLES_ROOT}/secrets/certissuer/ca_cert.pem" >> "${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
+echo "# MilleGrilles self-signed CA key" > "${CERTDOMAIN_PATH}/cakey.pem"
+echo "# Instance: $INSTANCE_NAME" >> "${CERTDOMAIN_PATH}/cakey.pem"
+echo "# IDMG: $IDMG" >> "${CERTDOMAIN_PATH}/cakey.pem"
+cat "${CERTDOMAIN_PATH}/ca_key.pem" \
+    "${CERTDOMAIN_PATH}/ca.pem" >> "${CERTDOMAIN_PATH}/cakey.pem"
 
-# Remove old separate files
-rm "${MILLEGRILLES_ROOT}/secrets/certissuer/ca_cert.pem" \
-   "${MILLEGRILLES_ROOT}/secrets/certissuer/ca_key.pem"
+# Remove old key file, keep ca.pem and cakey.pem
+rm "${CERTDOMAIN_PATH}/ca_key.pem"
 
 echo "[INFO] Root CA generated successfully."
 echo
@@ -86,5 +90,5 @@ echo "Root CA Password for $INSTANCE_NAME: $PASSWORD"
 echo "------------------------------------------------------------------------------"
 echo
 echo "[WARN] You *MUST* save this password (e.g. in a password manager), this is the only time it will be shown."
-echo "[INFO] You can test it by running: openssl pkey -noout -text -in ${MILLEGRILLES_ROOT}/secrets/certissuer/ca.pem"
+echo "[INFO] You can test it by running: openssl pkey -noout -text -in ${CERTDOMAIN_PATH}/ca.pem"
 
