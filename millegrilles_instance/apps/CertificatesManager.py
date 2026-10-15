@@ -121,10 +121,9 @@ class CertificatesManager:
 
     async def __conditional_renew_manager(self):
         signing_key = self.__context.signing_key
-        expiration = signing_key.enveloppe.not_valid_after
-        now = datetime.datetime.now(tz=pytz.UTC)
-        if expiration - now < datetime.timedelta(days=7):
-            self.__logger.debug(f"Manager certificate can be renewed, expires on {expiration}")
+        expiration_info = signing_key.enveloppe.calculer_expiration()
+        if expiration_info.get('renouveler'):
+            self.__logger.debug(f"Manager certificate can be renewed, expires on {signing_key.enveloppe.not_valid_after}")
             await self.__renew_manager_certificate()
             self.__logger.debug(f"Manager certificate renewed, reloading configuration")
             await self.__context.reload_wait()
