@@ -402,9 +402,11 @@ class SystemStatusManager:
 
         url_parsed = urlparse(certissuer_url + "/certificate.pem")
         try:
+            idmg = self.__context.idmg
             async with ClientSession(timeout=ClientTimeout(2)) as session:
-                async with session.get(url_parsed.geturl()) as response:
+                async with session.get(url_parsed.geturl(), params={'idmg': idmg}) as response:
                     signing_pem = await response.text()
+            response.raise_for_status()
         except (ClientError, asyncio.TimeoutError) as e:
             self.__logger.debug(f"Error connecting to local certissuer: {e}")
             self.__next_certissuer_check = now + datetime.timedelta(minutes = 5)

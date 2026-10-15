@@ -247,7 +247,8 @@ async def check_certissuer_available(context: InstanceContext):
     else:
         session = ClientSession(timeout=timeout)
     try:
-        async with session.get(url_issuer) as response:
+        idmg = context.idmg
+        async with session.get(url_issuer, params={'idmg': idmg}) as response:
             return response.status == 200
     except (ClientError, asyncio.TimeoutError) as e:
         LOGGER.info(f"Local certissuer not available: {e}")
