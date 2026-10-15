@@ -58,22 +58,22 @@ def main():
         except Exception as e:
             print(f"[WARN] Error loading PEM, will renew certificate: {e}")
 
-    # 1. Load the CA
-    with open(ca_pem_path, 'r') as f:
-        ca_pem_content = f.read()
-    
-    import re
-    key_match = re.search(r'-----BEGIN\s+PRIVATE\s+KEY-----.*?-----END\s+PRIVATE\s+KEY-----', ca_pem_content, re.DOTALL)
-    cert_match = re.search(r'-----BEGIN\s+CERTIFICATE-----.*?-----END\s+CERTIFICATE-----', ca_pem_content, re.DOTALL)
-    
-    if not key_match or not cert_match:
-        print("Error: Could not find both Key and Certificate in the CA PEM")
-        sys.exit(1)
-        
-    ca_key_pem = key_match.group(0)
-    ca_cert_pem = cert_match.group(0)
-
-    cle_ca = CleCertificat.from_pems(ca_key_pem, ca_cert_pem, password=ca_password)
+    # # 1. Load the CA
+    # with open(ca_pem_path, 'r') as f:
+    #     ca_pem_content = f.read()
+    #
+    # import re
+    # key_match = re.search(r'-----BEGIN\s+PRIVATE\s+KEY-----.*?-----END\s+PRIVATE\s+KEY-----', ca_pem_content, re.DOTALL)
+    # cert_match = re.search(r'-----BEGIN\s+CERTIFICATE-----.*?-----END\s+CERTIFICATE-----', ca_pem_content, re.DOTALL)
+    #
+    # if not key_match or not cert_match:
+    #     print("Error: Could not find both Key and Certificate in the CA PEM")
+    #     sys.exit(1)
+    #
+    # ca_key_pem = key_match.group(0)
+    # ca_cert_pem = cert_match.group(0)
+    #
+    cle_ca = CleCertificat.from_files(ca_pem_path, ca_pem_path, password=ca_password)
 
     # 2. Generate a CSR
     idmg = cle_ca.enveloppe.idmg

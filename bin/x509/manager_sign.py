@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 import os
 import pathlib
+from typing import Optional
+
 import sys
 import argparse
 from datetime import timedelta
@@ -27,7 +29,7 @@ def main():
 
     # instance_id = args.instance_id
     days = args.days
-    ca_pem_path = args.ca_pem
+    ca_pem_path: Optional[str] = args.ca_pem
     if not ca_pem_path:
         ca_pem_path = millegrilles_root / "secrets/certissuer" / "signing_ca.pem"
     ca_password = args.ca_password
@@ -40,18 +42,18 @@ def main():
     with open(ca_pem_path, 'r') as f:
         ca_pem_content = f.read()
     
-    import re
-    key_match = re.search(r'-----BEGIN\s+PRIVATE\s+KEY-----.*?-----END\s+PRIVATE\s+KEY-----', ca_pem_content, re.DOTALL)
-    cert_match = re.search(r'-----BEGIN\s+CERTIFICATE-----.*?-----END\s+CERTIFICATE-----', ca_pem_content, re.DOTALL)
-    
-    if not key_match or not cert_match:
-        print("Error: Could not find both Key and Certificate in the CA PEM")
-        sys.exit(1)
-        
-    ca_key_pem = key_match.group(0)
-    ca_cert_pem = cert_match.group(0)
+    # import re
+    # key_match = re.search(r'-----BEGIN\s+PRIVATE\s+KEY-----.*?-----END\s+PRIVATE\s+KEY-----', ca_pem_content, re.DOTALL)
+    # cert_match = re.search(r'-----BEGIN\s+CERTIFICATE-----.*?-----END\s+CERTIFICATE-----', ca_pem_content, re.DOTALL)
+    #
+    # if not key_match or not cert_match:
+    #     print("Error: Could not find both Key and Certificate in the CA PEM")
+    #     sys.exit(1)
+    #
+    # ca_key_pem = key_match.group(0)
+    # ca_cert_pem = cert_match.group(0)
 
-    cle_ca = CleCertificat.from_pems(ca_key_pem, ca_cert_pem, password=ca_password)
+    cle_ca = CleCertificat.from_files(ca_pem_path, ca_pem_path, password=ca_password)
     instance_id = cle_ca.enveloppe.subject_common_name
 
     # 2. Generate a CSR
