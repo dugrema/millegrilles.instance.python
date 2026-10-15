@@ -2,16 +2,16 @@ name: ${INSTANCE_NAME}-x509
 
 services:
   certissuer:
-    image: registry.millegrilles.com/millegrilles/midcompte_python:2026.4.28
+    image: registry.millegrilles.com/millegrilles/midcompte_python:2026.4.29
     ports:
       - "2080:2080"
     user: "${CONTAINER_UID}:${CONTAINER_GID}"
     command: ["-m", "millegrilles_certissuer"]
     environment:
-      - INSTANCE_ID="${INSTANCE_ID}"
       - WEB_PORT=2080
-      - CA_CERT_PATH=/run/secrets/millegrille.pem
-      - SIGNING_CERT_PATH=/run/secrets/signing_ca.pem
+      - SIGNING_PATH=/domains
+    volumes:
+      - ${MILLEGRILLES_ROOT}/secrets/certissuer:/domains:rw
     networks:
       - app_net
     deploy:
@@ -23,25 +23,11 @@ services:
         condition: any
         delay: 5s
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://127.0.0.1:2080/certificate.pem" ]
+      test: [ "CMD", "curl", "-f", "http://127.0.0.1:2080/hosting" ]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 5s
-    configs:
-      - source: millegrille_cert
-        target: /run/secrets/millegrille.pem
-    secrets:
-      - source: signing_key
-        target: signing_ca.pem
-
-configs:
-  millegrille_cert:
-    file: ${MILLEGRILLES_ROOT}/etc/millegrille.pem
-
-secrets:
-  signing_key:
-    file: ${MILLEGRILLES_ROOT}/secrets/certissuer/signing_ca.pem
 
 networks:
   app_net:
