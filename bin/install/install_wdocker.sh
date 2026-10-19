@@ -410,6 +410,7 @@ generate_signing_ca_from_master() {
 
     echo "[INFO] Generating Signing CA..."
     ./bin/x509/ca_signing.sh --password "$CA_PASSWORD" --instanceid "$INSTANCE_ID" --capath "$CA_MASTER_KEY"
+    cp "${MILLEGRILLES_ROOT}/etc/millegrille.pem" "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/ca.pem"
 
     echo "[INFO] Signing CA ready."
 }
@@ -434,7 +435,10 @@ install_protege_instance() {
     echo "[INFO] Using existing Root CA from $CA_MASTER_KEY"
     openssl x509 -in "$CA_MASTER_KEY" > "${MILLEGRILLES_ROOT}/etc/millegrille.pem"
 
-    echo "[INFO] Generating Signing CA..."
+    IDMG=$("${PATH_VENV}/bin/python3" bin/utils/get_idmg.py "$CA_MASTER_KEY")
+    export IDMG
+
+    echo "[INFO] Generating CSR from signing CA (IDMG: $IDMG)..."
     generate_signing_ca_from_master
   elif [ -n "$EXISTING_CA_CERT" ]; then
     if [ ! -f "$EXISTING_CA_CERT" ]; then

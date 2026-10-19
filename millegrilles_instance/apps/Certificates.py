@@ -238,7 +238,7 @@ async def signer_module_core(producer: MilleGrillesPikaMessageProducer, context:
 
 async def check_certissuer_available(context: InstanceContext):
     config = context.configuration
-    url_issuer = f"{config.certissuer_url}/certificate.pem"
+    url_issuer = f"{config.certissuer_url}/hosting"
     timeout = ClientTimeout(3)
     if url_issuer.startswith('https'):
         connector = TCPConnector(ssl=context.ssl_context)
