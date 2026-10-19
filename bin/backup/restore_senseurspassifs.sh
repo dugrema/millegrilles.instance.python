@@ -13,7 +13,8 @@ if [ ! -f "$CA_KEY_PATH" ]; then
 fi
 
 APP_YAML="${MILLEGRILLES_ROOT}/etc/compose/applications.yml"
+export RUST_LOG=error,millegrilles_senseurspassifs=info,millegrilles_common_rust=warn
 
 docker compose -f "$APP_YAML" down senseurspassifs_backend
-docker compose -f "$APP_YAML" run --rm senseurspassifs_backend ./millegrilles_senseurspassifs --restore --capath /var/opt/millegrilles/archives/ca.pem
+docker compose -f "$APP_YAML" run -e RUST_LOG --rm senseurspassifs_backend ./millegrilles_senseurspassifs --restore --capath /var/opt/millegrilles/archives/ca.pem
 docker compose -f "$APP_YAML" up -d --remove-orphans senseurspassifs_backend
