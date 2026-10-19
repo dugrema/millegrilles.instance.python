@@ -13,9 +13,10 @@ if [ ! -f "$CA_KEY_PATH" ]; then
 fi
 
 APP_YAML="${MILLEGRILLES_ROOT}/etc/compose/applications.yml"
+export RUST_LOG="error,millegrilles_coreaccounts_rust=info,millegrilles_common_rust=warn"
 
 SERVICE_NAME=coreaccounts
 docker compose -f "$APP_YAML" down $SERVICE_NAME
 # docker compose -f "$APP_YAML" run --rm $SERVICE_NAME ./millegrilles_coreaccounts_rust --restore --capath /var/opt/millegrilles/archives/ca.pem
-docker compose -f "$APP_YAML" run --rm $SERVICE_NAME ./millegrilles_coreaccounts_rust --restore --noresume --capath /var/opt/millegrilles/archives/ca.pem
+docker compose -f "$APP_YAML" run -e RUST_LOG --rm $SERVICE_NAME ./millegrilles_coreaccounts_rust --restore --noresume --capath /var/opt/millegrilles/archives/ca.pem
 docker compose -f "$APP_YAML" up -d --remove-orphans $SERVICE_NAME
