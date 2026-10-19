@@ -460,7 +460,7 @@ install_protege_instance() {
   fi
 
   echo "[INFO] Generating Node Certificate..."
-  "${PATH_VENV}/bin/python3" bin/x509/sign_protege.py \
+  "${PATH_VENV}/bin/python3" bin/x509/manager_protege.py \
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
     --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/signing.pem" \
     --instance-id $INSTANCE_ID
@@ -570,7 +570,7 @@ install_secure_instance() {
   request_signing_ca_screen
 
   echo "[INFO] Generating Node Manager Certificate..."
-  "${PATH_VENV}/bin/python3" bin/x509/sign_protege.py \
+  "${PATH_VENV}/bin/python3" bin/x509/manager_protege.py \
     --millegrilles-root "${MILLEGRILLES_ROOT}" \
     --ca-pem "${MILLEGRILLES_ROOT}/secrets/certissuer/${IDMG}/signing.pem" \
     --instance-id $INSTANCE_ID
