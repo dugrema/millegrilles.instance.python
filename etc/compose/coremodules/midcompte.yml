@@ -1,6 +1,6 @@
 services:
   midcompte:
-    image: registry.millegrilles.com/millegrilles/midcompte_python:2026.4.29
+    image: registry.millegrilles.com/millegrilles/midcompte_python:2026.6.31
     x-millegrilles-certificat:
       roles:
         - midcompte
