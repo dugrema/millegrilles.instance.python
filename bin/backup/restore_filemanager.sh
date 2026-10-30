@@ -19,6 +19,6 @@ APP_YAML="${MILLEGRILLES_ROOT}/etc/compose/applications.yml"
 export RUST_LOG="error,${EXEC_NAME}=info,millegrilles_common_rust=info"
 
 docker compose -f "$APP_YAML" down $SERVICE_NAME
-docker compose -f "$APP_YAML" run --rm $SERVICE_NAME ./${EXEC_NAME} --restore --capath /var/opt/millegrilles/archives/ca.pem
+docker compose -f "$APP_YAML" run -e RUST_LOG --rm $SERVICE_NAME ./${EXEC_NAME} --restore --capath /var/opt/millegrilles/archives/ca.pem
 # docker compose -f "$APP_YAML" run -e RUST_LOG --rm $SERVICE_NAME ./${EXEC_NAME} --restore --noresume --capath /var/opt/millegrilles/archives/ca.pem
 docker compose -f "$APP_YAML" up -d --remove-orphans $SERVICE_NAME
