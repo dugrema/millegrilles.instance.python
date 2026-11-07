@@ -32,7 +32,7 @@ def main():
     #         millegrilles_root = pathlib.Path(os.environ["MILLEGRILLES_ROOT"])
     #     intermediate_ca_pem_path = millegrilles_root / "secrets/certissuer" / "signing_ca.pem"
 
-    intermediate_ca_password = args.ca_password
+    intermediate_ca_password = args.password
 
     if not os.path.exists(intermediate_ca_pem_path):
         print(f"Error: CA PEM not found at {intermediate_ca_pem_path}")
