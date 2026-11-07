@@ -259,7 +259,8 @@ install_public_instance() {
   cp -iv "${REP_ETC}/nginx/nginx_prive/"* "${MILLEGRILLES_ROOT}/etc/nginx"
 
   echo "[INFO] Requesting Node Manager Certificate..."
-  "${PATH_VENV}/bin/python3" bin/x509/request_satellite.py
+  # "${PATH_VENV}/bin/python3" bin/x509/request_satellite.py
+  "${PATH_VENV}/bin/python3" bin/x509/manager_request.py
 
   # Initialize the local filehost repository
   mkdir -p "${MILLEGRILLES_ROOT}/var/filehost/files/${IDMG}"
