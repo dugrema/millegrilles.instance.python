@@ -2,7 +2,7 @@ name: ${INSTANCE_NAME}_redmine
 
 services:
   redminemariadb:
-    image: "registry.millegrilles.com/redmine/mariadb:10.5-redmine"
+    image: "nexus.maple.maceroc.com/redmine/mariadb:10.5-redmine"
     x-millegrilles-certificat:
       passwords:
         - mariadb_password
@@ -29,7 +29,7 @@ services:
       - app_net
 
   redmine:
-    image: "registry.millegrilles.com/redmine/redmine:4.1-alpine-redminepath"
+    image: "nexus.maple.maceroc.com/redmine/redmine:4.1-alpine-redminepath"
     environment:
       - REDMINE_DB_MYSQL=redminemariadb
       - REDMINE_DB_USERNAME=redmine
