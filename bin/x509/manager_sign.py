@@ -14,7 +14,7 @@ from cryptography.x509.base import CertificateBuilder
 
 def main():
     parser = argparse.ArgumentParser(description="Generate a node manager certificate using MilleGrilles library from an intermediate CA certificate.")
-    parser.add_argument("--pem", required=True, help="Path to the combined Intermediate CA PEM (key + cert)")
+    parser.add_argument("--key", required=True, help="Path to the combined Intermediate CA PEM (key + cert)")
     # parser.add_argument("--millegrilles-root", required=False, help="MILLEGRILLES_ROOT directory")
     parser.add_argument("--password", required=False, help="Password for the CA private key")
     parser.add_argument("--days", type=int, default=93, help="Validity days for the node certificate")
@@ -24,7 +24,7 @@ def main():
 
     # instance_id = args.instance_id
     days = args.days
-    intermediate_ca_pem_path: str = args.ca_pem
+    intermediate_ca_pem_path: str = args.key
     # if not intermediate_ca_pem_path:
     #     if args.millegrilles_root:
     #         millegrilles_root = pathlib.Path(args.millegrilles_root)
