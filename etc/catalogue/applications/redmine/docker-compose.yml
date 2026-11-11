@@ -2,7 +2,7 @@ name: ${INSTANCE_NAME}_redmine
 
 services:
   redminemariadb:
-    image: "nexus.maple.maceroc.com/redmine/mariadb:10.5-redmine"
+    image: "nexus.maple.maceroc.com/docker_millegrilles/redmine/mariadb:10.5-redmine"
     x-millegrilles-certificat:
       passwords:
         - mariadb_password
