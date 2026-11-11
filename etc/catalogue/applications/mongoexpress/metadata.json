@@ -1,6 +1,6 @@
 {
   "name": "mongoexpress",
-  "version": "2026.7.1",
+  "version": "2026.7.2",
   "securite": "3.protege",
   "labels": {
     "en": "MongoExpress Client application for MongoDB",

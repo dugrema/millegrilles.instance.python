@@ -1,6 +1,6 @@
 services:
   redis:
-    image: nexus.maple.maceroc.com/millegrilles/redis:8.10.0-alpine.master-b5
+    image: nexus.maple.maceroc.com/docker_millegrilles/millegrilles/redis:8.10.0-alpine.master-b5
     x-millegrilles-certificat:
       roles:
         - redis

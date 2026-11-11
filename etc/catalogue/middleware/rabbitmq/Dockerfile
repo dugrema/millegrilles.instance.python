@@ -1,5 +1,5 @@
 # Use management image for RabbitMQ
-FROM rabbitmq:4.3.4-management-alpine
+FROM nexus.maple.maceroc.com/docker_proxy/rabbitmq:4.3.4-management-alpine
 
 COPY config/rabbitmq.conf /etc/rabbitmq/
 COPY config/management.conf /etc/rabbitmq/conf.d/

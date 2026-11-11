@@ -1,6 +1,6 @@
 services:
   mongoexpress:
-    image: nexus.maple.maceroc.com/millegrilles/mongoexpress:1.0.2-20-alpine3.19.master.b3
+    image: nexus.maple.maceroc.com/docker_millegrilles/millegrilles/mongoexpress:1.0.2-20-alpine3.19.master.b3
     x-millegrilles-certificat:
       roles:
         - mongoexpress

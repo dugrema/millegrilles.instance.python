@@ -1,6 +1,6 @@
 services:
   mq:
-    image: nexus.maple.maceroc.com/millegrilles/rabbitmq:4.3.4-management-alpine-b6
+    image: nexus.maple.maceroc.com/docker_millegrilles/millegrilles/rabbitmq:4.3.4-management-alpine-b6
     x-millegrilles-certificat:
       roles:
         - mq

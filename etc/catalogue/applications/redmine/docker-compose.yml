@@ -29,7 +29,7 @@ services:
       - app_net
 
   redmine:
-    image: "nexus.maple.maceroc.com/redmine/redmine:4.1-alpine-redminepath"
+    image: "nexus.maple.maceroc.com/docker_millegrilles/redmine/redmine:4.1-alpine-redminepath"
     environment:
       - REDMINE_DB_MYSQL=redminemariadb
       - REDMINE_DB_USERNAME=redmine
