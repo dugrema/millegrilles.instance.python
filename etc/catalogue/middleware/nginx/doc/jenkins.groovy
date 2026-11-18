@@ -2,7 +2,7 @@ pipeline {
     agent { label 'x86_64' }
 
     parameters {
-        string(defaultValue: '1.31', name: 'TAG')
+        string(defaultValue: '1.31.9', name: 'TAG')
         string(defaultValue: 'master', name: 'BRANCH')
         string(defaultValue: 'jenkins-maple', name: 'CREDENTIALS_ID')
         string(defaultValue: 'ssh://git.maple.maceroc.com/git/millegrilles.instance.python.git', name: 'GIT_URL')

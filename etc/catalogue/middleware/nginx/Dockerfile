@@ -1,4 +1,4 @@
-FROM nexus.maple.maceroc.com/docker_proxy/nginx:1.31.8-alpine
+FROM nexus.maple.maceroc.com/docker_proxy/nginx:1.31.9-alpine
 
 ENV APP_BUNDLE_DIR=/opt/nginx/dist
 
