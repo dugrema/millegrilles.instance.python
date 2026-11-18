@@ -5,8 +5,8 @@ pipeline {
         string(defaultValue: '1.31.9', name: 'TAG')
         string(defaultValue: 'master', name: 'BRANCH')
         string(defaultValue: 'jenkins-maple', name: 'CREDENTIALS_ID')
-        string(defaultValue: 'ssh://git.maple.maceroc.com/git/millegrilles.instance.python.git', name: 'GIT_URL')
-        string(defaultValue: 'vmhost2.maple.maceroc.com/millegrilles/nginx', name: 'DOCKER_IMAGE')
+        string(defaultValue: 'ssh://git@git.maple.maceroc.com/git/millegrilles.instance.python.git', name: 'GIT_URL')
+        string(defaultValue: 'nexus.maple.maceroc.com/docker_millegrilles/millegrilles/nginx', name: 'DOCKER_IMAGE')
     }
 
     environment {
